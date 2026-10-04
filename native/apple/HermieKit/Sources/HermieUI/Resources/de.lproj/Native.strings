@@ -1846,6 +1846,14 @@
 	<string>Diese Nachricht (%@) braucht eine neuere Version von Hermie.</string>
 	<key>native.voice.automatic</key>
 	<string>Automatisch</string>
+	<key>native.voice.bargeIn</key>
+	<string>Durch Sprechen unterbrechen</string>
+	<key>native.voice.bargeInHint</key>
+	<string>Sprich während des Vorlesens, um es zu stoppen, wo das Gerät deine Stimme von seiner eigenen unterscheiden kann.</string>
+	<key>native.voice.captions</key>
+	<string>Untertitel anzeigen</string>
+	<key>native.voice.confirmHint</key>
+	<string>Zeigt, was verstanden wurde, mit Senden, Bearbeiten und Verwerfen, bevor es rausgeht.</string>
 	<key>native.voice.dictation</key>
 	<string>Diktieren</string>
 	<key>native.voice.dictationNote</key>
@@ -1858,11 +1866,137 @@
 	<string>Vorlesen</string>
 	<key>native.voice.readingFooter</key>
 	<string>Stimme und Tempo gelten für jeden Chat. Antworten werden von den eigenen Stimmen dieses Geräts vorgelesen; es wird nichts gesendet.</string>
+	<key>native.voice.silence</key>
+	<string>Pause vor dem Senden</string>
 	<key>native.voice.unavailable</key>
 	<string>Sprache ist auf diesem Gerät nicht verfügbar.</string>
 	<key>native.voice.voice</key>
 	<string>Stimme</string>
+	<key>native.voice.voiceAndOrb</key>
+	<string>Stimme und Kugel</string>
 	<key>native.voice.voiceFooter</key>
 	<string>Eine Stimme, die du wählst, liest Antworten in ihrer eigenen Sprache vor. Eine Antwort in einer anderen Sprache liest die Systemstimme für diese Sprache vor.</string>
+	<key>native.voice.voiceModeFooter</key>
+	<string>Der Sprachmodus ist ein Gespräch mit einem Bot: Er hört auf diesem Gerät zu, sendet nach einer Pause, was du gesagt hast, und liest die Antwort vor, während sie eintrifft. Freigaben und Fragen werden nie per Stimme beantwortet.</string>
+	<key>native.voiceMode.confirmTitle</key>
+	<string>Das senden?</string>
+	<key>native.voiceMode.discard</key>
+	<string>Verwerfen</string>
+	<key>native.voiceMode.edit</key>
+	<string>Bearbeiten</string>
+	<key>native.voiceMode.end</key>
+	<string>Beenden</string>
+	<key>native.voiceMode.failedAudio</key>
+	<string>Der Ton konnte nicht gestartet werden. Vielleicht verwendet ihn eine andere App.</string>
+	<key>native.voiceMode.failedNotSent</key>
+	<string>Deine Nachricht konnte nicht gesendet werden.</string>
+	<key>native.voiceMode.failedOther</key>
+	<string>Das Zuhören hat unerwartet aufgehört.</string>
+	<key>native.voiceMode.failedPermission</key>
+	<string>Hermie darf das Mikrofon oder die Spracherkennung nicht verwenden. Du kannst beides in den Einstellungen erlauben.</string>
+	<key>native.voiceMode.failedUnavailable</key>
+	<string>Spracherkennung für diese Sprache ist auf diesem Gerät nicht verfügbar.</string>
+	<key>native.voiceMode.filler.generic1</key>
+	<string>Einen Moment…</string>
+	<key>native.voiceMode.filler.generic2</key>
+	<string>Lass mich kurz nachdenken…</string>
+	<key>native.voiceMode.filler.generic3</key>
+	<string>Eine Sekunde…</string>
+	<key>native.voiceMode.filler.reading1</key>
+	<string>Ich sehe es mir an…</string>
+	<key>native.voiceMode.filler.reading2</key>
+	<string>Ich lese es kurz…</string>
+	<key>native.voiceMode.filler.search1</key>
+	<string>Ich schaue kurz nach…</string>
+	<key>native.voiceMode.filler.search2</key>
+	<string>Ich suche…</string>
+	<key>native.voiceMode.filler.working1</key>
+	<string>Ich bin dran…</string>
+	<key>native.voiceMode.filler.working2</key>
+	<string>Noch einen Moment…</string>
+	<key>native.voiceMode.mute</key>
+	<string>Stummschalten</string>
+	<key>native.voiceMode.muted</key>
+	<string>Stummgeschaltet</string>
+	<key>native.voiceMode.paused</key>
+	<string>Pausiert</string>
+	<key>native.voiceMode.pausedInterruption</key>
+	<string>Von einer anderen App unterbrochen</string>
+	<key>native.voiceMode.pausedRequest</key>
+	<string>Pausiert, bis die Anfrage beantwortet ist</string>
+	<key>native.voiceMode.resume</key>
+	<string>Fortsetzen</string>
+	<key>native.voiceMode.send</key>
+	<string>Senden</string>
+	<key>native.voiceMode.sendNow</key>
+	<string>Jetzt senden</string>
+	<key>native.voiceMode.settings</key>
+	<string>Spracheinstellungen</string>
+	<key>native.voiceMode.starting</key>
+	<string>Wird gestartet…</string>
+	<key>native.voiceMode.tryAgain</key>
+	<string>Erneut versuchen</string>
+	<key>native.voiceMode.unmute</key>
+	<string>Stummschaltung aufheben</string>
+	<key>native.voiceSetup.automatic</key>
+	<string>Automatisch</string>
+	<key>native.voiceSetup.betterVoicesIOS</key>
+	<string>Für diese Sprache sind nur einfache Stimmen installiert. Bessere Stimmen kannst du unter Einstellungen › Bedienungshilfen › Gesprochene Inhalte › Stimmen laden.</string>
+	<key>native.voiceSetup.betterVoicesMac</key>
+	<string>Für diese Sprache sind nur einfache Stimmen installiert. Bessere Stimmen kannst du in den Systemeinstellungen › Bedienungshilfen › Gesprochene Inhalte laden.</string>
+	<key>native.voiceSetup.continue</key>
+	<string>Weiter</string>
+	<key>native.voiceSetup.done</key>
+	<string>Fertig</string>
+	<key>native.voiceSetup.expressivity</key>
+	<string>Ausdruckskraft</string>
+	<key>native.voiceSetup.language</key>
+	<string>Sprache</string>
+	<key>native.voiceSetup.noVoices</key>
+	<string>Auf diesem Gerät sind keine Stimmen verfügbar.</string>
+	<key>native.voiceSetup.orb</key>
+	<string>Kugel</string>
+	<key>native.voiceSetup.orbClouds</key>
+	<string>Wolken</string>
+	<key>native.voiceSetup.orbLight</key>
+	<string>Licht</string>
+	<key>native.voiceSetup.pace</key>
+	<string>Tempo</string>
+	<key>native.voiceSetup.percent</key>
+	<string>%lld Prozent</string>
+	<key>native.voiceSetup.personalDenied</key>
+	<string>Hermie darf deine persönliche Stimme nicht verwenden. Du kannst das in den Systemeinstellungen erlauben.</string>
+	<key>native.voiceSetup.personalDetail</key>
+	<string>Sprich mit deiner eigenen Stimme. Eine persönliche Stimme wird auf diesem Gerät erstellt und gespeichert.</string>
+	<key>native.voiceSetup.personalNone</key>
+	<string>Auf diesem Gerät wurde keine persönliche Stimme gefunden. Du kannst eine in den Bedienungshilfen-Einstellungen erstellen.</string>
+	<key>native.voiceSetup.personalTitle</key>
+	<string>Persönliche Stimme</string>
+	<key>native.voiceSetup.personalUse</key>
+	<string>Meine persönliche Stimme verwenden</string>
+	<key>native.voiceSetup.qualityCompact</key>
+	<string>einfach</string>
+	<key>native.voiceSetup.qualityEnhanced</key>
+	<string>erweitert</string>
+	<key>native.voiceSetup.qualityPersonal</key>
+	<string>persönliche Stimme</string>
+	<key>native.voiceSetup.qualityPremium</key>
+	<string>Premium</string>
+	<key>native.voiceSetup.sample</key>
+	<string>Hallo, so klinge ich. Ich lese die Antworten deiner Bots mit dieser Stimme vor.</string>
+	<key>native.voiceSetup.selected</key>
+	<string>ausgewählt</string>
+	<key>native.voiceSetup.source</key>
+	<string>Quelle</string>
+	<key>native.voiceSetup.sourceDevice</key>
+	<string>Auf diesem Gerät (Apple)</string>
+	<key>native.voiceSetup.subtitle</key>
+	<string>Bots sprechen in Anrufen mit dieser Stimme. Alles wird auf diesem Gerät gesprochen.</string>
+	<key>native.voiceSetup.title</key>
+	<string>Wähle eine Stimme</string>
+	<key>native.voiceSetup.voice</key>
+	<string>Stimme</string>
+	<key>native.voiceSetup.voiceNumber</key>
+	<string>Stimme %lld</string>
 </dict>
 </plist>

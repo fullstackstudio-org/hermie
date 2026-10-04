@@ -1846,6 +1846,14 @@
 	<string>Dit bericht (%@) heeft een nieuwere versie van Hermie nodig.</string>
 	<key>native.voice.automatic</key>
 	<string>Automatisch</string>
+	<key>native.voice.bargeIn</key>
+	<string>Onderbreken door te praten</string>
+	<key>native.voice.bargeInHint</key>
+	<string>Praat tijdens het voorlezen om het te stoppen, waar het apparaat je stem van de zijne kan onderscheiden.</string>
+	<key>native.voice.captions</key>
+	<string>Ondertiteling tonen</string>
+	<key>native.voice.confirmHint</key>
+	<string>Laat zien wat er verstaan is, met Versturen, Bewerken en Weggooien, voordat het weggaat.</string>
 	<key>native.voice.dictation</key>
 	<string>Dicteren</string>
 	<key>native.voice.dictationNote</key>
@@ -1858,11 +1866,137 @@
 	<string>Voorlezen</string>
 	<key>native.voice.readingFooter</key>
 	<string>De stem en de snelheid gelden voor elke chat. Antwoorden worden voorgelezen door de eigen stemmen van dit apparaat; er wordt niets verstuurd.</string>
+	<key>native.voice.silence</key>
+	<string>Pauze voor versturen</string>
 	<key>native.voice.unavailable</key>
 	<string>Spraak is niet beschikbaar op dit apparaat.</string>
 	<key>native.voice.voice</key>
 	<string>Stem</string>
+	<key>native.voice.voiceAndOrb</key>
+	<string>Stem en bol</string>
 	<key>native.voice.voiceFooter</key>
 	<string>Een stem die je kiest leest antwoorden in zijn eigen taal voor. Een antwoord in een andere taal wordt voorgelezen door de stem van het systeem voor die taal.</string>
+	<key>native.voice.voiceModeFooter</key>
+	<string>Stemmodus is een gesprek met een bot: hij luistert op dit apparaat, verstuurt wat je zei na een pauze en leest het antwoord voor terwijl het binnenkomt. Goedkeuringen en vragen worden nooit met je stem beantwoord.</string>
+	<key>native.voiceMode.confirmTitle</key>
+	<string>Dit versturen?</string>
+	<key>native.voiceMode.discard</key>
+	<string>Weggooien</string>
+	<key>native.voiceMode.edit</key>
+	<string>Bewerken</string>
+	<key>native.voiceMode.end</key>
+	<string>Beëindigen</string>
+	<key>native.voiceMode.failedAudio</key>
+	<string>De audio kon niet starten. Misschien gebruikt een andere app hem.</string>
+	<key>native.voiceMode.failedNotSent</key>
+	<string>Je bericht kon niet worden verstuurd.</string>
+	<key>native.voiceMode.failedOther</key>
+	<string>Luisteren stopte onverwacht.</string>
+	<key>native.voiceMode.failedPermission</key>
+	<string>Hermie mag de microfoon of spraakherkenning niet gebruiken. Je kunt beide toestaan in Instellingen.</string>
+	<key>native.voiceMode.failedUnavailable</key>
+	<string>Spraakherkenning voor deze taal is niet beschikbaar op dit apparaat.</string>
+	<key>native.voiceMode.filler.generic1</key>
+	<string>Een momentje…</string>
+	<key>native.voiceMode.filler.generic2</key>
+	<string>Even denken…</string>
+	<key>native.voiceMode.filler.generic3</key>
+	<string>Eén tel…</string>
+	<key>native.voiceMode.filler.reading1</key>
+	<string>Even kijken…</string>
+	<key>native.voiceMode.filler.reading2</key>
+	<string>Ik lees het even…</string>
+	<key>native.voiceMode.filler.search1</key>
+	<string>Ik zoek het even op…</string>
+	<key>native.voiceMode.filler.search2</key>
+	<string>Even zoeken…</string>
+	<key>native.voiceMode.filler.working1</key>
+	<string>Ik ben ermee bezig…</string>
+	<key>native.voiceMode.filler.working2</key>
+	<string>Nog even bezig…</string>
+	<key>native.voiceMode.mute</key>
+	<string>Dempen</string>
+	<key>native.voiceMode.muted</key>
+	<string>Gedempt</string>
+	<key>native.voiceMode.paused</key>
+	<string>Gepauzeerd</string>
+	<key>native.voiceMode.pausedInterruption</key>
+	<string>Onderbroken door een andere app</string>
+	<key>native.voiceMode.pausedRequest</key>
+	<string>Gepauzeerd tot het verzoek beantwoord is</string>
+	<key>native.voiceMode.resume</key>
+	<string>Hervatten</string>
+	<key>native.voiceMode.send</key>
+	<string>Versturen</string>
+	<key>native.voiceMode.sendNow</key>
+	<string>Nu versturen</string>
+	<key>native.voiceMode.settings</key>
+	<string>Steminstellingen</string>
+	<key>native.voiceMode.starting</key>
+	<string>Starten…</string>
+	<key>native.voiceMode.tryAgain</key>
+	<string>Opnieuw proberen</string>
+	<key>native.voiceMode.unmute</key>
+	<string>Dempen opheffen</string>
+	<key>native.voiceSetup.automatic</key>
+	<string>Automatisch</string>
+	<key>native.voiceSetup.betterVoicesIOS</key>
+	<string>Voor deze taal zijn alleen basisstemmen geïnstalleerd. Betere stemmen download je in Instellingen › Toegankelijkheid › Gesproken inhoud › Stemmen.</string>
+	<key>native.voiceSetup.betterVoicesMac</key>
+	<string>Voor deze taal zijn alleen basisstemmen geïnstalleerd. Betere stemmen download je in Systeeminstellingen › Toegankelijkheid › Gesproken inhoud.</string>
+	<key>native.voiceSetup.continue</key>
+	<string>Ga door</string>
+	<key>native.voiceSetup.done</key>
+	<string>Klaar</string>
+	<key>native.voiceSetup.expressivity</key>
+	<string>Expressiviteit</string>
+	<key>native.voiceSetup.language</key>
+	<string>Taal</string>
+	<key>native.voiceSetup.noVoices</key>
+	<string>Er zijn geen stemmen beschikbaar op dit apparaat.</string>
+	<key>native.voiceSetup.orb</key>
+	<string>Bol</string>
+	<key>native.voiceSetup.orbClouds</key>
+	<string>Wolken</string>
+	<key>native.voiceSetup.orbLight</key>
+	<string>Licht</string>
+	<key>native.voiceSetup.pace</key>
+	<string>Tempo</string>
+	<key>native.voiceSetup.percent</key>
+	<string>%lld procent</string>
+	<key>native.voiceSetup.personalDenied</key>
+	<string>Hermie mag je persoonlijke stem niet gebruiken. Je kunt dat toestaan in de systeeminstellingen.</string>
+	<key>native.voiceSetup.personalDetail</key>
+	<string>Praat met je eigen stem. Een persoonlijke stem wordt op dit apparaat gemaakt en bewaard.</string>
+	<key>native.voiceSetup.personalNone</key>
+	<string>Geen persoonlijke stem gevonden op dit apparaat. Je kunt er een maken in de instellingen voor Toegankelijkheid.</string>
+	<key>native.voiceSetup.personalTitle</key>
+	<string>Persoonlijke stem</string>
+	<key>native.voiceSetup.personalUse</key>
+	<string>Mijn persoonlijke stem gebruiken</string>
+	<key>native.voiceSetup.qualityCompact</key>
+	<string>basis</string>
+	<key>native.voiceSetup.qualityEnhanced</key>
+	<string>verbeterd</string>
+	<key>native.voiceSetup.qualityPersonal</key>
+	<string>persoonlijke stem</string>
+	<key>native.voiceSetup.qualityPremium</key>
+	<string>premium</string>
+	<key>native.voiceSetup.sample</key>
+	<string>Hoi, zo klink ik. Ik lees de antwoorden van je bots met deze stem voor.</string>
+	<key>native.voiceSetup.selected</key>
+	<string>geselecteerd</string>
+	<key>native.voiceSetup.source</key>
+	<string>Bron</string>
+	<key>native.voiceSetup.sourceDevice</key>
+	<string>Op dit apparaat (Apple)</string>
+	<key>native.voiceSetup.subtitle</key>
+	<string>Bots praten in gesprekken met deze stem. Alles wordt op dit apparaat uitgesproken.</string>
+	<key>native.voiceSetup.title</key>
+	<string>Kies een stem</string>
+	<key>native.voiceSetup.voice</key>
+	<string>Stem</string>
+	<key>native.voiceSetup.voiceNumber</key>
+	<string>Stem %lld</string>
 </dict>
 </plist>

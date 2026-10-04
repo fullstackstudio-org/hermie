@@ -1846,6 +1846,14 @@
 	<string>This message (%@) needs a newer version of Hermie.</string>
 	<key>native.voice.automatic</key>
 	<string>Automatic</string>
+	<key>native.voice.bargeIn</key>
+	<string>Interrupt by speaking</string>
+	<key>native.voice.bargeInHint</key>
+	<string>Talk while a reply is read to stop it, where the device can tell your voice from its own.</string>
+	<key>native.voice.captions</key>
+	<string>Show captions</string>
+	<key>native.voice.confirmHint</key>
+	<string>Shows what was heard, with Send, Edit and Discard, before it goes.</string>
 	<key>native.voice.dictation</key>
 	<string>Dictation</string>
 	<key>native.voice.dictationNote</key>
@@ -1858,11 +1866,137 @@
 	<string>Reading aloud</string>
 	<key>native.voice.readingFooter</key>
 	<string>The voice and the speed apply to every chat. Replies are read by this device's own voices; nothing is sent anywhere.</string>
+	<key>native.voice.silence</key>
+	<string>Pause before sending</string>
 	<key>native.voice.unavailable</key>
 	<string>Voice is not available on this device.</string>
 	<key>native.voice.voice</key>
 	<string>Voice</string>
+	<key>native.voice.voiceAndOrb</key>
+	<string>Voice and orb</string>
 	<key>native.voice.voiceFooter</key>
 	<string>A voice you choose reads replies in its own language. A reply in another language is read by the system's voice for that language.</string>
+	<key>native.voice.voiceModeFooter</key>
+	<string>Voice mode is a call with a bot: it listens on this device, sends what you said after a pause, and reads the reply aloud as it arrives. Approvals and questions are never answered by voice.</string>
+	<key>native.voiceMode.confirmTitle</key>
+	<string>Send this?</string>
+	<key>native.voiceMode.discard</key>
+	<string>Discard</string>
+	<key>native.voiceMode.edit</key>
+	<string>Edit</string>
+	<key>native.voiceMode.end</key>
+	<string>End</string>
+	<key>native.voiceMode.failedAudio</key>
+	<string>The audio could not be started. Another app may be using it.</string>
+	<key>native.voiceMode.failedNotSent</key>
+	<string>Your message could not be sent.</string>
+	<key>native.voiceMode.failedOther</key>
+	<string>Listening stopped unexpectedly.</string>
+	<key>native.voiceMode.failedPermission</key>
+	<string>Hermie may not use the microphone or speech recognition. You can allow both in Settings.</string>
+	<key>native.voiceMode.failedUnavailable</key>
+	<string>Speech recognition for this language is not available on this device.</string>
+	<key>native.voiceMode.filler.generic1</key>
+	<string>One moment…</string>
+	<key>native.voiceMode.filler.generic2</key>
+	<string>Let me think…</string>
+	<key>native.voiceMode.filler.generic3</key>
+	<string>Just a second…</string>
+	<key>native.voiceMode.filler.reading1</key>
+	<string>Taking a look…</string>
+	<key>native.voiceMode.filler.reading2</key>
+	<string>Reading it now…</string>
+	<key>native.voiceMode.filler.search1</key>
+	<string>Let me look that up…</string>
+	<key>native.voiceMode.filler.search2</key>
+	<string>Searching…</string>
+	<key>native.voiceMode.filler.working1</key>
+	<string>Working on it…</string>
+	<key>native.voiceMode.filler.working2</key>
+	<string>Still working…</string>
+	<key>native.voiceMode.mute</key>
+	<string>Mute</string>
+	<key>native.voiceMode.muted</key>
+	<string>Muted</string>
+	<key>native.voiceMode.paused</key>
+	<string>Paused</string>
+	<key>native.voiceMode.pausedInterruption</key>
+	<string>Interrupted by another app</string>
+	<key>native.voiceMode.pausedRequest</key>
+	<string>Paused until the request is answered</string>
+	<key>native.voiceMode.resume</key>
+	<string>Resume</string>
+	<key>native.voiceMode.send</key>
+	<string>Send</string>
+	<key>native.voiceMode.sendNow</key>
+	<string>Send now</string>
+	<key>native.voiceMode.settings</key>
+	<string>Voice settings</string>
+	<key>native.voiceMode.starting</key>
+	<string>Starting…</string>
+	<key>native.voiceMode.tryAgain</key>
+	<string>Try again</string>
+	<key>native.voiceMode.unmute</key>
+	<string>Unmute</string>
+	<key>native.voiceSetup.automatic</key>
+	<string>Automatic</string>
+	<key>native.voiceSetup.betterVoicesIOS</key>
+	<string>Only basic voices are installed for this language. You can download better ones in Settings › Accessibility › Spoken Content › Voices.</string>
+	<key>native.voiceSetup.betterVoicesMac</key>
+	<string>Only basic voices are installed for this language. You can download better ones in System Settings › Accessibility › Spoken Content.</string>
+	<key>native.voiceSetup.continue</key>
+	<string>Continue</string>
+	<key>native.voiceSetup.done</key>
+	<string>Done</string>
+	<key>native.voiceSetup.expressivity</key>
+	<string>Expressivity</string>
+	<key>native.voiceSetup.language</key>
+	<string>Language</string>
+	<key>native.voiceSetup.noVoices</key>
+	<string>No voices are available on this device.</string>
+	<key>native.voiceSetup.orb</key>
+	<string>Orb</string>
+	<key>native.voiceSetup.orbClouds</key>
+	<string>Clouds</string>
+	<key>native.voiceSetup.orbLight</key>
+	<string>Light</string>
+	<key>native.voiceSetup.pace</key>
+	<string>Pace</string>
+	<key>native.voiceSetup.percent</key>
+	<string>%lld percent</string>
+	<key>native.voiceSetup.personalDenied</key>
+	<string>Hermie is not allowed to use your Personal Voice. You can allow it in the system settings.</string>
+	<key>native.voiceSetup.personalDetail</key>
+	<string>Speak with your own voice. A Personal Voice is made and kept on this device.</string>
+	<key>native.voiceSetup.personalNone</key>
+	<string>No Personal Voice found on this device. You can create one in the Accessibility settings.</string>
+	<key>native.voiceSetup.personalTitle</key>
+	<string>Personal Voice</string>
+	<key>native.voiceSetup.personalUse</key>
+	<string>Use my Personal Voice</string>
+	<key>native.voiceSetup.qualityCompact</key>
+	<string>basic</string>
+	<key>native.voiceSetup.qualityEnhanced</key>
+	<string>enhanced</string>
+	<key>native.voiceSetup.qualityPersonal</key>
+	<string>Personal Voice</string>
+	<key>native.voiceSetup.qualityPremium</key>
+	<string>premium</string>
+	<key>native.voiceSetup.sample</key>
+	<string>Hi, this is how I sound. I will read your bots' replies in this voice.</string>
+	<key>native.voiceSetup.selected</key>
+	<string>selected</string>
+	<key>native.voiceSetup.source</key>
+	<string>Source</string>
+	<key>native.voiceSetup.sourceDevice</key>
+	<string>On this device (Apple)</string>
+	<key>native.voiceSetup.subtitle</key>
+	<string>Bots will speak in this voice on calls. Everything is spoken on this device.</string>
+	<key>native.voiceSetup.title</key>
+	<string>Choose a voice</string>
+	<key>native.voiceSetup.voice</key>
+	<string>Voice</string>
+	<key>native.voiceSetup.voiceNumber</key>
+	<string>Voice %lld</string>
 </dict>
 </plist>

@@ -116,6 +116,50 @@ struct VoiceSettingsPage: View {
         }
       }
 
+      if probe.canSpeak, probe.canDictate {
+        Section {
+          NavigationLink {
+            VoiceSetupPage(settings: settings, speaker: probe.synthesiser)
+          } label: {
+            LabeledContent(NativeStrings.Voice.voiceAndOrb) {
+              Text(Self.voiceName(settings.voiceIdentifier, in: probe.synthesiser.voices()))
+            }
+          }
+          .accessibilityIdentifier("hermie.settings.voice.setup")
+
+          Picker(
+            NativeStrings.Voice.silence,
+            selection: Binding(get: { settings.voiceModeSilence }, set: { settings.setVoiceModeSilence($0) })
+          ) {
+            ForEach(VoiceSettings.silenceSteps, id: \.self) { step in
+              Text(Self.seconds(step)).tag(step)
+            }
+          }
+          .accessibilityIdentifier("hermie.settings.voice.silence")
+
+          Toggle(isOn: Binding(get: { settings.confirmBeforeSending }, set: { settings.setConfirmBeforeSending($0) })) {
+            Text(Strings.Chat.Voice.confirmBeforeSending)
+            Text(NativeStrings.Voice.confirmHint)
+          }
+          .accessibilityIdentifier("hermie.settings.voice.confirm")
+
+          Toggle(isOn: Binding(get: { settings.voiceModeBargeIn }, set: { settings.setVoiceModeBargeIn($0) })) {
+            Text(NativeStrings.Voice.bargeIn)
+            Text(NativeStrings.Voice.bargeInHint)
+          }
+          .accessibilityIdentifier("hermie.settings.voice.bargeIn")
+
+          Toggle(
+            NativeStrings.Voice.captions,
+            isOn: Binding(get: { settings.voiceModeCaptions }, set: { settings.setVoiceModeCaptions($0) }))
+            .accessibilityIdentifier("hermie.settings.voice.captions")
+        } header: {
+          Text(Strings.Chat.Voice.mode)
+        } footer: {
+          SettingsNote(NativeStrings.Voice.voiceModeFooter)
+        }
+      }
+
       if !probe.canSpeak, !probe.canDictate {
         Section {
           Text(NativeStrings.Voice.unavailable)
@@ -131,6 +175,13 @@ struct VoiceSettingsPage: View {
   /// "Device language", or the language's name.
   static func languageName(_ setting: String) -> String {
     setting == VoiceSettings.automatic ? Strings.Chat.Voice.dictationAuto : VoiceLanguageChoice.name(of: setting)
+  }
+
+  /// A pause in seconds, as the reader's language writes it ("1.2 s", "1,2 s").
+  static func seconds(_ value: Double, locale: Locale = .current) -> String {
+    Measurement(value: value, unit: UnitDuration.seconds).formatted(
+      .measurement(width: .abbreviated, usage: .asProvided, numberFormatStyle: .number.precision(.fractionLength(0...1)))
+        .locale(locale))
   }
 
   /// The chosen voice's name, or "Automatic".
@@ -270,6 +321,18 @@ struct VoicePickerPage: View {
   }
 }
 
+/// The voice setup, pushed from Settings › Voice: Done goes back.
+private struct VoiceSetupPage: View {
+  let settings: VoiceSettings
+  let speaker: any SpeechSynthesizing
+
+  @Environment(\.dismiss) private var dismiss
+
+  var body: some View {
+    VoiceSetupView(settings: settings, speaker: speaker, firstRun: false, onDone: { dismiss() })
+  }
+}
+
 extension NativeStrings {
   enum Voice {
     /// Reading aloud (the header of the reading half of Settings › Voice)
@@ -291,6 +354,22 @@ extension NativeStrings {
     /// Dictated words go into the field to be checked; nothing is sent until the reader sends it.
     static var dictationNote: String {
       String(localized: "native.voice.dictationNote", table: "Native", bundle: .module)
+    }
+    /// Voice and orb (the row that opens the voice setup)
+    static var voiceAndOrb: String { String(localized: "native.voice.voiceAndOrb", table: "Native", bundle: .module) }
+    /// Pause before sending (voice mode's silence timeout)
+    static var silence: String { String(localized: "native.voice.silence", table: "Native", bundle: .module) }
+    /// What Confirm before sending does in voice mode.
+    static var confirmHint: String { String(localized: "native.voice.confirmHint", table: "Native", bundle: .module) }
+    /// Interrupt by speaking
+    static var bargeIn: String { String(localized: "native.voice.bargeIn", table: "Native", bundle: .module) }
+    /// What Interrupt by speaking does, and where.
+    static var bargeInHint: String { String(localized: "native.voice.bargeInHint", table: "Native", bundle: .module) }
+    /// Show captions
+    static var captions: String { String(localized: "native.voice.captions", table: "Native", bundle: .module) }
+    /// What voice mode does, and that it does it on the device.
+    static var voiceModeFooter: String {
+      String(localized: "native.voice.voiceModeFooter", table: "Native", bundle: .module)
     }
     /// Neither half is available on this device.
     static var unavailable: String {

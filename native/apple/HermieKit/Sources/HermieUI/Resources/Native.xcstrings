@@ -22118,6 +22118,102 @@
         }
       }
     },
+    "native.voice.bargeIn" : {
+      "comment" : "Settings › Voice: cut in on a reply by speaking.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Durch Sprechen unterbrechen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interrupt by speaking"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Onderbreken door te praten"
+          }
+        }
+      }
+    },
+    "native.voice.bargeInHint" : {
+      "comment" : "Settings › Voice: what Interrupt by speaking does, and where.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprich während des Vorlesens, um es zu stoppen, wo das Gerät deine Stimme von seiner eigenen unterscheiden kann."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Talk while a reply is read to stop it, where the device can tell your voice from its own."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Praat tijdens het voorlezen om het te stoppen, waar het apparaat je stem van de zijne kan onderscheiden."
+          }
+        }
+      }
+    },
+    "native.voice.captions" : {
+      "comment" : "Settings › Voice: show what is heard and said under the orb.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Untertitel anzeigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show captions"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ondertiteling tonen"
+          }
+        }
+      }
+    },
+    "native.voice.confirmHint" : {
+      "comment" : "Settings › Voice: what Confirm before sending does in voice mode.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeigt, was verstanden wurde, mit Senden, Bearbeiten und Verwerfen, bevor es rausgeht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows what was heard, with Send, Edit and Discard, before it goes."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laat zien wat er verstaan is, met Versturen, Bewerken en Weggooien, voordat het weggaat."
+          }
+        }
+      }
+    },
     "native.voice.dictation" : {
       "comment" : "The header of the dictation half of Settings > Voice.",
       "extractionState" : "manual",
@@ -22262,6 +22358,30 @@
         }
       }
     },
+    "native.voice.silence" : {
+      "comment" : "Settings › Voice: how long a pause ends what you say in voice mode.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause vor dem Senden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause before sending"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pauze voor versturen"
+          }
+        }
+      }
+    },
     "native.voice.unavailable" : {
       "comment" : "Settings > Voice on a device with neither a speech recogniser nor a synthesiser.",
       "extractionState" : "manual",
@@ -22310,6 +22430,30 @@
         }
       }
     },
+    "native.voice.voiceAndOrb" : {
+      "comment" : "Settings › Voice: the row that opens the voice setup (voice, pace, expressivity, orb).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stimme und Kugel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voice and orb"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stem en bol"
+          }
+        }
+      }
+    },
     "native.voice.voiceFooter" : {
       "comment" : "Under the Automatic row of the voice list.",
       "extractionState" : "manual",
@@ -22330,6 +22474,1470 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Een stem die je kiest leest antwoorden in zijn eigen taal voor. Een antwoord in een andere taal wordt voorgelezen door de stem van het systeem voor die taal."
+          }
+        }
+      }
+    },
+    "native.voice.voiceModeFooter" : {
+      "comment" : "Settings › Voice: the voice mode section's footer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Sprachmodus ist ein Gespräch mit einem Bot: Er hört auf diesem Gerät zu, sendet nach einer Pause, was du gesagt hast, und liest die Antwort vor, während sie eintrifft. Freigaben und Fragen werden nie per Stimme beantwortet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voice mode is a call with a bot: it listens on this device, sends what you said after a pause, and reads the reply aloud as it arrives. Approvals and questions are never answered by voice."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stemmodus is een gesprek met een bot: hij luistert op dit apparaat, verstuurt wat je zei na een pauze en leest het antwoord voor terwijl het binnenkomt. Goedkeuringen en vragen worden nooit met je stem beantwoord."
+          }
+        }
+      }
+    },
+    "native.voiceMode.confirmTitle" : {
+      "comment" : "Voice mode: over the words that wait for Send, Edit or Discard.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das senden?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send this?"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit versturen?"
+          }
+        }
+      }
+    },
+    "native.voiceMode.discard" : {
+      "comment" : "Voice mode: throw away the words that wait for confirmation and listen again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwerfen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weggooien"
+          }
+        }
+      }
+    },
+    "native.voiceMode.edit" : {
+      "comment" : "Voice mode: edit the words that wait for confirmation.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bearbeiten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bewerken"
+          }
+        }
+      }
+    },
+    "native.voiceMode.end" : {
+      "comment" : "Voice mode: the button that ends the call.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beëindigen"
+          }
+        }
+      }
+    },
+    "native.voiceMode.failedAudio" : {
+      "comment" : "Voice mode: the audio could not be started or restarted.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Ton konnte nicht gestartet werden. Vielleicht verwendet ihn eine andere App."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The audio could not be started. Another app may be using it."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De audio kon niet starten. Misschien gebruikt een andere app hem."
+          }
+        }
+      }
+    },
+    "native.voiceMode.failedNotSent" : {
+      "comment" : "Voice mode: what was said could not be sent.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Nachricht konnte nicht gesendet werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your message could not be sent."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je bericht kon niet worden verstuurd."
+          }
+        }
+      }
+    },
+    "native.voiceMode.failedOther" : {
+      "comment" : "Voice mode: listening stopped for another reason.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Zuhören hat unerwartet aufgehört."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listening stopped unexpectedly."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Luisteren stopte onverwacht."
+          }
+        }
+      }
+    },
+    "native.voiceMode.failedPermission" : {
+      "comment" : "Voice mode: the microphone or speech recognition is not allowed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie darf das Mikrofon oder die Spracherkennung nicht verwenden. Du kannst beides in den Einstellungen erlauben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie may not use the microphone or speech recognition. You can allow both in Settings."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie mag de microfoon of spraakherkenning niet gebruiken. Je kunt beide toestaan in Instellingen."
+          }
+        }
+      }
+    },
+    "native.voiceMode.failedUnavailable" : {
+      "comment" : "Voice mode: no on-device recogniser for the dictation language.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spracherkennung für diese Sprache ist auf diesem Gerät nicht verfügbar."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speech recognition for this language is not available on this device."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spraakherkenning voor deze taal is niet beschikbaar op dit apparaat."
+          }
+        }
+      }
+    },
+    "native.voiceMode.filler.generic1" : {
+      "comment" : "Voice mode: said while the bot works quietly.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einen Moment…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One moment…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een momentje…"
+          }
+        }
+      }
+    },
+    "native.voiceMode.filler.generic2" : {
+      "comment" : "Voice mode: said while the bot works quietly.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lass mich kurz nachdenken…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Let me think…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Even denken…"
+          }
+        }
+      }
+    },
+    "native.voiceMode.filler.generic3" : {
+      "comment" : "Voice mode: said while the bot works quietly.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine Sekunde…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Just a second…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eén tel…"
+          }
+        }
+      }
+    },
+    "native.voiceMode.filler.reading1" : {
+      "comment" : "Voice mode: said while the bot reads a file or page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ich sehe es mir an…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taking a look…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Even kijken…"
+          }
+        }
+      }
+    },
+    "native.voiceMode.filler.reading2" : {
+      "comment" : "Voice mode: said while the bot reads a file or page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ich lese es kurz…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reading it now…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ik lees het even…"
+          }
+        }
+      }
+    },
+    "native.voiceMode.filler.search1" : {
+      "comment" : "Voice mode: said while the bot searches.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ich schaue kurz nach…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Let me look that up…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ik zoek het even op…"
+          }
+        }
+      }
+    },
+    "native.voiceMode.filler.search2" : {
+      "comment" : "Voice mode: said while the bot searches.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ich suche…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Searching…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Even zoeken…"
+          }
+        }
+      }
+    },
+    "native.voiceMode.filler.working1" : {
+      "comment" : "Voice mode: said while the bot runs a command or tool.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ich bin dran…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Working on it…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ik ben ermee bezig…"
+          }
+        }
+      }
+    },
+    "native.voiceMode.filler.working2" : {
+      "comment" : "Voice mode: said while the bot runs a command or tool.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch einen Moment…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Still working…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nog even bezig…"
+          }
+        }
+      }
+    },
+    "native.voiceMode.mute" : {
+      "comment" : "Voice mode: the button that mutes the microphone.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stummschalten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mute"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dempen"
+          }
+        }
+      }
+    },
+    "native.voiceMode.muted" : {
+      "comment" : "Voice mode: the state while the microphone is muted (shown and announced).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stummgeschaltet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muted"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gedempt"
+          }
+        }
+      }
+    },
+    "native.voiceMode.paused" : {
+      "comment" : "Voice mode: paused because the app was not in front.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pausiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paused"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gepauzeerd"
+          }
+        }
+      }
+    },
+    "native.voiceMode.pausedInterruption" : {
+      "comment" : "Voice mode: the system took the audio (a phone call, an alarm).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Von einer anderen App unterbrochen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interrupted by another app"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Onderbroken door een andere app"
+          }
+        }
+      }
+    },
+    "native.voiceMode.pausedRequest" : {
+      "comment" : "Voice mode: paused while an approval, question or form waits for an answer on its own sheet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pausiert, bis die Anfrage beantwortet ist"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paused until the request is answered"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gepauzeerd tot het verzoek beantwoord is"
+          }
+        }
+      }
+    },
+    "native.voiceMode.resume" : {
+      "comment" : "Voice mode: pick up after an interruption.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fortsetzen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resume"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hervatten"
+          }
+        }
+      }
+    },
+    "native.voiceMode.send" : {
+      "comment" : "Voice mode: send the words that wait for confirmation.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Senden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versturen"
+          }
+        }
+      }
+    },
+    "native.voiceMode.sendNow" : {
+      "comment" : "Voice mode: send what has been heard without waiting for the pause.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jetzt senden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send now"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nu versturen"
+          }
+        }
+      }
+    },
+    "native.voiceMode.settings" : {
+      "comment" : "Voice mode: the glyph that opens the voice setup.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spracheinstellungen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voice settings"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steminstellingen"
+          }
+        }
+      }
+    },
+    "native.voiceMode.starting" : {
+      "comment" : "Voice mode: the call is starting (permission, audio).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird gestartet…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starting…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starten…"
+          }
+        }
+      }
+    },
+    "native.voiceMode.tryAgain" : {
+      "comment" : "Voice mode: start the call again after a failure.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut versuchen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opnieuw proberen"
+          }
+        }
+      }
+    },
+    "native.voiceMode.unmute" : {
+      "comment" : "Voice mode: the button that unmutes the microphone.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stummschaltung aufheben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unmute"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dempen opheffen"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.automatic" : {
+      "comment" : "No voice chosen: the system's voice for each reply's own language. Button and caption.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisch"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatic"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisch"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.betterVoicesIOS" : {
+      "comment" : "Hint when only basic voices exist for the language (iOS): where better ones are downloaded.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für diese Sprache sind nur einfache Stimmen installiert. Bessere Stimmen kannst du unter Einstellungen › Bedienungshilfen › Gesprochene Inhalte › Stimmen laden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only basic voices are installed for this language. You can download better ones in Settings › Accessibility › Spoken Content › Voices."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voor deze taal zijn alleen basisstemmen geïnstalleerd. Betere stemmen download je in Instellingen › Toegankelijkheid › Gesproken inhoud › Stemmen."
+          }
+        }
+      }
+    },
+    "native.voiceSetup.betterVoicesMac" : {
+      "comment" : "Hint when only basic voices exist for the language (macOS): where better ones are downloaded.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für diese Sprache sind nur einfache Stimmen installiert. Bessere Stimmen kannst du in den Systemeinstellungen › Bedienungshilfen › Gesprochene Inhalte laden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only basic voices are installed for this language. You can download better ones in System Settings › Accessibility › Spoken Content."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voor deze taal zijn alleen basisstemmen geïnstalleerd. Betere stemmen download je in Systeeminstellingen › Toegankelijkheid › Gesproken inhoud."
+          }
+        }
+      }
+    },
+    "native.voiceSetup.continue" : {
+      "comment" : "Button at the bottom of the Voice screen on first run.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weiter"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ga door"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.done" : {
+      "comment" : "Button at the bottom of the Voice screen when it is opened again from the settings.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fertig"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klaar"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.expressivity" : {
+      "comment" : "Label of the slider for how much the voice's pitch varies.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausdruckskraft"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expressivity"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expressiviteit"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.language" : {
+      "comment" : "Accessibility label of the language/accent picker.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprache"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Language"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taal"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.noVoices" : {
+      "comment" : "Shown when the device has no voice for the chosen language (or any).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf diesem Gerät sind keine Stimmen verfügbar."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No voices are available on this device."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er zijn geen stemmen beschikbaar op dit apparaat."
+          }
+        }
+      }
+    },
+    "native.voiceSetup.orb" : {
+      "comment" : "Label of the choice between the two orb looks.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kugel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orb"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bol"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.orbClouds" : {
+      "comment" : "The orb look made of drifting white and blue clouds.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wolken"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clouds"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wolken"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.orbLight" : {
+      "comment" : "The orb look made of a glowing core with rings around it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Licht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Light"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Licht"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.pace" : {
+      "comment" : "Label of the speaking-rate slider.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tempo"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pace"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tempo"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.percent" : {
+      "comment" : "The expressivity slider's value; %lld is a whole number from 0 to 100.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Prozent"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld percent"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld procent"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.personalDenied" : {
+      "comment" : "Personal Voice was refused; it can be allowed in the system settings.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie darf deine persönliche Stimme nicht verwenden. Du kannst das in den Systemeinstellungen erlauben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie is not allowed to use your Personal Voice. You can allow it in the system settings."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie mag je persoonlijke stem niet gebruiken. Je kunt dat toestaan in de systeeminstellingen."
+          }
+        }
+      }
+    },
+    "native.voiceSetup.personalDetail" : {
+      "comment" : "What Personal Voice is, in one line.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprich mit deiner eigenen Stimme. Eine persönliche Stimme wird auf diesem Gerät erstellt und gespeichert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speak with your own voice. A Personal Voice is made and kept on this device."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Praat met je eigen stem. Een persoonlijke stem wordt op dit apparaat gemaakt en bewaard."
+          }
+        }
+      }
+    },
+    "native.voiceSetup.personalNone" : {
+      "comment" : "Permission was given but the device has no Personal Voice yet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf diesem Gerät wurde keine persönliche Stimme gefunden. Du kannst eine in den Bedienungshilfen-Einstellungen erstellen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Personal Voice found on this device. You can create one in the Accessibility settings."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen persoonlijke stem gevonden op dit apparaat. Je kunt er een maken in de instellingen voor Toegankelijkheid."
+          }
+        }
+      }
+    },
+    "native.voiceSetup.personalTitle" : {
+      "comment" : "Title of the Personal Voice row (Apple's feature name).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Persönliche Stimme"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Personal Voice"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Persoonlijke stem"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.personalUse" : {
+      "comment" : "Button that asks the system for permission to use the reader's Personal Voice.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meine persönliche Stimme verwenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use my Personal Voice"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mijn persoonlijke stem gebruiken"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.qualityCompact" : {
+      "comment" : "A compact (basic) voice's quality, in the dot's accessibility label.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "einfach"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "basic"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "basis"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.qualityEnhanced" : {
+      "comment" : "An enhanced voice's quality, in the dot's accessibility label.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "erweitert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "enhanced"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "verbeterd"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.qualityPersonal" : {
+      "comment" : "A Personal Voice's kind, in the dot's accessibility label.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "persönliche Stimme"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Personal Voice"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "persoonlijke stem"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.qualityPremium" : {
+      "comment" : "A premium voice's quality, in the dot's accessibility label.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Premium"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "premium"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "premium"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.sample" : {
+      "comment" : "The sentence spoken as a preview of a voice.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hallo, so klinge ich. Ich lese die Antworten deiner Bots mit dieser Stimme vor."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hi, this is how I sound. I will read your bots' replies in this voice."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoi, zo klink ik. Ik lees de antwoorden van je bots met deze stem voor."
+          }
+        }
+      }
+    },
+    "native.voiceSetup.selected" : {
+      "comment" : "End of the selected voice dot's accessibility label.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ausgewählt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "selected"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "geselecteerd"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.source" : {
+      "comment" : "Label of the row that says where the voice comes from.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quelle"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bron"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.sourceDevice" : {
+      "comment" : "The only voice source today: the device's own synthesiser.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf diesem Gerät (Apple)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On this device (Apple)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Op dit apparaat (Apple)"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.subtitle" : {
+      "comment" : "Grey line under the title: bots speak in this voice on calls, and it all happens on the device.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bots sprechen in Anrufen mit dieser Stimme. Alles wird auf diesem Gerät gesprochen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bots will speak in this voice on calls. Everything is spoken on this device."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bots praten in gesprekken met deze stem. Alles wordt op dit apparaat uitgesproken."
+          }
+        }
+      }
+    },
+    "native.voiceSetup.title" : {
+      "comment" : "Title of the Voice screen.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle eine Stimme"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a voice"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kies een stem"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.voice" : {
+      "comment" : "Row label next to the language/accent picker.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stimme"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voice"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stem"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.voiceNumber" : {
+      "comment" : "Start of a voice dot's accessibility label; %lld is its 1-based number. Read as 'Voice 3, Ava, enhanced, selected'.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stimme %lld"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voice %lld"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stem %lld"
           }
         }
       }
