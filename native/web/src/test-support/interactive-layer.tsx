@@ -48,6 +48,8 @@ export function setup(): Harness {
   const timers = manualTimers(NOW_SECONDS * 1000)
   const gw = fakeInteractiveGateway()
   const model = new InteractiveModel({
+    // jsdom has no camera, no geolocation and no pointer events; the sheets are given theirs by each test.
+    support: { file: true, signature: true, location: true, contact: true, scan: true },
     gateway: gw.gateway,
     chatFor: id => chatsStore.getState().runtimeToBot[id],
     watchChats: listener => chatsStore.subscribe(() => listener()),

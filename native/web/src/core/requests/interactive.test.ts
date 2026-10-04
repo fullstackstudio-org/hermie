@@ -33,6 +33,9 @@ import {
 } from './interactive'
 import type { DiffAnswer, DraftAnswer, FileAnswer, FormAnswer } from './interactive-types'
 
+/** A browser that can do everything the device methods need: jsdom has no camera, no geolocation, no pointer events. */
+const EVERYTHING = { file: true, signature: true, location: true, contact: true, scan: true }
+
 /** A value nobody would type by accident: if it shows up anywhere but the call, it leaked. */
 const SECRET = 'hunter2-\u00E9-ZQ7xK-do-not-keep'
 
@@ -60,6 +63,7 @@ function makeModel(status: 'ready' | 'connecting' = 'ready'): void {
   gw = fakeInteractiveGateway(status)
   engine = recordingEngine()
   model = new InteractiveModel({
+    support: EVERYTHING,
     gateway: gw.gateway,
     store,
     chatFor: id => sessions[id],
@@ -799,10 +803,47 @@ describe('declined', () => {
     })
   })
 
+  it('declines at once, and opens no sheet, a device request this browser cannot do', () => {
+    model.stop()
+    gw = fakeInteractiveGateway()
+    model = new InteractiveModel({
+      support: { ...EVERYTHING, scan: false, location: false },
+      gateway: gw.gateway,
+      store,
+      chatFor: id => sessions[id],
+      engine: engine.engine,
+      failWithData: gw.failWithData,
+      now: () => timers.now(),
+      timers
+    })
+    model.start()
+    gw.deliver('srq-1', 'device.scan', { ...envelope(), formats: ['qr'] })
+    gw.deliver('srq-2', 'device.location', { ...envelope(), precision: 'approximate' })
+    gw.deliver('srq-3', 'device.scan', { ...envelope(), formats: ['qr'] }, true)
+
+    expect(gw.declined).toEqual([
+      { id: 'srq-1', code: CANNOT_SHOW_CODE, message: 'cannot_show', reason: 'not_supported_on_device' },
+      { id: 'srq-2', code: CANNOT_SHOW_CODE, message: 'cannot_show', reason: 'not_supported_on_device' },
+      { id: 'srq-3', code: CANNOT_SHOW_CODE, message: 'cannot_show', reason: 'not_supported_on_device' }
+    ])
+    expect(requests()).toEqual([])
+    expect(notice('researcher')).toEqual({
+      kind: 'cannot_show',
+      method: 'device.scan',
+      reason: 'not_supported_on_device'
+    })
+    expect(engine.calls.map(call => [call.call, call.id])).toEqual([
+      ['ended', 'srq-1'],
+      ['ended', 'srq-2'],
+      ['ended', 'srq-3']
+    ])
+  })
+
   it('without failWithData the error still goes out, without its data', () => {
     model.stop()
     gw = fakeInteractiveGateway()
     model = new InteractiveModel({
+      support: EVERYTHING,
       gateway: gw.gateway,
       store,
       chatFor: id => sessions[id],
@@ -847,6 +888,7 @@ describe('deadlines are the request’s own', () => {
     gw = fakeInteractiveGateway()
     engine = recordingEngine()
     model = new InteractiveModel({
+      support: EVERYTHING,
       gateway: gw.gateway,
       store,
       chatFor: id => sessions[id],
@@ -1050,6 +1092,7 @@ describe('a reconnect', () => {
     model.stop()
     gw = fakeInteractiveGateway()
     model = new InteractiveModel({
+      support: EVERYTHING,
       gateway: gw.gateway,
       store,
       chatFor: id => sessions[id],
@@ -1078,6 +1121,7 @@ describe('a reconnect', () => {
     model.stop()
     gw = fakeInteractiveGateway()
     model = new InteractiveModel({
+      support: EVERYTHING,
       gateway: gw.gateway,
       store,
       chatFor: id => sessions[id],
@@ -1142,6 +1186,7 @@ describe('a reconnect', () => {
     model.stop()
     gw = fakeInteractiveGateway()
     model = new InteractiveModel({
+      support: EVERYTHING,
       gateway: gw.gateway,
       store,
       chatFor: id => sessions[id],
@@ -1183,6 +1228,7 @@ describe('a reconnect before the new socket’s advert is settled', () => {
     gw = fakeInteractiveGateway()
     engine = recordingEngine()
     model = new InteractiveModel({
+      support: EVERYTHING,
       gateway: gw.gateway,
       store,
       chatFor: id => sessions[id],
@@ -1296,6 +1342,7 @@ describe('a request that ended before a chat held its session', () => {
     gw = fakeInteractiveGateway()
     engine = recordingEngine()
     model = new InteractiveModel({
+      support: EVERYTHING,
       gateway: gw.gateway,
       store,
       chatFor: id => sessions[id],
@@ -1344,6 +1391,7 @@ describe('a request that ended before a chat held its session', () => {
 
     model.stop()
     model = new InteractiveModel({
+      support: EVERYTHING,
       gateway: gw.gateway,
       store,
       chatFor: id => sessions[id],
@@ -1632,6 +1680,7 @@ describe('what the engine keeps', () => {
     model.stop()
     gw = fakeInteractiveGateway()
     model = new InteractiveModel({
+      support: EVERYTHING,
       gateway: gw.gateway,
       store,
       chatFor: id => chats.getState().runtimeToBot[id],

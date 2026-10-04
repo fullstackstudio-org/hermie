@@ -269,6 +269,12 @@ export interface InteractiveModelOptions {
    */
   monotonic?: () => number
   timers?: InteractiveTimers
+  /**
+   * What this browser can do for the methods that reach for the device (`device-support.ts`), read afresh when a
+   * request arrives; the page's own unless a test overrides a part of it. A request the page cannot show is declined
+   * at once, whatever the advert said: a gateway may send one that was never listed (an older advert, a replay).
+   */
+  support?: Partial<DeviceSupport>
 }
 
 /** Why an id is done (rule 6). */
@@ -933,6 +939,14 @@ export class InteractiveModel {
 
     // A form with a field kind this build does not know cannot be shown whole (README §7).
     if (unknownFields(read.ask).length > 0) {
+      this.declineUnseen(request, 'not_supported_on_device', sessionId, method)
+
+      return
+    }
+
+    // A method this browser cannot do (no camera API, an insecure page, ...) is answered at once: a sheet whose only
+    // button is disabled would hold the agent until the request expires.
+    if (!isShowable(method, { ...detectDeviceSupport(), ...this.options.support })) {
       this.declineUnseen(request, 'not_supported_on_device', sessionId, method)
 
       return
