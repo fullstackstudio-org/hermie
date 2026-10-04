@@ -47,14 +47,6 @@ jobs:
       - name: App tests
         run: npm run test --workspace @hermie/app -- --maxWorkers=2
 
-      # The browser export is the one build a static check cannot stand in for:
-      # a native-only import added to a shared file compiles, typechecks and
-      # lints perfectly and then fails to bundle for the web. Ten seconds here
-      # is what keeps `packages/hermie-web` from shipping an app that cannot be
-      # built any more.
-      - name: The web build still exports
-        run: npm run web:build
-
       - name: Vendored sources are in sync
         run: npm run sync:hermes-shared:check
 

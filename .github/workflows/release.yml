@@ -11,9 +11,9 @@ name: Release
 # the same App Store listing, so there is no downloadable .app to sign and
 # notarise here any more.
 #
-# The web variant is built here too: `hermie-web.zip` is the whole server plus
-# the exported browser bundle, and `SHA256SUMS` beside it is what the running
-# server checks a self-update against (ADR-0015).
+# There is no web artefact: the browser client (`native/web`) is not released
+# from here. It is built by the `web-client` job in ci.yml and shipped by the
+# `hermie` gateway plugin, which imports a build and serves it (ADR-0030).
 #
 # Android signing is optional and guarded on the secrets being set, the way the
 # macOS Developer ID signing used to be. With them, this produces a release APK
@@ -30,43 +30,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  web:
-    name: Hermie Web
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-
-      - name: Install
-        run: npm ci
-
-      # Both halves: `dist/server` is the compiled Node server, `dist/web` the
-      # exported browser build. The zip is what `npx hermie-web` and the release
-      # instructions install, so it carries the package manifest and the bin
-      # shim beside them — and no node_modules, because the package has no
-      # runtime dependencies.
-      - name: Build the server and the browser bundle
-        run: npm run web:build
-
-      - name: Zip it
-        run: |
-          mkdir -p artifacts
-          cd packages/hermie-web
-          zip -qr "$GITHUB_WORKSPACE/artifacts/hermie-web.zip" \
-            package.json bin dist Dockerfile
-          cd "$GITHUB_WORKSPACE"
-          unzip -l artifacts/hermie-web.zip | tail -3
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: hermie-web
-          path: artifacts/*
-          if-no-files-found: error
-
   android:
     name: Android artefacts
     runs-on: ubuntu-latest
@@ -166,7 +129,7 @@ jobs:
 
   publish:
     name: GitHub release
-    needs: [android, web]
+    needs: [android]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
@@ -186,9 +149,8 @@ jobs:
       - name: Release notes from the CHANGELOG
         run: node scripts/changelog-section.mjs "${GITHUB_REF_NAME#v}" > release-notes.md
 
-      # Hermie Web's self-update refuses to install an artefact this file does
-      # not list, so it is generated from whatever actually reached the release
-      # rather than written by hand.
+      # Generated from whatever actually reached the release rather than written
+      # by hand, so the list is never out of step with the files beside it.
       - name: Checksums
         working-directory: artifacts
         run: |
