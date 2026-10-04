@@ -118,7 +118,8 @@ export function Layout({ route, status, sidebar, footer, heading, children }: La
             {webStrings.shell.backToChats}
           </a>
           <h1 className="hm-main__title" ref={mainHeading} tabIndex={-1}>
-            {heading}
+            {/* A bot's name is the heading on its chat: isolated, so its own direction cannot reorder the line. */}
+            <bdi>{heading}</bdi>
           </h1>
           {children}
         </main>

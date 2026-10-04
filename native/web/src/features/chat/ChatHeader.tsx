@@ -25,6 +25,7 @@ import { botsStore } from '../../state/bots'
 import { chatsStore } from '../../state/chats'
 import { connectionStore } from '../../state/connection'
 import { Avatar, PresenceBead } from '../../ui/primitives'
+import { botLabel } from '../bots/bot-label'
 import { presenceOf } from '../bots/presence'
 import { conversationsHref } from '../shell/router'
 import { shortToolName } from './items/tool-text'
@@ -109,7 +110,7 @@ export function ChatHeader({ bot, chatKey }: ChatHeaderProps): ReactElement {
   return (
     <p className="hm-chat-header">
       <span className="hm-chat-header__avatar" aria-hidden="true">
-        <Avatar name={record?.displayName ?? bot} uri={avatar} />
+        <Avatar name={botLabel(record?.displayName, bot)} uri={avatar} />
       </span>
       <PresenceBead state={presence.state} size="inline" />
       <span className="hm-chat-header__status">{subtitleOf(ready, status, activity)}</span>

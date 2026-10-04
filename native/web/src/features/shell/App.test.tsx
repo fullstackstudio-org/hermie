@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { buildLabel } from '../../build-info'
+import { BOT_NAME_LIMIT } from '../../core/requests/secure-input'
 import { resetActiveLocale } from '../../i18n/active-locale'
 import { setLanguageChoice } from '../../i18n/locale'
 import { createHashRouter, type HashRouter } from '../../platform/hash-router'
@@ -117,6 +118,23 @@ describe('the routes', () => {
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Dr. Researcher')
     expect(document.title).toBe('Dr. Researcher · Hermie')
     expect(screen.getByRole('link', { name: /Dr\. Researcher/ }).getAttribute('aria-current')).toBe('page')
+  })
+
+  it('cleans, bounds and isolates the bot’s name in the heading and the tab: it is the bot’s own words', () => {
+    seedRoster([aBot('researcher', { displayName: `Evil\u202Etxt.exe\u2060 ${'x'.repeat(200)}` })])
+    router.navigate('#/chat/researcher')
+    renderApp()
+
+    const heading = screen.getByRole('heading', { level: 1 })
+    const name = heading.querySelector('bdi')
+
+    expect(name).not.toBeNull()
+    expect(heading.textContent).not.toMatch(/[\u202E\u2060]/u)
+    expect(heading.textContent?.startsWith('Eviltxt.exe x')).toBe(true)
+    expect([...(heading.textContent ?? '')].length).toBeLessThanOrEqual(BOT_NAME_LIMIT + 1)
+    expect(heading.textContent?.endsWith('…')).toBe(true)
+    expect(document.title).not.toMatch(/[\u202E\u2060]/u)
+    expect(document.title).toBe(`${heading.textContent ?? ''} · Hermie`)
   })
 
   it('heads a chat of a bot not on the roster with the name in the route', () => {

@@ -90,6 +90,13 @@ describe('the line under the bot’s name', () => {
     }
   })
 
+  it('draws the avatar’s letter from the cleaned name: an invisible or direction-changing first character is not one', () => {
+    seedRoster([aBot('researcher', { displayName: '\u202E\u2060\u2066Zoe' })])
+    render(<ChatHeader bot="researcher" chatKey="researcher" />)
+
+    expect(document.querySelector('.hm-avatar')?.textContent).toBe('Z')
+  })
+
   it('shows the bot’s own picture, and follows the language', async () => {
     botsStore.getState().setAvatar('researcher', 0, 'data:image/gif;base64,R0lGODlhAQABAAAAACw=')
     render(<ChatHeader bot="researcher" chatKey="researcher" />)

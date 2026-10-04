@@ -431,6 +431,69 @@ describe('restoring and withdrawing', () => {
     )
   })
 
+  describe('the bot’s name in what is announced: its own words, cleaned and bounded', () => {
+    const live = (container: HTMLElement): string =>
+      container.parentElement?.querySelector('[aria-live="polite"]')?.textContent ?? ''
+    const HOSTILE = `Evil\u202Etxt.exe\u2060 ${'x'.repeat(200)}`
+
+    beforeEach(() => {
+      seedRoster([aBot('researcher', { displayName: HOSTILE }), aBot('writer', { displayName: HOSTILE })])
+    })
+
+    it('for an approval the gateway withdrew', async () => {
+      const { container } = mount()
+
+      approval('researcher', 'srq-1')
+      act(() =>
+        chatsStore
+          .getState()
+          .dispatchEvent('researcher', { type: 'request.cancel', payload: { id: 'srq-1', reason: 'cancelled' } })
+      )
+      await settle()
+
+      const said = live(container)
+
+      expect(said).toMatch(/^The request from Eviltxt\.exe x+….* was withdrawn\.$/u)
+      expect(said).not.toMatch(/[\u202E\u2060]/u)
+      expect(said.length).toBeLessThan(120)
+    })
+
+    it('for a clarify that timed out', async () => {
+      const { container } = mount()
+
+      clarify('writer', 'srq-1', { question: 'Quick?' })
+      act(() =>
+        chatsStore
+          .getState()
+          .dispatchEvent('writer', { type: 'request.cancel', payload: { id: 'srq-1', reason: 'timeout' } })
+      )
+      await settle()
+
+      const said = live(container)
+
+      expect(said).toMatch(/^The request from Eviltxt\.exe x+… timed out\.$/u)
+      expect(said).not.toMatch(/[\u202E\u2060]/u)
+    })
+
+    it('for a press that reached a request already withdrawn', async () => {
+      const { container } = mount()
+
+      approval('researcher', 'srq-1')
+      act(() => {
+        chatsStore
+          .getState()
+          .dispatchEvent('researcher', { type: 'request.cancel', payload: { id: 'srq-1', reason: 'cancelled' } })
+        fireEvent.click(button('Allow once'))
+      })
+      await settle()
+
+      const said = live(container)
+
+      expect(said).toMatch(/^The request from Eviltxt\.exe x+….* was withdrawn\.$/u)
+      expect(said).not.toMatch(/[\u202E\u2060]/u)
+    })
+  })
+
   it('says a timeout as a timeout', async () => {
     const { container } = mount()
 

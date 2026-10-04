@@ -99,6 +99,7 @@ import { type EngineRequest, type OpenRequest, type RequestsState, requestsStore
 import { type InteractiveRequest, type InteractiveState, interactiveStore } from '../../state/interactive'
 import { type RequestLaterState, requestLaterStore } from '../../state/request-later'
 import { type SecureInputState, secureInputStore, type SecurePrompt } from '../../state/secure-input'
+import { botLabel } from '../bots/bot-label'
 import { useChatRuntime } from '../chat/chat-runtime'
 import { GatewayNotices } from '../notices/GatewayNotices'
 import { openAuthorisationLink, useSessionSignalsRuntime } from '../notices/signals-runtime'
@@ -340,13 +341,19 @@ function BusyScope({
   return <SheetBusyContext.Provider value={report}>{children}</SheetBusyContext.Provider>
 }
 
-/** Who a request is from: the bot's display name, or the gateway's host for a confirmation in no chat held here. */
+/**
+ * A bot's name as an announcement says it: the roster's display name, cleaned and bounded like a request's
+ * (`botLabel`). The roster's words are the bot's own, so no announcement speaks them raw.
+ */
+const botNameOf = (bot: string): string => botLabel(botsStore.getState().byName[bot]?.displayName, bot)
+
+/** Who a request is from, as it is spoken: the bot's name, or the gateway's host for a confirmation in no chat held here. */
 function senderName(entry: OpenRequest, confirmation: PasskeyConfirmation | undefined): string {
   if (entry.bot !== undefined) {
-    return botsStore.getState().byName[entry.bot]?.displayName ?? entry.bot
+    return botNameOf(entry.bot)
   }
 
-  return confirmation ? new URL(confirmation.baseUrl).host : ''
+  return confirmation ? displayText(new URL(confirmation.baseUrl).host, BOT_NAME_LIMIT) : ''
 }
 
 export function RequestLayer({
@@ -526,34 +533,19 @@ export function RequestLayer({
           setAnnouncement(said)
         }
       } else if (previous.kind === 'secure') {
-        const said = secureAnnouncement(
-          secureInput,
-          previous.bot,
-          previous.id,
-          displayText(senderName(previous, undefined), BOT_NAME_LIMIT)
-        )
+        const said = secureAnnouncement(secureInput, previous.bot, previous.id, senderName(previous, undefined))
 
         if (said) {
           setAnnouncement(said)
         }
       } else if (previous.kind === 'interactive') {
-        const said = interactiveAnnouncement(
-          interactive,
-          previous.bot,
-          previous.id,
-          displayText(senderName(previous, undefined), BOT_NAME_LIMIT)
-        )
+        const said = interactiveAnnouncement(interactive, previous.bot, previous.id, senderName(previous, undefined))
 
         if (said) {
           setAnnouncement(said)
         }
       } else if (previous.kind === 'connection') {
-        const said = connectionAnnouncement(
-          connections,
-          previous.bot,
-          previous.opId,
-          displayText(senderName(previous, undefined), BOT_NAME_LIMIT)
-        )
+        const said = connectionAnnouncement(connections, previous.bot, previous.opId, senderName(previous, undefined))
 
         if (said) {
           setAnnouncement(said)
@@ -611,10 +603,7 @@ export function RequestLayer({
   // longer open, so the effect above never sees it leave as `cancelled` if the press came first.)
   const report = useCallback((error: unknown, from: string) => {
     if (error instanceof RequestWithdrawnError) {
-      const said =
-        error.state === 'cancelled'
-          ? withdrawnAnnouncement(botsStore.getState().byName[from]?.displayName ?? from, error.reason)
-          : ''
+      const said = error.state === 'cancelled' ? withdrawnAnnouncement(botNameOf(from), error.reason) : ''
 
       if (said) {
         setAnnouncement(said)

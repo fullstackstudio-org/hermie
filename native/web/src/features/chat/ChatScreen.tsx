@@ -87,6 +87,7 @@ import { chatViewFor, chatViewStore, DEFAULT_CHAT_VIEW } from '../../state/chat-
 import { chatsStore } from '../../state/chats'
 import { connectionStore } from '../../state/connection'
 import { Button } from '../../ui/primitives'
+import { botLabel } from '../bots/bot-label'
 import { ResumeProgressLine } from '../notices/ResumeProgressLine'
 import { InteractiveNotice } from '../notices/InteractiveNotice'
 import { SecureInputNotice } from '../notices/SecureInputNotice'
@@ -199,7 +200,7 @@ export function ChatScreen({ bot, session, view: pinned }: ChatScreenProps): Rea
   const ready = useStore(connectionStore, state => state.status === 'ready')
   const ownAuthorId = useOwnAuthorId()
   const visible = usePageVisible()
-  const displayName = record?.displayName ?? bot
+  const displayName = botLabel(record?.displayName, bot)
 
   const { key, viewer, error, retry } = useOpenChat({ runtime, record, bot, session, ready })
   const chat = useStore(chatsStore, state => (key === undefined ? undefined : state.chats[key]))

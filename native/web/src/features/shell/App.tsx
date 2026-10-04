@@ -49,6 +49,7 @@ import { type HashRouter, pageHashRouter } from '../../platform/hash-router'
 import { setPageTitle } from '../../platform/page-title'
 import { botsStore } from '../../state/bots'
 import { pluginStore } from '../../state/plugin'
+import { botLabel } from '../bots/bot-label'
 import { ChatList } from '../bots/ChatList'
 import { loadChatScreen, preloadChatScreen } from '../chat/load'
 import { ChatRuntimeContext, type ChatSessionRuntime } from '../chat/chat-runtime'
@@ -159,7 +160,8 @@ export function App({
   const appName = strings.app.app.name
   const heading =
     route.name === 'chat'
-      ? (botName ?? route.bot)
+      ? // The bot's own words: cleaned and bounded like a request's, and isolated where the heading draws it.
+        botLabel(botName, route.bot) || appName
       : route.name === 'conversations'
         ? strings.chat.sessions.conversations
         : route.name === 'settings'
