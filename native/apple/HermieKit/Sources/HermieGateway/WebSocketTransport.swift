@@ -25,6 +25,39 @@ public protocol WebSocketChannel: Sendable {
 
   /// Close the socket. `frames` finishes afterwards.
   func close(code: Int, reason: String?) async
+
+  /// Every inbound message, text and binary, in order: for a socket that carries audio. Read it
+  /// INSTEAD of `frames`, never as well; each is a single stream. The default is `frames` as text, for
+  /// a channel that has no binary frames.
+  var messages: AsyncThrowingStream<WebSocketMessage, any Error> { get }
+}
+
+/// One inbound WebSocket message.
+public enum WebSocketMessage: Sendable, Equatable {
+  case text(String)
+  case binary(Data)
+}
+
+extension WebSocketChannel {
+  public var messages: AsyncThrowingStream<WebSocketMessage, any Error> {
+    let frames = self.frames
+
+    return AsyncThrowingStream { continuation in
+      let reader = Task {
+        do {
+          for try await frame in frames {
+            continuation.yield(.text(frame))
+          }
+
+          continuation.finish()
+        } catch {
+          continuation.finish(throwing: error)
+        }
+      }
+
+      continuation.onTermination = { _ in reader.cancel() }
+    }
+  }
 }
 
 /// How a socket ended: the close code and reason the `close` event carries.

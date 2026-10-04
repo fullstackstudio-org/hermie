@@ -103,8 +103,9 @@ public enum GatewayAddress {
     return "http://" + baseURL.dropFirst("https://".count)
   }
 
-  /// `https://host/prefix` → `wss://host/prefix/api/ws`. Accepts an unnormalised base URL.
-  public static func webSocketURL(for baseURL: String) throws(GatewayError) -> String {
+  /// `https://host/prefix` → `wss://host/prefix/api/ws` (or another socket route under the same prefix,
+  /// `path`). Accepts an unnormalised base URL.
+  public static func webSocketURL(for baseURL: String, path: String = webSocketPath) throws(GatewayError) -> String {
     let normalized = try normalizeBaseURL(baseURL)
 
     guard let url = WHATWGURL.parse(normalized) else {
@@ -113,7 +114,7 @@ public enum GatewayAddress {
 
     let scheme = url.scheme == "https" ? "wss:" : "ws:"
 
-    return "\(scheme)//\(url.hostWithPort)\(dropTrailingSlashes(url.pathname))\(webSocketPath)"
+    return "\(scheme)//\(url.hostWithPort)\(dropTrailingSlashes(url.pathname))\(path)"
   }
 
   /// Join a path onto a base URL, keeping the base's path prefix.

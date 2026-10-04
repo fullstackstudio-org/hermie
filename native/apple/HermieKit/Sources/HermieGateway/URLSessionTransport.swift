@@ -63,8 +63,11 @@ public struct URLSessionTransport: WebSocketTransport {
 }
 
 /// One open `URLSessionWebSocketTask`.
+///
+/// It reads the socket into one stream of messages. `frames` (the JSON-RPC socket's, text) is a view
+/// of it, started only when somebody asks, so a socket read through `messages` buffers nothing twice.
 final class URLSessionWebSocketChannel: WebSocketChannel {
-  let frames: AsyncThrowingStream<String, any Error>
+  let messages: AsyncThrowingStream<WebSocketMessage, any Error>
 
   private let task: URLSessionWebSocketTask
   private let session: URLSession
@@ -74,17 +77,17 @@ final class URLSessionWebSocketChannel: WebSocketChannel {
     self.task = task
     self.session = session
 
-    let (frames, continuation) = AsyncThrowingStream<String, any Error>.makeStream()
-    self.frames = frames
+    let (messages, continuation) = AsyncThrowingStream<WebSocketMessage, any Error>.makeStream()
+    self.messages = messages
 
     reader = Task {
       while true {
         do {
           switch try await task.receive() {
           case .string(let text):
-            continuation.yield(text)
+            continuation.yield(.text(text))
           case .data(let data):
-            continuation.yield(String(decoding: data, as: UTF8.self))
+            continuation.yield(.binary(data))
           @unknown default:
             continue
           }
@@ -104,6 +107,31 @@ final class URLSessionWebSocketChannel: WebSocketChannel {
         reader.cancel()
         task.cancel(with: .goingAway, reason: nil)
       }
+    }
+  }
+
+  /// The text of every message: a binary one is read as text, as it was before there were messages.
+  /// Read once; a reader that stops takes the socket down, as it always did.
+  var frames: AsyncThrowingStream<String, any Error> {
+    let messages = self.messages
+
+    return AsyncThrowingStream { continuation in
+      let forwarder = Task {
+        do {
+          for try await message in messages {
+            switch message {
+            case .text(let text): continuation.yield(text)
+            case .binary(let data): continuation.yield(String(decoding: data, as: UTF8.self))
+            }
+          }
+
+          continuation.finish()
+        } catch {
+          continuation.finish(throwing: error)
+        }
+      }
+
+      continuation.onTermination = { _ in forwarder.cancel() }
     }
   }
 
