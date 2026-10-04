@@ -16,6 +16,16 @@
 	<string>Afmelden bij deze gateway? Het adres blijft bewaard en je kunt je altijd opnieuw aanmelden.</string>
 	<key>native.account.userId</key>
 	<string>Gebruikers-ID</string>
+	<key>native.activity.status.ambiguous</key>
+	<string>Onduidelijke ontvanger</string>
+	<key>native.activity.status.queued</key>
+	<string>In de wachtrij</string>
+	<key>native.activity.status.replied</key>
+	<string>Beantwoord</string>
+	<key>native.activity.status.sending</key>
+	<string>Wordt verstuurd</string>
+	<key>native.activity.status.sent</key>
+	<string>Verstuurd</string>
 	<key>native.appearance.languageChange</key>
 	<string>Wijzig in Instellingen</string>
 	<key>native.appearance.languageChangeMac</key>
@@ -328,6 +338,28 @@
 	<string>Je leest een eerder gesprek. Daar kun je niet meer op antwoorden.</string>
 	<key>native.conversations.renamed</key>
 	<string>Het gesprek heeft een nieuwe naam.</string>
+	<key>native.cron.field.dayOfMonth</key>
+	<string>dag van de maand</string>
+	<key>native.cron.field.dayOfWeek</key>
+	<string>dag van de week</string>
+	<key>native.cron.field.hour</key>
+	<string>uur</string>
+	<key>native.cron.field.minute</key>
+	<string>minuut</string>
+	<key>native.cron.field.month</key>
+	<string>maand</string>
+	<key>native.cron.schedule.dailyAt</key>
+	<string>Elke dag om %@</string>
+	<key>native.cron.schedule.daysAt</key>
+	<string>%1$@ om %2$@</string>
+	<key>native.cron.schedule.onceAt</key>
+	<string>Eenmalig, op %@</string>
+	<key>native.cron.schedule.onceIn</key>
+	<string>Eenmalig, over %@</string>
+	<key>native.cron.schedule.weekdaysAt</key>
+	<string>Doordeweeks om %@</string>
+	<key>native.cron.schedule.weekendsAt</key>
+	<string>In het weekend om %@</string>
 	<key>native.debug.title</key>
 	<string>Debugschermen</string>
 	<key>native.detail.noChat.body</key>

@@ -30,6 +30,9 @@ public final class AppRouter {
   public private(set) var selectedGatewayId: String?
   public private(set) var selectedChat: ChatRef?
   public var detailPath: [DetailRoute] = []
+  /// The cron the Crons section has open in the detail column; nil shows the "pick one" state. Not
+  /// restored with the scene: a relaunch opens the list, not a cron.
+  public private(set) var selectedCron: CronRef?
   public var sheet: AppSheet?
   public var notice: RouterNotice?
   /// A folder a `hermie://folder/<id>` link asked the chat list to reveal. The chat list clears it.
@@ -74,6 +77,11 @@ public final class AppRouter {
       selectedGatewayId = index.activeId
     }
 
+    // A cron belongs to one gateway, like a chat does.
+    if let cron = selectedCron, cron.gatewayId != selectedGatewayId || !index.contains(cron.gatewayId) {
+      closeCron()
+    }
+
     // One live gateway at a time (ADR-0024): a chat on any other is not shown.
     if let chat = selectedChat, chat.gatewayId != selectedGatewayId || !index.contains(chat.gatewayId) {
       closeChat()
@@ -100,6 +108,7 @@ public final class AppRouter {
 
     if id != selectedGatewayId {
       closeChat()
+      closeCron()
     }
 
     selectedGatewayId = id
@@ -176,6 +185,18 @@ public final class AppRouter {
     selectedChat = nil
     detailPath = []
     chatFind = nil
+  }
+
+  // MARK: Crons
+
+  /// Open a cron in the detail column.
+  public func openCron(_ cron: CronRef) {
+    selectedCron = cron
+    section = .routines
+  }
+
+  public func closeCron() {
+    selectedCron = nil
   }
 
   /// The selection as a list binding writes it: nil closes, anything else opens.

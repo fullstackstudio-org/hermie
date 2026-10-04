@@ -13,6 +13,21 @@ public struct ChatRef: Codable, Hashable, Sendable {
   }
 }
 
+/// One cron on a gateway: what the Crons section opens in the detail column. The profile is the store
+/// the cron lives in; every read and write of it has to hand it back.
+public struct CronRef: Hashable, Sendable {
+  /// The registry id (`g…`), not the link key.
+  public var gatewayId: String
+  public var id: String
+  public var profile: String?
+
+  public init(gatewayId: String, id: String, profile: String? = nil) {
+    self.gatewayId = gatewayId
+    self.id = id
+    self.profile = profile
+  }
+}
+
 /// "Open this chat at the words I searched for": the one thing a message search hit hands the chat
 /// screen besides the route. Each request has its own id, so the same words asked twice in one chat
 /// are looked for twice.

@@ -16,6 +16,16 @@
 	<string>Sign out of this gateway? Its address stays, and you can sign in again at any time.</string>
 	<key>native.account.userId</key>
 	<string>User ID</string>
+	<key>native.activity.status.ambiguous</key>
+	<string>Ambiguous target</string>
+	<key>native.activity.status.queued</key>
+	<string>Queued</string>
+	<key>native.activity.status.replied</key>
+	<string>Replied</string>
+	<key>native.activity.status.sending</key>
+	<string>Sending</string>
+	<key>native.activity.status.sent</key>
+	<string>Sent</string>
 	<key>native.appearance.languageChange</key>
 	<string>Change in Settings</string>
 	<key>native.appearance.languageChangeMac</key>
@@ -328,6 +338,28 @@
 	<string>You are reading an earlier conversation. It cannot be answered.</string>
 	<key>native.conversations.renamed</key>
 	<string>The conversation has a new name.</string>
+	<key>native.cron.field.dayOfMonth</key>
+	<string>day of month</string>
+	<key>native.cron.field.dayOfWeek</key>
+	<string>day of week</string>
+	<key>native.cron.field.hour</key>
+	<string>hour</string>
+	<key>native.cron.field.minute</key>
+	<string>minute</string>
+	<key>native.cron.field.month</key>
+	<string>month</string>
+	<key>native.cron.schedule.dailyAt</key>
+	<string>Every day at %@</string>
+	<key>native.cron.schedule.daysAt</key>
+	<string>%1$@ at %2$@</string>
+	<key>native.cron.schedule.onceAt</key>
+	<string>Once, at %@</string>
+	<key>native.cron.schedule.onceIn</key>
+	<string>Once, in %@</string>
+	<key>native.cron.schedule.weekdaysAt</key>
+	<string>Weekdays at %@</string>
+	<key>native.cron.schedule.weekendsAt</key>
+	<string>Weekends at %@</string>
 	<key>native.debug.title</key>
 	<string>Debug screens</string>
 	<key>native.detail.noChat.body</key>

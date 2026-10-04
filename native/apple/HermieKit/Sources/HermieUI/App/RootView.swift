@@ -80,6 +80,8 @@ struct ShellSplitView: View {
 
   @State private var compactColumn: NavigationSplitViewColumn = .sidebar
   @State private var columns = NavigationSplitViewVisibility.automatic
+  /// The live session's crons, read by the Crons list and by the cron open beside it.
+  @State private var crons = CronsHolder()
 
   var body: some View {
     @Bindable var router = router
@@ -94,9 +96,18 @@ struct ShellSplitView: View {
           }
       }
     }
+    .environment(\.cronsHolder, crons)
     .onChange(of: router.selectedChat, initial: true) { _, chat in
       ChatLifecycleLog.note("selected \(chat?.bot ?? "no chat"), column \(Self.name(compactColumn))")
-      compactColumn = chat == nil ? .sidebar : .detail
+      compactColumn = chat == nil && router.selectedCron == nil ? .sidebar : .detail
+    }
+    // A cron picked in the Crons list opens beside it, or over it on iPhone.
+    .onChange(of: router.selectedCron) { _, cron in
+      if cron != nil {
+        compactColumn = .detail
+      } else if router.selectedChat == nil {
+        compactColumn = .sidebar
+      }
     }
     .onChange(of: compactColumn) { _, column in
       ChatLifecycleLog.note("column \(Self.name(column))")
@@ -104,6 +115,7 @@ struct ShellSplitView: View {
       #if os(iOS)
         if column == .sidebar, sizeClass == .compact {
           router.closeChat()
+          router.closeCron()
         }
       #endif
     }
@@ -158,9 +170,9 @@ struct Sidebar: View {
           )
         )
       case .activity:
-        EmptyState(Strings.App.Tabs.activity, systemImage: "waveform.path.ecg", message: Text(NativeStrings.later))
+        ActivityScreen()
       case .routines:
-        EmptyState(Strings.App.Tabs.routines, systemImage: "clock.arrow.circlepath", message: Text(NativeStrings.later))
+        CronsScreen()
       }
     }
     // The picker is part of the chat list's own content on iPhone and iPad (below the large title,
@@ -203,7 +215,12 @@ struct DetailRoot: View {
   @Environment(\.shellComponents) private var components
 
   var body: some View {
-    if let chat = router.selectedChat {
+    // The Crons section's selection is what the detail column shows while that section is open; the
+    // chat that was open stays selected under it and comes back with the Chats section.
+    if router.section == .routines, let cron = router.selectedCron {
+      CronDetailRoute(ref: cron)
+        .id(cron)
+    } else if let chat = router.selectedChat {
       components.chat(chat)
         .id(chat)
     } else {
