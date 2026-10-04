@@ -723,6 +723,44 @@ Tests: `AttachmentPrivacyTests` (a fixture with GPS, IPTC and XMP places, before
 `AttachmentTrayTests`, `AttachmentSendTests`, `HTTPClientUploadTests` and the fake-gateway
 `AttachmentIntegrationTests`.
 
+### Files a bot shares
+
+A reply can carry files (`contract/outbox/`, the gateway fork's contract, copied byte for byte):
+`message.complete` and `session.history` rows hold `attachments`, and the bytes are
+`GET /api/files/outbox/<id>/<name>?profile=<handle>`, which answers byte ranges.
+
+- **Reading them.** `OutboxAttachment.parse` (`HermieTranscript/Outbox.swift`, the port of
+  `packages/transcript/src/outbox.ts`) keeps an attachment only if it is exactly the schema: the id is
+  32 characters of `[A-Za-z0-9_-]`, the name one component of at most 180 code points with no control
+  character, `/` or `\`, and the `url` is `/api/files/outbox/<id>/<the name percent-encoded>`, compared by
+  code points. A key the contract does not have drops it; an unknown `kind` is a `file`. They are
+  `AssistantItem.outbox`, survive a history reload and the offline cache, count as a message, preview as
+  their name and are named in an export.
+- **Fetching.** `HTTPClient.downloadFile` writes into a file as the bytes arrive, hashes them on the way,
+  cuts the body off the moment it passes the cap (25 MiB for an image, 200 MiB for the rest, whatever
+  `Content-Length` said), checks the size and the SHA-256 once it is whole, follows no redirect and retries
+  a 401 once like every call. `OutboxFiles` / `OutboxFileModel` (`HermieCore/Outbox`) keep one model per
+  token for the chat: `idle`, `loading(progress)`, `ready(url)`, `gone` (404, final), `tooLarge` (final) and
+  `failed` (retry). The files go to `hermie-opened/<gateway>/<uuid>/<name>`, which sign-out removes.
+- **Cards** (`OutboxPresentation`, `SharedFilesView`). Images are the message's grid, opening the same
+  gallery; a sound is a row with a scrubber; a video a poster that plays full screen; a PDF a card with its
+  size and, once loaded, its page count (a PDF of at most 4 MiB loads when the card appears) that opens
+  PDFKit in a sheet; everything else is a chip with its name, size and a Save button. A `file` (HTML, SVG,
+  scripts, archives) is only ever saved: it is never opened, previewed or rendered, and never given the
+  app's credentials. The name is shown without control and format characters (`OutboxText.displayName`) and
+  saved under the same name without what a file system refuses (`OutboxText.savedName`).
+- **Saving.** On a Mac Save is an `NSSavePanel` (as the gallery's); on iPhone and iPad it is the share
+  sheet over the downloaded file, which has Save to Files.
+- **Playing.** `MediaPlayback` makes an `AVPlayer` over an `AVURLAsset` whose requests carry the session's
+  headers (the front door's and the credential; the key is `AVURLAssetHTTPHeaderFieldsKey`, which the SDK
+  does not export to Swift, so it is spelled out), so the player seeks by ranges and the file is not
+  fetched first. `PlaybackArbiter` lets one play at a time and none while a voice call is on; leaving the
+  chat or starting a call stops them all. A 404 from the player (`CoreMediaErrorDomain` -12938) is `gone`.
+
+Tests: `OutboxTests` (the contract's `examples.json`, hostile names and urls, the item, the history, the
+cache), `HTTPClientDownloadTests`, `OutboxFilesTests`, `OutboxMediaTests`, `ChatFeedOutboxTests` and the
+fake-gateway `OutboxIntegrationTests` (real downloads, ranges, a real `AVPlayer` with headers, a 404).
+
 ### Confirm at level passkey
 
 A `confirm` request at level `passkey` is one the gateway verifies itself: the app answers with a

@@ -40,6 +40,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The native Apple apps show the files a bot shares.** A reply that carries files
+  (`contract/outbox/`) draws a picture as a thumbnail that opens the gallery (several are a grid), a
+  sound as a row with a scrubber, a video as a poster that plays full screen, a PDF as a card that
+  opens in the app's own viewer with its page count, and any other file as a chip with its name, size
+  and a Save button (a save panel on a Mac, the share sheet with Save to Files on an iPhone or iPad).
+  A file such as HTML or SVG is only ever saved, never opened. Sounds and videos play from the
+  gateway as they are read, one at a time and never during a voice call, and stop when the chat
+  closes. Downloads check their size and SHA-256 and are cut off at 25 MiB for a picture and 200 MiB
+  for the rest. A file the gateway no longer has says "No longer available"; any other failure
+  offers a retry. The files survive a history reload and the offline cache.
+
 - **The web client shows the files a bot shares.** A reply that carries files (`contract/outbox/`)
   draws a picture as a thumbnail that opens the viewer (several are a grid), a video and a sound as
   players that seek, a PDF as a card that opens in a tab of its own, and any other file as a chip with
