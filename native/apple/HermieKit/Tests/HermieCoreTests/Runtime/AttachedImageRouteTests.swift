@@ -82,7 +82,7 @@ struct AttachedImageRouteTests {
 
   @Test("the session asks the attached-image route first, as the chat's profile, and nothing else when it answers")
   func fetchedByTheRoute() async throws {
-    let harness = SessionHarness()
+    let harness = SessionHarness(gatewayID: "attached-image-\(UUID().uuidString)")
     let route = "/api/files/images/upload_1.png?profile=default"
     harness.link.setFiles { $0 == route ? Self.png : nil }
 
@@ -103,7 +103,7 @@ struct AttachedImageRouteTests {
 
   @Test("a path in another profile's folder, a nested one, and a chat with no profile keep the existing routes")
   func existingRoutes() async throws {
-    let harness = SessionHarness()
+    let harness = SessionHarness(gatewayID: "attached-image-\(UUID().uuidString)")
     let writer = "\(Self.home)/profiles/writer/images/upload_1.png"
     let nested = "\(Self.home)/images/sub/upload_1.png"
     harness.link.setFiles { $0.hasPrefix("/api/files/download?path=") ? Self.png : nil }
@@ -128,7 +128,7 @@ struct AttachedImageRouteTests {
 
   @Test("the gateway has no such image: the existing routes are tried, and then it is a refusal the reader is told")
   func notFound() async {
-    let harness = SessionHarness()
+    let harness = SessionHarness(gatewayID: "attached-image-\(UUID().uuidString)")
     harness.link.setFiles { _ in nil }
 
     #expect(

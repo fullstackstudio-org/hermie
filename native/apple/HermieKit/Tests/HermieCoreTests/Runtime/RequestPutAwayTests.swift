@@ -217,7 +217,7 @@ struct RequestPutAwayTests {
 
   @Test("a file the gateway serves is fetched through the session and kept for Quick Look; discarding its gateway deletes it")
   func attachmentFetched() async throws {
-    let harness = SessionHarness()
+    let harness = SessionHarness(gatewayID: "put-away-\(UUID().uuidString)")
     let bytes = Data("%PDF-1.7 hermie".utf8)
     harness.link.setFiles { $0 == "/api/files/report.pdf" ? bytes : nil }
 
