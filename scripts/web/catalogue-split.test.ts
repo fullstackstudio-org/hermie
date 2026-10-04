@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { isRead } from '../../native/web/scripts/catalogue-reads.mjs'
-import { entryGraph, groupOf, lazyOnlyKeys, splitReads } from '../../native/web/scripts/catalogue-split.mjs'
+import { entryGraph, lazyKeysByFile, lazyOnlyKeys, splitReads } from '../../native/web/scripts/catalogue-split.mjs'
 
 const dirs: string[] = []
 
@@ -103,11 +103,29 @@ describe('splitReads', () => {
   })
 })
 
-describe('groupOf', () => {
-  it('groups a key by its first two segments, which is what a page imports', () => {
-    expect(groupOf('cron.detail.nextRun')).toBe('cron.detail')
-    expect(groupOf('app.settings.title')).toBe('app.settings')
-    expect(groupOf('cron.title')).toBe('cron.title')
+describe('lazyKeysByFile', () => {
+  it('gives each module outside the entry the keys that left the entry it reads, and leaves out the rest', () => {
+    const catalogue = {
+      'app.common.cancel': 'Cancel',
+      'cron.list.empty': 'Nothing',
+      'cron.list.title': 'Crons',
+      'cron.detail.next': 'Next'
+    }
+    const dir = tree({
+      'main.tsx': `${IMPORT}import './shell'\nconst page = () => import('./page')\n`,
+      'shell.ts': `${IMPORT}strings.app.common.cancel\n`,
+      'page.tsx': `${IMPORT}import './detail'\nimport './plain'\nstrings.cron.list\nstrings.app.common.cancel\n`,
+      'detail.tsx': `${IMPORT}strings.cron.detail.next\nstrings.cron.list.title\n`,
+      'plain.ts': 'export const plain = 1\n'
+    })
+    const split = splitReads(dir, 'main.tsx')
+    const byFile = lazyKeysByFile(lazyOnlyKeys(catalogue, split), split)
+
+    // A key two modules read is in both of theirs; the entry's keys and the modules that read none are in nobody's.
+    expect([...byFile]).toEqual([
+      ['detail.tsx', ['cron.list.title', 'cron.detail.next']],
+      ['page.tsx', ['cron.list.empty', 'cron.list.title']]
+    ])
   })
 })
 

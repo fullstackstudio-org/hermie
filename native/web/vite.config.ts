@@ -7,7 +7,7 @@ import { defineConfig, type Plugin } from 'vite'
 
 import { escapeNonAscii } from './scripts/ascii-only.mjs'
 import { catalogueRead, isRead, pathsReadUnder } from './scripts/catalogue-reads.mjs'
-import { groupOf, lazyOnlyKeys, splitReads } from './scripts/catalogue-split.mjs'
+import { lazyKeysByFile, lazyOnlyKeys, splitReads } from './scripts/catalogue-split.mjs'
 import { resolveSourceCommit } from './scripts/source-commit.mjs'
 
 /**
@@ -147,11 +147,11 @@ function backtickAfterBangEscaped(): Plugin {
  * those. The unit tests and the dev server read the files whole.
  *
  * English is inlined into the entry, so it is cut once more: a key that only a module outside the entry's static
- * graph reads (`scripts/catalogue-split.mjs`: a page loaded on demand) is not in the entry's English file. It is in a
- * virtual module, one per group of keys (`cron.detail`, `app.settings`), that every such module imports
- * (appended to its source here) and that registers the keys with `registerEnglish` when it is evaluated: before the
- * importing module's own code runs, so a page never reads a key that is not there, and a group several pages read is
- * in the chunk they share. Dutch and German are chunks already and keep every key the client reads.
+ * graph reads (`scripts/catalogue-split.mjs`: a page loaded on demand) is not in the entry's English file. Each such
+ * module gets a virtual module of its own with the keys it reads (`lazyKeysByFile`), imported (appended to its source
+ * here) by that module alone, so it is in that module's chunk and never a file of its own; it registers the keys with
+ * `registerEnglish` when it is evaluated: before the importing module's own code runs, so a page never reads a key
+ * that is not there. Dutch and German are chunks already and keep every key the client reads.
  */
 function catalogueOnlyWhatIsRead(): Plugin {
   const src = join(root, 'src')
@@ -159,11 +159,10 @@ function catalogueOnlyWhatIsRead(): Plugin {
   const catalogueModule = join(src, 'i18n', 'catalogue.ts')
   const virtualPrefix = 'virtual:hermie-english/'
   let paths: string[] | null = null
-  let split: ReturnType<typeof splitReads> | null = null
   let english: Record<string, unknown> = {}
-  /** The keys that leave the entry, and the group each is registered with. */
+  /** The keys that leave the entry, and those each module outside the entry's graph registers (by its path under `src`). */
   let lazyKeys: string[] = []
-  const groups = new Map<string, string[]>()
+  let byFile = new Map<string, string[]>()
 
   return {
     name: 'hermie:catalogue-only-what-is-read',
@@ -171,21 +170,18 @@ function catalogueOnlyWhatIsRead(): Plugin {
     enforce: 'pre',
     buildStart() {
       paths = pathsReadUnder(src)
-      split = splitReads(src, 'main.tsx')
+      const split = splitReads(src, 'main.tsx')
+
       english = JSON.parse(readFileSync(join(locales, 'en.json'), 'utf8')) as Record<string, unknown>
       lazyKeys = lazyOnlyKeys(english, split).filter(key => paths === null || isRead(key, paths))
-      groups.clear()
-
-      for (const key of lazyKeys) {
-        groups.set(groupOf(key), [...(groups.get(groupOf(key)) ?? []), key])
-      }
+      byFile = lazyKeysByFile(lazyKeys, split)
     },
     resolveId(source) {
       return source.startsWith(virtualPrefix) ? `\0${source}` : null
     },
     load(id) {
       if (id.startsWith(`\0${virtualPrefix}`)) {
-        const keys = groups.get(id.slice(`\0${virtualPrefix}`.length)) ?? []
+        const keys = byFile.get(id.slice(`\0${virtualPrefix}`.length)) ?? []
         const more = Object.fromEntries(keys.map(key => [key, english[key]]))
 
         return `import { registerEnglish } from ${JSON.stringify(catalogueModule)}\nregisterEnglish(${JSON.stringify(more)})\n`
@@ -211,20 +207,10 @@ function catalogueOnlyWhatIsRead(): Plugin {
     transform(code, id) {
       const file = (id.split('?')[0] ?? id).split(sep).join('/')
       const name = relative(src, file).split(sep).join('/')
-      const read = split?.byFile.get(name)
 
-      if (!read || split?.inEntry.has(name)) {
-        return null
-      }
-
-      const wanted = [...new Set(lazyKeys.filter(key => isRead(key, read)).map(groupOf))].sort()
-
-      return wanted.length === 0
-        ? null
-        : {
-            code: `${code}\n${wanted.map(group => `import ${JSON.stringify(`${virtualPrefix}${group}`)}`).join('\n')}\n`,
-            map: null
-          }
+      return byFile.has(name)
+        ? { code: `${code}\nimport ${JSON.stringify(`${virtualPrefix}${name}`)}\n`, map: null }
+        : null
     }
   }
 }

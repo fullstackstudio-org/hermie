@@ -165,9 +165,6 @@ export function splitReads(dir, entryFile) {
   }
 }
 
-/** How a lazy key is grouped into the modules that register it: its first two segments (`cron.detail`, `app.settings`). */
-export const groupOf = key => key.split('.').slice(0, 2).join('.')
-
 /**
  * The keys that leave the first load: those some module outside the entry's graph reads and the entry does not. A
  * `null` read on either side means nothing leaves (the entry keeps everything), because nothing can be proved.
@@ -185,4 +182,35 @@ export function lazyOnlyKeys(catalogue, split) {
   const { entry, lazy } = split
 
   return Object.keys(catalogue).filter(key => isRead(key, lazy) && !isRead(key, entry))
+}
+
+/**
+ * Which of `keys` (the ones that left the first load) each module outside the entry's graph reads: the words the build
+ * registers for that module, in a virtual module only that module imports.
+ *
+ * One per reading module, not one per group of keys, because a module imported by only one other is in that one's
+ * chunk: the words land in the chunk of the page that says them and are never a file of their own. A group shared by
+ * pages loaded in different combinations was one (the plugin importer accepts 80 files). A key two such modules read is
+ * in both of theirs; `registerEnglish` keeps the first and ignores the second. Modules that read none are left out.
+ *
+ * @param {readonly string[]} keys
+ * @param {{ byFile: Map<string, readonly string[] | null>, inEntry: Set<string> }} split
+ * @returns {Map<string, string[]>} by the module's path relative to the sources, in path order
+ */
+export function lazyKeysByFile(keys, split) {
+  const byFile = new Map()
+
+  for (const [name, read] of split.byFile) {
+    if (split.inEntry.has(name) || read === null) {
+      continue
+    }
+
+    const own = keys.filter(key => isRead(key, read))
+
+    if (own.length > 0) {
+      byFile.set(name, own)
+    }
+  }
+
+  return byFile
 }

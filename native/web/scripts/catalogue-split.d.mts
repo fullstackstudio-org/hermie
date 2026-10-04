@@ -12,9 +12,12 @@ export interface ReadSplit {
 
 export function splitReads(dir: string, entryFile: string): ReadSplit
 
-export function groupOf(key: string): string
-
 export function lazyOnlyKeys(
   catalogue: Readonly<Record<string, unknown>>,
   split: Pick<ReadSplit, 'entry' | 'lazy'>
 ): string[]
+
+export function lazyKeysByFile(
+  keys: readonly string[],
+  split: Pick<ReadSplit, 'byFile' | 'inEntry'>
+): Map<string, string[]>

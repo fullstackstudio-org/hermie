@@ -123,22 +123,23 @@ export function sectionBlurb(section: SettingsSection): string {
  * when its link is pointed at or focused, so the dynamic import is written once per section.
  */
 export const SECTION_LOADERS = {
-  account: () => import('./Account'),
-  gateway: () => import('./Gateway'),
-  passkeys: () => import('./Passkeys'),
-  mcp: () => import('./MCP'),
-  // The five management pages are one chunk (`manage-pages.ts`): a person who opens one is usually there for the others.
+  // The small pages are one chunk (`settings-pages.ts`), and so are the five management pages (`manage-pages.ts`): a
+  // person who opens one is usually there for the others. The chat list's arrangement is big enough to be its own.
+  account: () => import('./settings-pages'),
+  gateway: () => import('./settings-pages'),
+  passkeys: () => import('./settings-pages'),
+  mcp: () => import('./settings-pages'),
   memory: () => import('./manage-pages'),
   skills: () => import('./manage-pages'),
   'mcp-servers': () => import('./manage-pages'),
   connectors: () => import('./manage-pages'),
   boards: () => import('./manage-pages'),
-  chats: () => import('./Chats'),
-  notifications: () => import('./Notifications'),
+  chats: () => import('./settings-pages'),
+  notifications: () => import('./settings-pages'),
   'chat-list': () => import('./Arrangement'),
-  appearance: () => import('./Appearance'),
-  voice: () => import('./Voice'),
-  about: () => import('./About')
+  appearance: () => import('./settings-pages'),
+  voice: () => import('./settings-pages'),
+  about: () => import('./settings-pages')
 } as const satisfies Record<SettingsSection, () => Promise<unknown>>
 
 /** Ask for a section's chunk early and ignore the answer. */
