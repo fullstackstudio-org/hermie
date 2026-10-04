@@ -893,13 +893,19 @@ struct InteractiveTests {
     #expect(!h.center.needsInput(bot))
   }
 
-  @Test("by default a session announces no interactive method, and nothing reaches the center")
-  func offByDefault() async throws {
-    #expect(GatewaySession.Options().requests == nil)
-    #expect(GatewaySession.Options().resolvedRequests.isEmpty)
-    #expect(!InteractiveCapabilities.advertisedByDefault)
+  @Test("by default a session announces the device's own list, and that is what it takes in")
+  func advertisedByDefault() {
+    #expect(InteractiveCapabilities.advertisedByDefault)
+    #expect(GatewaySession.Options().requests == InteractiveCapabilities.deviceMethods())
+    #expect(GatewaySession.Options().resolvedRequests == InteractiveCapabilities.deviceMethods())
+    #expect(InteractiveCapabilities.defaultMethods() == ServerRequestBody.Method.interactive)
+    #expect(InteractiveRequestCenter.Options().methods == Set(InteractiveCapabilities.deviceMethods()))
+  }
 
-    let h = InteractiveHarness(requests: nil)
+  @Test("a session that announces no interactive method gets nothing, and nothing reaches the center")
+  func offWhenNotAdvertised() async throws {
+
+    let h = InteractiveHarness(requests: [])
     try await h.open()
     var params = InteractiveFrames.form()
     params["session_id"] = .string(Fixture.runtime)
@@ -916,8 +922,10 @@ struct InteractiveTests {
   @Test("the session's own list and the connection options' list resolve to one")
   func oneList() {
     var options = GatewaySession.Options()
+    #expect(options.resolvedRequests == InteractiveCapabilities.deviceMethods(), "the device's own list by default")
+    options.requests = nil
     options.connection.requests = ["input.form"]
-    #expect(options.resolvedRequests == ["input.form"])
+    #expect(options.resolvedRequests == ["input.form"], "and the connection's when the session names none")
     options.requests = ["review.draft"]
     #expect(options.resolvedRequests == ["review.draft"])
     options.requests = []

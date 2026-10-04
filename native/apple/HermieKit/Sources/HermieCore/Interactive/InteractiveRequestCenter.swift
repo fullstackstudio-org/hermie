@@ -62,7 +62,7 @@ public enum InteractiveCapabilities {
   /// Whether a session announces `deviceMethods()` unless told otherwise. On since the sheets that
   /// show the requests exist (`FormSheet`, `FileSheet`, `DraftSheet`): a build that announces a
   /// method it cannot draw leaves the bot waiting on a question nobody sees.
-  public static let advertisedByDefault = false
+  public static let advertisedByDefault = true
 
   /// The list `GatewaySession.Options.requests` starts with: `deviceMethods()` while
   /// `advertisedByDefault`, none otherwise.

@@ -45,7 +45,7 @@ public final class GatewaySession {
     public var interactive = InteractiveRequestCenter.Options()
     /// The interactive request methods this device shows, announced to the gateway in the second
     /// `client.capabilities` call and the only ones `InteractiveRequestCenter` takes in
-    /// (`InteractiveCapabilities.defaultMethods()`: none until the sheets ship). `nil`: the
+    /// (`InteractiveCapabilities.defaultMethods()`: the device's own list). `nil`: the
     /// connection options' own list, if any. `nil` or empty there too: none is announced, and every
     /// interactive request is answered `-32601`.
     public var requests: [String]? = InteractiveCapabilities.defaultMethods()

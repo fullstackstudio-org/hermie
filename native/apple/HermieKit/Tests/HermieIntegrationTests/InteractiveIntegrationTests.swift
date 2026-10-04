@@ -1,8 +1,11 @@
 #if os(macOS)
+import CoreGraphics
+import CryptoKit
 import Foundation
 import HermieGateway
 import HermieProtocol
 import HermieStore
+import ImageIO
 import Testing
 
 @testable import HermieCore
@@ -35,8 +38,8 @@ private struct InteractiveChat {
   let session: GatewaySession
   let model: InteractiveModel
 
-  /// `requests`: the methods this session announces (the device's own list: a session announces
-  /// none unless told to, until the sheets ship).
+  /// `requests`: the methods this session announces (the device's own list, which is also what a
+  /// session announces unless told otherwise).
   static func open(
     _ gateway: FakeGateway,
     requests: [String] = InteractiveCapabilities.deviceMethods()
@@ -403,12 +406,43 @@ extension Integration {
       }
     }
 
-    @Test("by default a session announces no interactive method: the gateway has no capable client")
-    func offByDefault() async throws {
+    @Test("by default a session announces the device's own list, and a request for it reaches the center")
+    func advertisedByDefault() async throws {
       try await withInteractiveGateway { gateway in
         var options = GatewaySession.Options()
         options.connection.backoff = { _ in .milliseconds(100) }
         let record = GatewayRecord(id: "g-default", name: "fake", address: gateway.baseURL, authKind: .sessionToken, addedAt: 0)
+        let session = try GatewaySession(
+          record: record,
+          credentials: SessionTokenCredentials(token: ""),
+          database: try SQLiteStore(.inMemory),
+          options: options
+        )
+        await session.start()
+        try await interactiveWait("the socket") { session.status.phase == .ready && session.chatList.rows[researcher] != nil }
+        try await session.open(researcher)
+        try await InteractiveChat.acceptedAdvertisements(gateway, atLeast: 1)
+
+        // What is advertised is the device's list, nothing more and nothing less.
+        let state = try await gateway.control("GET", "/__fake/state")
+        let last = try #require(state["clientCapabilities"]?.arrayValue?.last)
+        #expect(last["requests"]?.arrayValue?.compactMap(\.stringValue) == InteractiveCapabilities.deviceMethods())
+
+        let raised = try await gateway.control(
+          "POST", "/__fake/request", body: .object(["profile": .string(researcher), "method": "input.form"]))
+        let id = try #require(raised["id"]?.stringValue)
+        try await interactiveWait("the form") { session.interactive.isOpen(id) }
+        await session.shutdown()
+      }
+    }
+
+    @Test("a session told to announce nothing is sent nothing, whatever the default is")
+    func announcingNothing() async throws {
+      try await withInteractiveGateway { gateway in
+        var options = GatewaySession.Options()
+        options.connection.backoff = { _ in .milliseconds(100) }
+        options.requests = []
+        let record = GatewayRecord(id: "g-quiet", name: "fake", address: gateway.baseURL, authKind: .sessionToken, addedAt: 0)
         let session = try GatewaySession(
           record: record,
           credentials: SessionTokenCredentials(token: ""),
@@ -431,6 +465,381 @@ extension Integration {
         await session.shutdown()
       }
     }
+
+    // MARK: The sheets' own models
+
+    /// Every kind of field of the contract, in one form.
+    private static let everyKind: JSONValue = [
+      ["id": "name", "kind": "text", "label": "Name on the booking", "required": true, "max_length": 20],
+      ["id": "notes", "kind": "text", "label": "Notes", "multiline": true],
+      ["id": "guests", "kind": "number", "label": "Guests", "integer": true, "min": 1, "max": 12, "default": 2],
+      ["id": "budget", "kind": "amount", "label": "Budget", "currency": "EUR", "min": "0", "max": "5000"],
+      ["id": "arrival", "kind": "date", "label": "Arrival", "tz": "Europe/Amsterdam", "min": "2026-10-05"],
+      ["id": "check_in", "kind": "time", "label": "Check-in", "min": "08:00", "max": "18:00"],
+      ["id": "call_at", "kind": "datetime", "label": "Call", "tz": "Europe/Amsterdam", "min": "2026-10-05T00:00:00+02:00"],
+      ["id": "stay", "kind": "daterange", "label": "Stay", "required": true, "min": "2026-10-05", "max": "2026-12-31"],
+      ["id": "room", "kind": "choice", "label": "Room",
+        "options": [["value": "single", "label": "Single"], ["value": "double", "label": "Double"]]],
+      ["id": "extras", "kind": "choice", "label": "Extras", "multiple": true, "max_selected": 2,
+        "options": [["value": "breakfast", "label": "Breakfast"], ["value": "parking", "label": "Parking"],
+          ["value": "late", "label": "Late check-out"]]],
+      ["id": "news", "kind": "toggle", "label": "Send me offers", "default": false]
+    ]
+
+    @Test("a form with every kind of field, filled in through the sheet's model, is taken by the gateway as it is written")
+    func everyKindOfField() async throws {
+      try await withInteractiveGateway { gateway in
+        let chat = try await InteractiveChat.open(gateway)
+        let id = try await chat.raise(gateway, "input.form", ["fields": Self.everyKind])
+        guard case .form(let params)? = chat.model.presented?.body else {
+          Issue.record("not a form")
+          return
+        }
+
+        let form = InteractiveFormModel(params: params, device: TimeZone(identifier: "America/New_York") ?? .current)
+
+        // Nothing sent for a form that is not filled in: the required fields say so.
+        #expect(form.submit() == nil)
+        #expect(form.shownProblem(of: "name") == .missing)
+        #expect(form.shownProblem(of: "stay") == .missing)
+
+        form.set(.text("Ada Lovelace"), for: "name")
+        form.set(.text("Arriving late.\nNo nuts, please."), for: "notes")
+        form.set(.number("4"), for: "guests")
+        form.set(.amount("1250,50"), for: "budget")
+        form.set(.date("2026-11-14"), for: "arrival")
+        form.set(.time("14:30"), for: "check_in")
+        let call = try #require(FormInstant.parse("2026-11-07T08:00:00+00:00"))
+        form.set(.datetime(call), for: "call_at")
+        form.set(.range(start: "2026-11-14", end: "2026-11-16"), for: "stay")
+        form.set(.choice("double"), for: "room")
+        form.toggle(option: "parking", in: "extras")
+        form.toggle(option: "breakfast", in: "extras")
+        form.set(.toggle(true), for: "news")
+
+        let values = try #require(form.submit())
+        #expect(await chat.model.answer(.form(values)))
+
+        let view = try await InteractiveChat.view(gateway, id)
+        #expect(view["outcome"] == "answered")
+        #expect(view["refusals"] == [])
+        #expect(
+          view["answer"]?["values"] == [
+            "name": "Ada Lovelace", "notes": "Arriving late.\nNo nuts, please.", "guests": 4, "budget": "1250.50",
+            "arrival": "2026-11-14", "check_in": "14:30", "call_at": "2026-11-07T09:00+01:00[Europe/Amsterdam]",
+            "stay": ["start": "2026-11-14", "end": "2026-11-16"], "room": "double",
+            "extras": ["breakfast", "parking"], "news": true
+          ])
+        form.wipe()
+        await chat.session.shutdown()
+      }
+    }
+
+    @Test("an answer the gateway refuses is shown next to its field, and the corrected one is taken")
+    func refusalNextToTheField() async throws {
+      try await withInteractiveGateway { gateway in
+        let chat = try await InteractiveChat.open(gateway)
+        let model = chat.model
+        let id = try await chat.raise(gateway, "input.form", ["fields": Self.fields])
+        guard case .form(let params)? = model.presented?.body else {
+          Issue.record("not a form")
+          return
+        }
+
+        let form = InteractiveFormModel(params: params)
+        form.set(.text("Ada"), for: "name")
+        // The sheet's own check would stop this one; what the gateway says about an answer the
+        // sheet let through is the same thing, and that is what is shown.
+        form.set(.number("0"), for: "guests")
+        #expect(form.problem(of: "guests") == .belowMin)
+        #expect(await model.answer(.form(["name": .text("Ada"), "guests": .number(0)])) == false)
+        form.noteRefusal(model.refusal)
+        #expect(model.refusal == "field:guests:below_min")
+        #expect(form.shownProblem(of: "guests") == .belowMin, "next to the field, before it is edited")
+        #expect(form.shownProblem(of: "name") == nil)
+        #expect(model.presented?.id == id, "the sheet stays up")
+
+        form.set(.number("2"), for: "guests")
+        #expect(form.shownProblem(of: "guests") == nil, "an edited field is not blamed again")
+        let values = try #require(form.submit())
+        #expect(await model.answer(.form(values)))
+        form.noteRefusal(model.refusal)
+
+        let view = try await InteractiveChat.view(gateway, id)
+        #expect(view["outcome"] == "answered")
+        #expect(view["refusals"] == ["field:guests:below_min"])
+        #expect(view["answer"]?["values"] == ["name": "Ada", "guests": 2])
+        await chat.session.shutdown()
+      }
+    }
+
+    /// The upload directory the fake's `input.file` frame names, with room for what the tests send.
+    private static func fileParams(strip: Bool = false, multiple: Bool = true) -> JSONObject {
+      [
+        "title": "Receipts", "summary": "Upload the receipts.", "accept": "any", "multiple": .bool(multiple),
+        "upload": [
+          "dir": "/home/ada/work/uploads/hermie/2026-10-04", "max_bytes": 1_048_576, "max_total_bytes": 2_097_152,
+          "max_files": 3, "strip_metadata": .bool(strip)
+        ]
+      ]
+    }
+
+    /// What the fake's upload route stored: path, name, mime, size and SHA-256.
+    private static func stored(_ gateway: FakeGateway) async throws -> [JSONValue] {
+      try await gateway.control("GET", "/__fake/files")["files"]?.arrayValue ?? []
+    }
+
+    @Test("files chosen in the sheet's model land flat in upload.dir with the SHA-256 and size the answer quotes")
+    func filesLandInTheUploadDirectory() async throws {
+      try await withInteractiveGateway { gateway in
+        let chat = try await InteractiveChat.open(gateway)
+        let model = chat.model
+        let id = try await chat.raise(gateway, "input.file", Self.fileParams())
+        guard case .file(let params)? = model.presented?.body else {
+          Issue.record("not a file request")
+          return
+        }
+
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("interactive-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let first = Data("first receipt".utf8)
+        let second = Data((0..<300_000).map { UInt8(truncatingIfNeeded: $0 &* 7) })
+        let urls = [folder.appendingPathComponent("Receipt (1).txt"), folder.appendingPathComponent("scan.pdf")]
+        try first.write(to: urls[0])
+        try second.write(to: urls[1])
+
+        let files = InteractiveFileModel(params: params)
+        await files.importFiles(urls)
+        #expect(files.items.count == 2)
+
+        let references = try #require(await files.upload(through: model.uploader))
+        #expect(await model.answer(.files(references, text: nil)))
+        files.discardAll()
+
+        let view = try await InteractiveChat.view(gateway, id)
+        #expect(view["outcome"] == "answered")
+        #expect(view["refusals"] == [])
+
+        let answered = try #require(view["answer"]?["files"]?.arrayValue)
+        let landed = try await Self.stored(gateway)
+        #expect(landed.count == 2)
+        #expect(answered.count == 2)
+
+        for (reference, file) in zip(references, landed) {
+          let path = try #require(reference.path)
+          // Flat: directly in the directory, a 16 hex token and a safe name.
+          #expect(params.upload?.contains(path: path) == true)
+          #expect(path.range(of: #"^/home/ada/work/uploads/hermie/2026-10-04/[0-9a-f]{16}-[A-Za-z0-9._-]+$"#, options: .regularExpression) != nil, "\(path)")
+          // What the gateway stored is what the answer says it is.
+          #expect(file["path"]?.stringValue == path)
+          #expect(file["sha256"]?.stringValue == reference.sha256)
+          #expect(file["bytes"]?.intValue == reference.bytes)
+        }
+
+        let hashes = SHA256Hex.of
+        #expect(landed.map { $0["sha256"]?.stringValue } == [hashes(first), hashes(second)])
+        #expect(landed.map { $0["bytes"]?.intValue } == [first.count, second.count])
+        #expect(answered.map { $0["name"]?.stringValue } == ["Receipt (1).txt", "scan.pdf"])
+        #expect(answered.map { $0["sha256"]?.stringValue } == [hashes(first), hashes(second)])
+        #expect(answered.map { $0["path"]?.stringValue } == landed.map { $0["path"]?.stringValue })
+        await chat.session.shutdown()
+      }
+    }
+
+    @Test("with strip_metadata the bytes that go out have no location, and the SHA-256 is of those bytes")
+    func strippedBytesAreWhatIsHashed() async throws {
+      try await withInteractiveGateway { gateway in
+        let chat = try await InteractiveChat.open(gateway)
+        let model = chat.model
+        _ = try await chat.raise(gateway, "input.file", Self.fileParams(strip: true, multiple: false))
+        guard case .file(let params)? = model.presented?.body else {
+          Issue.record("not a file request")
+          return
+        }
+
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("interactive-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let photo = folder.appendingPathComponent("receipt.jpg")
+        try located().write(to: photo)
+        let original = try Data(contentsOf: photo)
+        #expect(try gps(in: original))
+
+        let files = InteractiveFileModel(params: params)
+        await files.importFiles([photo])
+        let references = try #require(await files.upload(through: model.uploader))
+        #expect(await model.answer(.files(references, text: nil)))
+        files.discardAll()
+
+        let landed = try await Self.stored(gateway)
+        let file = try #require(landed.first)
+        #expect(file["sha256"]?.stringValue == references[0].sha256)
+        #expect(file["sha256"]?.stringValue != SHA256Hex.of(original), "not the original's bytes")
+        #expect(file["mime"]?.stringValue == "image/jpeg")
+        await chat.session.shutdown()
+      }
+    }
+
+    @Test("an upload that fails is said to the person; giving up answers 4041 upload_failed, and nothing else was answered")
+    func failedUploadIsCannotShow() async throws {
+      try await withInteractiveGateway { gateway in
+        let chat = try await InteractiveChat.open(gateway)
+        let model = chat.model
+        let id = try await chat.raise(gateway, "input.file", Self.fileParams(multiple: false))
+        guard case .file(let params)? = model.presented?.body else {
+          Issue.record("not a file request")
+          return
+        }
+
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("interactive-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let url = folder.appendingPathComponent("a.txt")
+        try Data("a".utf8).write(to: url)
+
+        let files = InteractiveFileModel(params: params)
+        await files.importFiles([url])
+        let failing: InteractiveUploader = { _, _, _, _, _ in throw GatewayError(.network, "Could not reach the gateway.") }
+        #expect(await files.upload(through: failing) == nil)
+        #expect(files.phase == .failed, "the person sees it before anything is sent")
+        #expect(files.failure == .failed(message: "Could not reach the gateway."))
+        #expect(try await InteractiveChat.view(gateway, id)["outcome"] == nil, "nothing answered yet")
+
+        #expect(await model.cannotShow(reason: CannotShowReason.uploadFailed))
+        files.discardAll()
+        let view = try await InteractiveChat.view(gateway, id)
+        #expect(view["outcome"] == "unavailable")
+        #expect(view["reason"] == "upload_failed")
+        #expect(view["error"]?["code"] == 4041)
+        #expect(view["answer"] == nil)
+        #expect(try await Self.stored(gateway).isEmpty)
+        await chat.session.shutdown()
+      }
+    }
+
+    @Test("a draft edited in the sheet's model is approved with its text; a rejection carries the comment")
+    func draftsThroughTheModel() async throws {
+      try await withInteractiveGateway { gateway in
+        let chat = try await InteractiveChat.open(gateway)
+        let model = chat.model
+
+        let first = try await chat.raise(
+          gateway, "review.draft",
+          ["kind": "mail", "subject": "Friday", "recipients": ["bram@example.com"], "text": "Hi Bram,\n\nSee you Friday.\n"])
+        guard case .draft(let params)? = model.presented?.body else {
+          Issue.record("not a draft")
+          return
+        }
+
+        let draft = InteractiveDraftModel(params: params)
+        #expect(!draft.isEdited)
+        draft.text = "Hi Bram,\n\nSee you Saturday.\n"
+        #expect(draft.isEdited && draft.canApprove)
+        #expect(await model.answer(draft.approval))
+        let approved = try await InteractiveChat.view(gateway, first)
+        #expect(approved["answer"]?["decision"] == "approved")
+        #expect(approved["answer"]?["edited"] == true)
+        draft.wipe()
+
+        // Text the gateway would refuse never goes out: the sheet will not approve it.
+        let second = try await chat.raise(gateway, "review.draft", ["text": "Pay now", "editable": true])
+        guard case .draft(let again)? = model.presented?.body else {
+          Issue.record("not a draft")
+          return
+        }
+        let bad = InteractiveDraftModel(params: again)
+        bad.text = "Pay now\u{202E}gnp.exe"
+        #expect(!bad.canApprove)
+        bad.comment = "Not like this"
+        #expect(await model.answer(bad.rejection))
+        let rejected = try await InteractiveChat.view(gateway, second)
+        #expect(rejected["answer"]?["decision"] == "rejected")
+        #expect(rejected["answer"]?["comment"] == "Not like this")
+        #expect(rejected["answer"]?["text"] == nil)
+        await chat.session.shutdown()
+      }
+    }
+
+    @Test("a draft that cannot be changed: the model will not send a changed text, and takes it back as it came")
+    func fixedDraft() async throws {
+      try await withInteractiveGateway { gateway in
+        let chat = try await InteractiveChat.open(gateway)
+        let model = chat.model
+        let id = try await chat.raise(gateway, "review.draft", ["text": "As written.", "editable": false])
+        guard case .draft(let params)? = model.presented?.body else {
+          Issue.record("not a draft")
+          return
+        }
+
+        let draft = InteractiveDraftModel(params: params)
+        draft.text = "Changed."
+        #expect(!draft.canApprove)
+        #expect(!model.canAnswer(draft.approval))
+        #expect(await model.answer(draft.approval) == false)
+        #expect(try await InteractiveChat.view(gateway, id)["answer"] == nil)
+
+        draft.revert()
+        #expect(await model.answer(draft.approval))
+        #expect(try await InteractiveChat.view(gateway, id)["outcome"] == "answered")
+        await chat.session.shutdown()
+      }
+    }
+
+    @Test("Later puts a form away without answering; the request stays open at the gateway and opens again")
+    func laterIsNotAnAnswer() async throws {
+      try await withInteractiveGateway { gateway in
+        let chat = try await InteractiveChat.open(gateway)
+        let model = chat.model
+        let id = try await chat.raise(gateway, "input.form", ["fields": Self.fields])
+
+        model.later()
+        #expect(model.presentedID == nil)
+        #expect(model.nextToPresent == nil, "it does not come back by itself")
+        let view = try await InteractiveChat.view(gateway, id)
+        #expect(view["open"] == true)
+        #expect(view["outcome"] == nil)
+
+        model.present(id)
+        #expect(await model.answer(.form(["name": .text("Ada"), "guests": .number(2)])))
+        await chat.session.shutdown()
+      }
+    }
+  }
+}
+
+/// A JPEG that says where it was taken, as ImageIO writes it.
+private func located() throws -> Data {
+  let context = try #require(
+    CGContext(
+      data: nil, width: 32, height: 24, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
+      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+  context.setFillColor(red: 0.2, green: 0.5, blue: 0.9, alpha: 1)
+  context.fill(CGRect(x: 0, y: 0, width: 32, height: 24))
+
+  let output = NSMutableData()
+  let destination = try #require(CGImageDestinationCreateWithData(output, "public.jpeg" as CFString, 1, nil))
+  let properties: [CFString: Any] = [
+    kCGImagePropertyGPSDictionary: [
+      kCGImagePropertyGPSLatitude: 52.3676, kCGImagePropertyGPSLatitudeRef: "N",
+      kCGImagePropertyGPSLongitude: 4.9041, kCGImagePropertyGPSLongitudeRef: "E"
+    ]
+  ]
+  CGImageDestinationAddImage(destination, try #require(context.makeImage()), properties as CFDictionary)
+  #expect(CGImageDestinationFinalize(destination))
+  return output as Data
+}
+
+/// Whether the JPEG carries a GPS dictionary.
+private func gps(in data: Data) throws -> Bool {
+  let source = try #require(CGImageSourceCreateWithData(data as CFData, nil))
+  let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
+  return properties?[kCGImagePropertyGPSDictionary] != nil
+}
+
+private enum SHA256Hex {
+  static func of(_ data: Data) -> String {
+    SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
   }
 }
 #endif
