@@ -45,6 +45,12 @@
  */
 import { type GatewayHttp, redirectSeen } from '@hermie/gateway-client'
 
+// How a prompt names an uploaded file, in a module of its own: a send needs it, and the first load, which sends,
+// should not carry the upload (`file-references.ts`).
+import { fileReferenceFor } from './file-references'
+
+export { fileReferenceFor, imageReferenceFor, withFileReferences } from './file-references'
+
 /** `_MANAGED_FILE_MAX_BYTES` in `hermes_cli/web_server.py`. */
 export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024
 
@@ -199,41 +205,6 @@ export function flatUploadPath(dir: string, name: string, token?: string): strin
     )
 
   return `${root}/${hex}-${sanitiseUploadName(name)}`
-}
-
-/**
- * The token the gateway expands into the file's contents.
- *
- * Backticks because a path with a space in it otherwise ends at the space —
- * `agent/context_references.py` strips exactly this pair of wrappers back off.
- */
-export function fileReferenceFor(path: string): string {
-  return /\s/.test(path) ? `@file:\`${path}\`` : `@file:${path}`
-}
-
-/**
- * An attached image's reference, with only the name in the path position.
- *
- * Nothing puts this in the prompt: `image.attach_bytes` carries the bytes and the
- * gateway writes its own `@image:<path>` into the row it persists. This is what
- * the bubble records until that row lands, so the two can still be recognised as
- * one send — `attachmentsMatchKey` compares the name, which is all a client was
- * ever told. Same wrapping rule as a file, for a name with a space in it.
- */
-export function imageReferenceFor(name: string): string {
-  return /\s/.test(name) ? `@image:\`${name}\`` : `@image:${name}`
-}
-
-/** The prompt as it goes to the gateway: the user's words, then the references. */
-export function withFileReferences(text: string, paths: readonly string[]): string {
-  if (!paths.length) {
-    return text
-  }
-
-  const references = paths.map(fileReferenceFor).join('\n')
-  const body = text.trim()
-
-  return body ? `${body}\n\n${references}` : references
 }
 
 /**

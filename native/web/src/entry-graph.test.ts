@@ -48,8 +48,9 @@ const ON_DEMAND = [
   'features/settings/SettingsHost.tsx',
   'features/settings/settings-pages.ts',
   // What the chat controller does only when a page asks (`ChatController` hands those calls over): the chat screen's
-  // chunk brings it.
+  // chunk brings it. The upload itself goes with it; a send only names the files (`core/chats/file-references.ts`).
   'core/chat-controller-on-demand.ts',
+  'core/chats/file-upload.ts',
   // What the passkey model does only for the Passkeys page (enrolment, the step-ups): the Settings pages' chunk
   // brings it.
   'core/passkey/model-on-demand.ts',

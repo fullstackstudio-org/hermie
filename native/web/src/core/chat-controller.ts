@@ -90,13 +90,8 @@ import { pluginStore, type PluginState } from '../state/plugin'
 import type { BotsController, UserChatSource } from './bots-controller'
 import type { ChatControllerOnDemand } from './chat-controller-on-demand'
 import { boundConversationOf } from './chats/bound-conversation'
-import {
-  fileReferenceFor,
-  imageReferenceFor,
-  type UploadableFile,
-  type UploadedFile,
-  withFileReferences
-} from './chats/file-upload'
+import { fileReferenceFor, imageReferenceFor, withFileReferences } from './chats/file-references'
+import type { UploadableFile, UploadedFile } from './chats/file-upload'
 import { ownAuthorOn, type OwnAuthorState, ownAuthorStore } from './chats/own-author'
 import { claimTurn } from './chats/turn-claim'
 import type { GatewayClient } from './gateway-client'
