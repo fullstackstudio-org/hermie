@@ -162,6 +162,40 @@ test('turning it on registers the worker, subscribes with the advert’s key and
   expect(await page.evaluate(() => sessionStorage.getItem('__fakePush'))).toBe('null')
 })
 
+test('the types and the preview are written into the row as they are switched, and kept through a reload', async ({
+  app,
+  gateway,
+  page
+}) => {
+  await app.open('#/settings/notifications')
+  await page.getByRole('checkbox', { name: 'Notify this browser' }).click()
+  await expect.poll(async () => (await rowOf(page, gateway.url))?.endpoint).toBe('https://push.example.test/send/1')
+
+  // Off until the reader says otherwise: a notification says which bot and what happened, and no more.
+  const preview = page.getByRole('checkbox', { name: 'Show a preview' })
+
+  await expect(preview).not.toBeChecked()
+  await expect(page.getByText(/Off, a notification says which bot and what happened/u)).toBeVisible()
+  expect((await rowOf(page, gateway.url))?.preview).toBeFalsy()
+
+  await preview.check()
+  await expect.poll(async () => (await rowOf(page, gateway.url))?.preview).toBe(true)
+
+  const routines = page.getByRole('checkbox', { name: 'Routines' })
+
+  await expect(routines).toBeChecked()
+  await routines.uncheck()
+  await expect.poll(async () => ((await rowOf(page, gateway.url))?.types as Record<string, boolean>)?.cron).toBe(false)
+
+  // The choices are this browser's own and come back with the page.
+  await page.reload()
+  await expect(page.getByRole('checkbox', { name: 'Show a preview' })).toBeChecked()
+  await expect(page.getByRole('checkbox', { name: 'Routines' })).not.toBeChecked()
+
+  await page.getByRole('checkbox', { name: 'Show a preview' }).uncheck()
+  await expect.poll(async () => (await rowOf(page, gateway.url))?.preview).toBeFalsy()
+})
+
 test('a subscription made with another key is replaced with the advert’s on the next load', async ({
   app,
   gateway,

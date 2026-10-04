@@ -149,6 +149,54 @@ describe('the Notifications page', () => {
     expect(screen.getByText('Wait 7 seconds before sending another.')).toBeTruthy()
   })
 
+  describe('the preview', () => {
+    it('is off until the reader says otherwise, and is described by what it changes', () => {
+      mount({ enabled: true })
+
+      const preview = screen.getByRole('checkbox', { name: 'Show a preview' }) as HTMLInputElement
+
+      expect(preview.checked).toBe(false)
+      expect(document.getElementById(preview.getAttribute('aria-describedby') ?? '')?.textContent).toMatch(
+        /^Off, a notification says which bot and what happened/u
+      )
+    })
+
+    it('follows the store, in both directions, and is its own choice beside the types', () => {
+      const { pushState } = mount({ enabled: true })
+      const preview = screen.getByRole('checkbox', { name: 'Show a preview' }) as HTMLInputElement
+
+      fireEvent.click(preview)
+      expect(preview.checked).toBe(true)
+      expect(pushState.getState().types.cron).toBe(true)
+
+      fireEvent.click(preview)
+      expect(preview.checked).toBe(false)
+      expect(pushState.getState().preview).toBe(false)
+
+      // The other way in, a change from another device through `ui_meta`, is drawn without a click.
+      act(() => pushState.getState().setPreview(true))
+      expect(preview.checked).toBe(true)
+    })
+
+    it('is not offered while notifications are off for this browser', () => {
+      mount({ enabled: false })
+
+      expect(screen.queryByRole('checkbox', { name: 'Show a preview' })).toBeNull()
+    })
+
+    it('is read in Dutch and German', async () => {
+      const { setLanguageChoice } = await import('../../i18n/locale')
+
+      mount({ enabled: true })
+
+      await act(() => setLanguageChoice('nl'))
+      expect(screen.getByRole('checkbox', { name: 'Voorbeeld tonen' })).toBeTruthy()
+
+      await act(() => setLanguageChoice('de'))
+      expect(screen.getByRole('checkbox', { name: 'Vorschau zeigen' })).toBeTruthy()
+    })
+  })
+
   it('offers no test where the plugin has no test route', () => {
     mount({ enabled: true, advert: advert(['push.webpush', 'push.webpush.key']) })
 
