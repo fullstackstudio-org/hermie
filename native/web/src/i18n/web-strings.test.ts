@@ -95,7 +95,20 @@ const SAMPLE = {
   until: MARKER,
   index: MARKER,
   folder: MARKER,
-  carried: MARKER
+  carried: MARKER,
+  // The interactive sheets: a form's limits and zones, a file request's sizes.
+  currency: MARKER,
+  decimals: MARKER,
+  zone: MARKER,
+  offset: MARKER,
+  value: MARKER,
+  step: MARKER,
+  from: MARKER,
+  size: MARKER,
+  max: MARKER,
+  min: MARKER,
+  current: MARKER,
+  what: MARKER
 }
 
 describe('the web-only strings', () => {

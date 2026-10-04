@@ -4,7 +4,13 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { emptyLinesMarker, markVerbatimDetail } from './verbatim-detail'
+import {
+  countHiddenCharacters,
+  emptyLinesMarker,
+  markHiddenCharacters,
+  markVerbatimDetail,
+  withoutHiddenCharacters
+} from './verbatim-detail'
 
 describe('marking a verbatim detail', () => {
   const cases: { name: string; detail: string; text: string }[] = [
@@ -108,5 +114,35 @@ describe('marking a verbatim detail', () => {
 
   it('takes the words of the marker line from the sheet', () => {
     expect(markVerbatimDetail('a\n\n\n\nb', count => `⋯ ${count} lege regels ⋯`).text).toBe('a\n⋯ 3 lege regels ⋯\nb')
+  })
+})
+
+describe('marking what a draft hides', () => {
+  const rlo = String.fromCodePoint(0x202e)
+  const zwsp = String.fromCodePoint(0x200b)
+  const nbsp = String.fromCodePoint(0xa0)
+
+  it('shows a character that draws nothing by its code point, and changes nothing else', () => {
+    expect(markHiddenCharacters(`pay${rlo}evil`)).toBe('pay[U+202E]evil')
+    expect(markHiddenCharacters(`a${zwsp}${zwsp}${zwsp}b`)).toBe('a[U+200B×3]b')
+    expect(markHiddenCharacters(`a${nbsp}b`)).toBe('a[U+00A0]b')
+    // Spaces, indentation and blank lines stay as they are: a draft reads as it is.
+    expect(markHiddenCharacters('  indented\n\n\n\nend  ')).toBe('  indented\n\n\n\nend  ')
+  })
+
+  it('leaves a tab as a tab unless it is asked to count it', () => {
+    expect(markHiddenCharacters('a\tb')).toBe('a\tb')
+    expect(markHiddenCharacters('a\tb', { tabs: true })).toBe('a[U+0009]b')
+    expect(countHiddenCharacters('a\tb')).toBe(0)
+    expect(countHiddenCharacters('a\tb', { tabs: true })).toBe(1)
+  })
+
+  it('counts them, and removes them on request', () => {
+    const text = `a${zwsp}b${rlo}c\td`
+
+    expect(countHiddenCharacters(text)).toBe(2)
+    expect(withoutHiddenCharacters(text)).toBe('abc\td')
+    expect(withoutHiddenCharacters(text, { tabs: true })).toBe('abcd')
+    expect(countHiddenCharacters('plain text\nwith lines')).toBe(0)
   })
 })

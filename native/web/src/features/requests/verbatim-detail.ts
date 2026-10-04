@@ -134,3 +134,54 @@ export function markVerbatimDetail(
     longestLine: source.reduce((longest, line) => Math.max(longest, Array.from(line).length), 0)
   }
 }
+
+/** One character that draws nothing or moves text unseen: `HIDDEN_RUN`'s class. */
+const HIDDEN_ONE =
+  /^[\p{Cc}\p{Cf}\p{Cn}\p{Zs}\p{Zl}\p{Zp}\p{Default_Ignorable_Code_Point}\u115F\u1160\u3164\uFFA0\u2800\u{1D159}]$/u
+
+/** What a draft's marks may include besides the characters that draw nothing. */
+export interface HiddenOptions {
+  /** A tab counts too (a draft may not hold one: the gateway refuses it, and one cannot be told from spaces). */
+  tabs?: boolean
+}
+
+/** Hidden: in that class, and not the plain space or the line feed (which a draft draws as they are), nor a tab unless asked. */
+const isHiddenChar = (char: string, { tabs = false }: HiddenOptions): boolean =>
+  char !== ' ' && char !== '\n' && (char !== '\t' || tabs) && HIDDEN_ONE.test(char)
+
+/** How many characters of `text` draw nothing or move text unseen (zero-width ones, direction controls, ...). */
+export function countHiddenCharacters(text: string, options: HiddenOptions = {}): number {
+  let count = 0
+
+  for (const char of text) {
+    if (isHiddenChar(char, options)) {
+      count += 1
+    }
+  }
+
+  return count
+}
+
+/**
+ * `text` as drawn where it may not be edited: every hidden character is its code point in brackets (`[U+202E]`,
+ * a run of the same one `[U+200B×3]`), and nothing else changes (spaces, blank lines stay as they are, so a draft
+ * reads as it is). The text itself is never touched; only the drawing.
+ */
+export function markHiddenCharacters(text: string, options: HiddenOptions = {}): string {
+  return text.replace(HIDDEN_RUN, (run: string, char: string) => {
+    if (!isHiddenChar(char, options)) {
+      return run
+    }
+
+    const count = Array.from(run).length
+
+    return count === 1 ? `[${codePoint(char)}]` : `[${codePoint(char)}×${count}]`
+  })
+}
+
+/** `text` without its hidden characters (what "Remove them" leaves). */
+export function withoutHiddenCharacters(text: string, options: HiddenOptions = {}): string {
+  return Array.from(text)
+    .filter(char => !isHiddenChar(char, options))
+    .join('')
+}

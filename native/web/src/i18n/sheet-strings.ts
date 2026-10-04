@@ -636,35 +636,694 @@ export const SHEET_STRINGS_SOURCE = {
     }
   },
   interactive: {
-    /** The heading of the stand-in sheet for a form, a file request or a draft this page has no sheet for yet. */
-    unavailableTitle: {
-      en: 'A request this page cannot show yet',
-      nl: 'Een verzoek dat deze pagina nog niet kan tonen',
-      de: 'Eine Anfrage, die diese Seite noch nicht anzeigen kann'
-    },
-    /** Under it: what that means, in the app's words. */
-    unavailableLead: {
-      en: 'The bot asked a question that needs a form, a file or a draft to review, and this page cannot show those yet. You can decline it: the bot is told it could not be shown, which is not an answer.',
-      nl: 'De bot stelde een vraag die een formulier, een bestand of een concept om na te kijken nodig heeft, en deze pagina kan dat nog niet tonen. Je kunt het weigeren: de bot hoort dat het niet getoond kon worden, en dat is geen antwoord.',
-      de: 'Der Bot hat eine Frage gestellt, die ein Formular, eine Datei oder einen Entwurf zur Prüfung braucht, und diese Seite kann das noch nicht anzeigen. Du kannst sie ablehnen: Der Bot erfährt, dass sie nicht angezeigt werden konnte, und das ist keine Antwort.'
-    },
-    /** Declines the request: the gateway is told the page cannot show it. */
-    decline: {
-      en: 'Decline',
-      nl: 'Weigeren',
-      de: 'Ablehnen'
-    },
-    /** Label over the request's own heading and words. */
+    /** Label over the request's own heading and words: they are the bot's, shown as plain text. */
     quoteLabel: {
       en: 'What the bot says',
       nl: 'Wat de bot zegt',
       de: 'Was der Bot sagt'
     },
-    /** Declining was pressed while the connection was down: nothing went out. */
+    /** Label over the request's extra context, shown monospaced. */
+    detailLabel: {
+      en: 'More from the bot',
+      nl: 'Meer van de bot',
+      de: 'Mehr vom Bot'
+    },
+    /** Label before the name of the person the turn acts for, when the gateway names one. */
+    actingFor: {
+      en: 'The bot acts for',
+      nl: 'De bot handelt namens',
+      de: 'Der Bot handelt für'
+    },
+    /** A press while the connection was down: nothing went out, what was entered stays. */
     offline: {
       en: 'Not connected to the gateway. Nothing was sent; try again once the connection is back.',
       nl: 'Niet verbonden met de gateway. Er is niets verstuurd; probeer het opnieuw zodra de verbinding terug is.',
       de: 'Nicht mit dem Gateway verbunden. Es wurde nichts gesendet; versuch es erneut, sobald die Verbindung wieder da ist.'
+    },
+    /** A press while an earlier answer is still on its way. */
+    busy: {
+      en: 'An earlier answer is still on its way. Try again in a moment.',
+      nl: 'Een eerder antwoord is nog onderweg. Probeer het zo opnieuw.',
+      de: 'Eine frühere Antwort ist noch unterwegs. Versuch es gleich noch einmal.'
+    },
+    /** The call to the gateway failed without its word: the request is still open. */
+    failed: {
+      en: 'The answer could not be sent. What you entered is still here; try again.',
+      nl: 'Het antwoord kon niet worden verstuurd. Wat je invulde staat er nog; probeer het opnieuw.',
+      de: 'Die Antwort konnte nicht gesendet werden. Deine Eingaben sind noch da; versuch es erneut.'
+    },
+    /** The gateway refused the answer for a reason this sheet has no sentence for. */
+    refusedOther: {
+      en: ({ reason }: { reason: string }) => `The gateway did not accept this answer (${reason}).`,
+      nl: ({ reason }: { reason: string }) => `De gateway nam dit antwoord niet aan (${reason}).`,
+      de: ({ reason }: { reason: string }) => `Das Gateway hat diese Antwort nicht angenommen (${reason}).`
+    },
+    /** What a screen reader hears for the visible star beside a required field. */
+    required: {
+      en: 'required',
+      nl: 'verplicht',
+      de: 'erforderlich'
+    },
+    /** Under the form: what the star means. */
+    requiredNote: {
+      en: '* means required',
+      nl: '* betekent verplicht',
+      de: '* bedeutet erforderlich'
+    },
+    form: {
+      /** The sheet's heading: fixed words, the bot's own heading is in the quoted box below. */
+      title: {
+        en: 'A form to fill in',
+        nl: 'Een formulier om in te vullen',
+        de: 'Ein Formular zum Ausfüllen'
+      },
+      /** Who receives the answers, and what becomes of them. */
+      receiver: {
+        en: 'Hermie sends your answers to the gateway, where the bot reads them. Hermie does not keep them.',
+        nl: 'Hermie stuurt je antwoorden naar de gateway, waar de bot ze leest. Hermie bewaart ze niet.',
+        de: 'Hermie sendet deine Antworten an das Gateway, wo der Bot sie liest. Hermie speichert sie nicht.'
+      },
+      /** Answers the form. */
+      send: {
+        en: 'Send answers',
+        nl: 'Antwoorden versturen',
+        de: 'Antworten senden'
+      },
+      /** The fields, as a group. */
+      fields: {
+        en: 'Fields',
+        nl: 'Velden',
+        de: 'Felder'
+      },
+      /** Said after a Send that was held back: how many fields need a look. */
+      needsAttention: {
+        en: ({ count }: { count: number }) =>
+          count === 1 ? 'One answer needs attention.' : `${count} answers need attention.`,
+        nl: ({ count }: { count: number }) =>
+          count === 1 ? 'Eén antwoord vraagt aandacht.' : `${count} antwoorden vragen aandacht.`,
+        de: ({ count }: { count: number }) =>
+          count === 1 ? 'Eine Antwort braucht Aufmerksamkeit.' : `${count} Antworten brauchen Aufmerksamkeit.`
+      },
+      /** Under an amount: the currency and how many decimals it takes. */
+      amountIn: {
+        en: ({ currency, decimals }: { currency: string; decimals: number }) =>
+          decimals === 0
+            ? `Amount in ${currency}, whole amounts only`
+            : `Amount in ${currency}, up to ${decimals} decimals`,
+        nl: ({ currency, decimals }: { currency: string; decimals: number }) =>
+          decimals === 0
+            ? `Bedrag in ${currency}, alleen hele bedragen`
+            : `Bedrag in ${currency}, maximaal ${decimals} decimalen`,
+        de: ({ currency, decimals }: { currency: string; decimals: number }) =>
+          decimals === 0
+            ? `Betrag in ${currency}, nur ganze Beträge`
+            : `Betrag in ${currency}, höchstens ${decimals} Dezimalstellen`
+      },
+      /** Under a time or date the request ties to a zone. */
+      zoneField: {
+        en: ({ zone, offset }: { zone: string; offset: string }) => `Time zone: ${zone} (${offset})`,
+        nl: ({ zone, offset }: { zone: string; offset: string }) => `Tijdzone: ${zone} (${offset})`,
+        de: ({ zone, offset }: { zone: string; offset: string }) => `Zeitzone: ${zone} (${offset})`
+      },
+      /** Under a time or date the request leaves to this device's zone. */
+      zoneDevice: {
+        en: ({ zone, offset }: { zone: string; offset: string }) => `Your time zone: ${zone} (${offset})`,
+        nl: ({ zone, offset }: { zone: string; offset: string }) => `Jouw tijdzone: ${zone} (${offset})`,
+        de: ({ zone, offset }: { zone: string; offset: string }) => `Deine Zeitzone: ${zone} (${offset})`
+      },
+      /** Under a datetime: what will be sent for what was entered. */
+      sentAs: {
+        en: ({ value }: { value: string }) => `Sent as ${value}`,
+        nl: ({ value }: { value: string }) => `Verstuurd als ${value}`,
+        de: ({ value }: { value: string }) => `Gesendet als ${value}`
+      },
+      /** The first date of a range. */
+      rangeStart: {
+        en: 'From',
+        nl: 'Van',
+        de: 'Von'
+      },
+      /** The last date of a range. */
+      rangeEnd: {
+        en: 'To',
+        nl: 'Tot',
+        de: 'Bis'
+      },
+      /** Under a long text: how much of its limit is used. */
+      characters: {
+        en: ({ count, max }: { count: number; max: number }) => `${count} of ${max} characters`,
+        nl: ({ count, max }: { count: number; max: number }) => `${count} van ${max} tekens`,
+        de: ({ count, max }: { count: number; max: number }) => `${count} von ${max} Zeichen`
+      },
+      /** Under a multiple choice: how many to pick. */
+      pickBetween: {
+        en: ({ min, max }: { min: number; max: number }) => `Pick ${min} to ${max}`,
+        nl: ({ min, max }: { min: number; max: number }) => `Kies er ${min} tot ${max}`,
+        de: ({ min, max }: { min: number; max: number }) => `Wähle ${min} bis ${max}`
+      },
+      pickAtLeast: {
+        en: ({ min }: { min: number }) => `Pick at least ${min}`,
+        nl: ({ min }: { min: number }) => `Kies er minstens ${min}`,
+        de: ({ min }: { min: number }) => `Wähle mindestens ${min}`
+      },
+      pickAtMost: {
+        en: ({ max }: { max: number }) => `Pick at most ${max}`,
+        nl: ({ max }: { max: number }) => `Kies er hoogstens ${max}`,
+        de: ({ max }: { max: number }) => `Wähle höchstens ${max}`
+      },
+      /** Empties a single choice that is not required. */
+      clear: {
+        en: 'Clear',
+        nl: 'Wissen',
+        de: 'Leeren'
+      },
+      /** What is wrong with a field, in the words of the gateway's reasons (`field:<id>:<problem>`). */
+      problems: {
+        missing: {
+          en: 'This is required.',
+          nl: 'Dit is verplicht.',
+          de: 'Das ist erforderlich.'
+        },
+        type: {
+          en: 'This is not an answer this field takes.',
+          nl: 'Dit is geen antwoord dat dit veld aanneemt.',
+          de: 'Das ist keine Antwort, die dieses Feld annimmt.'
+        },
+        formatText: {
+          en: 'This has to be on one line.',
+          nl: 'Dit moet op één regel staan.',
+          de: 'Das muss in einer Zeile stehen.'
+        },
+        formatNumber: {
+          en: 'Enter a number.',
+          nl: 'Voer een getal in.',
+          de: 'Gib eine Zahl ein.'
+        },
+        formatAmount: {
+          en: ({ currency, decimals }: { currency: string; decimals: number }) =>
+            decimals === 0
+              ? `Enter a whole amount in ${currency}, without decimals.`
+              : `Enter an amount in ${currency} with a point and at most ${decimals} decimals, like 12.5.`,
+          nl: ({ currency, decimals }: { currency: string; decimals: number }) =>
+            decimals === 0
+              ? `Voer een heel bedrag in ${currency} in, zonder decimalen.`
+              : `Voer een bedrag in ${currency} in met een punt en maximaal ${decimals} decimalen, zoals 12.5.`,
+          de: ({ currency, decimals }: { currency: string; decimals: number }) =>
+            decimals === 0
+              ? `Gib einen ganzen Betrag in ${currency} ein, ohne Dezimalstellen.`
+              : `Gib einen Betrag in ${currency} mit Punkt und höchstens ${decimals} Dezimalstellen ein, etwa 12.5.`
+        },
+        formatDate: {
+          en: 'Enter a real date.',
+          nl: 'Voer een echte datum in.',
+          de: 'Gib ein echtes Datum ein.'
+        },
+        formatTime: {
+          en: 'Enter a time as hours and minutes.',
+          nl: 'Voer een tijd in als uren en minuten.',
+          de: 'Gib eine Uhrzeit als Stunden und Minuten ein.'
+        },
+        formatDatetime: {
+          en: 'Enter a real date and time.',
+          nl: 'Voer een echte datum en tijd in.',
+          de: 'Gib ein echtes Datum mit Uhrzeit ein.'
+        },
+        formatRange: {
+          en: 'Enter a start and an end date, or leave both empty.',
+          nl: 'Voer een begin- en een einddatum in, of laat beide leeg.',
+          de: 'Gib ein Start- und ein Enddatum ein oder lass beide leer.'
+        },
+        tooLong: {
+          en: ({ max }: { max: number }) => `At most ${max} characters.`,
+          nl: ({ max }: { max: number }) => `Maximaal ${max} tekens.`,
+          de: ({ max }: { max: number }) => `Höchstens ${max} Zeichen.`
+        },
+        zone: {
+          en: ({ zone }: { zone: string }) => `This browser does not know the time zone ${zone}.`,
+          nl: ({ zone }: { zone: string }) => `Deze browser kent de tijdzone ${zone} niet.`,
+          de: ({ zone }: { zone: string }) => `Dieser Browser kennt die Zeitzone ${zone} nicht.`
+        },
+        offset: {
+          en: 'That time does not exist in this time zone (the clocks skip it). Pick another time.',
+          nl: 'Die tijd bestaat niet in deze tijdzone (de klok slaat hem over). Kies een andere tijd.',
+          de: 'Diese Uhrzeit gibt es in dieser Zeitzone nicht (die Uhr überspringt sie). Wähle eine andere.'
+        },
+        order: {
+          en: 'The end is before the start.',
+          nl: 'Het einde ligt voor het begin.',
+          de: 'Das Ende liegt vor dem Anfang.'
+        },
+        notAnOption: {
+          en: 'Pick one of the options.',
+          nl: 'Kies een van de opties.',
+          de: 'Wähle eine der Optionen.'
+        },
+        duplicate: {
+          en: 'Each option can be picked only once.',
+          nl: 'Elke optie kan maar één keer gekozen worden.',
+          de: 'Jede Option lässt sich nur einmal wählen.'
+        },
+        belowMinValue: {
+          en: ({ min }: { min: string }) => `The lowest allowed is ${min}.`,
+          nl: ({ min }: { min: string }) => `Het laagste dat mag is ${min}.`,
+          de: ({ min }: { min: string }) => `Der niedrigste erlaubte Wert ist ${min}.`
+        },
+        belowMinWhen: {
+          en: ({ min }: { min: string }) => `The earliest allowed is ${min}.`,
+          nl: ({ min }: { min: string }) => `Het vroegste dat mag is ${min}.`,
+          de: ({ min }: { min: string }) => `Der früheste erlaubte Zeitpunkt ist ${min}.`
+        },
+        belowMinPlain: {
+          en: 'This is too low.',
+          nl: 'Dit is te laag.',
+          de: 'Das ist zu niedrig.'
+        },
+        aboveMaxValue: {
+          en: ({ max }: { max: string }) => `The highest allowed is ${max}.`,
+          nl: ({ max }: { max: string }) => `Het hoogste dat mag is ${max}.`,
+          de: ({ max }: { max: string }) => `Der höchste erlaubte Wert ist ${max}.`
+        },
+        aboveMaxWhen: {
+          en: ({ max }: { max: string }) => `The latest allowed is ${max}.`,
+          nl: ({ max }: { max: string }) => `Het laatste dat mag is ${max}.`,
+          de: ({ max }: { max: string }) => `Der späteste erlaubte Zeitpunkt ist ${max}.`
+        },
+        aboveMaxPlain: {
+          en: 'This is too high.',
+          nl: 'Dit is te hoog.',
+          de: 'Das ist zu hoch.'
+        },
+        notInteger: {
+          en: 'Enter a whole number.',
+          nl: 'Voer een heel getal in.',
+          de: 'Gib eine ganze Zahl ein.'
+        },
+        step: {
+          en: ({ step, from }: { step: string; from: string }) => `Use steps of ${step}, counting from ${from}.`,
+          nl: ({ step, from }: { step: string; from: string }) => `Gebruik stappen van ${step}, geteld vanaf ${from}.`,
+          de: ({ step, from }: { step: string; from: string }) => `Nutze Schritte von ${step}, gezählt ab ${from}.`
+        },
+        tooFew: {
+          en: ({ min }: { min: number }) => `Pick at least ${min}.`,
+          nl: ({ min }: { min: number }) => `Kies er minstens ${min}.`,
+          de: ({ min }: { min: number }) => `Wähle mindestens ${min}.`
+        },
+        tooMany: {
+          en: ({ max }: { max: number }) => `Pick at most ${max}.`,
+          nl: ({ max }: { max: number }) => `Kies er hoogstens ${max}.`,
+          de: ({ max }: { max: number }) => `Wähle höchstens ${max}.`
+        },
+        other: {
+          en: 'The gateway did not accept this value.',
+          nl: 'De gateway nam deze waarde niet aan.',
+          de: 'Das Gateway hat diesen Wert nicht angenommen.'
+        }
+      }
+    },
+    file: {
+      title: {
+        en: 'Files to upload',
+        nl: 'Bestanden om te uploaden',
+        de: 'Dateien zum Hochladen'
+      },
+      /** Who receives the files, and what becomes of them. */
+      receiver: {
+        en: 'Hermie uploads the files to the gateway, where the bot reads them. Hermie does not keep them.',
+        nl: 'Hermie uploadt de bestanden naar de gateway, waar de bot ze leest. Hermie bewaart ze niet.',
+        de: 'Hermie lädt die Dateien zum Gateway hoch, wo der Bot sie liest. Hermie speichert sie nicht.'
+      },
+      /** Label over the directory on the gateway the files are saved in. */
+      whereLabel: {
+        en: 'Saved on the gateway in',
+        nl: 'Bewaard op de gateway in',
+        de: 'Gespeichert auf dem Gateway in'
+      },
+      chooseOne: {
+        en: 'Choose a file',
+        nl: 'Kies een bestand',
+        de: 'Datei wählen'
+      },
+      chooseMany: {
+        en: 'Choose files',
+        nl: 'Kies bestanden',
+        de: 'Dateien wählen'
+      },
+      /** The bot would like a camera shot: offered next to the picker where a camera is likely. */
+      capturePhoto: {
+        en: 'Take a photo',
+        nl: 'Maak een foto',
+        de: 'Foto aufnehmen'
+      },
+      captureScan: {
+        en: 'Scan a document',
+        nl: 'Scan een document',
+        de: 'Dokument scannen'
+      },
+      captureAudio: {
+        en: 'Record audio',
+        nl: 'Neem geluid op',
+        de: 'Audio aufnehmen'
+      },
+      acceptImage: {
+        en: 'Pictures only.',
+        nl: 'Alleen afbeeldingen.',
+        de: 'Nur Bilder.'
+      },
+      acceptDocument: {
+        en: 'Documents only (PDF, text, office files).',
+        nl: 'Alleen documenten (PDF, tekst, kantoorbestanden).',
+        de: 'Nur Dokumente (PDF, Text, Office-Dateien).'
+      },
+      acceptAudio: {
+        en: 'Audio only.',
+        nl: 'Alleen geluid.',
+        de: 'Nur Audio.'
+      },
+      acceptAny: {
+        en: 'Any kind of file.',
+        nl: 'Elk soort bestand.',
+        de: 'Jede Art von Datei.'
+      },
+      /** The limits of a request for one file. */
+      limitOne: {
+        en: ({ size }: { size: string }) => `Up to ${size}.`,
+        nl: ({ size }: { size: string }) => `Maximaal ${size}.`,
+        de: ({ size }: { size: string }) => `Höchstens ${size}.`
+      },
+      /** The limits of a request for several files. */
+      limitMany: {
+        en: ({ count, size, total }: { count: number; size: string; total: string }) =>
+          `Up to ${count} files, ${size} each and ${total} together.`,
+        nl: ({ count, size, total }: { count: number; size: string; total: string }) =>
+          `Maximaal ${count} bestanden, ${size} per bestand en ${total} samen.`,
+        de: ({ count, size, total }: { count: number; size: string; total: string }) =>
+          `Höchstens ${count} Dateien, je ${size} und zusammen ${total}.`
+      },
+      strip: {
+        en: 'Location and camera details are removed from pictures before they go.',
+        nl: 'Locatie- en cameragegevens worden uit foto’s gehaald voordat ze verstuurd worden.',
+        de: 'Standort- und Kameradaten werden aus Bildern entfernt, bevor sie gesendet werden.'
+      },
+      /** The list of picked files: its accessible name. */
+      picked: {
+        en: 'Files to upload',
+        nl: 'Te uploaden bestanden',
+        de: 'Hochzuladende Dateien'
+      },
+      /** The accessible name of a picture's preview. */
+      previewOf: {
+        en: ({ name }: { name: string }) => `Preview of ${name}`,
+        nl: ({ name }: { name: string }) => `Voorbeeld van ${name}`,
+        de: ({ name }: { name: string }) => `Vorschau von ${name}`
+      },
+      remove: {
+        en: ({ name }: { name: string }) => `Remove ${name}`,
+        nl: ({ name }: { name: string }) => `${name} verwijderen`,
+        de: ({ name }: { name: string }) => `${name} entfernen`
+      },
+      removeShort: {
+        en: 'Remove',
+        nl: 'Verwijderen',
+        de: 'Entfernen'
+      },
+      /** A file that was not added, and why. */
+      problemTooLarge: {
+        en: ({ name, max }: { name: string; max: string }) => `${name} is larger than ${max} and was not added.`,
+        nl: ({ name, max }: { name: string; max: string }) => `${name} is groter dan ${max} en is niet toegevoegd.`,
+        de: ({ name, max }: { name: string; max: string }) =>
+          `${name} ist größer als ${max} und wurde nicht hinzugefügt.`
+      },
+      /** A file that was within the limit as picked and is not once it is prepared (a picture re-encoded without its metadata). */
+      problemPreparedTooLarge: {
+        en: ({ name, max }: { name: string; max: string }) =>
+          `${name} is larger than ${max} once it is ready to send. Remove it, or choose a smaller one.`,
+        nl: ({ name, max }: { name: string; max: string }) =>
+          `${name} is groter dan ${max} zodra het klaar is om te versturen. Verwijder het of kies een kleiner bestand.`,
+        de: ({ name, max }: { name: string; max: string }) =>
+          `${name} ist größer als ${max}, sobald es zum Senden bereit ist. Entferne die Datei oder wähle eine kleinere.`
+      },
+      problemWrongKind: {
+        en: ({ name }: { name: string }) => `${name} is not the kind of file the bot asked for and was not added.`,
+        nl: ({ name }: { name: string }) =>
+          `${name} is niet het soort bestand waar de bot om vroeg en is niet toegevoegd.`,
+        de: ({ name }: { name: string }) =>
+          `${name} ist nicht die Art Datei, um die der Bot bat, und wurde nicht hinzugefügt.`
+      },
+      problemTooMany: {
+        en: ({ max }: { max: number }) =>
+          max === 1 ? 'Only one file can be sent.' : `At most ${max} files can be sent.`,
+        nl: ({ max }: { max: number }) =>
+          max === 1
+            ? 'Er kan maar één bestand worden verstuurd.'
+            : `Er kunnen maximaal ${max} bestanden worden verstuurd.`,
+        de: ({ max }: { max: number }) =>
+          max === 1 ? 'Es kann nur eine Datei gesendet werden.' : `Es können höchstens ${max} Dateien gesendet werden.`
+      },
+      problemTotal: {
+        en: ({ max }: { max: string }) => `Together the files may be at most ${max}.`,
+        nl: ({ max }: { max: string }) => `Samen mogen de bestanden maximaal ${max} zijn.`,
+        de: ({ max }: { max: string }) => `Zusammen dürfen die Dateien höchstens ${max} groß sein.`
+      },
+      problemStrip: {
+        en: ({ name }: { name: string }) =>
+          `Location data cannot be removed from ${name} here, so it was not added. Choose a JPEG or a PNG.`,
+        nl: ({ name }: { name: string }) =>
+          `Locatiegegevens kunnen hier niet uit ${name} worden gehaald, dus het is niet toegevoegd. Kies een JPEG of PNG.`,
+        de: ({ name }: { name: string }) =>
+          `Standortdaten lassen sich hier nicht aus ${name} entfernen, daher wurde die Datei nicht hinzugefügt. Wähle eine JPEG- oder PNG-Datei.`
+      },
+      problemPrepare: {
+        en: ({ name }: { name: string }) => `${name} could not be prepared for upload.`,
+        nl: ({ name }: { name: string }) => `${name} kon niet worden klaargemaakt om te uploaden.`,
+        de: ({ name }: { name: string }) => `${name} konnte nicht zum Hochladen vorbereitet werden.`
+      },
+      problemEmpty: {
+        en: ({ name }: { name: string }) => `${name} is empty and was not added.`,
+        nl: ({ name }: { name: string }) => `${name} is leeg en is niet toegevoegd.`,
+        de: ({ name }: { name: string }) => `${name} ist leer und wurde nicht hinzugefügt.`
+      },
+      /** Uploads the files and answers. */
+      upload: {
+        en: 'Upload and send',
+        nl: 'Uploaden en versturen',
+        de: 'Hochladen und senden'
+      },
+      preparing: {
+        en: 'Preparing the files…',
+        nl: 'De bestanden worden klaargemaakt…',
+        de: 'Die Dateien werden vorbereitet…'
+      },
+      uploading: {
+        en: ({ current, total, name }: { current: number; total: number; name: string }) =>
+          `Uploading ${current} of ${total}: ${name}`,
+        nl: ({ current, total, name }: { current: number; total: number; name: string }) =>
+          `Uploaden: ${current} van ${total}: ${name}`,
+        de: ({ current, total, name }: { current: number; total: number; name: string }) =>
+          `Hochladen: ${current} von ${total}: ${name}`
+      },
+      /** The upload's progress bar: its accessible name. */
+      progress: {
+        en: 'Upload progress',
+        nl: 'Voortgang van het uploaden',
+        de: 'Fortschritt des Hochladens'
+      },
+      sending: {
+        en: 'Sending your answer…',
+        nl: 'Je antwoord wordt verstuurd…',
+        de: 'Deine Antwort wird gesendet…'
+      },
+      cancel: {
+        en: 'Cancel upload',
+        nl: 'Uploaden annuleren',
+        de: 'Hochladen abbrechen'
+      },
+      cancelled: {
+        en: 'The upload was cancelled. Nothing was sent to the bot.',
+        nl: 'Het uploaden is geannuleerd. Er is niets naar de bot gestuurd.',
+        de: 'Das Hochladen wurde abgebrochen. Es wurde nichts an den Bot gesendet.'
+      },
+      /** An upload failed: said before the bot is told. */
+      uploadFailed: {
+        en: ({ name }: { name: string }) => `${name} could not be uploaded.`,
+        nl: ({ name }: { name: string }) => `${name} kon niet worden geüpload.`,
+        de: ({ name }: { name: string }) => `${name} konnte nicht hochgeladen werden.`
+      },
+      failedNote: {
+        en: 'You can try again. If you give up, the bot is told the upload failed, which is not an answer.',
+        nl: 'Je kunt het opnieuw proberen. Als je opgeeft, hoort de bot dat het uploaden mislukte, en dat is geen antwoord.',
+        de: 'Du kannst es erneut versuchen. Wenn du aufgibst, erfährt der Bot, dass das Hochladen fehlschlug, und das ist keine Antwort.'
+      },
+      retry: {
+        en: 'Try again',
+        nl: 'Opnieuw proberen',
+        de: 'Erneut versuchen'
+      },
+      giveUp: {
+        en: 'Give up',
+        nl: 'Opgeven',
+        de: 'Aufgeben'
+      },
+      /** The gateway refused the answer's files (`files:*`, `file:<n>:*`). */
+      refusedTooMany: {
+        en: ({ max }: { max: number }) => `The gateway takes at most ${max} here. Remove a file and try again.`,
+        nl: ({ max }: { max: number }) =>
+          `De gateway neemt hier maximaal ${max} aan. Verwijder een bestand en probeer het opnieuw.`,
+        de: ({ max }: { max: number }) =>
+          `Das Gateway nimmt hier höchstens ${max} an. Entferne eine Datei und versuch es erneut.`
+      },
+      refusedTotal: {
+        en: ({ max }: { max: string }) =>
+          `Together the files are more than the gateway takes (${max}). Remove one and try again.`,
+        nl: ({ max }: { max: string }) =>
+          `Samen zijn de bestanden meer dan de gateway aanneemt (${max}). Verwijder er een en probeer het opnieuw.`,
+        de: ({ max }: { max: string }) =>
+          `Zusammen sind die Dateien mehr, als das Gateway annimmt (${max}). Entferne eine und versuch es erneut.`
+      },
+      refusedFile: {
+        en: ({ name }: { name: string }) => `The gateway did not accept ${name}. Remove it and try again.`,
+        nl: ({ name }: { name: string }) =>
+          `De gateway nam ${name} niet aan. Verwijder het bestand en probeer het opnieuw.`,
+        de: ({ name }: { name: string }) =>
+          `Das Gateway hat ${name} nicht angenommen. Entferne die Datei und versuch es erneut.`
+      }
+    },
+    draft: {
+      titleMail: {
+        en: 'A mail to review',
+        nl: 'Een e-mail om na te kijken',
+        de: 'Eine E-Mail zur Prüfung'
+      },
+      titlePost: {
+        en: 'A post to review',
+        nl: 'Een bericht om na te kijken',
+        de: 'Ein Beitrag zur Prüfung'
+      },
+      titleMessage: {
+        en: 'A message to review',
+        nl: 'Een chatbericht om na te kijken',
+        de: 'Eine Nachricht zur Prüfung'
+      },
+      titleDocument: {
+        en: 'A document to review',
+        nl: 'Een document om na te kijken',
+        de: 'Ein Dokument zur Prüfung'
+      },
+      /** Who receives the decision, and what becomes of it. */
+      receiver: {
+        en: 'Hermie sends your decision and the text to the gateway, where the bot reads them. Hermie does not keep them.',
+        nl: 'Hermie stuurt je besluit en de tekst naar de gateway, waar de bot ze leest. Hermie bewaart ze niet.',
+        de: 'Hermie sendet deine Entscheidung und den Text an das Gateway, wo der Bot sie liest. Hermie speichert sie nicht.'
+      },
+      subject: {
+        en: 'Subject',
+        nl: 'Onderwerp',
+        de: 'Betreff'
+      },
+      recipients: {
+        en: 'Recipients',
+        nl: 'Ontvangers',
+        de: 'Empfänger'
+      },
+      /** The draft's text: the label of the editor, and of the read-only text. */
+      body: {
+        en: 'Draft',
+        nl: 'Concept',
+        de: 'Entwurf'
+      },
+      /** Under the editor: what may be done with the text. */
+      editable: {
+        en: 'You can change the text before you approve it.',
+        nl: 'Je kunt de tekst aanpassen voordat je hem goedkeurt.',
+        de: 'Du kannst den Text ändern, bevor du ihn freigibst.'
+      },
+      fixed: {
+        en: 'This text cannot be changed here. You can approve or reject it.',
+        nl: 'Deze tekst kan hier niet worden aangepast. Je kunt hem goedkeuren of afwijzen.',
+        de: 'Dieser Text lässt sich hier nicht ändern. Du kannst ihn freigeben oder ablehnen.'
+      },
+      approve: {
+        en: 'Approve',
+        nl: 'Goedkeuren',
+        de: 'Freigeben'
+      },
+      approveChanged: {
+        en: 'Approve with changes',
+        nl: 'Goedkeuren met wijzigingen',
+        de: 'Mit Änderungen freigeben'
+      },
+      reject: {
+        en: 'Reject',
+        nl: 'Afwijzen',
+        de: 'Ablehnen'
+      },
+      reset: {
+        en: 'Back to the original',
+        nl: 'Terug naar het origineel',
+        de: 'Zurück zum Original'
+      },
+      /** The original, shown for comparison once the text was changed. */
+      original: {
+        en: 'The original from the bot',
+        nl: 'Het origineel van de bot',
+        de: 'Das Original vom Bot'
+      },
+      commentLabel: {
+        en: 'Reason for rejecting (optional)',
+        nl: 'Reden voor afwijzen (optioneel)',
+        de: 'Grund für die Ablehnung (optional)'
+      },
+      commentHint: {
+        en: 'The bot is told this when you reject the draft.',
+        nl: 'De bot krijgt dit te horen als je het concept afwijst.',
+        de: 'Der Bot erfährt das, wenn du den Entwurf ablehnst.'
+      },
+      /** Characters the eye cannot see, or that turn the text around, found in the text. */
+      hidden: {
+        en: ({ count }: { count: number }) =>
+          count === 1
+            ? 'The text holds 1 character that you cannot see or that changes the text direction. The gateway does not take it.'
+            : `The text holds ${count} characters that you cannot see or that change the text direction. The gateway does not take them.`,
+        nl: ({ count }: { count: number }) =>
+          count === 1
+            ? 'De tekst bevat 1 teken dat je niet ziet of dat de tekstrichting verandert. De gateway neemt dat niet aan.'
+            : `De tekst bevat ${count} tekens die je niet ziet of die de tekstrichting veranderen. De gateway neemt die niet aan.`,
+        de: ({ count }: { count: number }) =>
+          count === 1
+            ? 'Der Text enthält 1 Zeichen, das du nicht siehst oder das die Textrichtung ändert. Das Gateway nimmt es nicht an.'
+            : `Der Text enthält ${count} Zeichen, die du nicht siehst oder die die Textrichtung ändern. Das Gateway nimmt sie nicht an.`
+      },
+      hiddenRemove: {
+        en: 'Remove them',
+        nl: 'Verwijder ze',
+        de: 'Entfernen'
+      },
+      hiddenPreview: {
+        en: 'The text with those characters shown',
+        nl: 'De tekst met die tekens zichtbaar gemaakt',
+        de: 'Der Text mit sichtbar gemachten Zeichen'
+      },
+      /** A tab or another character the gateway cannot take as it is. */
+      notVerbatim: {
+        en: 'The text holds characters that cannot be sent as they are (a tab, or one you cannot see). Remove them and try again.',
+        nl: 'De tekst bevat tekens die niet zo verstuurd kunnen worden (een tab, of een teken dat je niet ziet). Verwijder ze en probeer het opnieuw.',
+        de: 'Der Text enthält Zeichen, die sich nicht so senden lassen (ein Tabulator oder ein unsichtbares Zeichen). Entferne sie und versuch es erneut.'
+      },
+      emptyText: {
+        en: 'The draft cannot be empty.',
+        nl: 'Het concept mag niet leeg zijn.',
+        de: 'Der Entwurf darf nicht leer sein.'
+      },
+      tooLong: {
+        en: ({ max }: { max: number }) => `The draft may be at most ${max} characters.`,
+        nl: ({ max }: { max: number }) => `Het concept mag maximaal ${max} tekens zijn.`,
+        de: ({ max }: { max: number }) => `Der Entwurf darf höchstens ${max} Zeichen lang sein.`
+      },
+      /** The gateway refused a change to a draft that cannot be changed. */
+      refusedEdited: {
+        en: 'This draft cannot be changed. Approve it as it is, or reject it.',
+        nl: 'Dit concept kan niet worden aangepast. Keur het goed zoals het is, of wijs het af.',
+        de: 'Dieser Entwurf lässt sich nicht ändern. Gib ihn so frei, wie er ist, oder lehne ihn ab.'
+      }
     }
   },
   connections: {

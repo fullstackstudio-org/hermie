@@ -1,0 +1,252 @@
+/*
+ * The interactive sheets: a form, a file request, a draft to review. The frame is the secure sheets' and the request
+ * layer's (`request-layer.css`); what is here is what they hold: fields, a picker, an editor. Colours, radii and
+ * gutters are the theme's; the policy forbids inline styles, so every variation is a class or a data attribute. It is
+ * loaded with the sheets' chunk, not with the first screen.
+ */
+.hm-interactive__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  margin: 0;
+}
+
+/* A fieldset that is only a way to switch every input off at once: no border, no padding, no min-width trap. */
+.hm-form__fields,
+.hm-form__group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.hm-form__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.hm-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.hm-form__group > legend {
+  padding: 0;
+  margin-bottom: 4px;
+}
+
+.hm-form__hint {
+  margin: 0;
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.hm-form__error {
+  margin: 0;
+  color: var(--hm-danger-text);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.hm-form__star {
+  color: var(--hm-danger-text);
+}
+
+.hm-form__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hm-form__row > .hm-secure__input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.hm-form__unit {
+  flex: none;
+  color: var(--hm-text-muted);
+  font-weight: 600;
+}
+
+.hm-form__pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.hm-form__half {
+  display: flex;
+  flex: 1 1 10rem;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.hm-form__sublabel {
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+}
+
+.hm-form__textarea {
+  min-height: 6rem;
+}
+
+.hm-form__clear {
+  align-self: flex-start;
+}
+
+.hm-secure__input[aria-invalid='true'],
+.hm-requests__field[aria-invalid='true'] {
+  border-color: var(--hm-danger-text);
+}
+
+.hm-interactive__refusal {
+  font-weight: 600;
+}
+
+.hm-interactive__failure {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* A file request: the picker, the limits, what was picked. */
+.hm-file__pick {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.hm-file__where {
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+  font-family: var(--hm-mono);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.hm-file__problems {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-file__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-file__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+}
+
+.hm-file__preview {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: calc(var(--hm-radius) - 2px);
+  object-fit: cover;
+}
+
+.hm-file__name {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.hm-file__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hm-file__progress progress {
+  width: 100%;
+  accent-color: var(--hm-tint);
+}
+
+/* A draft: subject, recipients, and the text itself, as the characters it is. */
+.hm-draft__subject {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.hm-draft__recipients {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-wrap: anywhere;
+}
+
+/* Verbatim: every line break kept and none added. A long line scrolls instead of wrapping. */
+.hm-draft__text {
+  box-sizing: border-box;
+  width: 100%;
+  max-height: 18rem;
+  margin: 0;
+  padding: 12px 14px;
+  overflow: auto;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+  color: var(--hm-text);
+  font-family: var(--hm-mono);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  white-space: pre;
+  overflow-wrap: normal;
+  tab-size: 4;
+  unicode-bidi: isolate;
+}
+
+.hm-draft__editor {
+  min-height: 9rem;
+  resize: vertical;
+  background: var(--hm-bg);
+}
+
+.hm-draft__text:focus-visible {
+  outline: var(--hm-focus-width) solid var(--hm-focus);
+  outline-offset: 2px;
+}
+
+.hm-draft__original {
+  max-height: 10rem;
+}
+
+.hm-draft__problem {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}

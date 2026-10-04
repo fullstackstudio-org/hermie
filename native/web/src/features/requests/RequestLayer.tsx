@@ -48,9 +48,9 @@
  * notice on its chat saying why (`features/notices/SecureInputNotice.tsx`).
  *
  * **A form, a file request, a draft to review** (`InteractiveRequestEntry`) is held by the interactive model
- * (`core/requests/interactive.ts`) and answered through it (`answer`, `skip`, `cannotShow`). Their sheets are the
- * next task's; until they exist `InteractiveSheet` stands in for all three, and offers the two honest ways out:
- * Skip, and Decline (the page cannot show it).
+ * (`core/requests/interactive.ts`) and answered through it (`answer`, `skip`, `cannotShow`), each in a sheet of its
+ * own (`FormSheet`, `FileSheet`, `DraftSheet`). A file request also uploads, through the controller
+ * (`uploadFileTo`): the sheet puts the files on the gateway and answers with their references.
  *
  * **A connector authorisation** (`ConnectionRequest`) is answered through the
  * connections model (`skip`, `cancel`) on its own sheet (`ConnectionSheet.tsx`),
@@ -74,6 +74,8 @@ import {
 import { type StoreApi, useStore } from 'zustand'
 
 import { CANCELLED_BY_READER, RequestWithdrawnError } from '../../core/request-withdrawn'
+import type { AnswerOutcome } from '../../core/requests/interactive'
+import type { InteractiveAnswer } from '../../core/requests/interactive-types'
 import { BOT_NAME_LIMIT, displayText } from '../../core/requests/secure-input'
 import { useLocale } from '../../i18n/use-locale'
 import { webStrings } from '../../i18n/web-strings'
@@ -93,6 +95,7 @@ import { PasskeyNotices } from './PasskeyNotices'
 import { type RequestSheets, useRequestSheets } from './request-sheets'
 import { useInteractiveRuntime } from './interactive-runtime'
 import { useSecureInputRuntime } from './secure-input-runtime'
+import type { FileUploader } from './FileSheet'
 import type { SecureSheetProps } from './SecureSheet'
 import { WithName } from './with-name'
 import './request-layer.css'
@@ -260,6 +263,49 @@ function SecureSheetFor({ sheets, ...props }: SecureSheetProps & { sheets: Reque
   }
 }
 
+/** What the sheet of an interactive request is given by the layer. */
+interface InteractiveSheetForProps {
+  sheets: RequestSheets
+  request: InteractiveRequest
+  gateway: string
+  titleId: string
+  descriptionId: string
+  tapGuardMs?: number
+  onAnswer: (result: InteractiveAnswer) => Promise<AnswerOutcome>
+  onSkip: () => Promise<AnswerOutcome>
+  onCannotShow: (reason: string) => 'sent' | 'closed' | 'offline' | 'busy'
+  onUpload: FileUploader | undefined
+}
+
+/** The sheet for an interactive request's method. */
+function InteractiveSheetFor({
+  sheets,
+  request,
+  onUpload,
+  onCannotShow,
+  onSkip,
+  ...rest
+}: InteractiveSheetForProps): ReactElement | null {
+  const { ask } = request
+
+  switch (ask.method) {
+    case 'input.form':
+      return <sheets.FormSheet request={{ ...request, ask }} onSkip={onSkip} {...rest} />
+    case 'input.file':
+      return (
+        <sheets.FileSheet
+          request={{ ...request, ask }}
+          onSkip={onSkip}
+          onCannotShow={onCannotShow}
+          onUpload={onUpload}
+          {...rest}
+        />
+      )
+    case 'review.draft':
+      return <sheets.DraftSheet request={{ ...request, ask }} {...rest} />
+  }
+}
+
 /** Who a request is from: the bot's display name, or the gateway's host for a confirmation in no chat held here. */
 function senderName(entry: OpenRequest, confirmation: PasskeyConfirmation | undefined): string {
   if (entry.bot !== undefined) {
@@ -302,6 +348,7 @@ export function RequestLayer({
     secureId === undefined ? undefined : state.prompts.find(entry => entry.id === secureId)
   )
   const gatewayHost = useStore(secureInput, state => state.gateway)
+  const interactiveGateway = useStore(interactive, state => state.gateway)
   const interactiveId = current?.kind === 'interactive' ? current.id : undefined
   const asked: InteractiveRequest | undefined = useStore(interactive, state =>
     interactiveId === undefined ? undefined : state.requests.find(entry => entry.id === interactiveId)
@@ -511,7 +558,10 @@ export function RequestLayer({
       return
     }
 
-    const focusable = Array.from(dialog.current.querySelectorAll<HTMLElement>(FOCUSABLE))
+    // What takes focus now: not a control a disabled fieldset switched off, nor a file input kept hidden behind a button.
+    const focusable = Array.from(dialog.current.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+      element => !element.hidden && !element.matches(':disabled')
+    )
     const first = focusable[0]
     const lastOne = focusable.at(-1)
     const active = dialog.current.ownerDocument.activeElement
@@ -609,14 +659,24 @@ export function RequestLayer({
               ) : null
             ) : current.kind === 'interactive' ? (
               asked ? (
-                <sheets.InteractiveSheet
+                <InteractiveSheetFor
+                  sheets={sheets}
                   key={current.key}
                   request={asked}
+                  gateway={interactiveGateway}
                   titleId={titleId}
                   descriptionId={descriptionId}
                   {...(tapGuardMs !== undefined ? { tapGuardMs } : {})}
+                  onAnswer={result =>
+                    interactiveActions?.answer(asked.id, result) ?? Promise.resolve({ kind: 'closed' })
+                  }
                   onSkip={() => interactiveActions?.skip(asked.id) ?? Promise.resolve({ kind: 'closed' })}
-                  onDecline={() => interactiveActions?.cannotShow(asked.id, 'not_supported_on_device') ?? 'closed'}
+                  onCannotShow={reason => interactiveActions?.cannotShow(asked.id, reason) ?? 'closed'}
+                  onUpload={
+                    controller?.uploadFileTo
+                      ? (path, file, options) => controller.uploadFileTo(path, file, options)
+                      : undefined
+                  }
                 />
               ) : null
             ) : current.kind === 'connection' ? (
