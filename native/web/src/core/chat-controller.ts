@@ -1827,9 +1827,14 @@ export class ChatController {
 
   private onServerRequest(request: GatewayServerRequest): boolean {
     if (request.method !== 'approval' && request.method !== 'clarify') {
-      // Everything else (sudo, secret, vault, preview, terminal, window, tour)
-      // belongs to a surface this app does not have. Declining lets the channel
-      // answer -32601, which withdraws the request instead of parking the agent.
+      // Everything else is not the engine's to hold: what a person types for a
+      // secret, a sudo password or a vault prompt, and what they fill in, pick or
+      // edit for a form, a file or a draft, must never reach a store the chat
+      // keeps, so the models beside the engine take those from the connection
+      // (`core/passkey/model.ts`, `core/requests/interactive.ts`,
+      // `core/requests/secure-input.ts`, in that order). What none of them takes
+      // (a method nobody here knows) is answered -32601 by the channel, which
+      // withdraws the request instead of parking the agent.
       return false
     }
 

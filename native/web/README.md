@@ -927,8 +927,10 @@ A bot's approval or question (`clarify`) is answered in `features/requests/`, a 
   region beside the dialog ("The request from <name> was withdrawn."); a failure to deliver an answer is an alert.
 - **A `confirm` at level `passkey`** joins the same queue as an entry of its own kind (`ConfirmRequest`), held by the
   passkey model rather than the chat store; "Passkeys" below. **Secret, sudo and vault prompts** join it the same way
-  (`SecureRequest`), held by the secure input model: "Secret prompts" below. A connector authorisation joins it as
-  `ConnectionRequest`, held by the connections model: "Session gaps" below. A `plain` confirm is W-15.
+  (`SecureRequest`), held by the secure input model: "Secret prompts" below. A form, a file request and a draft to
+  review join it as `InteractiveRequestEntry` (with the request's `method` and `version`), held by the interactive
+  model: "Interactive requests" below. A connector authorisation joins it as `ConnectionRequest`, held by the
+  connections model: "Session gaps" below. A `plain` confirm is W-15.
 
 `features/requests/RequestLayer.test.tsx` and `state/requests.test.ts` cover the above in jsdom, `requests.axe.test.tsx`
 runs axe on the composer and the layer (both schemes, every language), and `e2e/chat.spec.ts` (sending and stopping)
@@ -1015,6 +1017,42 @@ browser"):
 `core/requests/secure-input.test.ts`, `features/requests/SecureSheet.test.tsx`, `state/requests.test.ts` and
 `features/shell/session.test.ts` cover it in jsdom; `e2e/secure-input.spec.ts` raises each method through
 `/__fake/request` against the built client and reads the answer the fake recorded.
+
+### Interactive requests
+
+`input.form`, `input.file` and `review.draft` (`contract/requests/`, plan `request-types-v2`) are answered beside the
+transcript engine too, by the interactive model (`core/requests/interactive.ts`, `state/interactive.ts`), on the rules
+of the secure input model: what a person fills in, picks or edits never reaches a store the page keeps, only the
+`request.answer` call that carries it.
+
+- **Advertising.** The methods this page can show ride in the second `client.capabilities` call as `requests`, when
+  the first result's `server_requests` lists any of them (`input.file` only where `File` and `FormData` exist;
+  `capture: scan` is a preference the web ignores). The passkey model owns the two calls, because the second replaces
+  what the first said, so it sends that call for the methods alone when the passkey level is not on offer, and reads
+  the open requests of the held sessions again once the list is accepted: the gateway hid them from a connection that
+  had not advertised.
+- **Reading.** `core/requests/interactive-types.ts` holds hand-written types for the three params and their answers,
+  and a reader per method held to `contract/requests/examples.json` (`interactive-types.test.ts`): every text goes
+  through `displayText` with its own limit, a frame the gateway never sends (ids that repeat, a default outside its
+  range, `Z` in a datetime) is declined, and a field kind this build does not know makes the form an `unknown` field,
+  declined with `4041 not_supported_on_device`. A draft's text is the one text not cleaned: it is what will be sent.
+- **Answering** is `request.answer {id, result}`, so a refusal (`4034 data.reason`: `field:<id>:<problem>`, ...) comes
+  back and leaves the request open with its reason for the sheet to show; the tenth ends it. `skip` is
+  `{status: "skipped"}` and only for an `optional` input; a review has none. `cannotShow(id, reason)` answers the
+  JSON-RPC error `4041 cannot_show {reason}` (never a made-up skip) and leaves one notice on its chat; a sign-out fails
+  every open request with `shutting_down`.
+- **Deadlines** are the request's own `expires_at`; a request past it by this clock is not shown or answered. A
+  request waits for its chat as a secure prompt does (16 at most, never declined for waiting), a re-delivered copy of
+  one answered from here means the answer was lost, and `open_requests` reconciles after a reconnect.
+- **The engine** hears that a question was asked (title, words, `optional`) and how it ended (a summary of `status` or
+  `decision`, with `count` or `edited`), never a value: the `request` item of `@hermie/transcript`.
+- Until the sheets exist (task P1-W2) `InteractiveSheet` stands in for all three: the bot's heading and words as plain
+  text, Skip when the request is optional, and Decline.
+
+`core/requests/interactive.test.ts`, `interactive-types.test.ts`, `features/requests/InteractiveSheet.test.tsx` and
+`state/requests.test.ts` cover it in jsdom; `core/requests/interactive.integration.test.ts` runs the model against the
+fake gateway, which validates every answer; `e2e/interactive-model.spec.ts` raises each method through
+`/__fake/request` against the built client.
 
 ### Session gaps
 

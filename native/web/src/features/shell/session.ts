@@ -18,6 +18,10 @@
  *     (`platform/socket.ts`, `ErrorDataOutbox`).
  *     The MCP model (`core/mcp/model.ts`) is beside it: idle until Settings › MCP is open, then it reads
  *     `GET /api/auth/mcp` and follows `mcp.changed` and the tab's return to the foreground.
+ *     The interactive model (`core/requests/interactive.ts`) is tried right after the passkey model:
+ *     `input.form`, `input.file` and `review.draft`, answered beside the engine (which is told only
+ *     that a question was asked and how it ended), and the list of what the page can show, which
+ *     rides in the passkey model's second `client.capabilities` call.
  *  4. The secure input model (`core/requests/secure-input.ts`) on the same
  *     connection: `secret`, `sudo` and the vault prompts, answered beside the
  *     engine so a typed value never reaches a store, and the requests only the
@@ -31,7 +35,7 @@
  *     back `truncated` is read again in full (`ChatController.noteReplayGap`).
  *  6. The request queue (`state/requests.ts`): a view of the chats' open approvals
  *     and questions, of the confirmations the passkey model shows, of the
- *     prompts the secure input model holds and of the connection cards.
+ *     prompts the secure input model holds, of the interactive requests and of the connection cards.
  *  7. The running poll (`session.active_list`) while the page is shown, and once
  *     the moment the connection becomes usable, so a bot that is already working
  *     is not drawn idle for the first ten seconds.
@@ -42,7 +46,7 @@
  *     its own once the session has started (`uiMeta` is a promise of it).
  *
  * `stop()` is the order the sign-out needs: the poll, the `ui_meta` bridge, then the secure prompts
- * (each open one answered `''` while the socket is still there), the notices, the
+ * (each open one answered `''` while the socket is still there; the interactive requests fail with `4041 shutting_down`), the notices, the
  * connection cards, the session status, the passkeys and the chats, then the client (which closes the socket and empties its stores). It
  * is idempotent.
  */
@@ -57,6 +61,7 @@ import { createMcpClient } from '../../core/mcp/client'
 import { McpModel } from '../../core/mcp/model'
 import { createPasskeyClient } from '../../core/passkey/client'
 import { PasskeyModel } from '../../core/passkey/model'
+import { InteractiveModel, interactiveAdvert } from '../../core/requests/interactive'
 import { ConnectionsModel, respondThrough } from '../../core/connections'
 import { NoticesModel } from '../../core/notices'
 import { SecureInputModel } from '../../core/requests/secure-input'
@@ -71,6 +76,7 @@ import { createWebAuthn, type WebAuthnSeam } from '../../platform/webauthn'
 import { connectionsStore } from '../../state/connections'
 import { deviceContextStore, OWNER_USER_ID, uiMetaUserIdOf } from '../../state/device-context'
 import { uiMetaStatusStore } from '../../state/ui-meta-status'
+import { interactiveStore } from '../../state/interactive'
 import { passkeysStore } from '../../state/passkeys'
 import { bindRequests } from '../../state/requests'
 import { secureInputStore } from '../../state/secure-input'
@@ -121,6 +127,7 @@ export interface Session {
   readonly chats: ChatRuntime
   readonly passkeys: PasskeyModel
   readonly mcp: McpModel
+  readonly interactive: InteractiveModel
   readonly secureInput: SecureInputModel
   readonly notices: NoticesModel
   readonly connections: ConnectionsModel
@@ -175,6 +182,42 @@ export function startSession(options: StartSessionOptions): Session {
     ...options.chats
   })
 
+  /** An error answer that carries `data` (a 4040's reason, a 4041's), attached on the way out of the socket. */
+  const failWithData = (
+    request: { id: string; fail: (code: number, message: string) => void },
+    code: number,
+    message: string,
+    data: Record<string, unknown>
+  ): void => outbox.with(request.id, code, data, () => request.fail(code, message))
+
+  /*
+    Built before the passkey model, which carries its list of methods in the second `client.capabilities` call,
+    and started after it: the connection tries its handlers in the order they started, and the passkey model's
+    `confirm` comes first.
+  */
+  const interactive = new InteractiveModel({
+    gateway: client.gateway,
+    store: interactiveStore,
+    chatFor: sessionId => chats.chats.getState().runtimeToBot[sessionId],
+    watchChats: listener => chats.chats.subscribe(() => listener()),
+    watchReplays: listener => chats.controller.onReplaySignal(listener),
+    engine: {
+      asked: (bot, request) =>
+        chats.chats.getState().dispatchServerRequest(bot, {
+          id: request.id,
+          method: request.method,
+          // The three envelope keys and nothing else: a request's fields and a draft's text stay out of the engine.
+          params: { title: request.title, summary: request.summary, optional: request.optional },
+          ...(request.replayed ? { replayed: true } : {})
+        }),
+      answered: (bot, id, summary) => chats.chats.getState().answer(bot, id, summary),
+      ended: (bot, id, reason) =>
+        chats.chats.getState().dispatchEvent(bot, { type: 'request.cancel', payload: { id, reason } })
+    },
+    failWithData,
+    gatewayName: hostOf(options.baseUrl)
+  })
+
   const passkeys = new PasskeyModel({
     gateway: client.gateway,
     client: createPasskeyClient(options.baseUrl),
@@ -193,11 +236,12 @@ export function startSession(options: StartSessionOptions): Session {
           : []
       ),
     watchSessions: listener => chats.chats.subscribe(() => listener()),
-    failWithData: (request, code, message, data) =>
-      outbox.with(request.id, code, data, () => request.fail(code, message))
+    failWithData,
+    requests: interactiveAdvert(interactive)
   })
 
   passkeys.start()
+  interactive.start()
 
   const mcp = new McpModel({
     gateway: client.gateway,
@@ -318,7 +362,14 @@ export function startSession(options: StartSessionOptions): Session {
     })
 
   /** The request layer's queue is the open requests of the chats just started, the confirmations and the prompts. */
-  const stopRequests = bindRequests(chats.chats, undefined, passkeysStore, secureInputStore, connectionsStore)
+  const stopRequests = bindRequests(
+    chats.chats,
+    undefined,
+    passkeysStore,
+    secureInputStore,
+    connectionsStore,
+    interactiveStore
+  )
 
   /** While the page is shown: the roster's running poll (reference counted; one is enough). */
   let release: (() => void) | undefined
@@ -354,6 +405,7 @@ export function startSession(options: StartSessionOptions): Session {
     chats,
     passkeys,
     mcp,
+    interactive,
     secureInput,
     notices,
     connections,
@@ -374,6 +426,7 @@ export function startSession(options: StartSessionOptions): Session {
       syncStatus.getState().reset()
       deviceContextStore.getState().retire()
       stopRequests()
+      interactive.stop()
       secureInput.stop()
       stopReplayGaps()
       notices.stop()

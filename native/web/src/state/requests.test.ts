@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { chatWith } from '../test-support/chat-fixtures'
 import { createChatsStore } from './chats'
+import { createInteractiveStore, type InteractiveRequest } from './interactive'
 import { createPasskeysStore, type PasskeyConfirmation } from './passkeys'
 import { bindRequests, createRequestsStore, type EngineRequest } from './requests'
 import { createSecureInputStore, type SecurePrompt } from './secure-input'
@@ -314,6 +315,108 @@ describe('secure prompts beside the engine', () => {
     secure.setState({ prompts: [prompt('srq-1', 'researcher', 1)] })
     stop()
     secure.setState({ prompts: [prompt('srq-2', 'researcher', 2)] })
+
+    expect(queue()).toEqual([])
+  })
+})
+
+describe('interactive requests beside the engine', () => {
+  const request = (id: string, bot: string, seq: number, version = 1, method = 'input.form'): InteractiveRequest => ({
+    id,
+    method: method as InteractiveRequest['method'],
+    version,
+    ask: {
+      method: 'review.draft',
+      title: 'T',
+      summary: 'S',
+      expiresAt: 0,
+      optional: false,
+      kind: 'mail',
+      text: 'Hi',
+      recipients: [],
+      editable: true
+    },
+    bot,
+    sessionId: `rt-${bot}`,
+    deadline: 0,
+    earlierLost: null,
+    refusal: null,
+    seq
+  })
+
+  function setupInteractive() {
+    const chats = createChatsStore()
+    const requests = createRequestsStore()
+    const interactive = createInteractiveStore()
+    const stop = bindRequests(chats, requests, undefined, undefined, undefined, interactive)
+
+    chats.getState().hydrate('researcher', chatWith('researcher', [], { runtimeSessionId: 'rt-researcher' }))
+    chats.getState().bindRuntime('researcher', 'rt-researcher')
+
+    return { chats, requests, interactive, stop, queue: () => requests.getState().queue }
+  }
+
+  it('queues the requests the interactive model holds, in its order, after what came first, with method and version', () => {
+    const { chats, interactive, queue } = setupInteractive()
+
+    chats.getState().dispatchServerRequest('researcher', {
+      id: 'srq-1',
+      method: 'approval',
+      params: { command: 'ls', request_id: 'a-1' }
+    })
+    interactive.setState({
+      requests: [request('srq-3', 'writer', 2, 1, 'review.draft'), request('srq-2', 'researcher', 1)]
+    })
+
+    expect(queue().map(entry => [entry.kind, entry.bot])).toEqual([
+      ['engine', 'researcher'],
+      ['interactive', 'researcher'],
+      ['interactive', 'writer']
+    ])
+    expect(queue()[2]).toEqual({
+      kind: 'interactive',
+      key: 'interactive\u0000srq-3',
+      bot: 'writer',
+      id: 'srq-3',
+      method: 'review.draft',
+      version: 1
+    })
+  })
+
+  it('hands out a new list when a request’s version moves, and not when nothing about it did', () => {
+    const { interactive, queue } = setupInteractive()
+
+    interactive.setState({ requests: [request('srq-1', 'researcher', 1, 1)] })
+
+    const first = queue()
+
+    interactive.setState({ requests: [request('srq-1', 'researcher', 1, 1)] })
+    expect(queue()).toBe(first)
+
+    interactive.setState({ requests: [request('srq-1', 'researcher', 1, 2)] })
+    expect(queue()).not.toBe(first)
+    expect(queue()[0]).toMatchObject({ version: 2 })
+  })
+
+  it('follows a request to another chat and takes it off once the model lets go of it', () => {
+    const { interactive, queue } = setupInteractive()
+
+    interactive.setState({ requests: [request('srq-1', 'researcher', 1)] })
+    interactive.setState({ requests: [request('srq-1', 'writer', 1, 2)] })
+
+    expect(queue().map(entry => entry.bot)).toEqual(['writer'])
+
+    interactive.setState({ requests: [] })
+
+    expect(queue()).toEqual([])
+  })
+
+  it('lets go of the requests when it is stopped, and listens no more', () => {
+    const { interactive, stop, queue } = setupInteractive()
+
+    interactive.setState({ requests: [request('srq-1', 'researcher', 1)] })
+    stop()
+    interactive.setState({ requests: [request('srq-2', 'researcher', 2)] })
 
     expect(queue()).toEqual([])
   })

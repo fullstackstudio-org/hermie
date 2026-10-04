@@ -47,6 +47,11 @@
  * that ends without the reader's answer closes, is said politely, and leaves a
  * notice on its chat saying why (`features/notices/SecureInputNotice.tsx`).
  *
+ * **A form, a file request, a draft to review** (`InteractiveRequestEntry`) is held by the interactive model
+ * (`core/requests/interactive.ts`) and answered through it (`answer`, `skip`, `cannotShow`). Their sheets are the
+ * next task's; until they exist `InteractiveSheet` stands in for all three, and offers the two honest ways out:
+ * Skip, and Decline (the page cannot show it).
+ *
  * **A connector authorisation** (`ConnectionRequest`) is answered through the
  * connections model (`skip`, `cancel`) on its own sheet (`ConnectionSheet.tsx`),
  * with a countdown to the gateway's deadline; a link on it is opened only when the
@@ -78,6 +83,7 @@ import { type ChatsState, chatsStore } from '../../state/chats'
 import { type ConnectionsState, connectionsStore } from '../../state/connections'
 import { type PasskeyConfirmation, type PasskeysState, passkeysStore } from '../../state/passkeys'
 import { type EngineRequest, type OpenRequest, type RequestsState, requestsStore } from '../../state/requests'
+import { type InteractiveRequest, type InteractiveState, interactiveStore } from '../../state/interactive'
 import { type SecureInputState, secureInputStore, type SecurePrompt } from '../../state/secure-input'
 import { useChatRuntime } from '../chat/chat-runtime'
 import { GatewayNotices } from '../notices/GatewayNotices'
@@ -85,6 +91,7 @@ import { openAuthorisationLink, useSessionSignalsRuntime } from '../notices/sign
 import { usePasskeyRuntime } from './passkey-runtime'
 import { PasskeyNotices } from './PasskeyNotices'
 import { type RequestSheets, useRequestSheets } from './request-sheets'
+import { useInteractiveRuntime } from './interactive-runtime'
 import { useSecureInputRuntime } from './secure-input-runtime'
 import type { SecureSheetProps } from './SecureSheet'
 import { WithName } from './with-name'
@@ -131,6 +138,8 @@ export interface RequestLayerProps {
   passkeys?: StoreApi<PasskeysState>
   /** Where a secret, sudo or vault prompt is read; the page's own unless a test hands in its own. */
   secureInput?: StoreApi<SecureInputState>
+  /** Where a form, a file request or a draft to review is read; the page's own unless a test hands in its own. */
+  interactive?: StoreApi<InteractiveState>
   /** Where a connector authorisation is read; the page's own unless a test hands in its own. */
   connections?: StoreApi<ConnectionsState>
   /** Opens an authorisation link the person pressed; a new tab with no opener unless a test hands in its own. */
@@ -200,6 +209,26 @@ function secureAnnouncement(store: StoreApi<SecureInputState>, bot: string, id: 
   }
 }
 
+/** What a reader is told when an interactive request left the screen without their answer, or nothing. */
+function interactiveAnnouncement(store: StoreApi<InteractiveState>, bot: string, id: string, name: string): string {
+  const notice = store.getState().notices[bot]
+
+  if (notice?.requestId !== id) {
+    return ''
+  }
+
+  switch (notice.notice.kind) {
+    case 'expired':
+      return webStrings.requests.timedOut({ name })
+    case 'withdrawn':
+      return webStrings.requests.withdrawn({ name })
+    case 'lapsed':
+      return webStrings.secureInput.noticeLapsed({ name })
+    default:
+      return ''
+  }
+}
+
 /** What a reader is told when a connection card left the screen without their answer, or nothing. */
 function connectionAnnouncement(store: StoreApi<ConnectionsState>, bot: string, opId: string, name: string): string {
   const ended = store.getState().ended[bot]
@@ -241,6 +270,7 @@ export function RequestLayer({
   chats = chatsStore,
   passkeys = passkeysStore,
   secureInput = secureInputStore,
+  interactive = interactiveStore,
   connections = connectionsStore,
   openLink = openAuthorisationLink,
   tapGuardMs
@@ -251,6 +281,7 @@ export function RequestLayer({
   const controller = runtime?.controller
   const passkeyActions = usePasskeyRuntime()
   const secureActions = useSecureInputRuntime()
+  const interactiveActions = useInteractiveRuntime()
   const queue = useStore(store, state => state.queue)
   const current = queue[0]
   const open = current !== undefined
@@ -267,6 +298,10 @@ export function RequestLayer({
     secureId === undefined ? undefined : state.prompts.find(entry => entry.id === secureId)
   )
   const gatewayHost = useStore(secureInput, state => state.gateway)
+  const interactiveId = current?.kind === 'interactive' ? current.id : undefined
+  const asked: InteractiveRequest | undefined = useStore(interactive, state =>
+    interactiveId === undefined ? undefined : state.requests.find(entry => entry.id === interactiveId)
+  )
   const signals = useSessionSignalsRuntime()
   const connectionOp = current?.kind === 'connection' ? current.opId : undefined
   const card = useStore(connections, state => {
@@ -381,6 +416,17 @@ export function RequestLayer({
         if (said) {
           setAnnouncement(said)
         }
+      } else if (previous.kind === 'interactive') {
+        const said = interactiveAnnouncement(
+          interactive,
+          previous.bot,
+          previous.id,
+          displayText(senderName(previous, undefined), BOT_NAME_LIMIT)
+        )
+
+        if (said) {
+          setAnnouncement(said)
+        }
       } else if (previous.kind === 'connection') {
         const said = connectionAnnouncement(
           connections,
@@ -406,7 +452,7 @@ export function RequestLayer({
     }
 
     lastShown.current = queue[0]
-  }, [chats, connections, passkeys, queue, secureInput])
+  }, [chats, connections, interactive, passkeys, queue, secureInput])
 
   // An approval is acknowledged to the gateway's queue the first time a person can see it.
   const approvalId = current?.kind === 'engine' && current.item.kind === 'approval' ? current.item.requestId : undefined
@@ -555,6 +601,18 @@ export function RequestLayer({
                   {...(tapGuardMs !== undefined ? { tapGuardMs } : {})}
                   onAnswer={(value, identifier) => secureActions?.answer(prompt.id, value, identifier) ?? 'closed'}
                   onSkip={() => secureActions?.skip(prompt.id) ?? 'closed'}
+                />
+              ) : null
+            ) : current.kind === 'interactive' ? (
+              asked ? (
+                <sheets.InteractiveSheet
+                  key={current.key}
+                  request={asked}
+                  titleId={titleId}
+                  descriptionId={descriptionId}
+                  {...(tapGuardMs !== undefined ? { tapGuardMs } : {})}
+                  onSkip={() => interactiveActions?.skip(asked.id) ?? Promise.resolve({ kind: 'closed' })}
+                  onDecline={() => interactiveActions?.cannotShow(asked.id, 'not_supported_on_device') ?? 'closed'}
                 />
               ) : null
             ) : current.kind === 'connection' ? (

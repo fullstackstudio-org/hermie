@@ -48,6 +48,7 @@ import {
   dropSteer,
   markInterrupted,
   type MessageAuthor,
+  type RequestAnswerSummary,
   type ResumeSnapshot,
   prependHistory,
   reconcile,
@@ -108,7 +109,8 @@ export interface ChatsState extends ChatsData {
 
   dispatchEvent: (botName: string, event: TranscriptEvent) => void
   dispatchServerRequest: (botName: string, request: ServerRequest) => void
-  answer: (botName: string, requestId: string, answer: string | Record<string, string>) => void
+  /** An answer (a string, a map of question to answer) or, for an interactive request, its summary: never values. */
+  answer: (botName: string, requestId: string, answer: string | Record<string, string> | RequestAnswerSummary) => void
 
   applySnapshot: (botName: string, snapshot: ResumeSnapshot) => void
   applyHistory: (botName: string, items: readonly TranscriptItem[]) => void

@@ -41,7 +41,10 @@
  *    context with WebAuthn, the base URL has no path prefix and the gateway id
  *    breaks no pin, the second call with `confirm: ["passkey"]` and
  *    `confirm_passkey {v: 1, kind: "web", rp_id}`. `plain` is not advertised:
- *    this client has no sheet for it.
+ *    this client has no sheet for it. The second call also carries `requests`,
+ *    the interactive methods the page can show (`RequestsAdvert`), when the first
+ *    result lists any of them, with or without the passkey level: the second
+ *    call replaces what the first said, so the two ride in one.
  *  - **Open requests again.** The gateway hides a gated request from a
  *    connection that has not advertised the level, and the replay of a resume
  *    runs before the second call, so once `passkey` is newly accepted on a socket
@@ -81,6 +84,7 @@ import {
   passkeysStore
 } from '../../state/passkeys'
 import type { ChatGateway } from '../link'
+import type { RequestsAdvert } from '../requests/interactive'
 import { displayText, NAME_LIMIT } from '../requests/secure-input'
 import {
   b64uDecode,
@@ -147,6 +151,11 @@ export interface PasskeyModelOptions {
   failWithData?: FailWithData
   /** The first half of a new passkey's name: `<displayName> — <host>`. */
   displayName?: string
+  /**
+   * The interactive requests the page can show (`core/requests/interactive.ts`). The second `client.capabilities`
+   * call replaces what the connection said before, so the list rides in it, here, with the passkey level.
+   */
+  requests?: RequestsAdvert
   /** Unix seconds. */
   now?: () => number
 }
@@ -392,19 +401,29 @@ export class PasskeyModel {
       }
     }
 
+    // The interactive methods this page can show, offered only when the gateway lists some of them: a gateway that
+    // knows the methods knows the key (an older one refuses the key with 4000, and the call's `confirm` with it).
+    const serverRequests = Array.isArray(first.server_requests)
+      ? first.server_requests.filter((method): method is string => typeof method === 'string')
+      : []
+    const requests = this.options.requests?.methods(serverRequests) ?? []
     let accepted: string[] = []
+    let requestsAccepted = false
 
-    if (verdict.kind === 'advertised') {
+    if (verdict.kind === 'advertised' || requests.length > 0) {
       try {
         const second = (await gateway.request('client.capabilities', {
           server_requests: true,
-          confirm: ['passkey'],
-          confirm_passkey: { v: 1, kind: 'web', rp_id: webauthn.rpId }
+          ...(verdict.kind === 'advertised'
+            ? { confirm: ['passkey'], confirm_passkey: { v: 1, kind: 'web', rp_id: webauthn.rpId } }
+            : {}),
+          ...(requests.length > 0 ? { requests: [...requests] } : {})
         } as { server_requests: boolean })) as unknown as Record<string, unknown>
 
         accepted = Array.isArray(second.confirm)
           ? second.confirm.filter((level): level is string => typeof level === 'string')
           : []
+        requestsAccepted = Array.isArray(second.requests) && second.requests.some(method => typeof method === 'string')
       } catch {
         accepted = []
       }
@@ -416,7 +435,10 @@ export class PasskeyModel {
 
     this.store.setState({ capability: { verdict, accepted } })
 
-    if (accepted.includes('passkey') && !this.acceptedOnSocket) {
+    // The gateway hides a gated request from a connection that has not advertised it, and a resume's replay runs
+    // before the second call: once a level or a method is newly accepted on a socket, the open requests of the
+    // sessions the page holds are read again.
+    if ((accepted.includes('passkey') || requestsAccepted) && !this.acceptedOnSocket) {
       this.acceptedOnSocket = true
       await this.readOpenRequests()
     }
@@ -481,6 +503,7 @@ export class PasskeyModel {
           .confirmations.filter(entry => entry.sessionId === sessionId && isOpenPhase(entry.phase))
           .map(entry => entry.id)
         let result: unknown
+        const askedAt = this.now * 1000
 
         try {
           result = await this.options.gateway.request('session.events.since', {
@@ -502,6 +525,12 @@ export class PasskeyModel {
         }
 
         const listed = new Set(open.map(entry => (isRecord(entry) ? text(entry.id) : null)))
+
+        this.options.requests?.openRequests(
+          sessionId,
+          open.flatMap(entry => (isRecord(entry) && typeof entry.id === 'string' ? [entry.id] : [])),
+          askedAt
+        )
 
         for (const id of before) {
           if (!listed.has(id)) {

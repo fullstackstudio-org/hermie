@@ -635,6 +635,38 @@ export const SHEET_STRINGS_SOURCE = {
       de: 'Nicht mit dem Gateway verbunden. Es wurde nichts gesendet; versuch es erneut, sobald die Verbindung wieder da ist.'
     }
   },
+  interactive: {
+    /** The heading of the stand-in sheet for a form, a file request or a draft this page has no sheet for yet. */
+    unavailableTitle: {
+      en: 'A request this page cannot show yet',
+      nl: 'Een verzoek dat deze pagina nog niet kan tonen',
+      de: 'Eine Anfrage, die diese Seite noch nicht anzeigen kann'
+    },
+    /** Under it: what that means, in the app's words. */
+    unavailableLead: {
+      en: 'The bot asked a question that needs a form, a file or a draft to review, and this page cannot show those yet. You can decline it: the bot is told it could not be shown, which is not an answer.',
+      nl: 'De bot stelde een vraag die een formulier, een bestand of een concept om na te kijken nodig heeft, en deze pagina kan dat nog niet tonen. Je kunt het weigeren: de bot hoort dat het niet getoond kon worden, en dat is geen antwoord.',
+      de: 'Der Bot hat eine Frage gestellt, die ein Formular, eine Datei oder einen Entwurf zur Prüfung braucht, und diese Seite kann das noch nicht anzeigen. Du kannst sie ablehnen: Der Bot erfährt, dass sie nicht angezeigt werden konnte, und das ist keine Antwort.'
+    },
+    /** Declines the request: the gateway is told the page cannot show it. */
+    decline: {
+      en: 'Decline',
+      nl: 'Weigeren',
+      de: 'Ablehnen'
+    },
+    /** Label over the request's own heading and words. */
+    quoteLabel: {
+      en: 'What the bot says',
+      nl: 'Wat de bot zegt',
+      de: 'Was der Bot sagt'
+    },
+    /** Declining was pressed while the connection was down: nothing went out. */
+    offline: {
+      en: 'Not connected to the gateway. Nothing was sent; try again once the connection is back.',
+      nl: 'Niet verbonden met de gateway. Er is niets verstuurd; probeer het opnieuw zodra de verbinding terug is.',
+      de: 'Nicht mit dem Gateway verbunden. Es wurde nichts gesendet; versuch es erneut, sobald die Verbindung wieder da ist.'
+    }
+  },
   connections: {
     /** The sheet's heading. */
     title: {

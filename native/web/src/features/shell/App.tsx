@@ -57,6 +57,7 @@ import { type McpActions, McpRuntimeContext } from '../settings/mcp-runtime'
 import { type SettingsRuntime, SettingsRuntimeContext } from '../settings/settings-runtime'
 import { type PasskeyActions, PasskeyRuntimeContext } from '../requests/passkey-runtime'
 import { RequestLayer } from '../requests/RequestLayer'
+import { type InteractiveActions, InteractiveRuntimeContext } from '../requests/interactive-runtime'
 import { type SecureInputActions, SecureInputRuntimeContext } from '../requests/secure-input-runtime'
 import { type SessionSignalsActions, SessionSignalsRuntimeContext } from '../notices/signals-runtime'
 import { ConnectionLine } from './ConnectionLine'
@@ -116,6 +117,8 @@ export interface AppProps {
   settings?: Omit<SettingsRuntime, 'signOut' | 'user' | 'pictureUrl' | 'gated'>
   /** The secure input model's actions (secret, sudo and vault prompts); absent in a test of the frame. */
   secureInput?: SecureInputActions
+  /** The interactive model's actions (forms, file requests, drafts to review); absent in a test of the frame. */
+  interactive?: InteractiveActions
   /** The actions of the models beside the engine (notices, connection cards, resume progress); absent in a test of the frame. */
   signals?: SessionSignalsActions
 }
@@ -136,6 +139,7 @@ export function App({
   mcp,
   settings,
   secureInput,
+  interactive,
   signals
 }: AppProps): ReactElement {
   useLocale()
@@ -187,47 +191,49 @@ export function App({
         <McpRuntimeContext.Provider value={mcp ?? null}>
           <SettingsRuntimeContext.Provider value={settingsRuntime}>
             <SecureInputRuntimeContext.Provider value={secureInput ?? null}>
-              <SessionSignalsRuntimeContext.Provider value={signals ?? null}>
-                <Layout
-                  route={route}
-                  heading={heading}
-                  status={<ConnectionLine onSignIn={onSignIn} gated={gated} />}
-                  sidebar={<ChatList selectedBot={bot} />}
-                  footer={
-                    <SidebarFooter
-                      user={user}
-                      {...(pictureUrl ? { pictureUrl } : {})}
-                      onSignOut={onSignOut}
-                      gated={gated}
-                    />
-                  }
-                >
-                  {route.name === 'chat' ? (
-                    <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
-                      <ChatScreen
-                        key={formatRoute(route)}
-                        bot={route.bot}
-                        {...(route.session ? { session: route.session } : {})}
+              <InteractiveRuntimeContext.Provider value={interactive ?? null}>
+                <SessionSignalsRuntimeContext.Provider value={signals ?? null}>
+                  <Layout
+                    route={route}
+                    heading={heading}
+                    status={<ConnectionLine onSignIn={onSignIn} gated={gated} />}
+                    sidebar={<ChatList selectedBot={bot} />}
+                    footer={
+                      <SidebarFooter
+                        user={user}
+                        {...(pictureUrl ? { pictureUrl } : {})}
+                        onSignOut={onSignOut}
+                        gated={gated}
                       />
-                    </Suspense>
-                  ) : route.name === 'conversations' ? (
-                    <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
-                      <ConversationsPage key={formatRoute(route)} bot={route.bot} router={router} />
-                    </Suspense>
-                  ) : route.name === 'settings' ? (
-                    <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
-                      <SettingsHost
-                        {...(route.section === undefined ? {} : { section: route.section })}
-                        router={router}
-                      />
-                    </Suspense>
-                  ) : (
-                    <p className="hm-main__body">{strings.app.chat.pickBot}</p>
-                  )}
-                </Layout>
-                {/* Over the whole page, whichever route: a bot's question is never behind a screen. */}
-                <RequestLayer />
-              </SessionSignalsRuntimeContext.Provider>
+                    }
+                  >
+                    {route.name === 'chat' ? (
+                      <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
+                        <ChatScreen
+                          key={formatRoute(route)}
+                          bot={route.bot}
+                          {...(route.session ? { session: route.session } : {})}
+                        />
+                      </Suspense>
+                    ) : route.name === 'conversations' ? (
+                      <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
+                        <ConversationsPage key={formatRoute(route)} bot={route.bot} router={router} />
+                      </Suspense>
+                    ) : route.name === 'settings' ? (
+                      <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
+                        <SettingsHost
+                          {...(route.section === undefined ? {} : { section: route.section })}
+                          router={router}
+                        />
+                      </Suspense>
+                    ) : (
+                      <p className="hm-main__body">{strings.app.chat.pickBot}</p>
+                    )}
+                  </Layout>
+                  {/* Over the whole page, whichever route: a bot's question is never behind a screen. */}
+                  <RequestLayer />
+                </SessionSignalsRuntimeContext.Provider>
+              </InteractiveRuntimeContext.Provider>
             </SecureInputRuntimeContext.Provider>
           </SettingsRuntimeContext.Provider>
         </McpRuntimeContext.Provider>

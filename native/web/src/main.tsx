@@ -376,6 +376,7 @@ async function startApp(page: Page, ready: Ready): Promise<void> {
         clearTranscriptCache: () => cache.clear()
       }}
       secureInput={session.secureInput}
+      interactive={session.interactive}
       signals={{ notices: session.notices, connections: session.connections, status: session.status }}
       onSignIn={signInAgain}
       onSignOut={leave}

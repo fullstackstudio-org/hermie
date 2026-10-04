@@ -13,6 +13,7 @@ import { createKeyValueStore, type StorageLike } from '../../platform/key-value-
 import { createPasskeyPins } from '../../platform/passkey-pins'
 import { createPasskeysStore } from '../../state/passkeys'
 import { softWebAuthn } from '../../test-support/soft-webauthn'
+import { type RequestsAdvert, showableMethods } from '../requests/interactive'
 import { NAME_LIMIT } from '../requests/secure-input'
 import type { PasskeyClient, PasskeyStatus } from './client'
 import {
@@ -128,6 +129,7 @@ function setUp(
     client?: Partial<PasskeyClient>
     sessions?: readonly OpenSession[]
     watch?: (listener: () => void) => () => void
+    requests?: RequestsAdvert
   } = {}
 ) {
   const hand = handGateway()
@@ -160,6 +162,7 @@ function setUp(
     now: () => clock.now,
     ...(options.sessions ? { openSessions: () => options.sessions as readonly OpenSession[] } : {}),
     ...(options.watch ? { watchSessions: options.watch } : {}),
+    ...(options.requests ? { requests: options.requests } : {}),
     failWithData: (request, code, _message, data) => void failures.push({ id: request.id, code, data })
   })
 
@@ -997,5 +1000,163 @@ describe('the passkey’s name', () => {
     expect(sent).toHaveLength(1)
     expect(Array.from(sent[0] as string).length).toBeLessThanOrEqual(CREDENTIAL_NAME_LIMIT)
     expect(sent[0]).toContain('…')
+  })
+})
+
+describe('advertising the interactive requests', () => {
+  const FIRST_LIST = ['approval', 'clarify', 'secret', 'input.form', 'input.file', 'review.draft', 'confirm']
+
+  function withRequests(
+    options: {
+      listed?: string[]
+      /** Whether the gateway offers the passkey level in its first answer. */
+      passkey?: boolean
+      second?: () => unknown
+    } = {}
+  ) {
+    const hooks = {
+      methods: vi.fn((list: readonly string[]) => showableMethods(list, { file: true })),
+      openRequests: vi.fn()
+    }
+    const page = setUp({
+      requests: hooks,
+      sessions: [{ sessionId: 'sess-1', lastSeen: 0 }],
+      client: { status: vi.fn(async () => GATEWAY_STATUS()) }
+    })
+
+    page.answer.mockImplementation(async (method: string, params: unknown) => {
+      if (method === 'client.capabilities') {
+        const sent = params as { confirm?: string[]; requests?: string[] }
+
+        if (sent.confirm || sent.requests) {
+          if (options.second) {
+            return options.second()
+          }
+
+          return { confirm: sent.confirm ? ['passkey'] : [], ...(sent.requests ? { requests: sent.requests } : {}) }
+        }
+
+        return {
+          server_requests: options.listed ?? FIRST_LIST,
+          confirm: [],
+          ...(options.passkey === false
+            ? {}
+            : {
+                confirm_passkey: {
+                  v: 1,
+                  enabled: true,
+                  reason: '',
+                  gateway_id: GATEWAY_ID,
+                  rp: { native: [], web: ['gw.example.test'] }
+                }
+              })
+        }
+      }
+
+      if (method === 'session.events.since') {
+        return { open_requests: [{ id: 'srq-9', method: 'input.form', params: {} }, { method: 'x' }] }
+      }
+
+      return { status: 'ok' }
+    })
+
+    return { ...page, hooks }
+  }
+
+  it('puts the methods the page can show in the second call, beside the passkey level', async () => {
+    const page = withRequests()
+
+    await page.model.advertise()
+
+    expect(callsTo(page, 'client.capabilities')).toEqual([
+      { server_requests: true },
+      {
+        server_requests: true,
+        confirm: ['passkey'],
+        confirm_passkey: { v: 1, kind: 'web', rp_id: 'gw.example.test' },
+        requests: ['input.form', 'input.file', 'review.draft']
+      }
+    ])
+    expect(page.hooks.methods).toHaveBeenCalledWith(FIRST_LIST)
+  })
+
+  it('sends the second call for the methods alone when the passkey level is not on offer', async () => {
+    const page = withRequests({ passkey: false })
+
+    await page.model.advertise()
+
+    expect(callsTo(page, 'client.capabilities')).toEqual([
+      { server_requests: true },
+      { server_requests: true, requests: ['input.form', 'input.file', 'review.draft'] }
+    ])
+    expect(page.store.getState().capability).toEqual({ verdict: { kind: 'not_offered' }, accepted: [] })
+  })
+
+  it('lists only what the gateway lists', async () => {
+    const page = withRequests({ passkey: false, listed: ['approval', 'review.draft', 'input.signature'] })
+
+    await page.model.advertise()
+
+    expect(callsTo(page, 'client.capabilities')[1]).toEqual({ server_requests: true, requests: ['review.draft'] })
+  })
+
+  it('leaves the key out when the gateway lists none of them: an older gateway would refuse the call with 4000', async () => {
+    const withPasskey = withRequests({ listed: ['approval', 'clarify', 'confirm'] })
+
+    await withPasskey.model.advertise()
+
+    expect(callsTo(withPasskey, 'client.capabilities')[1]).toEqual({
+      server_requests: true,
+      confirm: ['passkey'],
+      confirm_passkey: { v: 1, kind: 'web', rp_id: 'gw.example.test' }
+    })
+
+    const without = withRequests({ passkey: false, listed: ['approval', 'clarify'] })
+
+    await without.model.advertise()
+
+    // Nothing to offer: one call, as before.
+    expect(callsTo(without, 'client.capabilities')).toEqual([{ server_requests: true }])
+  })
+
+  it('does not take a page that lists nothing it can show for an advertiser', async () => {
+    const page = setUp({ sessions: [{ sessionId: 'sess-1', lastSeen: 0 }] })
+
+    page.answer.mockImplementation(async () => ({ server_requests: ['input.form'], confirm: [] }))
+
+    await page.model.advertise()
+
+    expect(callsTo(page, 'client.capabilities')).toEqual([{ server_requests: true }])
+  })
+
+  it('reads the open requests again once the methods are accepted, passkey level or not, and hands them on', async () => {
+    const page = withRequests({ passkey: false })
+    const before = page.clock.now * 1000
+
+    await page.model.advertise()
+
+    expect(callsTo(page, 'session.events.since')).toEqual([{ session_id: 'sess-1', last_seen: 0 }])
+    expect(page.hooks.openRequests).toHaveBeenCalledWith('sess-1', ['srq-9'], before)
+  })
+
+  it('reads nothing again when the gateway accepted none of them', async () => {
+    const page = withRequests({ passkey: false, second: () => ({ confirm: [], requests: [] }) })
+
+    await page.model.advertise()
+
+    expect(callsTo(page, 'session.events.since')).toEqual([])
+    expect(page.hooks.openRequests).not.toHaveBeenCalled()
+  })
+
+  it('carries on when the second call fails', async () => {
+    const page = withRequests({
+      passkey: false,
+      second: () => {
+        throw new JsonRpcGatewayError('unknown key', { code: 4000 })
+      }
+    })
+
+    await expect(page.model.advertise()).resolves.toBeUndefined()
+    expect(page.store.getState().capability).toEqual({ verdict: { kind: 'not_offered' }, accepted: [] })
   })
 })
