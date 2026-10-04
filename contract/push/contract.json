@@ -330,7 +330,7 @@
         "type": "string",
         "enum": ["added", "revoked"],
         "required": false,
-        "description": "type security only: what happened to the passkey. Which one, how it was authorised and who did it never travel."
+        "description": "type security only: what happened to the passkey. Which one, who did it and the kind of client never travel. How an added passkey was authorised travels only in the plugin's words, never as a field: a passkey the person enrolled themselves after signing in again says \"A passkey was added after a new sign-in\" (the gateway hook's `via` is `self`), every other addition \"A passkey was added\". `change` is `added` for both; a client shows the title and body it is given and never derives them from this key."
       },
       {
         "key": "gatewayKey",
@@ -760,6 +760,35 @@
         },
         "title": "scout",
         "body": "A passkey was removed"
+      },
+      {
+        "name": "security_added_self",
+        "data": {
+          "v": 1,
+          "type": "security",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "security:9f779c872059e5c075c089b67cce2ff7",
+          "gatewayKey": "bf796761db84e312",
+          "change": "added"
+        },
+        "title": "scout",
+        "body": "A passkey was added after a new sign-in"
+      },
+      {
+        "name": "security_added_self_preview",
+        "data": {
+          "v": 1,
+          "type": "security",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "security:9f779c872059e5c075c089b67cce2ff7",
+          "gatewayKey": "bf796761db84e312",
+          "change": "added",
+          "preview": "The passkey “Pocket” was added after a new sign-in"
+        },
+        "title": "scout",
+        "body": "The passkey “Pocket” was added after a new sign-in"
       }
     ]
   }
