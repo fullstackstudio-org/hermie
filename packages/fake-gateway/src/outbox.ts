@@ -197,9 +197,20 @@ export interface OutboxQuery {
   secFetchDest?: string
 }
 
+/**
+ * What every answer of the route carries (`contract/outbox/` §4), a 404 included: the file's own headers (`ETag`,
+ * the disposition, `Accept-Ranges`) say something about a file, and a 404 has none to say it about.
+ */
+const SAFETY_HEADERS = {
+  'x-content-type-options': 'nosniff',
+  'content-security-policy': "default-src 'none'; sandbox",
+  'cross-origin-resource-policy': 'same-origin',
+  'referrer-policy': 'no-referrer'
+}
+
 const NOT_FOUND: OutboxAnswer = {
   status: 404,
-  headers: { 'content-type': 'application/json' },
+  headers: { ...SAFETY_HEADERS, 'content-type': 'application/json' },
   body: Buffer.from(JSON.stringify({ detail: 'Not Found' }))
 }
 
@@ -216,10 +227,7 @@ export function answerOutbox(files: ReadonlyMap<string, OutboxFile>, query: Outb
   const size = file.body.length
   const etag = `"${file.sha256}"`
   const common = {
-    'x-content-type-options': 'nosniff',
-    'content-security-policy': "default-src 'none'; sandbox",
-    'cross-origin-resource-policy': 'same-origin',
-    'referrer-policy': 'no-referrer',
+    ...SAFETY_HEADERS,
     'accept-ranges': 'bytes',
     etag,
     'cache-control': 'private, max-age=86400',

@@ -100,6 +100,13 @@ describe('the route', () => {
 
       expect(response.status).toBe(404)
       expect(await response.json()).toEqual({ detail: 'Not Found' })
+      // A 404 is sandboxed and unsniffed like every other answer of the route, and has no file's validators.
+      expect(response.headers.get('x-content-type-options')).toBe('nosniff')
+      expect(response.headers.get('content-security-policy')).toBe("default-src 'none'; sandbox")
+      expect(response.headers.get('cross-origin-resource-policy')).toBe('same-origin')
+      expect(response.headers.get('referrer-policy')).toBe('no-referrer')
+      expect(response.headers.has('etag')).toBe(false)
+      expect(response.headers.has('content-disposition')).toBe(false)
     }
   })
 

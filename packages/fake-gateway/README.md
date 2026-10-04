@@ -543,7 +543,7 @@ reply names the files it shares (`ScenarioReply.attachments`: `{ sample: 'image'
 | base64? }`); at the end of the turn they are kept in memory under a fresh token for the session's profile, sent as
 `attachments` on `message.complete`, written on the reply's row (`session.history`, `session.resume` and the REST
 transcript) and served by the route: the profile asked for and the recorded name (anything else is a `404` that does not
-say whether the file exists), the headers every answer carries, `inline` only for `image`, `video`, `audio` and `pdf`
+say whether the file exists, and carrying the safety headers like every answer), the headers every answer carries, `inline` only for `image`, `video`, `audio` and `pdf`
 (a PDF asked for as a page is an `attachment`), one byte range (`206`/`416`), `If-Range`, `If-None-Match` and `HEAD`.
 `src/outbox-samples.ts` has the samples (two pictures, a two-second clip, a tone, a PDF, an HTML file and an empty zip,
 real files a browser can decode), and the default scenario shares all of them in reply to a prompt containing `share
