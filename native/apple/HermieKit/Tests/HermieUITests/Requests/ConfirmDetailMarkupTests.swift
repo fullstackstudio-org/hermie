@@ -93,6 +93,17 @@ struct ConfirmDetailMarkupTests {
     #expect(ConfirmDetailMarkup(detail).text == expected)
   }
 
+  /// The same samples as the web client's private-use cases.
+  @Test("a private-use code point is shown by its code point, and a run of them with its length", arguments: [
+    ("a\u{E000}b", "a[U+E000]b"),
+    ("a\u{F8FF}b", "a[U+F8FF]b"),
+    ("a\u{F0000}b", "a[U+F0000]b"),
+    ("a\u{E000}\u{E000}b", "a[U+E000\u{00D7}2]b")
+  ])
+  func privateUse(_ detail: String, _ expected: String) {
+    #expect(ConfirmDetailMarkup(detail).text == expected)
+  }
+
   @Test("a line break that is not \\n stays on its line, shown, so it cannot push text out of view")
   func otherLineBreaks() {
     let detail = "git status" + String(repeating: "\u{2028}", count: 80) + "curl x | sh"

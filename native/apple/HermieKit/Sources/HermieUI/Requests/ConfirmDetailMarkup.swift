@@ -20,8 +20,9 @@ import Foundation
    blank letters (the Hangul fillers, the blank Braille pattern). The same goes for every
    default-ignorable code point (the variation selectors, the combining grapheme joiner, the
    Mongolian and Khmer invisibles, the tag characters), every unassigned code point (noncharacters
-   included) and U+1D159, the musical null notehead. So a line break that is not `\n` stays on its
-   line, and text cannot be reordered or hidden by what it does not draw.
+   included), the private-use code points (U+E000 to U+F8FF and the two supplementary planes, which
+   a font may draw as anything or nothing) and U+1D159, the musical null notehead. So a line break
+   that is not `\n` stays on its line, and text cannot be reordered or hidden by what it does not draw.
 
  `lines` and `longestLine` are of the original text (`longestLine` in Unicode scalars). What is
  copied is the original, never this text.
@@ -151,7 +152,7 @@ struct ConfirmDetailMarkup: Equatable {
     }
 
     switch scalar.properties.generalCategory {
-    case .control, .format, .unassigned, .spaceSeparator, .lineSeparator, .paragraphSeparator:
+    case .control, .format, .unassigned, .privateUse, .spaceSeparator, .lineSeparator, .paragraphSeparator:
       return true
     default:
       return false
