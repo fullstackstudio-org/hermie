@@ -199,6 +199,7 @@ describe('the routes', () => {
       '#/settings/gateway',
       '#/settings/passkeys',
       '#/settings/mcp',
+      '#/settings/mcp-servers',
       '#/settings/chats',
       '#/settings/chat-list',
       '#/settings/appearance',

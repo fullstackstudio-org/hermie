@@ -53,9 +53,11 @@ const ON_DEMAND = [
   // The gateway-management pages (Memory, Skills, MCP servers, Connectors, Boards), what they share, and their words.
   'features/settings/Memory.tsx',
   'features/settings/Skills.tsx',
+  'features/settings/McpServers.tsx',
   'features/settings/manage-parts.tsx',
   'core/manage/memory.ts',
   'core/manage/skills.ts',
+  'core/manage/mcp-servers.ts',
   'core/manage/transport.ts',
   'core/manage/route-error.ts',
   'i18n/manage-strings.ts',

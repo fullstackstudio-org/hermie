@@ -39,6 +39,7 @@ import { GRANT_FAILURES, type GrantFailure } from './passkey/store'
 import { InteractiveGate, type RaisedInteractive } from './interactive-gate'
 import { defaultParams, INTERACTIVE_METHODS, isInteractiveMethod, type InteractiveMethod } from './interactive'
 import { scheduleRefusal } from './cron-schedule'
+import { handleMcpEdit, type McpEditMethod } from './mcp-servers-edit'
 import { type AttachedImageSource, readAttachedImage } from './attached-images'
 import { DiffError, headOldPath, headPath, parseDiff } from './diff-hunks'
 import { ReviewRegister } from './review-register'
@@ -8297,6 +8298,17 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
         return { status: 'ok', settled: op.settled }
       }
+
+      /** The three methods that change the MCP configuration (`mcp-servers-edit.ts`). */
+      case 'mcp.catalog':
+      case 'mcp.servers.add':
+      case 'mcp.servers.remove':
+        return handleMcpEdit(
+          state.mcpServers,
+          method as McpEditMethod,
+          params,
+          (code, message) => new RpcFault(code, message)
+        )
 
       case 'mcp.servers.list':
         return { servers: state.mcpServers.map(summariseMcpServer) }

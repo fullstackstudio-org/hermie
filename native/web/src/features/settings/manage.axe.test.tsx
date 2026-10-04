@@ -16,9 +16,11 @@ import { pluginStore } from '../../state/plugin'
 import { aSettingsRuntime } from '../../test-support/settings-runtime'
 import { aBot, resetShellStores, seedRoster } from '../../test-support/shell-stores'
 import { aMemoryPlugin } from '../../test-support/memory-plugin'
+import { anMcpServersGateway } from '../../test-support/mcp-servers-gateway'
 import { aSkillsGateway } from '../../test-support/skills-gateway'
 import type { ManageTransport } from './manage-runtime'
 import { Memory } from './Memory'
+import { McpServers } from './McpServers'
 import { Skills } from './Skills'
 import { SettingsRuntimeContext } from './settings-runtime'
 
@@ -95,6 +97,23 @@ describe.each(['light', 'dark'] as const)('the management pages in the %s scheme
 
     expect(await violations()).toEqual([])
   })
+
+  it('has no violation on MCP servers, loaded, with a probe answered, a question and the add form open', async () => {
+    mount(anMcpServersGateway().transport, <McpServers />)
+    await screen.findByText('files', { selector: '.hm-manage__name' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Test the connection to files' }))
+    await screen.findByText('Connected. 2 tools available.')
+    fireEvent.click(screen.getByRole('button', { name: 'Remove weather' }))
+
+    const details = screen.getByText('Add a server').closest('details') as HTMLDetailsElement
+
+    details.open = true
+    fireEvent(details, new Event('toggle'))
+    await screen.findByLabelText('Start from')
+
+    expect(await violations()).toEqual([])
+  })
 })
 
 describe.each(['nl', 'de'] as const)('the management pages in %s', locale => {
@@ -113,6 +132,21 @@ describe.each(['nl', 'de'] as const)('the management pages in %s', locale => {
     mount(aSkillsGateway().transport, <Skills />)
     await screen.findAllByRole('checkbox')
     await screen.findAllByRole('listitem')
+
+    expect(await violations()).toEqual([])
+  })
+
+  it('has no violation on MCP servers, with the add form open', async () => {
+    await loadCatalogue(locale)
+    act(() => setActiveLocale(locale))
+    mount(anMcpServersGateway().transport, <McpServers />)
+    await screen.findAllByRole('listitem')
+
+    const details = document.querySelector('details') as HTMLDetailsElement
+
+    details.open = true
+    fireEvent(details, new Event('toggle'))
+    await waitFor(() => expect(details.querySelector('select')).toBeTruthy())
 
     expect(await violations()).toEqual([])
   })

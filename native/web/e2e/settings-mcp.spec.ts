@@ -228,7 +228,7 @@ test.describe('Settings › MCP', () => {
     await page.evaluate(() => {
       location.hash = '#/settings'
     })
-    await page.getByRole('link', { name: 'MCP' }).click()
+    await page.getByRole('link', { name: 'MCP', exact: true }).click()
     await expect(page.getByRole('heading', { level: 2, name: 'MCP' })).toBeVisible()
     expect(fetched.length).toBeGreaterThan(0)
   })

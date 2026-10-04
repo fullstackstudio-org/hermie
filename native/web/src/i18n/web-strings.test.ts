@@ -48,6 +48,10 @@ const SAME_AS_ENGLISH: Readonly<Record<string, readonly Locale[]>> = {
   'cron.actionFor': ['nl', 'de'],
   // "Details" is the Dutch and German word too.
   'manage.skillsPage.details': ['nl', 'de'],
+  // `Transport: {transport}` is the same word in all three languages.
+  'manage.mcpServersPage.transportValue': ['nl', 'de'],
+  // "Name" is the German word too.
+  'manage.mcpServersPage.addName': ['de'],
   // "Name" is the German word too; "Toolsets" and "Skills" are loan words in Dutch and German.
   'sheets.botProfile.nameHeading': ['de'],
   'sheets.botProfile.toolsetsHeading': ['nl', 'de'],
@@ -159,7 +163,11 @@ const SAMPLE = {
   source: MARKER,
   trust: MARKER,
   tags: MARKER,
-  category: MARKER
+  category: MARKER,
+  // The MCP servers page: a server's transport, the env keys it needs, how it signs in.
+  transport: MARKER,
+  keys: MARKER,
+  auth: MARKER
 }
 
 describe('the web-only strings', () => {
