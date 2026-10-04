@@ -2943,6 +2943,294 @@
         }
       }
     },
+    "native.conversations.actionFailed" : {
+      "comment" : "A rename, delete or swap the gateway refused. The argument is the gateway's reason, as plain text.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das hat nicht geklappt: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That did not work: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dat lukte niet: %@"
+          }
+        }
+      }
+    },
+    "native.conversations.actionsFor" : {
+      "comment" : "The accessible name of the menu of a conversation's actions. The argument is its title.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktionen für %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actions for %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acties voor %@"
+          }
+        }
+      }
+    },
+    "native.conversations.adopted" : {
+      "comment" : "Said once a past conversation or a branch has become the Bot Chat.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Unterhaltung ist jetzt der Bot Chat."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That conversation is the Bot Chat now."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dat gesprek is nu de Bot Chat."
+          }
+        }
+      }
+    },
+    "native.conversations.backToChat" : {
+      "comment" : "Above a past conversation or a branch: the way back to the bot's chat.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurück zum Chat"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to the chat"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terug naar de chat"
+          }
+        }
+      }
+    },
+    "native.conversations.deleted" : {
+      "comment" : "Said once a conversation has been deleted.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Unterhaltung wurde gelöscht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The conversation was deleted."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het gesprek is verwijderd."
+          }
+        }
+      }
+    },
+    "native.conversations.hint" : {
+      "comment" : "The row in the bot settings that opens the Conversations page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die früheren und verzweigten Unterhaltungen dieses Bots."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The past and branched conversations of this bot."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De eerdere en vertakte gesprekken van deze bot."
+          }
+        }
+      }
+    },
+    "native.conversations.new" : {
+      "comment" : "The button on a bot's Conversations page that puts the current conversation away and starts a new one.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neue Unterhaltung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New conversation"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nieuw gesprek"
+          }
+        }
+      }
+    },
+    "native.conversations.newConfirm" : {
+      "comment" : "The button that confirms the new conversation.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neue Unterhaltung beginnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start a new conversation"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nieuw gesprek starten"
+          }
+        }
+      }
+    },
+    "native.conversations.newConfirmBody" : {
+      "comment" : "Asked before a new conversation starts: the bot's chat is everybody's on the gateway, so this puts it away for everybody.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die aktuelle Unterhaltung wird zu den früheren Unterhaltungen gelegt und eine neue beginnt. Alle auf diesem Gateway teilen sie."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The current conversation moves to Past conversations and a new one starts. Everyone on this gateway shares it."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het huidige gesprek gaat naar Eerdere gesprekken en er begint een nieuw gesprek. Iedereen op deze gateway deelt het."
+          }
+        }
+      }
+    },
+    "native.conversations.noMessages" : {
+      "comment" : "Shown in the viewer of a conversation that holds no messages.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Unterhaltung hat keine Nachrichten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This conversation has no messages."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit gesprek heeft geen berichten."
+          }
+        }
+      }
+    },
+    "native.conversations.readOnly" : {
+      "comment" : "Above a past conversation or a branch, which can be read and not answered.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du liest eine frühere Unterhaltung. Darauf lässt sich nicht mehr antworten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are reading an earlier conversation. It cannot be answered."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je leest een eerder gesprek. Daar kun je niet meer op antwoorden."
+          }
+        }
+      }
+    },
+    "native.conversations.renamed" : {
+      "comment" : "Said once a conversation has been renamed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Unterhaltung hat einen neuen Namen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The conversation has a new name."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het gesprek heeft een nieuwe naam."
+          }
+        }
+      }
+    },
     "native.debug.title" : {
       "extractionState" : "manual",
       "localizations" : {

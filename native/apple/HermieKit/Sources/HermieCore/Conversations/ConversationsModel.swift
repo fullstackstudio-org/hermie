@@ -172,10 +172,20 @@ public final class ConversationsModel {
     }
   }
 
+  /// The delete question was answered yes.
   public func confirmDelete() async {
-    guard case .confirmDelete(let id)? = mode, let conversation = groups?.conversation(id: id),
-      conversation.allows(.delete)
-    else {
+    guard case .confirmDelete? = mode, let conversation = subject else {
+      return
+    }
+
+    await delete(conversation)
+  }
+
+  /// Delete `conversation`. The caller has asked first: a view that presents the question as a
+  /// dialog hands over the conversation the dialog was about, which is not read back from `mode`
+  /// (a dialog's own dismissal clears it before its button's action has run).
+  public func delete(_ conversation: Conversation) async {
+    guard conversation.allows(.delete) else {
       return
     }
 
@@ -197,13 +207,18 @@ public final class ConversationsModel {
     }
   }
 
-  /// Put the current conversation away and start the next one; the screen goes back to the chat,
-  /// where it starts (`startedNew`).
+  /// The new-conversation question was answered yes.
   public func confirmNew() async {
     guard case .confirmNew? = mode else {
       return
     }
 
+    await startNew()
+  }
+
+  /// Put the current conversation away and start the next one; the screen goes back to the chat,
+  /// where it starts (`startedNew`). The caller has asked first.
+  public func startNew() async {
     await run {
       try await self.backend.startNew(bot: self.bot)
       self.startedNew += 1

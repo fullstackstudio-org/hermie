@@ -261,6 +261,9 @@ private func answerEverything(_ link: ScriptedLink) {
     let adopting = Task { try await service.adopt(bot: bot, conversation: past()) }
     let retire = try await harness.link.pendingCall(RPC.SessionTitle.name)
     harness.link.fail(retire, GatewayRPCError(.rejected, "cannot rename"))
+    // The one retry, with the seconds in the name.
+    let again = try await harness.link.pendingCall(RPC.SessionTitle.name) { $0.id != retire.id }
+    harness.link.fail(again, GatewayRPCError(.rejected, "cannot rename"))
 
     do {
       try await adopting.value
@@ -270,7 +273,36 @@ private func answerEverything(_ link: ScriptedLink) {
     }
 
     #expect(harness.link.calls(RPC.SessionSetHidden.name).map { $0.params["hidden"] } == [false, true])
-    #expect(harness.link.calls(RPC.SessionTitle.name).count == 1, "the incoming conversation was never touched")
+    #expect(
+      harness.link.calls(RPC.SessionTitle.name).allSatisfy { $0.params["session_id"] == "rt-1" },
+      "the incoming conversation was never touched")
+    #expect(harness.link.calls(RPC.SessionClose.name).isEmpty)
+    await harness.shutdown()
+  }
+
+  /// The stamp counts minutes: putting a conversation away twice in a minute meets its own name.
+  @Test func aRetireNameAlreadyWornInThisMinuteIsRetriedWithTheSeconds() async throws {
+    let (harness, service) = try await opened()
+    answerEverything(harness.link)
+    harness.link.unrespond(RPC.SessionTitle.name)
+
+    let adopting = Task { try await service.adopt(bot: bot, conversation: past()) }
+    let first = try await harness.link.pendingCall(RPC.SessionTitle.name)
+    harness.link.fail(first, GatewayRPCError(.rejected, "Title 'Bot Chat · 2026-10-04 12:08' is already in use"))
+    let second = try await harness.link.pendingCall(RPC.SessionTitle.name) { $0.id != first.id }
+    harness.link.answer(second, ["title": second.params["title"] ?? .null])
+    let incoming = try await harness.link.pendingCall(RPC.SessionTitle.name) { $0.params["session_id"] == "rt-2" }
+    harness.link.answer(incoming, ["title": "Bot Chat"])
+    try await adopting.value
+    await harness.settle()
+
+    let firstTitle = try #require(first.params["title"]?.stringValue)
+    let secondTitle = try #require(second.params["title"]?.stringValue)
+    #expect(ConversationClassifier.isRetiredTitle(firstTitle))
+    #expect(ConversationClassifier.isRetiredTitle(secondTitle))
+    #expect(secondTitle.count == firstTitle.count + 3, "the same stamp with `:ss` after it")
+    #expect(secondTitle.hasPrefix(firstTitle))
+    #expect(await harness.state().storedSessionID == "stored-2")
     await harness.shutdown()
   }
 

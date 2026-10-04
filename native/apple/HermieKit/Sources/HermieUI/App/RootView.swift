@@ -217,7 +217,7 @@ struct DetailRoot: View {
   }
 }
 
-/// A page pushed on a chat: the bot's settings, or a placeholder until the task that owns the page lands.
+/// A page pushed on a chat: the bot's settings, its conversations, or one of them.
 struct DetailRoutePlaceholder: View {
   let route: DetailRoute
 
@@ -225,8 +225,10 @@ struct DetailRoutePlaceholder: View {
     switch route {
     case .botProfile(let chat):
       BotSettingsScreen(chat: chat)
-    case .sessions:
-      EmptyState(NativeStrings.later, systemImage: "hammer")
+    case .sessions(let chat):
+      ConversationsScreen(chat: chat)
+    case let .conversation(chat, id, resolvedID, title):
+      ConversationViewerScreen(chat: chat, id: id, resolvedID: resolvedID, title: title)
     }
   }
 }

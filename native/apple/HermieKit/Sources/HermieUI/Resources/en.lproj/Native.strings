@@ -252,6 +252,30 @@
 	<string>Skip</string>
 	<key>native.connectionRequest.title</key>
 	<string>Connect an account to continue</string>
+	<key>native.conversations.actionFailed</key>
+	<string>That did not work: %@</string>
+	<key>native.conversations.actionsFor</key>
+	<string>Actions for %@</string>
+	<key>native.conversations.adopted</key>
+	<string>That conversation is the Bot Chat now.</string>
+	<key>native.conversations.backToChat</key>
+	<string>Back to the chat</string>
+	<key>native.conversations.deleted</key>
+	<string>The conversation was deleted.</string>
+	<key>native.conversations.hint</key>
+	<string>The past and branched conversations of this bot.</string>
+	<key>native.conversations.new</key>
+	<string>New conversation</string>
+	<key>native.conversations.newConfirm</key>
+	<string>Start a new conversation</string>
+	<key>native.conversations.newConfirmBody</key>
+	<string>The current conversation moves to Past conversations and a new one starts. Everyone on this gateway shares it.</string>
+	<key>native.conversations.noMessages</key>
+	<string>This conversation has no messages.</string>
+	<key>native.conversations.readOnly</key>
+	<string>You are reading an earlier conversation. It cannot be answered.</string>
+	<key>native.conversations.renamed</key>
+	<string>The conversation has a new name.</string>
 	<key>native.debug.title</key>
 	<string>Debug screens</string>
 	<key>native.detail.noChat.body</key>

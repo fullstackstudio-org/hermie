@@ -252,6 +252,30 @@
 	<string>Overslaan</string>
 	<key>native.connectionRequest.title</key>
 	<string>Koppel een account om verder te gaan</string>
+	<key>native.conversations.actionFailed</key>
+	<string>Dat lukte niet: %@</string>
+	<key>native.conversations.actionsFor</key>
+	<string>Acties voor %@</string>
+	<key>native.conversations.adopted</key>
+	<string>Dat gesprek is nu de Bot Chat.</string>
+	<key>native.conversations.backToChat</key>
+	<string>Terug naar de chat</string>
+	<key>native.conversations.deleted</key>
+	<string>Het gesprek is verwijderd.</string>
+	<key>native.conversations.hint</key>
+	<string>De eerdere en vertakte gesprekken van deze bot.</string>
+	<key>native.conversations.new</key>
+	<string>Nieuw gesprek</string>
+	<key>native.conversations.newConfirm</key>
+	<string>Nieuw gesprek starten</string>
+	<key>native.conversations.newConfirmBody</key>
+	<string>Het huidige gesprek gaat naar Eerdere gesprekken en er begint een nieuw gesprek. Iedereen op deze gateway deelt het.</string>
+	<key>native.conversations.noMessages</key>
+	<string>Dit gesprek heeft geen berichten.</string>
+	<key>native.conversations.readOnly</key>
+	<string>Je leest een eerder gesprek. Daar kun je niet meer op antwoorden.</string>
+	<key>native.conversations.renamed</key>
+	<string>Het gesprek heeft een nieuwe naam.</string>
 	<key>native.debug.title</key>
 	<string>Debugschermen</string>
 	<key>native.detail.noChat.body</key>

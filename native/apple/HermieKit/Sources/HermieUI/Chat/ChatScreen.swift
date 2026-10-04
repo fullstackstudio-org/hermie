@@ -192,7 +192,7 @@ struct ChatSessionView<Composer: View>: View {
           }
           .toolbar {
             ToolbarItem(placement: .primaryAction) {
-              VerbosityMenu(model: feed.model)
+              VerbosityMenu(model: feed.model, chat: chat)
             }
           }
           #if DEBUG
@@ -614,14 +614,29 @@ struct ChatTitleView: View {
   }
 }
 
-/// Verbosity and the two switches, per chat screen (`setVisibility`).
+/// The chat's options menu: the bot's conversations, and verbosity and the two switches per chat
+/// screen (`setVisibility`).
 struct VerbosityMenu: View {
   let model: ChatModel
+  let chat: ChatRef
+
+  @Environment(AppRouter.self) private var router: AppRouter?
 
   var body: some View {
     let options = model.visibility
 
     Menu {
+      if let router {
+        Button {
+          router.showConversations(chat)
+        } label: {
+          Label(Strings.Chat.Sessions.conversations, systemImage: "bubble.left.and.bubble.right")
+        }
+        .accessibilityIdentifier("hermie.chat.conversations")
+
+        Divider()
+      }
+
       Picker(Strings.Chat.Options.verbosity, selection: Binding(
         get: { options.level },
         set: { model.setVisibility(VisibilityOptions(level: $0, showBotToBot: options.showBotToBot, showThinking: options.showThinking)) }

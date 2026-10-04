@@ -6,6 +6,14 @@ import HermieProtocol
 // Bot Chat again, and a runtime id for a stored one. Listing, renaming and deleting are the
 // service's, over the link alone.
 extension TranscriptStore {
+  /// `localStamp` with the seconds: `2026-09-21 23:16:08`, in the reader's own zone.
+  static func localStampWithSeconds(_ now: Double) -> String {
+    let date = Date(timeIntervalSince1970: now / 1000)
+    let seconds = Calendar.current.component(.second, from: date)
+
+    return "\(localStamp(now)):\(String(format: "%02d", seconds))"
+  }
+
   /// A runtime id for a stored conversation of `profile`, resuming the session when nothing holds it.
   ///
   /// `session.title` and `session.close` take a RUNTIME id (`_with_db(session_scoped=True)` over a
@@ -84,16 +92,25 @@ extension TranscriptStore {
 
     let resolver = roster.resolver
     let incoming = try await runtimeSession(for: target.id, profile: key).id
-    let retired = "\(ChatResolver.canonicalTitle) · \(Self.localStamp(now()))"
+    let moment = now()
 
     try? await resolver.setHidden(key, runtimeID: runtimeID, hidden: false)
 
     do {
-      try await resolver.titleSession(key, runtimeID: runtimeID, title: retired)
+      try await resolver.titleSession(
+        key, runtimeID: runtimeID, title: "\(ChatResolver.canonicalTitle) · \(Self.localStamp(moment))")
     } catch {
-      // Nothing has moved yet, so putting the hidden flag back is the whole of the undo.
-      await undoRetire(resolver, key, runtimeID, renamed: false)
-      throw error
+      // The stamp counts minutes, so a second swap (or a new conversation) in the same minute finds
+      // its name worn by the conversation put away a moment ago, and the gateway refuses the
+      // duplicate. One more try with the seconds in it; if that fails too, nothing has moved yet,
+      // and putting the hidden flag back is the whole of the undo.
+      do {
+        try await resolver.titleSession(
+          key, runtimeID: runtimeID, title: "\(ChatResolver.canonicalTitle) · \(Self.localStampWithSeconds(moment))")
+      } catch {
+        await undoRetire(resolver, key, runtimeID, renamed: false)
+        throw error
+      }
     }
 
     do {

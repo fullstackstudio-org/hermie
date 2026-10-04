@@ -207,6 +207,33 @@ public final class AppRouter {
     }
   }
 
+  /// Open a bot's Conversations page over its chat (once: asking again while it is showing
+  /// changes nothing).
+  public func showConversations(_ chat: ChatRef) {
+    openChat(chat)
+
+    if detailPath.last != .sessions(chat) {
+      detailPath.append(.sessions(chat))
+    }
+  }
+
+  /// Open one conversation of the bot's in the read-only viewer, over the Conversations page.
+  public func showConversation(_ chat: ChatRef, id: String, resolvedID: String, title: String) {
+    detailPath.append(.conversation(chat, id: id, resolvedID: resolvedID, title: title))
+  }
+
+  /// Back to the chat itself: every page pushed on it is closed.
+  public func showChat() {
+    detailPath = []
+  }
+
+  /// Close the page on top of the chat, back to the one under it.
+  public func pop() {
+    if !detailPath.isEmpty {
+      detailPath.removeLast()
+    }
+  }
+
   public func requestFind() {
     findRequests += 1
   }

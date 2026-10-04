@@ -1677,7 +1677,7 @@ route in the last column. "Native" is what this build has.
 | MCP servers (on or off) and the reload                        | capabilities sheet                    | no                       | yes                                                                   | `profiles.describe` `mcp_servers`, `profiles.configure` `enabled_mcp_servers`, `reload.mcp`              |
 | MCP servers page (probe, OAuth)                               | MCP page                              | no                       | not yet                                                               | `mcp.servers.list`, `.status`, `.test`, `.oauth.*`                                                       |
 | Memory                                                        | memory browser, graph                 | no                       | not yet                                                               | plugin REST `/api/plugins/hermie/memory/{list,search,raw,…}`                                             |
-| Conversations (branches)                                      | conversations page                    | conversations page       | not yet (`DetailRoute.sessions` is a placeholder)                     | `session.list`, `session.branch`                                                                         |
+| Conversations (branches)                                      | conversations page                    | conversations page       | yes: the Conversations page, a read-only viewer (no branching yet)    | `session.list`, `session.title`, `session.delete`, `session.branch`                                      |
 | What the chat shows (verbosity, thinking, bot-to-bot)         | chat options                          | chat options panel       | yes, for the open chat                                                | client-side filter; the app-wide default is the `ui_meta` `defaults`                                     |
 | Pin                                                           | row menu                              | list                     | yes                                                                   | `ui_meta` app section `pinned`                                                                           |
 | Mute                                                          | row menu, chat options                | list                     | yes                                                                   | `ui_meta` app section `mutes`                                                                            |
@@ -1762,6 +1762,48 @@ reproduced without driving the UI).
 The Mac's model picker keeps its search field on the page (`ModelSearchPlacement`), not in the
 window's toolbar: a `.searchable` on a page pushed beside the sidebar's own search makes AppKit raise
 while it inserts the second search item into the one `NSToolbar`, and that ended the app in 0.2.6.
+
+## Conversations
+
+A bot's past and branched sessions, as the web client's Conversations page has them
+(`ConversationsScreen`, `HermieUI/Conversations`, the `DetailRoute.sessions` page). It opens from the
+chat's options menu, from the bot settings and from the Chat menu on the Mac
+(`AppRouter.showConversations`). ADR-0007 still gives a bot exactly one chat: the page lists the
+**Current conversation** (the bot's chat, with no actions at all, so no menu can offer Delete on it),
+its **Branches** and its **Past conversations**. A row opens a read-only viewer
+(`ConversationViewerScreen`, `DetailRoute.conversation`); Rename (inline in the row), Make this the Bot
+Chat (at once) and Delete (it asks first: there is no undo) are on the row's menu, its swipe actions and its
+context menu; **New conversation** asks first, because it puts the shared chat away for everybody, and
+goes back to the chat afterwards. Every action says what happened and reads the list again; the list is
+also read when the connection returns and when a `sessions.changed` sweep is heard
+(`GatewaySession.sessionsChangedCount`).
+
+`HermieCore/Conversations` holds everything that is not drawing:
+
+- `ConversationClassifier` turns the `session.list` rows (`include_hidden`, the profile's 200 newest) into the
+  three groups. The listing has no parent and no kind, so the title is the only signal: `Bot Chat · <date time>`
+  is a conversation `/new` put away, `Branch · <words>` a branch, and the canonical row is found by the
+  roster's id, else by the title `Bot Chat`. A conversation renamed out of its prefix becomes a past one.
+  `Conversation.actions` is empty for the canonical row, the one guard, and the model refuses an action a row
+  does not allow.
+- `ConversationService` makes the calls: rename resumes a conversation nothing runs (`session.title` takes the
+  RUNTIME id) and puts it away again afterwards, because the gateway refuses to delete a session that is live;
+  delete takes the STORED id; the swap is `TranscriptStore.adoptAsCanonical`, the order `/new` retires with
+  (un-hide and rename the current chat `Bot Chat · <date time>`, rename the incoming one `Bot Chat` and hide
+  it, switch), rolled back step by step, refused (`ConversationBusyError`) while a reply streams or messages
+  are queued. The stamp counts minutes, so a second swap in the same minute is retried once with the seconds.
+- `ConversationsModel` is the page: phase, the open question (`Mode`), the notice, one action at a time, a read
+  that a newer one overtook dropped. `ConversationViewerModel` reads the transcript (REST from the newest row,
+  older pages on request, else `session.history`) and projects it onto the chat's items; nothing is live, no
+  read mark moves and the chat is not touched.
+
+There is no "my chat" group: the web client's own chats per reader are not in the native app.
+
+Tests: `ConversationClassifierTests`, `ConversationsModelTests`, `ConversationViewerModelTests` and
+`ConversationServiceTests` (HermieCoreTests, over a stub backend and a scripted link),
+`ConversationsViewTests` (HermieUITests: the words, the three languages, the router), and
+`ConversationsIntegrationTests` (list, branch, rename, delete, new conversation, swap and the viewer on the
+fake gateway).
 
 ## MCP settings and the agent label
 

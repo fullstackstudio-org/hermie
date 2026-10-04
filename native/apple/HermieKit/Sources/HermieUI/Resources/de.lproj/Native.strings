@@ -252,6 +252,30 @@
 	<string>Überspringen</string>
 	<key>native.connectionRequest.title</key>
 	<string>Verbinde ein Konto, um fortzufahren</string>
+	<key>native.conversations.actionFailed</key>
+	<string>Das hat nicht geklappt: %@</string>
+	<key>native.conversations.actionsFor</key>
+	<string>Aktionen für %@</string>
+	<key>native.conversations.adopted</key>
+	<string>Diese Unterhaltung ist jetzt der Bot Chat.</string>
+	<key>native.conversations.backToChat</key>
+	<string>Zurück zum Chat</string>
+	<key>native.conversations.deleted</key>
+	<string>Die Unterhaltung wurde gelöscht.</string>
+	<key>native.conversations.hint</key>
+	<string>Die früheren und verzweigten Unterhaltungen dieses Bots.</string>
+	<key>native.conversations.new</key>
+	<string>Neue Unterhaltung</string>
+	<key>native.conversations.newConfirm</key>
+	<string>Neue Unterhaltung beginnen</string>
+	<key>native.conversations.newConfirmBody</key>
+	<string>Die aktuelle Unterhaltung wird zu den früheren Unterhaltungen gelegt und eine neue beginnt. Alle auf diesem Gateway teilen sie.</string>
+	<key>native.conversations.noMessages</key>
+	<string>Diese Unterhaltung hat keine Nachrichten.</string>
+	<key>native.conversations.readOnly</key>
+	<string>Du liest eine frühere Unterhaltung. Darauf lässt sich nicht mehr antworten.</string>
+	<key>native.conversations.renamed</key>
+	<string>Die Unterhaltung hat einen neuen Namen.</string>
 	<key>native.debug.title</key>
 	<string>Debug-Ansichten</string>
 	<key>native.detail.noChat.body</key>

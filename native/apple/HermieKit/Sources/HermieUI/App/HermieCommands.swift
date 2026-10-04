@@ -109,6 +109,15 @@ public struct HermieCommands: Commands {
     }
     .keyboardShortcut("a", modifiers: [.command, .control])
     .disabled(target == nil)
+
+    Divider()
+
+    Button(Strings.Chat.Sessions.conversations) {
+      if let chat = router?.selectedChat {
+        router?.showConversations(chat)
+      }
+    }
+    .disabled(router?.selectedChat == nil)
   }
 
   /**

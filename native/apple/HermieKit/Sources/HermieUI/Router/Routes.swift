@@ -39,7 +39,11 @@ public enum SidebarSection: String, Codable, Hashable, Sendable, CaseIterable {
 /// A page pushed on top of the chat in the detail column. Filled in by the tasks that own them.
 public enum DetailRoute: Codable, Hashable, Sendable {
   case botProfile(ChatRef)
+  /// A bot's conversations: its past and branched sessions (`ConversationsScreen`).
   case sessions(ChatRef)
+  /// One of them, read and not answered (`ConversationViewerScreen`). `id` is the stored id,
+  /// `resolvedID` the lineage tip the transcript is read under; `title` is the gateway's text.
+  case conversation(ChatRef, id: String, resolvedID: String, title: String)
 }
 
 /// Why setup is being opened.

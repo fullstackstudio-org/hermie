@@ -646,6 +646,38 @@ struct BotMcpSection: View {
   }
 }
 
+// MARK: - Conversations
+
+/// The way into the bot's Conversations page: its past and branched conversations.
+struct BotConversationsSection: View {
+  let chat: ChatRef
+
+  @Environment(AppRouter.self) private var router: AppRouter?
+
+  var body: some View {
+    Section {
+      Button {
+        router?.showConversations(chat)
+      } label: {
+        HStack {
+          Label(Strings.Chat.Sessions.conversations, systemImage: "bubble.left.and.bubble.right")
+          Spacer()
+          Image(systemName: "chevron.forward")
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(.tertiary)
+            .accessibilityHidden(true)
+        }
+        .contentShape(.rect)
+      }
+      .buttonStyle(.plain)
+      .disabled(router == nil)
+      .accessibilityIdentifier("hermie.botSettings.conversations")
+    } footer: {
+      SettingsNote(NativeStrings.Conversations.hint)
+    }
+  }
+}
+
 // MARK: - What the chat shows
 
 /// Verbosity, thinking and bot-to-bot for the chat that is open, the same three the chat's own menu has.

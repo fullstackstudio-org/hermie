@@ -87,6 +87,7 @@ struct BotSettingsContent: View {
         BotMcpSection(handle: chat.bot, model: model, editable: gatewayEditable)
       }
 
+      BotConversationsSection(chat: chat)
       BotChatViewSection(chat: session.chat(chat.bot))
       BotChatListSection(chat: chat, session: session, editable: metaEditable)
       BotAboutSection(chat: chat, session: session)
