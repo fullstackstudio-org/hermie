@@ -44,7 +44,7 @@ enum GoldenRegistry {
       ]),
       ("task 12: history, reconcile, cache", [
         "rowsToItems", "reconcile", "reconcileTail", "prependHistory", "snapshotForCache", "stateFromCache", "classifyUserRow",
-        "stripUserText", "scanInlineImages", "sniffImageType", "attachmentRefName", "attachmentsMatchKey", "normalizedItemText"
+        "stripUserText", "scanInlineImages", "isImagePlaceholder", "sniffImageType", "attachmentRefName", "attachmentsMatchKey", "normalizedItemText"
       ]),
       ("task 13: selectors and derived views", [
         "visibleItems", "isBusy", "runningSubagents", "subagentTree", "openRequests", "itemsVersion",

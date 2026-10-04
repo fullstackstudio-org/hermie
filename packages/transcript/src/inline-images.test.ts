@@ -8,7 +8,7 @@ import {
   scanUnderTheCap
 } from './__fixtures__/inline-images-big'
 import { INLINE_IMAGE_VECTORS } from './__fixtures__/inline-images-vectors'
-import { scanInlineImages, sniffImageType } from './inline-images'
+import { isImagePlaceholder, scanInlineImages, sniffImageType } from './inline-images'
 import { classifyUserRow, rowsToItems, stripUserText } from './rows-to-items'
 import type { AssistantItem, UserItem } from './types'
 
@@ -73,6 +73,26 @@ describe('the transcript uses it', () => {
     expect(stripped.text).toBe('look')
     expect(stripped.attachments).toEqual(['@file:/x/report.pdf', '@image:/x/shot.png'])
     expect(stripped.inlineImages).toBeUndefined()
+  })
+
+  it('the `[image]` line of an unnamed image becomes the placeholder reference and leaves no text behind', () => {
+    const stripped = stripUserText('what is this?\n[image]')
+
+    expect(stripped.text).toBe('what is this?')
+    expect(stripped.attachments).toEqual(['@image:Image'])
+    expect(stripped.inlineImages).toBeUndefined()
+
+    const items = rowsToItems([{ role: 'user', content: '[image]' }], 'rest')
+
+    expect(items).toHaveLength(1)
+    expect((items[0] as UserItem).attachments).toEqual(['@image:Image'])
+  })
+
+  it('isImagePlaceholder knows the placeholder and nothing that names a file', () => {
+    expect(isImagePlaceholder('@image:Image')).toBe(true)
+    expect(isImagePlaceholder('@image:photo.png')).toBe(false)
+    expect(isImagePlaceholder('@image:/x/Image')).toBe(false)
+    expect(isImagePlaceholder('@file:Image')).toBe(false)
   })
 
   it('a turn that was nothing but a picture still has a body to show', () => {

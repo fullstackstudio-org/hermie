@@ -134,5 +134,40 @@ export const INLINE_IMAGE_VECTORS: InlineImageVector[] = [
     text: ``,
     images: [],
     references: [`@image:/x/a.png`]
+  },
+  {
+    name: 'unnamed image placeholder line',
+    input: `look at this\n[image]\nwhat is it`,
+    text: `look at this\nwhat is it`,
+    images: [],
+    references: [`@image:Image`]
+  },
+  {
+    name: 'placeholder alone, with blanks around it',
+    input: `  [image]  `,
+    text: ``,
+    images: [],
+    references: [`@image:Image`]
+  },
+  {
+    name: 'placeholder inside a sentence stays',
+    input: `an [image] here\nand [image]`,
+    text: `an [image] here\nand [image]`,
+    images: [],
+    references: []
+  },
+  {
+    name: 'placeholder twice is one chip',
+    input: `[image]\n[image]\nthanks`,
+    text: `thanks`,
+    images: [],
+    references: [`@image:Image`]
+  },
+  {
+    name: 'placeholder beside a named handle',
+    input: `[Image attached at: /x/a.png]\n[image]`,
+    text: ``,
+    images: [],
+    references: [`@image:/x/a.png`, `@image:Image`]
   }
 ]

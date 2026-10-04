@@ -15,7 +15,9 @@
  *   what an attachment already is: the client fetches the file through the
  *   gateway's own files route, or says it cannot;
  * - **a blob that does not decode** (broken base64, a type outside the list, too
- *   big) becomes the `@image:Image` reference: a compact chip, never the blob.
+ *   big) becomes the `@image:Image` reference: a compact chip, never the blob;
+ * - **an unnamed image** the gateway shows as a line of just `[image]` becomes that same
+ *   `@image:Image` reference: a chip with nothing to fetch, which the views draw as a plain label.
  *
  * Nothing here fetches anything, and no part of the marker or the blob stays in the
  * text. The Swift port (`HermieTranscript/InlineImages.swift`) is kept in step by the
@@ -53,6 +55,9 @@ export const INLINE_IMAGE_FALLBACK_NAME = 'Image'
 const DATA_PREFIX = 'data:image/'
 const MARKER_PREFIX = '[Image attached'
 const MARKER_RE = /^[ \t]*\[Image attached( at)?: (.+?)\][ \t]*$/gmu
+/** What the gateway's history says for an attached image it has no name for: a line of its own. */
+const PLACEHOLDER_TEXT = '[image]'
+const PLACEHOLDER_RE = /^[ \t]*\[image\][ \t]*$/gmu
 const MEDIA_TYPE_RE = /^[a-z0-9.+-]{1,40}$/u
 const BASE64_BODY_CHAR = /[A-Za-z0-9+/=_-]/u
 const BASE64_STANDARD = /^[A-Za-z0-9+/]*$/u
@@ -174,6 +179,11 @@ export function handleName(value: string): string {
   }
 }
 
+/** Whether `reference` is the chip an unnamed image gets (`@image:Image`): nothing to fetch, nothing to open. */
+export function isImagePlaceholder(reference: string): boolean {
+  return reference.trim() === `@image:${INLINE_IMAGE_FALLBACK_NAME}`
+}
+
 /** `@image:<value>`, quoted when it holds whitespace so the reference stays one token. */
 export function imageReference(value: string): string {
   const clean = value.trim()
@@ -251,7 +261,7 @@ function widenToLink(text: string, span: Span): Span {
  * holds neither.
  */
 export function scanInlineImages(text: string): InlineImageScan {
-  if (!text.includes(DATA_PREFIX) && !text.includes(MARKER_PREFIX)) {
+  if (!text.includes(DATA_PREFIX) && !text.includes(MARKER_PREFIX) && !text.includes(PLACEHOLDER_TEXT)) {
     return { text, images: [], references: [] }
   }
 
@@ -268,6 +278,20 @@ export function scanInlineImages(text: string): InlineImageScan {
           end: match.index + match[0].length,
           isPath: match[1] !== undefined,
           value
+        })
+      }
+    }
+  }
+
+  if (text.includes(PLACEHOLDER_TEXT)) {
+    for (const match of text.matchAll(PLACEHOLDER_RE)) {
+      if (match.index !== undefined) {
+        events.push({
+          kind: 'marker',
+          start: match.index,
+          end: match.index + match[0].length,
+          isPath: false,
+          value: INLINE_IMAGE_FALLBACK_NAME
         })
       }
     }

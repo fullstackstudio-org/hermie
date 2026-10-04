@@ -316,6 +316,95 @@
     "calls": [
       {
         "args": [
+          "look at this\n[image]\nwhat is it"
+        ],
+        "op": "scanInlineImages",
+        "result": {
+          "images": [],
+          "references": [
+            "@image:Image"
+          ],
+          "text": "look at this\nwhat is it"
+        }
+      }
+    ],
+    "test": "scanInlineImages: the shared vectors > 'unnamed image placeholder line'"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "  [image]  "
+        ],
+        "op": "scanInlineImages",
+        "result": {
+          "images": [],
+          "references": [
+            "@image:Image"
+          ],
+          "text": ""
+        }
+      }
+    ],
+    "test": "scanInlineImages: the shared vectors > 'placeholder alone, with blanks around…'"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "an [image] here\nand [image]"
+        ],
+        "op": "scanInlineImages",
+        "result": {
+          "images": [],
+          "references": [],
+          "text": "an [image] here\nand [image]"
+        }
+      }
+    ],
+    "test": "scanInlineImages: the shared vectors > 'placeholder inside a sentence stays'"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[image]\n[image]\nthanks"
+        ],
+        "op": "scanInlineImages",
+        "result": {
+          "images": [],
+          "references": [
+            "@image:Image"
+          ],
+          "text": "thanks"
+        }
+      }
+    ],
+    "test": "scanInlineImages: the shared vectors > 'placeholder twice is one chip'"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "[Image attached at: /x/a.png]\n[image]"
+        ],
+        "op": "scanInlineImages",
+        "result": {
+          "images": [],
+          "references": [
+            "@image:/x/a.png",
+            "@image:Image"
+          ],
+          "text": ""
+        }
+      }
+    ],
+    "test": "scanInlineImages: the shared vectors > 'placeholder beside a named handle'"
+  },
+  {
+    "calls": [
+      {
+        "args": [
           "  plain words  \n\n\nwith gaps  "
         ],
         "op": "scanInlineImages",
@@ -505,6 +594,81 @@
       }
     ],
     "test": "the transcript uses it > a handle alone becomes an attachment reference next to the other references"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "what is this?\n[image]"
+        ],
+        "op": "stripUserText",
+        "result": {
+          "attachments": [
+            "@image:Image"
+          ],
+          "text": "what is this?"
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "content": "[image]",
+              "role": "user"
+            }
+          ],
+          "rest"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "attachments": [
+              "@image:Image"
+            ],
+            "id": "user:0",
+            "kind": "user",
+            "origin": "history",
+            "seq": 0,
+            "text": "",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "the transcript uses it > the `[image]` line of an unnamed image becomes the placeholder reference and leaves no text behind"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "@image:Image"
+        ],
+        "op": "isImagePlaceholder",
+        "result": true
+      },
+      {
+        "args": [
+          "@image:photo.png"
+        ],
+        "op": "isImagePlaceholder",
+        "result": false
+      },
+      {
+        "args": [
+          "@image:/x/Image"
+        ],
+        "op": "isImagePlaceholder",
+        "result": false
+      },
+      {
+        "args": [
+          "@file:Image"
+        ],
+        "op": "isImagePlaceholder",
+        "result": false
+      }
+    ],
+    "test": "the transcript uses it > isImagePlaceholder knows the placeholder and nothing that names a file"
   },
   {
     "calls": [

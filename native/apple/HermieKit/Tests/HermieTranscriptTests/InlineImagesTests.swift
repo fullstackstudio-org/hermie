@@ -71,6 +71,25 @@ import Testing
     #expect(handle.attachments == ["@file:/x/report.pdf", "@image:/x/shot.png"])
   }
 
+  @Test func theLineOfAnUnnamedImageBecomesThePlaceholderReference() {
+    let stripped = stripUserText("what is this?\n[image]")
+
+    #expect(stripped.text == "what is this?")
+    #expect(stripped.attachments == ["@image:Image"])
+    #expect(stripped.inlineImages == nil)
+
+    // Only a line of its own: inside a sentence it is words.
+    #expect(scanInlineImages("an [image] here").references.isEmpty)
+    #expect(scanInlineImages("an [image] here").text == "an [image] here")
+  }
+
+  @Test func onlyThePlaceholderReferenceIsThePlaceholder() {
+    #expect(isImagePlaceholder("@image:Image"))
+    #expect(!isImagePlaceholder("@image:photo.png"))
+    #expect(!isImagePlaceholder("@image:/x/Image"))
+    #expect(!isImagePlaceholder("@file:Image"))
+  }
+
   @Test func aHistoryRowBecomesItemsWithTheirPicturesAndNoMarker() throws {
     let rows: [JSONValue] = [
       .object(["role": .string("user"), "content": .string("hi\n[Image attached at: /x/a.png]\ndata:image/png;base64,\(Self.png)")]),

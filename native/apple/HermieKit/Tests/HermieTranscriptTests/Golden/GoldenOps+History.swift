@@ -31,6 +31,7 @@ extension GoldenOps {
     },
     "stripUserText": { args in stripUserText(try args.string(0)).jsonValue },
     "scanInlineImages": { args in scanInlineImages(try args.string(0)).jsonValue },
+    "isImagePlaceholder": { args in .bool(isImagePlaceholder(try args.string(0))) },
     "sniffImageType": { args in
       guard case .array(let values)? = args.raw(0) else { throw GoldenHarnessError("argument 0 is not an array") }
       let bytes = try values.map { value -> UInt8 in

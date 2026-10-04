@@ -186,6 +186,12 @@
       "replayable": 3,
       "skipped": {}
     },
+    "isImagePlaceholder": {
+      "readsClock": false,
+      "recorded": 4,
+      "replayable": 4,
+      "skipped": {}
+    },
     "isInjectedRow": {
       "readsClock": false,
       "recorded": 10,
@@ -316,8 +322,8 @@
     },
     "rowsToItems": {
       "readsClock": false,
-      "recorded": 775,
-      "replayable": 775,
+      "recorded": 776,
+      "replayable": 776,
       "skipped": {}
     },
     "runningSubagents": {
@@ -328,8 +334,8 @@
     },
     "scanInlineImages": {
       "readsClock": false,
-      "recorded": 18,
-      "replayable": 18,
+      "recorded": 23,
+      "replayable": 23,
       "skipped": {}
     },
     "snapshotForCache": {
@@ -358,8 +364,8 @@
     },
     "stripUserText": {
       "readsClock": false,
-      "recorded": 6,
-      "replayable": 6,
+      "recorded": 7,
+      "replayable": 7,
       "skipped": {}
     },
     "subagentTree": {

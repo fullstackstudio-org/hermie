@@ -12,7 +12,9 @@ import HermieProtocol
 //   declared type claims) becomes an `InlineImage` the view draws from the bytes it already holds;
 // - a handle with no usable blob becomes an `@image:<path>` reference, which is what an attachment
 //   already is: fetched through the gateway's files route, or an honest "cannot";
-// - a blob that does not decode becomes the `@image:Image` reference: a compact chip, never the blob.
+// - a blob that does not decode becomes the `@image:Image` reference: a compact chip, never the blob;
+// - an unnamed image the gateway shows as a line of just `[image]` becomes that same `@image:Image`
+//   reference: a chip with nothing to fetch, which the views draw as a plain label.
 //
 // The text is read as UTF-8 bytes: every marker is ASCII, so cutting at a marker never splits a
 // character. The vectors in `contract/transcript/golden/inline-images.json` hold both ports to the
@@ -83,6 +85,12 @@ public let inlineImageMaxCount = 12
 /// `INLINE_IMAGE_FALLBACK_NAME`: what a rejected blob is called.
 public let inlineImageFallbackName = "Image"
 
+/// `isImagePlaceholder`: whether `reference` is the chip an unnamed image gets (`@image:Image`): nothing to
+/// fetch, nothing to open.
+public func isImagePlaceholder(_ reference: String) -> Bool {
+  JS.trim(reference) == "@image:\(inlineImageFallbackName)"
+}
+
 /// `sniffImageType`: the type a picture's first bytes show, or `nil` when they show none of the five.
 public func sniffImageType(_ bytes: [UInt8]) -> String? {
   func at(_ index: Int) -> Int { index < bytes.count ? Int(bytes[index]) : -1 }
@@ -141,6 +149,7 @@ private struct InlineImageScanner {
 
   static let dataPrefix = Array("data:image/".utf8)
   static let markerPrefix = Array("[Image attached".utf8)
+  static let placeholder = Array("[image]".utf8)
   static let base64Tag = Array(";base64,".utf8)
   static let declaredTypes: Set<String> = ["png", "x-png", "jpeg", "jpg", "pjpeg", "gif", "webp", "heic", "heif"]
 
@@ -212,6 +221,27 @@ private struct InlineImageScanner {
       let value = JS.trim(String(decoding: bytes[cursor..<close - 1], as: UTF8.self))
       guard !value.isEmpty else { continue }
       found.append(Marker(span: Span(start: lineStart, end: lineEnd), isPath: isPath, value: value))
+      from = lineEnd
+    }
+    return found
+  }
+
+  /// The lines of nothing but `[image]` (blanks around it allowed): what the gateway's history says for
+  /// an attached image it has no name for. They are markers with no path, called `Image`.
+  private func findPlaceholders() -> [Marker] {
+    var found: [Marker] = []
+    var from = 0
+    while let hit = find(Self.placeholder, from: from) {
+      from = hit + Self.placeholder.count
+      var lineStart = hit
+      while lineStart > 0, isBlank(bytes[lineStart - 1]) { lineStart -= 1 }
+      guard lineStart == 0 || terminatorEnds(at: lineStart) else { continue }
+
+      var lineEnd = from
+      while lineEnd < bytes.count, isBlank(bytes[lineEnd]) { lineEnd += 1 }
+      guard lineEnd == bytes.count || terminator(at: lineEnd) > 0 else { continue }
+
+      found.append(Marker(span: Span(start: lineStart, end: lineEnd), isPath: false, value: inlineImageFallbackName))
       from = lineEnd
     }
     return found
@@ -324,10 +354,12 @@ private struct InlineImageScanner {
   func run(original: String) -> InlineImageScan {
     let hasBlob = find(Self.dataPrefix, from: 0) != nil
     let hasMarker = find(Self.markerPrefix, from: 0) != nil
-    guard hasBlob || hasMarker else { return InlineImageScan(text: original) }
+    let hasPlaceholder = find(Self.placeholder, from: 0) != nil
+    guard hasBlob || hasMarker || hasPlaceholder else { return InlineImageScan(text: original) }
 
     var events: [Event] = findBlobs().map(Event.blob)
     if hasMarker { events += findMarkers().map(Event.marker) }
+    if hasPlaceholder { events += findPlaceholders().map(Event.marker) }
     guard !events.isEmpty else { return InlineImageScan(text: original) }
     events.sort { $0.start < $1.start }
 
