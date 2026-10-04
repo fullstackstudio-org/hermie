@@ -63,9 +63,15 @@
 
 /* A recipient and a domain: monospaced, so a look-alike character or a stray dot shows, and never a link. */
 .hm-confirm__mono {
-  direction: ltr;
-  unicode-bidi: bidi-override;
+  unicode-bidi: isolate;
   font-family: var(--hm-mono);
   font-size: 0.9375rem;
   overflow-wrap: anywhere;
+}
+
+/* A domain's labels keep their order whatever script they are in, so `a.אב.גד.com` cannot read as another host. A
+   recipient is often a name and is only isolated: forced left to right, a Hebrew or Arabic name would read backwards. */
+.hm-confirm__field[data-kind='domain'] .hm-confirm__mono {
+  direction: ltr;
+  unicode-bidi: bidi-override;
 }
