@@ -1,0 +1,17 @@
+{
+  // The release tooling's tests (`scripts/release`): they pin the version
+  // `scripts/set-version.mjs` writes. None of it ships; like scripts/golden and
+  // scripts/i18n it emits nothing and the root `typecheck` script runs it as
+  // its own pass.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "emitDeclarationOnly": false,
+    "noEmit": true,
+    "lib": ["ES2023"],
+    "types": ["node"]
+  },
+  "include": ["./*.ts"]
+}

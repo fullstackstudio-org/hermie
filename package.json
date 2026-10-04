@@ -15,7 +15,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "typecheck": "tsc -b && tsc -p packages/markdown/tsconfig.test.json && tsc -p scripts/golden/tsconfig.json && tsc -p scripts/i18n/tsconfig.json && tsc -p scripts/web/tsconfig.json",
+    "typecheck": "tsc -b && tsc -p packages/markdown/tsconfig.test.json && tsc -p scripts/golden/tsconfig.json && tsc -p scripts/i18n/tsconfig.json && tsc -p scripts/web/tsconfig.json && tsc -p scripts/release/tsconfig.json",
     "typecheck:clean": "tsc -b --clean",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

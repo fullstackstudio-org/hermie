@@ -7,7 +7,13 @@ export default defineConfig({
     // the app's string tables but nothing that needs React.
     // `scripts/web` is the web client's bundle gate (`npm run client:check-bundle`);
     // the client's own suites run under jsdom in `native/web` (`npm run client:test`).
-    include: ['packages/*/src/**/*.test.ts', 'scripts/i18n/**/*.test.ts', 'scripts/web/**/*.test.ts'],
+    // `scripts/release` pins the version everywhere `scripts/set-version.mjs` writes it.
+    include: [
+      'packages/*/src/**/*.test.ts',
+      'scripts/i18n/**/*.test.ts',
+      'scripts/web/**/*.test.ts',
+      'scripts/release/**/*.test.ts'
+    ],
     environment: 'node',
     passWithNoTests: true
   }
