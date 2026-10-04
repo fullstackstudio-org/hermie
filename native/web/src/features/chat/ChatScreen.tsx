@@ -113,6 +113,8 @@ import { useAttachmentTray } from './use-attachment-tray'
 import { useOpenChat } from './use-open-chat'
 import { useOwnAuthorId } from './use-own-author'
 import { usePageVisible } from './use-page-visible'
+import { useYolo } from './use-yolo'
+import { YoloBadge } from './YoloBadge'
 import './chat.css'
 
 /** What a chat shows until the reader changes it (`state/chat-view.ts`). */
@@ -203,6 +205,7 @@ export function ChatScreen({ bot, session, view: pinned }: ChatScreenProps): Rea
   const displayName = botLabel(record?.displayName, bot)
 
   const { key, viewer, error, retry } = useOpenChat({ runtime, record, bot, session, ready })
+  const { yolo, error: yoloError, dismissError: dismissYoloError } = useYolo(bot, runtime, viewer)
   const chat = useStore(chatsStore, state => (key === undefined ? undefined : state.chats[key]))
   const groupChat = useGroupChat(bot, key)
   const chosen = useStore(
@@ -504,7 +507,10 @@ export function ChatScreen({ bot, session, view: pinned }: ChatScreenProps): Rea
     <DropZone className="hm-chat" enabled={tray !== null && attached} onFiles={dropFiles}>
       <div className="hm-chat__head">
         <ChatHeader bot={bot} chatKey={key} />
-        <ChatOptions bot={bot} />
+        <div className="hm-chat__tools">
+          <YoloBadge yolo={yolo} />
+          <ChatOptions bot={bot} yolo={viewer ? undefined : yolo} />
+        </div>
       </div>
 
       {viewer ? (
@@ -523,6 +529,14 @@ export function ChatScreen({ bot, session, view: pinned }: ChatScreenProps): Rea
           <p>{strings.app.chat.failed({ message: error })}</p>
           <Button variant="quiet" onClick={retry}>
             {strings.app.chat.retry}
+          </Button>
+        </div>
+      ) : null}
+      {yoloError ? (
+        <div className="hm-chat__banner" data-tone="danger" role="alert">
+          <p>{webStrings.chat.yolo.failed({ message: yoloError })}</p>
+          <Button variant="quiet" onClick={dismissYoloError}>
+            {webStrings.chat.yolo.dismiss}
           </Button>
         </div>
       ) : null}

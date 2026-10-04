@@ -59,6 +59,8 @@ export type ChatScreenController = Pick<
   | 'deleteConversation'
   | 'adoptAsCanonical'
   | 'startNewConversation'
+  | 'setOption'
+  | 'refreshOptions'
 >
 
 export interface ChatSessionRuntime {

@@ -7,28 +7,39 @@
 .hm-chat__head {
   display: flex;
   flex: none;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  justify-content: flex-end;
+  gap: 0 8px;
   min-width: 0;
 }
 
+/* A phone has no room for the status, the way to the conversations, the YOLO mark and the options on one line: the mark and the options wrap under it. */
 .hm-chat__head > .hm-chat-header {
-  flex: 1 1 auto;
+  flex: 1 1 15rem;
   min-width: 0;
+}
+
+/* The YOLO mark and the options button: one item of the head, so they wrap together. */
+.hm-chat__tools {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  margin-block-end: 10px;
+  margin-inline-end: var(--hm-gutter);
+}
+
+@media (min-width: 900px) {
+  .hm-chat__tools {
+    margin-inline-end: 32px;
+  }
 }
 
 .hm-chat-options {
   position: relative;
   display: inline-block;
   flex: none;
-  margin-block-end: 10px;
-  margin-inline-end: var(--hm-gutter);
-}
-
-@media (min-width: 900px) {
-  .hm-chat-options {
-    margin-inline-end: 32px;
-  }
 }
 
 .hm-chat-options__button {
@@ -130,4 +141,61 @@
   font: inherit;
   font-weight: 600;
   cursor: pointer;
+}
+
+/* YOLO mode: its row in the panel, the question before turning it on, and the mark in the header. */
+
+.hm-chat-options__yolo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--hm-line);
+}
+
+.hm-chat-options__confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--hm-warn-text);
+  border-radius: var(--hm-radius);
+}
+
+.hm-chat-options__confirm p {
+  margin: 0;
+}
+
+.hm-chat-options__confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hm-chat-options__choice input:disabled {
+  cursor: not-allowed;
+}
+
+.hm-yolo-badge {
+  appearance: none;
+  flex: none;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--hm-warn-text);
+  border-radius: var(--hm-radius-pill);
+  background: transparent;
+  color: var(--hm-warn-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.hm-yolo-badge:hover {
+  background: color-mix(in srgb, var(--hm-warn-text) 12%, transparent);
+}
+
+.hm-yolo-badge[aria-disabled='true'] {
+  cursor: default;
 }

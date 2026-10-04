@@ -206,6 +206,51 @@ export const WEB_STRINGS_SOURCE = {
     }
   },
   chat: {
+    /** YOLO mode of a chat: skipping its approval requests (`ChatOptionsPanel`, `YoloBadge`). */
+    yolo: {
+      /** Asked before turning it on, in the chat's options. */
+      confirm: {
+        en: 'Approval requests are skipped in this chat until you turn it off.',
+        nl: 'Toestemmingsverzoeken worden in dit gesprek overgeslagen tot je het weer uitzet.',
+        de: 'Zugriffsanfragen werden in diesem Chat übersprungen, bis du es wieder ausschaltest.'
+      },
+      /** The confirmation's button that turns it on. */
+      confirmAction: {
+        en: 'Turn on YOLO mode',
+        nl: 'YOLO-modus aanzetten',
+        de: 'YOLO-Modus einschalten'
+      },
+      /** The confirmation's way out. */
+      cancel: {
+        en: 'Cancel',
+        nl: 'Annuleren',
+        de: 'Abbrechen'
+      },
+      /** In the chat's header while it is on: the word on the badge (a name, so the same in every language). */
+      badge: {
+        en: 'YOLO',
+        nl: 'YOLO',
+        de: 'YOLO'
+      },
+      /** The badge's accessible name and tooltip: what it says and what pressing it does. */
+      badgeLabel: {
+        en: 'YOLO mode is on: approval requests are skipped in this chat. Turn it off',
+        nl: 'YOLO-modus staat aan: toestemmingsverzoeken worden in dit gesprek overgeslagen. Zet uit',
+        de: 'YOLO-Modus ist an: Zugriffsanfragen werden in diesem Chat übersprungen. Ausschalten'
+      },
+      /** The line above the chat when the gateway refused to change it. */
+      failed: {
+        en: ({ message }: { message: string }) => `YOLO mode could not be changed: ${message}`,
+        nl: ({ message }: { message: string }) => `De YOLO-modus kon niet worden gewijzigd: ${message}`,
+        de: ({ message }: { message: string }) => `Der YOLO-Modus konnte nicht geändert werden: ${message}`
+      },
+      /** Closes that line. */
+      dismiss: {
+        en: 'Dismiss',
+        nl: 'Sluiten',
+        de: 'Schließen'
+      }
+    },
     /** The record in the transcript of a form, a file request or a draft the bot asked for (`OtherRow`). */
     request: {
       kindForm: {

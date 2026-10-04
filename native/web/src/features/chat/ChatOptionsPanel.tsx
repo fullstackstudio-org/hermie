@@ -8,14 +8,16 @@
  * it works everywhere; a change is written to the chat's view at once
  * (`state/chat-view.ts`) and the transcript follows it in the same frame.
  */
-import { type ReactElement, type RefObject, useId } from 'react'
+import { type KeyboardEvent, type ReactElement, type RefObject, useEffect, useId, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { useStore } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
 
 import { strings } from '../../generated/strings'
 import { useLocale } from '../../i18n/use-locale'
+import { webStrings } from '../../i18n/web-strings'
 import { chatViewFor, chatViewStore, hasChatViewOverride, VERBOSITIES } from '../../state/chat-view'
+import type { YoloControl } from './use-yolo'
 
 export interface ChatOptionsPanelProps {
   /** The bot whose chat this is: the key its own view is kept under. */
@@ -23,9 +25,109 @@ export interface ChatOptionsPanelProps {
   /** The name of the verbosity radio group: unique on the page. */
   name: string
   panelRef: RefObject<HTMLDivElement | null>
+  /** YOLO mode of this chat; absent where the chat has no session of its own to switch it on (a past conversation). */
+  yolo?: YoloControl
 }
 
-export function ChatOptionsPanel({ bot, name, panelRef }: ChatOptionsPanelProps): ReactElement {
+/**
+ * The one option that talks to the gateway: skip this chat's approval requests.
+ *
+ * Turning it ON asks first, inline and under the switch: the switch stays off
+ * until the reader says yes, and focus goes to Cancel, so a stray Return
+ * enables nothing. Turning it OFF is the switch alone. Escape in the question
+ * withdraws it and nothing more (the panel stays open).
+ */
+function YoloOption({ yolo }: { yolo: YoloControl }): ReactElement {
+  const headingId = useId()
+  const hintId = useId()
+  const questionId = useId()
+  const [confirming, setConfirming] = useState(false)
+  const box = useRef<HTMLInputElement>(null)
+  const cancel = useRef<HTMLButtonElement>(null)
+  // The question is for turning it on: it goes when it is on already, and when the chat can no longer be switched.
+  const asking = confirming && !yolo.on && yolo.available
+
+  useEffect(() => {
+    if (asking) {
+      cancel.current?.focus()
+    }
+  }, [asking])
+
+  const withdraw = (): void => {
+    setConfirming(false)
+    box.current?.focus()
+  }
+
+  return (
+    <div className="hm-chat-options__yolo" role="group" aria-labelledby={headingId}>
+      <p className="hm-chat-options__heading" id={headingId}>
+        {strings.chat.options.thisChatHeader}
+      </p>
+
+      <label className="hm-chat-options__choice">
+        <input
+          ref={box}
+          type="checkbox"
+          checked={yolo.on}
+          disabled={!yolo.available}
+          aria-busy={yolo.busy || undefined}
+          aria-describedby={hintId}
+          onChange={event => {
+            if (yolo.busy) {
+              return
+            }
+
+            if (event.currentTarget.checked) {
+              setConfirming(true)
+            } else {
+              setConfirming(false)
+              void yolo.set(false)
+            }
+          }}
+        />
+        <span>{strings.chat.options.yolo}</span>
+      </label>
+      <p className="hm-chat-options__hint" id={hintId}>
+        {strings.chat.options.yoloHint}
+      </p>
+
+      {asking ? (
+        <div
+          className="hm-chat-options__confirm"
+          role="group"
+          aria-labelledby={questionId}
+          onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+            if (event.key === 'Escape') {
+              // Withdraws the question only: the panel's own Escape handler leaves a prevented key alone.
+              event.preventDefault()
+              withdraw()
+            }
+          }}
+        >
+          <p id={questionId}>{webStrings.chat.yolo.confirm}</p>
+          <div className="hm-chat-options__confirm-actions">
+            <button
+              type="button"
+              className="hm-chat-options__reset"
+              onClick={() => {
+                setConfirming(false)
+                box.current?.focus()
+                void yolo.set(true)
+              }}
+            >
+              {webStrings.chat.yolo.confirmAction}
+            </button>
+            <button ref={cancel} type="button" className="hm-chat-options__reset" onClick={withdraw}>
+              {webStrings.chat.yolo.cancel}
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+export function ChatOptionsPanel({ bot, name, panelRef, yolo }: ChatOptionsPanelProps): ReactElement {
   useLocale()
 
   const headingId = useId()
@@ -101,6 +203,8 @@ export function ChatOptionsPanel({ bot, name, panelRef }: ChatOptionsPanelProps)
           </p>
         </>
       ) : null}
+
+      {yolo && (yolo.available || yolo.on) ? <YoloOption yolo={yolo} /> : null}
     </div>
   )
 }

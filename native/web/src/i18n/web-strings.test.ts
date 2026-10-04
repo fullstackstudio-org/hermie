@@ -35,7 +35,9 @@ const SAME_AS_ENGLISH: Readonly<Record<string, readonly Locale[]>> = {
   // "Commit" is the word in every language.
   'sheets.settings.about.commit': ['nl', 'de'],
   // "Later" is the Dutch word too.
-  'sheets.interactive.later': ['nl']
+  'sheets.interactive.later': ['nl'],
+  // "YOLO" is the mode's name in every language.
+  'chat.yolo.badge': ['nl', 'de']
 }
 
 type Source = Record<string, unknown>

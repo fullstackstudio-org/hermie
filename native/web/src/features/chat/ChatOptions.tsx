@@ -20,6 +20,10 @@
  * Once the reader changes anything, this chat has its own view, and the panel
  * says so and offers to follow the default again.
  *
+ * Under that, one row talks to the gateway: YOLO mode, which skips this chat's
+ * approval requests (`use-yolo.ts`). It asks before turning on; while it is on,
+ * the header carries a mark that turns it off (`YoloBadge`).
+ *
  * The panel is a module of its own (`ChatOptionsPanel`), loaded the first time
  * the button is pointed at, focused or pressed: the button is on every chat's
  * first screen, the panel is not.
@@ -28,11 +32,14 @@ import { lazy, type ReactElement, Suspense, useEffect, useId, useRef, useState }
 
 import { strings } from '../../generated/strings'
 import { useLocale } from '../../i18n/use-locale'
+import type { YoloControl } from './use-yolo'
 import './chat-options.css'
 
 export interface ChatOptionsProps {
   /** The bot whose chat this is: the key its own view is kept under. */
   bot: string
+  /** YOLO mode of this chat (`use-yolo.ts`); absent where the chat cannot be switched, and the panel then has no such row. */
+  yolo?: YoloControl
 }
 
 const loadPanel = () => import('./ChatOptionsPanel')
@@ -43,7 +50,7 @@ const preloadPanel = (): void => {
   void loadPanel().catch(() => undefined)
 }
 
-export function ChatOptions({ bot }: ChatOptionsProps): ReactElement {
+export function ChatOptions({ bot, yolo }: ChatOptionsProps): ReactElement {
   useLocale()
 
   const panelId = useId()
@@ -119,7 +126,7 @@ export function ChatOptions({ bot }: ChatOptionsProps): ReactElement {
       {open ? (
         <div className="hm-chat-options__host" id={panelId}>
           <Suspense fallback={null}>
-            <ChatOptionsPanel bot={bot} name={`${panelId}-verbosity`} panelRef={panel} />
+            <ChatOptionsPanel bot={bot} name={`${panelId}-verbosity`} panelRef={panel} yolo={yolo} />
           </Suspense>
         </div>
       ) : null}
