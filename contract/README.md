@@ -25,6 +25,7 @@ changes and the port does not follow.
 | `push/contract.json`                     | the push contract (requests, clearing, data keys, types, channels, examples) — hand-written              | by hand                                           |
 | `gateway/mcp.md`                         | the gateway MCP page's REST shapes (`/api/auth/mcp`), `mcp.changed`, and the `author.via` marker on rows | by hand                                           |
 | `confirm-passkey/`                       | the passkey confirm contract: challenge construction, base-URL serialisation, CBOR subset, test vectors  | the fork (`contract/confirm-passkey/generate.py`) |
+| `requests/`                              | the interactive-requests contract: JSON Schema, examples and the rules for requests the gateway raises   | the fork (`contract/requests/`)                   |
 
 `i18n/` has a pipeline of its own: `npm run i18n` writes it (with the Apple String
 Catalog made from it) and `npm run i18n:check` guards it; `golden` leaves it alone.
@@ -323,6 +324,15 @@ challenge to the gateway, the request, the session, the text and the user, how a
 serialised, which CBOR subset an attestation may use, and the vectors every verifier and every
 client must pass. The fork is the source; this copy is refreshed by hand when the fork's changes,
 and `shasum -a 256 -c SHA256SUMS` in that directory must pass. `golden` leaves it alone.
+
+## `requests/`
+
+A byte-identical copy of the fork's `contract/requests/` (its `README.md`, `schema.json`, `examples.json` and
+`SHA256SUMS`): the schema and worked examples for interactive requests, which every sender and every client
+conforms to. The fork is the source; this copy is refreshed by hand when the fork's changes and is never edited
+here. `npm run contract:check` (run in CI) verifies every directory under `contract/` that has a `SHA256SUMS`
+(this one and `confirm-passkey/`): each listed file must hash to its listed sha256, and no unlisted file may sit
+beside them. `golden` leaves it alone.
 
 ## Counts
 

@@ -36,3 +36,5 @@ contract/i18n
 native/web/src/generated
 # Byte-identical copy of the fork's passkey contract; its SHA256SUMS must keep passing.
 contract/confirm-passkey/
+# Byte-identical copy of the fork's interactive-requests contract; its SHA256SUMS must keep passing.
+contract/requests/
