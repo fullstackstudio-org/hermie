@@ -94,6 +94,8 @@ public struct SettingsView: View {
 
   #if os(macOS)
     @State private var selection: SettingsCategory? = .gateways
+    /// Whether the person collapsed the sidebar, remembered for this window.
+    @SceneStorage("hermie.settings.sidebarHidden") private var sidebarHidden = false
   #else
     @Environment(\.dismiss) private var dismiss
     @State private var path: [SettingsCategory] = []
@@ -106,16 +108,28 @@ public struct SettingsView: View {
 
   public var body: some View {
     #if os(macOS)
-      NavigationSplitView {
+      NavigationSplitView(columnVisibility: sidebarVisibility) {
+        // One row style and one gap between the groups: the system's sidebar list with a headerless
+        // `Section` per group, the way System Settings draws it. No padding of our own.
         List(selection: $selection) {
-          categoryRows
+          ForEach(Array(SettingsCategory.groups.enumerated()), id: \.offset) { _, group in
+            Section {
+              ForEach(group) { category in
+                sidebarRow(category)
+              }
+            }
+          }
         }
+        .listStyle(.sidebar)
         .navigationSplitViewColumnWidth(min: 200, ideal: 220)
       } detail: {
         NavigationStack {
           SettingsPage(category: selection ?? .gateways, onAddGateway: onAddGateway)
         }
       }
+      // The toggle button the system draws at the top of the sidebar is gone. The sidebar still
+      // collapses: View > Hide Sidebar (Control-Command-S) and dragging the divider, and the state is kept.
+      .toolbar(removing: .sidebarToggle)
       .accessibilityIdentifier("hermie.settings")
       .onChange(of: ShellRequests.shared.settingsCategory, initial: true) { _, requested in
         if let requested {
@@ -150,19 +164,49 @@ public struct SettingsView: View {
     #endif
   }
 
-  private var categoryRows: some View {
-    ForEach(Array(SettingsCategory.groups.enumerated()), id: \.offset) { _, group in
-      Section {
-        ForEach(group) { category in
-          NavigationLink(value: category) {
-            Label(category.title, systemImage: category.systemImage)
+  #if os(macOS)
+    /// The split view's columns, backed by the remembered collapsed state.
+    private var sidebarVisibility: Binding<NavigationSplitViewVisibility> {
+      Binding(
+        get: { SettingsSidebarState.visibility(hidden: sidebarHidden) },
+        set: { sidebarHidden = SettingsSidebarState.isHidden($0) }
+      )
+    }
+
+    /// One sidebar row: the same label everywhere, selected by tag rather than a link.
+    private func sidebarRow(_ category: SettingsCategory) -> some View {
+      Label(category.title, systemImage: category.systemImage)
+        .tag(category)
+        .badge(category == .gateways ? launch.iCloudSync.attentionCount : 0)
+        .accessibilityIdentifier("hermie.settings.category.\(category.rawValue)")
+    }
+  #else
+    private var categoryRows: some View {
+      ForEach(Array(SettingsCategory.groups.enumerated()), id: \.offset) { _, group in
+        Section {
+          ForEach(group) { category in
+            NavigationLink(value: category) {
+              Label(category.title, systemImage: category.systemImage)
+            }
+            // What iCloud Sync wants the person to see (its page is under Gateways).
+            .badge(category == .gateways ? launch.iCloudSync.attentionCount : 0)
+            .accessibilityIdentifier("hermie.settings.category.\(category.rawValue)")
           }
-          // What iCloud Sync wants the person to see (its page is under Gateways).
-          .badge(category == .gateways ? launch.iCloudSync.attentionCount : 0)
-          .accessibilityIdentifier("hermie.settings.category.\(category.rawValue)")
         }
       }
     }
+  #endif
+}
+
+/// The Settings sidebar's collapsed state as the split view's column visibility, and back.
+enum SettingsSidebarState {
+  static func visibility(hidden: Bool) -> NavigationSplitViewVisibility {
+    hidden ? .detailOnly : .all
+  }
+
+  /// Only `.detailOnly` is a collapsed sidebar; `.automatic`, `.all` and `.doubleColumn` show it.
+  static func isHidden(_ visibility: NavigationSplitViewVisibility) -> Bool {
+    visibility == .detailOnly
   }
 }
 
