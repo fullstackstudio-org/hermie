@@ -481,7 +481,7 @@ import Testing
       #expect(answer.error?.isCannotShow == true && answer.error?.reason == reason)
       checked += 1
     }
-    #expect(checked == 3)
+    #expect(checked == 4)
     #expect(JSONRPCError.cannotShowCode == 4041)
     #expect(ServerRequest(json: ["method": "input.form"]).cannotShow(reason: "x") == nil)
     #expect(JSONRPCError(code: -32601, message: "no").isCannotShow == false)
