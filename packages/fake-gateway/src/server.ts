@@ -9218,6 +9218,11 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     }
   }
 
+  /** Only the context-window fields of a usage record: how full the session's window is. */
+  function contextFieldsOf(usage: Record<string, unknown>): Record<string, unknown> {
+    return Object.fromEntries(Object.entries(usage).filter(([key]) => key.startsWith('context_')))
+  }
+
   function sessionInfo(session: FakeSession): Record<string, unknown> {
     const config = state.sessionConfig.get(session.storedId) ?? {}
 
@@ -9631,7 +9636,9 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       publish('message.complete', sid, {
         text,
         status: 'ok',
-        usage: { input: 12, output: 34, total: 46 },
+        // The context fields too, as `_get_usage` writes them: a client that takes the finished turn's usage as the
+        // session's reading would otherwise lose the window it was showing, and show a stale one until it asked again.
+        usage: { input: 12, output: 34, total: 46, ...contextFieldsOf(sessionUsage(session)) },
         ...(rowIdentity ? { ...(finalRowId === undefined ? {} : { row_id: finalRowId }), persisted_turn: receipt } : {})
       })
       // Cleared after the frame that ends the turn, so that frame is stamped too.
