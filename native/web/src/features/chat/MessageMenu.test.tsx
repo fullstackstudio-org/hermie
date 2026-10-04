@@ -22,7 +22,7 @@ afterEach(() => {
 /** A host over these items, whose turn and regenerate target the test moves as the screen would. */
 function liveHost(items: readonly TranscriptItem[], over: Partial<ItemHost> = {}) {
   const listeners = new Set<() => void>()
-  const state = { turnActive: false, target: null as string | null }
+  const state = { turnActive: false, target: null as string | null, edit: null as string | null, branch: false }
   const byId = new Map(items.map(item => [item.id, item]))
   const host: ItemHost = {
     ...DETACHED_ITEM_HOST,
@@ -30,6 +30,8 @@ function liveHost(items: readonly TranscriptItem[], over: Partial<ItemHost> = {}
     copy: vi.fn(async () => true),
     announce: vi.fn(),
     regenerate: vi.fn(),
+    editResend: vi.fn(),
+    branch: vi.fn(),
     subscribe: listener => {
       listeners.add(listener)
 
@@ -37,6 +39,8 @@ function liveHost(items: readonly TranscriptItem[], over: Partial<ItemHost> = {}
     },
     turnActive: () => state.turnActive,
     regenerateTarget: () => state.target,
+    editTarget: () => state.edit,
+    canBranch: () => state.branch,
     ...over
   }
 
@@ -338,6 +342,142 @@ describe('the shared menu', () => {
     fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
 
     fireEvent.contextMenu(message('a3'))
+    await settle()
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+})
+
+describe('Edit and resend, Branch from here and the links', () => {
+  /** Open the menu of one message with a right-click, as a pointer reader does. */
+  const openMenu = async (id: string): Promise<void> => {
+    fireEvent.contextMenu(message(id).querySelector('.hm-bubble') ?? message(id))
+    await screen.findByRole('menu')
+  }
+
+  it('puts the newest turn’s words and attachment references back, and leaves the menu closed', async () => {
+    const items = [userItem('fix the **typo**', { attachments: ['/tmp/a.png'] }, 'u1'), assistantItem('done', {}, 'a1')]
+    const { host, set } = liveHost(items)
+
+    set({ edit: 'u1' })
+    render(<Transcript items={items} host={host} />)
+    await openMenu('u1')
+    expect(await lines()).toEqual(['Copy text', 'Copy as Markdown', 'Edit and resend'])
+
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Edit and resend' }))
+    await settle()
+
+    expect(host.editResend).toHaveBeenCalledWith('fix the **typo**', ['/tmp/a.png'])
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+
+  it('holds Edit and resend disabled while a turn runs, and offers it on no other turn', async () => {
+    const items = [userItem('first', {}, 'u1'), assistantItem('one', {}, 'a1'), userItem('second', {}, 'u2')]
+    const { host, set } = liveHost(items)
+
+    set({ edit: 'u2', turnActive: true })
+    render(<Transcript items={items} host={host} />)
+
+    await openMenu('u1')
+    expect(await lines()).toEqual(['Copy text'])
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
+    await settle()
+
+    await openMenu('u2')
+
+    const line = await screen.findByRole('menuitem', { name: 'Edit and resend' })
+
+    expect(line.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.click(line)
+    expect(host.editResend).not.toHaveBeenCalled()
+  })
+
+  it('branches from a turn and from a reply, not from a tool card, and not while the chat cannot', async () => {
+    const { host, set } = liveHost(ITEMS)
+
+    render(<Transcript items={ITEMS} host={host} />)
+    await openMenu('u1')
+    expect(await lines()).toEqual(['Copy text'])
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
+    await settle()
+
+    set({ branch: true })
+    await openMenu('a1')
+    expect(await lines()).toEqual(['Copy text', 'Copy as Markdown', 'Branch from here'])
+
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Branch from here' }))
+    await settle()
+    // The text is read off the item as it is now; the host knows where the row sits.
+    expect(host.branch).toHaveBeenCalledWith('a1', 'some **bold** answer')
+    expect(screen.queryByRole('menu')).toBeNull()
+
+    // A running turn does not disable it: a branch touches nothing of the session.
+    set({ turnActive: true })
+    await openMenu('u1')
+    expect(screen.getByRole('menuitem', { name: 'Branch from here' }).hasAttribute('aria-disabled')).toBe(false)
+  })
+
+  it('copies the one link of a message from a line of its own', async () => {
+    const items = [assistantItem('see [the docs](https://docs.example/a)', {}, 'a1')]
+    const { host } = liveHost(items)
+
+    render(<Transcript items={items} host={host} />)
+    await openMenu('a1')
+    expect(await lines()).toEqual(['Copy text', 'Copy as Markdown', 'Copy link'])
+
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Copy link' }))
+    await vi.waitFor(() => expect(host.copy).toHaveBeenCalledWith('https://docs.example/a'))
+    await vi.waitFor(() => expect(host.announce).toHaveBeenCalledWith('Copied'))
+  })
+
+  it('lists the links of a message with several in a group, reached and left with the arrows', async () => {
+    const items = [
+      assistantItem('one https://a.example and [two](https://b.example/x) and <https://c.example>', {}, 'a1')
+    ]
+    const { host } = liveHost(items)
+
+    render(<Transcript items={items} host={host} />)
+    await openMenu('a1')
+
+    const parent = await screen.findByRole('menuitem', { name: 'Copy links' })
+
+    expect(parent.getAttribute('aria-haspopup')).toBe('true')
+    expect(parent.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByRole('group', { name: 'Copy links' })).toBeNull()
+
+    // The right arrow opens it and goes in.
+    parent.focus()
+    fireEvent.keyDown(parent, { key: 'ArrowRight' })
+    expect(parent.getAttribute('aria-expanded')).toBe('true')
+
+    const group = await screen.findByRole('group', { name: 'Copy links' })
+
+    await vi.waitFor(() => expect(document.activeElement?.textContent).toBe('https://a.example'))
+    expect(await lines()).toEqual([
+      'Copy text',
+      'Copy as Markdown',
+      'Copy links',
+      'https://a.example',
+      'https://b.example/x',
+      'https://c.example'
+    ])
+    expect(group.querySelectorAll('[role="menuitem"]')).toHaveLength(3)
+
+    // Left, and Escape inside the group, close only the group and go back to the line.
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowLeft' })
+    expect(parent.getAttribute('aria-expanded')).toBe('false')
+    expect(document.activeElement).toBe(parent)
+    expect(screen.getByRole('menu')).toBeTruthy()
+
+    fireEvent.click(parent)
+    await screen.findByRole('group', { name: 'Copy links' })
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
+    expect(screen.queryByRole('group')).toBeNull()
+    expect(screen.getByRole('menu')).toBeTruthy()
+
+    // A link is chosen from the group.
+    fireEvent.keyDown(parent, { key: 'ArrowRight' })
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'https://c.example' }))
+    await vi.waitFor(() => expect(host.copy).toHaveBeenCalledWith('https://c.example'))
     await settle()
     expect(screen.queryByRole('menu')).toBeNull()
   })

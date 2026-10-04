@@ -65,7 +65,12 @@ test.describe('a message’s menu', () => {
     const menu = page.getByRole('menu', { name: 'Message actions' })
 
     await expect(menu).toBeVisible()
-    await expect(menu.getByRole('menuitem')).toHaveText(['Copy text', 'Copy as Markdown', 'Regenerate'])
+    await expect(menu.getByRole('menuitem')).toHaveText([
+      'Copy text',
+      'Copy as Markdown',
+      'Regenerate',
+      'Branch from here'
+    ])
     await expect(menu.getByRole('menuitem', { name: 'Copy text' })).toBeFocused()
 
     await page.keyboard.press('Enter')

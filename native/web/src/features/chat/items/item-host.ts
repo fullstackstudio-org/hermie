@@ -1,7 +1,8 @@
 /**
  * What a row, and the transcript's one message menu (`MessageMenuLayer`), can ask
  * the chat screen for: a picture to load for an attachment, the image viewer, a
- * message by id, a copy, and the last reply again.
+ * message by id, a copy, the last reply again, a turn put back in the composer
+ * and a fork of the conversation.
  *
  * Its own context beside `ItemContext`, and for the same reason: rows are
  * memoised on `(id, version, presentation)`, so whatever else they read has to
@@ -10,7 +11,8 @@
  * may be regenerated) is read through `subscribe` and a snapshot, so only a menu
  * that is open re-renders when it moves, never a settled row.
  *
- * Nothing here talks to the gateway. The screen does, behind `regenerate`.
+ * Nothing here talks to the gateway. The screen does, behind `regenerate` and
+ * `branch`.
  */
 import type { TranscriptItem } from '@hermie/transcript'
 import { createContext, useContext } from 'react'
@@ -40,12 +42,23 @@ export interface ItemHost {
   announce(text: string): void
   /** Run the last reply again (`core/chats/regenerate.ts`). */
   regenerate(): void
-  /** Called when `turnActive` or `regenerateTarget` may have changed. */
+  /**
+   * Put one of the reader's own turns back in the composer, its attachments as references (`core/chats/edit-resend.ts`).
+   * The turn in the conversation is left where it is: sending starts a new one.
+   */
+  editResend(text: string, attachments: readonly string[]): void
+  /** Fork the conversation at this row, named after `text`, and open the branch (`core/chats/branch-here.ts`). */
+  branch(id: string, text: string): void
+  /** Called when `turnActive`, `regenerateTarget`, `editTarget` or `canBranch` may have changed. */
   subscribe(listener: () => void): () => void
   /** Whether a turn runs on this chat right now. */
   turnActive(): boolean
   /** The one reply that may be regenerated, or `null` where none may. */
   regenerateTarget(): string | null
+  /** The reader's newest turn, when it may be put back in the composer, or `null` where none may. */
+  editTarget(): string | null
+  /** Whether this chat can be forked at a row: not a past conversation or a branch, not while a request is open. */
+  canBranch(): boolean
 }
 
 const NOTHING = (): void => undefined
@@ -58,9 +71,13 @@ export const DETACHED_ITEM_HOST: ItemHost = {
   copy: text => writeClipboard(text),
   announce: NOTHING,
   regenerate: NOTHING,
+  editResend: NOTHING,
+  branch: NOTHING,
   subscribe: () => NOTHING,
   turnActive: () => false,
-  regenerateTarget: () => null
+  regenerateTarget: () => null,
+  editTarget: () => null,
+  canBranch: () => false
 }
 
 export const ItemHostContext = createContext<ItemHost>(DETACHED_ITEM_HOST)

@@ -50,12 +50,12 @@
  * **What it shows** is the reader's choice for this chat (`ChatOptions`, kept in
  * `state/chat-view.ts`), unless a test hands in a `view`.
  *
- * **A message's actions** (copy, copy as Markdown, regenerate) are one menu for
- * the whole transcript (`MessageMenuLayer`), reached by pointer, long press and
+ * **A message's actions** (copy, copy as Markdown, edit and resend, regenerate,
+ * branch from here, copy link) are one menu for the whole transcript (`MessageMenuLayer`), reached by pointer, long press and
  * the keyboard's roving focus over messages; no message holds a control of its
  * own. What a row and that menu ask the screen for (a message by id, a picture
- * for an attachment, the image viewer, a copy, the last reply again) goes
- * through one host object whose identity never changes (`items/item-host.ts`),
+ * for an attachment, the image viewer, a copy, the last reply again, a turn put
+ * back in the composer, a fork of the conversation) goes through one host object whose identity never changes (`items/item-host.ts`),
  * so asking never re-renders a settled row. A third polite region says what a
  * menu line did. The image viewer is drawn here, outside the list, and loaded
  * the first time a picture is opened.
@@ -76,16 +76,20 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { boundConversation, type SettledGroupChat, settleGroupChat } from '../../core/chats/bound-conversation'
 import { countsAsRead, readWatermark } from '../../core/chats/read-watermark'
+import { branchChatAt } from '../../core/chats/branch-here'
+import { editResendTarget, editResendText } from '../../core/chats/edit-resend'
 import { regenerateLastTurn, regenerateTargetIsOwn } from '../../core/chats/regenerate'
 import { sentPreviewFor } from '../../core/chats/sent-previews'
 import { strings } from '../../generated/strings'
 import { useLocale } from '../../i18n/use-locale'
 import { webStrings } from '../../i18n/web-strings'
 import { writeClipboard } from '../../platform/clipboard'
+import { type HashRouter, pageHashRouter } from '../../platform/hash-router'
 import { botsStore } from '../../state/bots'
 import { chatViewFor, chatViewStore, DEFAULT_CHAT_VIEW } from '../../state/chat-view'
 import { chatsStore } from '../../state/chats'
 import { connectionStore } from '../../state/connection'
+import { requestsStore } from '../../state/requests'
 import { Button } from '../../ui/primitives'
 import { botLabel } from '../bots/bot-label'
 import { ResumeProgressLine } from '../notices/ResumeProgressLine'
@@ -93,11 +97,11 @@ import { InteractiveNotice } from '../notices/InteractiveNotice'
 import { SecureInputNotice } from '../notices/SecureInputNotice'
 import { useFindRequest } from '../search/find-request'
 import { useFindInChat } from '../search/use-find-in-chat'
-import { chatHref, conversationsHref } from '../shell/router'
+import { chatHref, conversationHref, conversationsHref } from '../shell/router'
 import { clipLine } from './chat-format'
 import { ChatHeader } from './ChatHeader'
 import { ChatOptions } from './ChatOptions'
-import { Composer } from './Composer'
+import { Composer, type ComposerPrefill } from './Composer'
 import { useChatRuntime } from './chat-runtime'
 import { DropZone } from './DropZone'
 import { ChatItem } from './items/ChatItem'
@@ -135,6 +139,8 @@ export interface ChatScreenProps {
   session?: string
   /** What of the transcript is shown; the reader's choice for this chat (`ChatOptions`) unless a test pins it. */
   view?: VisibilityOptions
+  /** Where a branch is opened once it is made; the page's address by default. */
+  router?: HashRouter
 }
 
 /** Messages the reader would call messages: a finished or streaming reply with words in it. */
@@ -193,7 +199,7 @@ function useGroupChat(bot: string, key: string | undefined): boolean {
   return key !== undefined && key !== bot ? false : result.group
 }
 
-export function ChatScreen({ bot, session, view: pinned }: ChatScreenProps): ReactElement {
+export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter }: ChatScreenProps): ReactElement {
   useLocale()
 
   const runtime = useChatRuntime()
@@ -273,9 +279,27 @@ export function ChatScreen({ bot, session, view: pinned }: ChatScreenProps): Rea
   const [menuNotice, setMenuNotice] = useState({ text: '', serial: 0 })
   const shownRef = useRef(shown)
   const keyRef = useRef(key)
-  const menuLive = useRef({ turnActive: false, target: null as string | null, listeners: new Set<() => void>() })
+  const menuLive = useRef({
+    turnActive: false,
+    target: null as string | null,
+    edit: null as string | null,
+    branch: false,
+    listeners: new Set<() => void>()
+  })
   // What the host's stable methods call: replaced every render, read when they run.
-  const act = useRef<{ regenerate: () => void }>({ regenerate: () => undefined })
+  const act = useRef<{
+    regenerate: () => void
+    editResend: (text: string, attachments: readonly string[]) => void
+    branch: (id: string, text: string) => void
+  }>({
+    regenerate: () => undefined,
+    editResend: () => undefined,
+    branch: () => undefined
+  })
+  const [prefill, setPrefill] = useState<ComposerPrefill | null>(null)
+  const [branchFailure, setBranchFailure] = useState<string | null>(null)
+  /** An interactive request of this chat is open: it has the reader's answer, and the menu offers nothing meanwhile. */
+  const requestOpen = useStore(requestsStore, state => state.queue.some(entry => entry.bot === bot))
 
   shownRef.current = shown
   keyRef.current = key
@@ -294,13 +318,17 @@ export function ChatScreen({ bot, session, view: pinned }: ChatScreenProps): Rea
       // A new node each time, so the same words twice are still said twice.
       announce: text => setMenuNotice(current => ({ text, serial: current.serial + 1 })),
       regenerate: () => act.current.regenerate(),
+      editResend: (text, attachments) => act.current.editResend(text, attachments),
+      branch: (id, text) => act.current.branch(id, text),
       subscribe: listener => {
         menuLive.current.listeners.add(listener)
 
         return () => menuLive.current.listeners.delete(listener)
       },
       turnActive: () => menuLive.current.turnActive,
-      regenerateTarget: () => menuLive.current.target
+      regenerateTarget: () => menuLive.current.target,
+      editTarget: () => menuLive.current.edit,
+      canBranch: () => menuLive.current.branch
     }),
     []
   )
@@ -312,6 +340,7 @@ export function ChatScreen({ bot, session, view: pinned }: ChatScreenProps): Rea
       key === undefined ||
       viewer ||
       !record ||
+      requestOpen ||
       !regenerateTargetIsOwn(shown, { groupChat, ownAuthorId })
     ) {
       return null
@@ -326,22 +355,43 @@ export function ChatScreen({ bot, session, view: pinned }: ChatScreenProps): Rea
     }
 
     return null
-  }, [groupChat, key, ownAuthorId, record, runtime, shown, viewer])
+  }, [groupChat, key, ownAuthorId, record, requestOpen, runtime, shown, viewer])
+
+  // The reader's newest turn, where the composer is there to take it back; nothing while a request is open.
+  const editTarget = useMemo(
+    () =>
+      !runtime || key === undefined || viewer || !record || requestOpen
+        ? null
+        : editResendTarget(shown, { groupChat, ownAuthorId }),
+    [groupChat, key, ownAuthorId, record, requestOpen, runtime, shown, viewer]
+  )
+
+  // Whether the chat can be forked: this is the bot's own chat (not a past conversation or a branch), it is attached to
+  // a session on the gateway, and no request is waiting for an answer.
+  const attachedToSession = chat?.runtimeSessionId !== undefined
+  const branchable = Boolean(runtime) && key !== undefined && !viewer && attachedToSession && !requestOpen
 
   useEffect(() => {
     const state = menuLive.current
 
-    if (state.turnActive === turnActive && state.target === regenerateTarget) {
+    if (
+      state.turnActive === turnActive &&
+      state.target === regenerateTarget &&
+      state.edit === editTarget &&
+      state.branch === branchable
+    ) {
       return
     }
 
     state.turnActive = turnActive
     state.target = regenerateTarget
+    state.edit = editTarget
+    state.branch = branchable
 
     for (const listener of state.listeners) {
       listener()
     }
-  }, [regenerateTarget, turnActive])
+  }, [branchable, editTarget, regenerateTarget, turnActive])
 
   act.current.regenerate = () => {
     if (!runtime || key === undefined) {
@@ -374,6 +424,26 @@ export function ChatScreen({ bot, session, view: pinned }: ChatScreenProps): Rea
         }
       })
       .catch((error: unknown) => host.announce(webStrings.composer.sendFailed({ message: messageOf(error) })))
+  }
+
+  act.current.editResend = (text, attachments) => {
+    setPrefill(current => ({ text: editResendText(text, attachments), serial: (current?.serial ?? 0) + 1 }))
+    host.announce(webStrings.chat.menu.editResendReady)
+  }
+
+  act.current.branch = (id, text) => {
+    if (!runtime || key === undefined) {
+      return
+    }
+
+    setBranchFailure(null)
+    void branchChatAt(runtime.controller, bot, chatsStore.getState().chats[key], id, text)
+      .then(branch => {
+        // The way the Conversations page opens one: the read-only viewer at the branch's own address. The screen is
+        // drawn again for that route (`App`), so the new page's own banner is what says where the reader is.
+        router.navigate(conversationHref(bot, branch.id))
+      })
+      .catch((error: unknown) => setBranchFailure(webStrings.chat.menu.branchFailed({ message: messageOf(error) })))
   }
 
   // Messages that landed while the reader was further up: the button's count. The
@@ -494,7 +564,7 @@ export function ChatScreen({ bot, session, view: pinned }: ChatScreenProps): Rea
   // ── attachments ─────────────────────────────────────────────────────────────
   const composing = runtime !== null && key !== undefined && !viewer && record !== undefined
   const tray = useAttachmentTray(composing ? key : undefined, runtime?.controller)
-  const attached = chat?.runtimeSessionId !== undefined
+  const attached = attachedToSession
   const dropFiles = useCallback((files: File[]) => void tray?.add(files), [tray])
 
   // ── what there is to say ────────────────────────────────────────────────────
@@ -537,6 +607,14 @@ export function ChatScreen({ bot, session, view: pinned }: ChatScreenProps): Rea
           <p>{webStrings.chat.yolo.failed({ message: yoloError })}</p>
           <Button variant="quiet" onClick={dismissYoloError}>
             {webStrings.chat.yolo.dismiss}
+          </Button>
+        </div>
+      ) : null}
+      {branchFailure ? (
+        <div className="hm-chat__banner" data-tone="danger" role="alert">
+          <p>{branchFailure}</p>
+          <Button variant="quiet" onClick={() => setBranchFailure(null)}>
+            {strings.app.common.dismiss}
           </Button>
         </div>
       ) : null}
@@ -591,7 +669,7 @@ export function ChatScreen({ bot, session, view: pinned }: ChatScreenProps): Rea
 
       {/* A past conversation or a branch can be read and not answered; a chat the gateway does not list has no one to ask. */}
       {runtime && key !== undefined && !viewer && record ? (
-        <Composer key={key} chatKey={key} botName={displayName} onSent={pinToLatest} tray={tray} />
+        <Composer key={key} chatKey={key} botName={displayName} onSent={pinToLatest} tray={tray} prefill={prefill} />
       ) : null}
 
       {/* A separate, polite region: a finished reply is said once, and a streaming one never is. */}

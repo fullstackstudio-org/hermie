@@ -45,6 +45,10 @@
  * fails puts the attachments back, with the words. A slash command takes no
  * attachments: they stay staged for the next message.
  *
+ * **A turn put back** (`prefill`, from a message's "Edit and resend") lands in the
+ * field ahead of whatever was typed, which stays after it (`mergeIntoDraft`), and
+ * the field takes focus with the caret at the end. Sending it starts a new turn.
+ *
  * Nothing here talks to the gateway except through the controller, and the text
  * the bot or the reader wrote is never Markdown in this component.
  */
@@ -64,6 +68,7 @@ import {
 import { useStore } from 'zustand'
 
 import type { AttachmentTray } from '../../core/chats/attachments'
+import { mergeIntoDraft } from '../../core/chats/edit-resend'
 import { strings } from '../../generated/strings'
 import { useLocale } from '../../i18n/use-locale'
 import { webStrings } from '../../i18n/web-strings'
@@ -102,6 +107,17 @@ export interface ComposerProps {
    * over the chat. Without one the composer offers no attachments.
    */
   tray?: AttachmentTray | null
+  /**
+   * Words to put in the field from outside, once per `serial` (a message's "Edit and resend"). A prefill that is
+   * already there when the composer mounts has been handled by an earlier one.
+   */
+  prefill?: ComposerPrefill | null
+}
+
+/** Text for the field from somewhere other than typing; a new `serial` is a new request. */
+export interface ComposerPrefill {
+  text: string
+  serial: number
 }
 
 interface Completion {
@@ -121,7 +137,7 @@ interface CompletionState {
 
 const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error))
 
-export function Composer({ chatKey, botName, onSent, tray = null }: ComposerProps): ReactElement {
+export function Composer({ chatKey, botName, onSent, tray = null, prefill = null }: ComposerProps): ReactElement {
   useLocale()
 
   const runtime = useChatRuntime()
@@ -185,12 +201,33 @@ export function Composer({ chatKey, botName, onSent, tray = null }: ComposerProp
     [keepDraft]
   )
 
+  // ── a turn put back ─────────────────────────────────────────────────────────
+  const prefilled = useRef(prefill?.serial ?? 0)
+  /** The next paint of the field ends with focus on it and the caret after the last word. */
+  const caretAtEnd = useRef(false)
+
+  useEffect(() => {
+    if (!prefill || prefill.serial === prefilled.current) {
+      return
+    }
+
+    prefilled.current = prefill.serial
+    caretAtEnd.current = true
+    put(mergeIntoDraft(textRef.current, prefill.text))
+  }, [prefill, put])
+
   // ── the field grows ─────────────────────────────────────────────────────────
   useLayoutEffect(() => {
     const element = field.current
 
     if (!element) {
       return
+    }
+
+    if (caretAtEnd.current) {
+      caretAtEnd.current = false
+      element.focus()
+      element.setSelectionRange(element.value.length, element.value.length)
     }
 
     // Shrunk first, or a field that once held ten lines would never get smaller; set through the CSSOM, which

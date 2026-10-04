@@ -26,7 +26,7 @@ import type { DraftStore } from './drafts'
  * commands and uploads (the composer), and answering the two request kinds
  * (the request layer, which is over every chat and so is given the same
  * controller), and a bot's other conversations (`features/sessions`: list,
- * rename, delete, make one the Bot Chat, start a new one). `uploadFile` is the
+ * rename, delete, make one the Bot Chat, start a new one, branch the chat at a message). `uploadFile` is the
  * attachment tray's (`use-attachment-tray.ts`).
  */
 export type ChatScreenController = Pick<
@@ -59,6 +59,7 @@ export type ChatScreenController = Pick<
   | 'deleteConversation'
   | 'adoptAsCanonical'
   | 'startNewConversation'
+  | 'branchFrom'
   | 'setOption'
   | 'refreshOptions'
 >

@@ -1,6 +1,7 @@
 /**
- * The transcript's one message menu: Copy text, Copy as Markdown, Regenerate,
- * for whichever message the reader points at, presses on or has focused.
+ * The transcript's one message menu: Copy text, Copy as Markdown, Edit and
+ * resend, Regenerate, Branch from here and Copy link(s), for whichever message
+ * the reader points at, presses on or has focused.
  *
  * What a menu offers is `message-menu.ts`. This is how it is reached, and the
  * shape of it is a performance decision before it is anything else: a control
@@ -29,8 +30,9 @@
  *    to one): focused on its first line, Escape and Tab close it and put focus
  *    back where it was.
  *
- * Whether a turn runs and which reply may be regenerated are read from the host
- * only while the menu is open (`useSyncExternalStore`), and the text a line acts
+ * Whether a turn runs, which reply may be regenerated, which turn put back in the
+ * composer and whether the chat can be branched are read from the host only while
+ * the menu is open (`useSyncExternalStore`), and the text a line acts
  * on is read off the item when the line is chosen.
  */
 import type { TranscriptItem } from '@hermie/transcript'
@@ -184,7 +186,13 @@ function focusMessage(message: HTMLElement): void {
 /** The entries for a message as it is now, or none (a message with nothing to copy and nothing to run again). */
 function entriesFor(host: ItemHost, id: string, item: TranscriptItem | undefined): MessageMenuEntry[] {
   return item
-    ? messageMenuEntries({ item, canRegenerate: host.regenerateTarget() === id, turnActive: host.turnActive() })
+    ? messageMenuEntries({
+        item,
+        canRegenerate: host.regenerateTarget() === id,
+        canEditResend: host.editTarget() === id,
+        canBranch: host.canBranch(),
+        turnActive: host.turnActive()
+      })
     : []
 }
 
@@ -258,8 +266,20 @@ export function MessageMenuLayer({ container, host }: MessageMenuLayerProps): Re
         return
       }
 
+      if (action.kind === 'editResend') {
+        host.editResend(action.text, action.attachments)
+
+        return
+      }
+
+      if (action.kind === 'branch') {
+        host.branch(closing?.id ?? '', action.text)
+
+        return
+      }
+
       void host
-        .copy(action.text)
+        .copy(action.kind === 'copyLink' ? action.href : action.text)
         .then(copied => host.announce(copied ? webStrings.markdown.copied : webStrings.markdown.copyFailed))
     },
     [host, onClose]

@@ -214,6 +214,7 @@ export function App({
                         <ChatScreen
                           key={formatRoute(route)}
                           bot={route.bot}
+                          router={router}
                           {...(route.session ? { session: route.session } : {})}
                         />
                       </Suspense>

@@ -719,9 +719,16 @@ diffs and the chat's options, with the message menu on every message and the vie
 (`src/dev/item-gallery.tsx`, development only, checked by axe in `item-gallery.axe.test.tsx`, closed and with the
 menu, the options and the viewer open).
 
-**A message's actions** (Copy text, Copy as Markdown where it differs, and Regenerate on the last reply: disabled
-while a turn runs, hidden after a colleague's turn in the group chat, `/retry` where the gateway has it and the
-reader's last prompt again where it does not, `core/chats/regenerate.ts`) are one menu for the whole transcript.
+**A message's actions** (Copy text, Copy as Markdown where it differs, Edit and resend on the reader's newest turn,
+Regenerate on the last reply, Branch from here on a turn or a reply, and Copy link, or a Copy links group when a
+message holds several) are one menu for the whole transcript. Edit and resend and Regenerate are disabled while a
+turn runs and hidden after a colleague's turn in the group chat; Regenerate is `/retry` where the gateway has it and
+the reader's last prompt again where it does not (`core/chats/regenerate.ts`). Edit and resend has no gateway call: it
+puts the turn's words and attachment references in the composer, ahead of any draft, and sending is a new turn
+(`core/chats/edit-resend.ts`). Branch from here is `session.branch` with the row's message count and a title from its
+words (`core/chats/branch-here.ts`), then the read-only viewer at the branch's address, as the Conversations page opens
+one; it is offered only in the bot's own chat, attached to a session. While a request waits for the reader's answer
+(`state/requests.ts`) the menu offers none of the three.
 No message holds a control of its own: a button in every message made WebKit lay out a two-thousand-row history
 three times slower. A message only carries `data-message-id` and `aria-keyshortcuts` (`messageTargetProps`), and
 `MessageMenuLayer` listens on the stage:

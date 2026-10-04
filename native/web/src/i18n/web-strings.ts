@@ -206,6 +206,33 @@ export const WEB_STRINGS_SOURCE = {
     }
   },
   chat: {
+    /** The message menu's lines the shared catalogue words differently or not at all (`MessageMenuPopup`). */
+    menu: {
+      /** The line that forks the conversation at this message (the catalogue's ends in an ellipsis: a sheet follows there, nothing does here). */
+      branch: {
+        en: 'Branch from here',
+        nl: 'Vertak vanaf hier',
+        de: 'Ab hier verzweigen'
+      },
+      /** The line that opens the list of a message's links, and that list's accessible name. */
+      copyLinks: {
+        en: 'Copy links',
+        nl: 'Links kopiëren',
+        de: 'Links kopieren'
+      },
+      /** The line above the chat when the gateway refused to branch, with its reason. */
+      branchFailed: {
+        en: ({ message }: { message: string }) => `This conversation could not be branched: ${message}`,
+        nl: ({ message }: { message: string }) => `Dit gesprek kon niet vertakt worden: ${message}`,
+        de: ({ message }: { message: string }) => `Diese Unterhaltung konnte nicht verzweigt werden: ${message}`
+      },
+      /** Said once the words of a turn are in the field again, ready to be changed and sent. */
+      editResendReady: {
+        en: 'The message is in the field. Change it and send it again.',
+        nl: 'Het bericht staat in het veld. Pas het aan en stuur het opnieuw.',
+        de: 'Die Nachricht steht im Feld. Ändere sie und sende sie erneut.'
+      }
+    },
     /** YOLO mode of a chat: skipping its approval requests (`ChatOptionsPanel`, `YoloBadge`). */
     yolo: {
       /** Asked before turning it on, in the chat's options. */

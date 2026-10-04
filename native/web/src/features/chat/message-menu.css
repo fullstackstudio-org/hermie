@@ -64,6 +64,7 @@
   display: flex;
   flex-direction: column;
   min-width: 12rem;
+  max-width: min(24rem, calc(100vw - 16px));
   padding: 4px;
   border: 1px solid var(--hm-line);
   border-radius: var(--hm-radius);
@@ -100,4 +101,19 @@
 .hm-menu .hm-menu__item[aria-disabled='true'] {
   color: var(--hm-text-muted);
   cursor: default;
+}
+
+/* The links of a message with several, in a group under the line that opens it: indented, one line each. */
+.hm-menu .hm-menu__links {
+  display: flex;
+  flex-direction: column;
+  margin-inline-start: 12px;
+  border-inline-start: 2px solid var(--hm-line);
+}
+
+.hm-menu .hm-menu__link {
+  overflow: hidden;
+  font-size: 0.8125rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

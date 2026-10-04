@@ -72,7 +72,7 @@ export type RegenerateOutcome =
 const RETRY = 'retry'
 
 /** The newest `user` row with words in it, or `undefined`. */
-function newestPrompt(items: readonly { item: TranscriptItem }[]): UserItem | undefined {
+export function newestPrompt(items: readonly { item: TranscriptItem }[]): UserItem | undefined {
   for (let at = items.length - 1; at >= 0; at -= 1) {
     const item = items[at]?.item
 
@@ -94,7 +94,7 @@ function newestPrompt(items: readonly { item: TranscriptItem }[]): UserItem | un
  * with no author, every turn reads as the reader's own — unchanged from
  * before `author` existed.
  */
-function isOwnPrompt(item: UserItem, source: Pick<RegenerateSource, 'groupChat' | 'ownAuthorId'>): boolean {
+export function isOwnPrompt(item: UserItem, source: Pick<RegenerateSource, 'groupChat' | 'ownAuthorId'>): boolean {
   if (!source.groupChat || !source.ownAuthorId || !item.author) {
     return true
   }
