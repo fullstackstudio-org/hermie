@@ -1,6 +1,12 @@
+/* The calendar permission prompt (write only): shown when the reader first adds an event a bot suggested. */
+"NSCalendarsWriteOnlyAccessUsageDescription" = "Hermie adds an event to your calendar when a bot suggests one and you choose to add it. Hermie can only add events: it cannot read your calendar.";
 /* The camera permission prompt: shown when the reader first takes a photo or scans a document, to attach to a message or to send when a bot asks for a file. */
 "NSCameraUsageDescription" = "Hermie uses the camera so you can take a photo or scan a document, to attach to a message or to send when a bot asks for a file.";
+/* The location permission prompt: shown when the reader first shares their location because a bot asked. One reading, never tracking. */
+"NSLocationWhenInUseUsageDescription" = "Hermie uses your location once, when you choose to share it because a bot asked for it. It is sent to the gateway you are signed in to and is not kept on this device.";
 /* The microphone permission prompt: shown when the reader first dictates a message. The audio is recognised on the device and goes nowhere. */
 "NSMicrophoneUsageDescription" = "Hermie uses the microphone so you can dictate a message instead of typing it. Audio is transcribed on this device and never sent anywhere.";
+/* The reminders permission prompt: shown when the reader first adds a reminder a bot suggested. */
+"NSRemindersFullAccessUsageDescription" = "Hermie adds a reminder when a bot suggests one and you choose to add it. Hermie does not read your other reminders.";
 /* The speech recognition permission prompt: shown with the microphone's, the first time the reader dictates. Recognition runs on the device only. */
 "NSSpeechRecognitionUsageDescription" = "Hermie uses on-device speech recognition to turn what you say into the text of a message. Nothing is sent to Apple or to any other service.";

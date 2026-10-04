@@ -30,6 +30,15 @@
 	<true/>
 	<key>com.apple.security.device.audio-input</key>
 	<true/>
+	<!--
+		Where the device is, once, when the person shares it for a device.location request; and
+		write-only calendar access and reminders for device.calendar. Contacts need nothing: the
+		system picker hands over the one contact the person chooses.
+	-->
+	<key>com.apple.security.personal-information.location</key>
+	<true/>
+	<key>com.apple.security.personal-information.calendars</key>
+	<true/>
 	<!-- Push. Distribution signing replaces "development" with the profile's value. -->
 	<key>com.apple.developer.aps-environment</key>
 	<string>development</string>

@@ -1,6 +1,12 @@
+/* The calendar permission prompt (write only): shown when the reader first adds an event a bot suggested. */
+"NSCalendarsWriteOnlyAccessUsageDescription" = "Hermie fügt deinem Kalender einen Termin hinzu, wenn ein Bot einen vorschlägt und du ihn hinzufügen willst. Hermie kann nur Termine hinzufügen: Deinen Kalender kann Hermie nicht lesen.";
 /* The camera permission prompt: shown when the reader first takes a photo or scans a document, to attach to a message or to send when a bot asks for a file. */
 "NSCameraUsageDescription" = "Hermie verwendet die Kamera, damit du ein Foto aufnehmen oder ein Dokument scannen kannst, um es an eine Nachricht anzuhängen oder zu senden, wenn ein Bot nach einer Datei fragt.";
+/* The location permission prompt: shown when the reader first shares their location because a bot asked. One reading, never tracking. */
+"NSLocationWhenInUseUsageDescription" = "Hermie verwendet deinen Standort einmalig, wenn du ihn teilst, weil ein Bot danach fragt. Er wird an das Gateway gesendet, bei dem du angemeldet bist, und nicht auf diesem Gerät gespeichert.";
 /* The microphone permission prompt: shown when the reader first dictates a message. The audio is recognised on the device and goes nowhere. */
 "NSMicrophoneUsageDescription" = "Hermie verwendet das Mikrofon, damit du eine Nachricht diktieren kannst, statt sie zu tippen. Das Audio wird auf diesem Gerät in Text umgewandelt und nirgendwohin gesendet.";
+/* The reminders permission prompt: shown when the reader first adds a reminder a bot suggested. */
+"NSRemindersFullAccessUsageDescription" = "Hermie fügt eine Erinnerung hinzu, wenn ein Bot eine vorschlägt und du sie hinzufügen willst. Deine anderen Erinnerungen liest Hermie nicht.";
 /* The speech recognition permission prompt: shown with the microphone's, the first time the reader dictates. Recognition runs on the device only. */
 "NSSpeechRecognitionUsageDescription" = "Hermie verwendet die Spracherkennung auf dem Gerät, um das, was du sagst, in den Text einer Nachricht zu verwandeln. Es wird nichts an Apple oder einen anderen Dienst gesendet.";

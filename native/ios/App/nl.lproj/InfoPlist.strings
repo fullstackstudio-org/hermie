@@ -1,6 +1,12 @@
+/* The calendar permission prompt (write only): shown when the reader first adds an event a bot suggested. */
+"NSCalendarsWriteOnlyAccessUsageDescription" = "Hermie voegt een afspraak toe aan je agenda wanneer een bot er een voorstelt en jij ervoor kiest die toe te voegen. Hermie kan alleen afspraken toevoegen: je agenda kan Hermie niet lezen.";
 /* The camera permission prompt: shown when the reader first takes a photo or scans a document, to attach to a message or to send when a bot asks for a file. */
 "NSCameraUsageDescription" = "Hermie gebruikt de camera zodat je een foto kunt maken of een document kunt scannen, om bij een bericht te voegen of te sturen wanneer een bot om een bestand vraagt.";
+/* The location permission prompt: shown when the reader first shares their location because a bot asked. One reading, never tracking. */
+"NSLocationWhenInUseUsageDescription" = "Hermie gebruikt je locatie één keer, wanneer je ervoor kiest die te delen omdat een bot erom vraagt. De locatie wordt gestuurd naar de gateway waarop je bent ingelogd en wordt niet op dit apparaat bewaard.";
 /* The microphone permission prompt: shown when the reader first dictates a message. The audio is recognised on the device and goes nowhere. */
 "NSMicrophoneUsageDescription" = "Hermie gebruikt de microfoon zodat je een bericht kunt dicteren in plaats van typen. De audio wordt op dit apparaat omgezet in tekst en nergens heen gestuurd.";
+/* The reminders permission prompt: shown when the reader first adds a reminder a bot suggested. */
+"NSRemindersFullAccessUsageDescription" = "Hermie voegt een herinnering toe wanneer een bot er een voorstelt en jij ervoor kiest die toe te voegen. Hermie leest je andere herinneringen niet.";
 /* The speech recognition permission prompt: shown with the microphone's, the first time the reader dictates. Recognition runs on the device only. */
 "NSSpeechRecognitionUsageDescription" = "Hermie gebruikt spraakherkenning op het apparaat om wat je zegt om te zetten in de tekst van een bericht. Er wordt niets naar Apple of een andere dienst gestuurd.";
