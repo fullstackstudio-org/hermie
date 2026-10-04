@@ -26,15 +26,15 @@
  *
  * A click reaches the page two ways: posted by the worker to an open window
  * (`responseOfMessage`), or, on a cold start, in the address the worker opened
- * (`takeLaunchResponse`, read once and removed before anything else can act on
- * it again).
+ * (`takeLaunchResponse` in `launch.ts`, read once and removed before anything
+ * else can act on it again, and never allowed to answer: `PushSync.start`).
  *
- * Pure, except `takeLaunchResponse`, which is given the location and history to
- * read and rewrite.
+ * Pure.
  */
 import type { PushSessionKind } from '../../features/sessions/push-destination'
+import { type PushResponse, responseOf } from './launch'
 
-/** The contract's action ids; `src/sw/notification.ts` posts the same (`sw-constants.test.ts`). */
+/** The contract's action ids; `src/sw/notification.ts` posts the same (`src/sw/sw-graph.test.ts`). */
 export const PUSH_ACTION_ALLOW = 'hermie.request.allow'
 export const PUSH_ACTION_DENY = 'hermie.request.deny'
 
@@ -45,8 +45,7 @@ export const LEGACY_PUSH_ACTION_DENY = 'deny'
 /** The `source` of a message from the worker. */
 export const PUSH_MESSAGE_SOURCE = 'hermie-push'
 
-/** The query a cold start from a click carries. */
-export const PUSH_LAUNCH_PARAM = 'hermiePush'
+export { PUSH_LAUNCH_PARAM, type PushResponse, responseOf, takeLaunchResponse } from './launch'
 
 /** The request method a notification button may answer. */
 const ACTIONS_METHOD = 'approval'
@@ -54,65 +53,14 @@ const ACTIONS_METHOD = 'approval'
 /** The longest name of a bot a click is followed to; the router's own limit. */
 const MAX_NAME = 256
 
-/** One click: the button (or `default`) and the notification's data. */
-export interface PushResponse {
-  actionIdentifier: string
-  data: Record<string, unknown>
-}
-
 const isObject = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 
 const text = (value: unknown): string => (typeof value === 'string' ? value.trim() : '')
 
-/** A response as the worker spells it, or `null`. */
-export function responseOf(value: unknown): PushResponse | null {
-  if (!isObject(value)) {
-    return null
-  }
-
-  return {
-    actionIdentifier:
-      typeof value.actionIdentifier === 'string' && value.actionIdentifier ? value.actionIdentifier : 'default',
-    data: isObject(value.data) ? value.data : {}
-  }
-}
-
 /** The response in a message the worker posted, or `null` for any other message. */
 export function responseOfMessage(message: unknown): PushResponse | null {
   return isObject(message) && message.source === PUSH_MESSAGE_SOURCE ? responseOf(message.response) : null
-}
-
-/**
- * The click a cold start carries, once: the query is removed from the address
- * before it is read, so a reload (or a second read) never acts on it again.
- */
-export function takeLaunchResponse(
-  location: Pick<Location, 'href'>,
-  history: Pick<History, 'state' | 'replaceState'>
-): PushResponse | null {
-  let url: URL
-
-  try {
-    url = new URL(location.href)
-  } catch {
-    return null
-  }
-
-  if (!url.searchParams.has(PUSH_LAUNCH_PARAM)) {
-    return null
-  }
-
-  const raw = url.searchParams.get(PUSH_LAUNCH_PARAM) ?? ''
-
-  url.searchParams.delete(PUSH_LAUNCH_PARAM)
-  history.replaceState(history.state, '', `${url.pathname}${url.search}${url.hash}`)
-
-  try {
-    return responseOf(JSON.parse(raw))
-  } catch {
-    return null
-  }
 }
 
 /** What a click asked for, before the gateway has been asked anything. */

@@ -19,7 +19,7 @@
  * the worker is a classic script that must import nothing at run time, and a module
  * shared with the page would be split into a chunk of its own
  * (`vite.config.ts`, `sw-graph.test.ts`). The few constants the page needs too are
- * repeated in `core/push/actions.ts`; `sw-constants.test.ts` holds them equal.
+ * repeated in `core/push/actions.ts`; `sw-graph.test.ts` holds them equal.
  */
 
 /** The contract's action ids (`category.actions`). */

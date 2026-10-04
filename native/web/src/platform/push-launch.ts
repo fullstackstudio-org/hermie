@@ -5,7 +5,7 @@
  * rest of Web Push can be a chunk of its own; small on purpose, because it is in
  * the first load.
  */
-import { type PushResponse, takeLaunchResponse } from '../core/push/actions'
+import { type PushResponse, takeLaunchResponse } from '../core/push/launch'
 
 export function takePageLaunchResponse(): PushResponse | null {
   return typeof window === 'undefined' ? null : takeLaunchResponse(window.location, window.history)
