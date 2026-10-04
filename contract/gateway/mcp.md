@@ -116,7 +116,7 @@ view only: the identity is the session's, never a parameter.
 | `enabled`        | bool   | no       | Always `true` on a 200: a gateway with MCP off answers 404                                                                                              |
 | `endpoint_url`   | string | no       | The URL an MCP client connects to, built from the gateway's primary public URL (`https://…/mcp`). The app never builds it itself                        |
 | `issuer`         | string | no       | The OAuth issuer (today the same as `endpoint_url`). Shown, never used for a request                                                                    |
-| `label`          | string | no       | The server name used in the command and the config: a slug of the dashboard's label (`hermie-<host>` when it has none)                                  |
+| `label`          | string | no       | The server name used in the command and the config: a slug of the operator's `dashboard.mcp.label` (`hermie-<host>` when that is empty)                |
 | `claude_command` | string | no       | `claude mcp add --transport http <label> <endpoint_url>`, ready to copy. Show it and copy it as text, never run it                                      |
 | `config_json`    | string | no       | The `.mcp.json` fragment as pretty-printed JSON **text** (`{"mcpServers": {"<label>": {"type": "http", "url": "<endpoint_url>"}}}`). Copy it verbatim  |
 | `instructions`   | string | no       | English prose for the person, a few sentences. A client localises its own chrome, never this text                                                       |
@@ -131,8 +131,8 @@ A **grant** is one MCP client the person has allowed. Revoked and expired grants
 | `client_id`          | string   | no       | The client's OAuth id. Untrusted                                                                                             |
 | `scopes`             | string[] | no       | OAuth scope strings, possibly empty. Shown verbatim if at all; a client does not interpret them                              |
 | `created_at`         | int      | no       | When the person allowed it                                                                                                   |
-| `created_ip`         | string   | **yes**  | The address that consented. `null` when the gateway did not record one. Untrusted                                            |
-| `created_user_agent` | string   | **yes**  | The consenting browser's user agent. `null` when not recorded. Untrusted                                                     |
+| `created_ip`         | string   | **yes**  | The address of the client that exchanged the code for its first tokens (not the consenting browser's). `null` when the gateway did not record one. Untrusted |
+| `created_user_agent` | string   | **yes**  | The user agent of the client that exchanged the code (not the consenting browser's). `null` when not recorded. Untrusted     |
 | `last_used_at`       | int      | **yes**  | The last time the client used its token. `null` when it never has                                                            |
 | `last_used_ip`       | string   | **yes**  | The address of that use. `null` when never used or not recorded. Untrusted                                                   |
 | `expires_at`         | int      | no       | When the grant ends (90 days after consent) and the person must allow it again                                               |
@@ -181,7 +181,7 @@ open Settings page refreshes without being asked. Like `passkey.changed`:
 | ---------------------- | ------ | -------- | ------------------------------------------------------------------------------------- |
 | `type`                 | string | no       | `"mcp.changed"`                                                                       |
 | `session_id`           | string | no       | Always `""`: it belongs to the person, not to a chat                                  |
-| `payload.change`       | string | no       | `"granted"` (a client was allowed) or `"revoked"` (from the app or the operator). A reader treats an unknown value as "something changed" |
+| `payload.change`       | string | no       | `"granted"` (a client was allowed) or `"revoked"` (from the app, by the client itself, or by the gateway when a code or refresh token of it was used twice). A reader treats an unknown value as "something changed" |
 | `payload.grant.id`     | string | no       | The grant's id                                                                        |
 | `payload.grant.client_name` | string | no  | The client's name. Untrusted                                                          |
 | `payload.at`           | int    | no       | When it happened                                                                      |
