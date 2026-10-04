@@ -50,7 +50,14 @@ struct NoticeStack: View {
   }
 }
 
-private struct NoticeRow: View {
+/// One notice: a line of text of at most `ComposerView.noticeLineLimit` lines, the whole of it in the
+/// tooltip, and a dismiss button.
+///
+/// The text wraps (`fixedSize(vertical:)`), and SwiftUI measures a window's minimum size at the
+/// narrowest width it probes, where a long or unbreakable text takes a line every few letters: left
+/// unbounded, a long notice at the top of the root view raised the window's minimum by thousands of
+/// points (see `ChatNoticeLayoutTests`). The line cap keeps that measure to a few lines.
+struct NoticeRow: View {
   let text: String
   let systemImage: String
   let dismiss: () -> Void
@@ -62,8 +69,10 @@ private struct NoticeRow: View {
         .accessibilityHidden(true)
 
       Text(text)
+        .lineLimit(ComposerView.noticeLineLimit)
         .frame(maxWidth: .infinity, alignment: .leading)
         .fixedSize(horizontal: false, vertical: true)
+        .help(text)
 
       Button(Strings.App.Common.dismiss, systemImage: "xmark", action: dismiss)
         .labelStyle(.iconOnly)
