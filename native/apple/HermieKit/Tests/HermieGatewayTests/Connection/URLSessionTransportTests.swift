@@ -71,8 +71,11 @@
         redirectedTo: "127.0.0.1",
         redirectedOrigin: "ws://127.0.0.1:\(target.port)"
       )
+      // An ephemeral session: the default one keeps its cache on disk, across test processes, and a
+      // 301 is cacheable. With it this test failed on every third run, the error naming an earlier
+      // run's target port instead of this run's.
       await #expect(throws: expected) {
-        _ = try await URLSessionTransport().connect(request, subprotocols: [])
+        _ = try await URLSessionTransport(configuration: .ephemeral).connect(request, subprotocols: [])
       }
       #expect(target.connectionCount == 0)
     }
