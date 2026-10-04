@@ -844,6 +844,12 @@ struct InteractiveCalendarModelTests {
     #expect(await refused.add() == .cannotShow(reason: CannotShowReason.permissionDenied))
     #expect(refused.phase == .ready)
 
+    // No default calendar to save into (a Mac under write-only access): said, not tried again.
+    let none = FakeCalendarStore(.noCalendar)
+    let stuck = InteractiveCalendarModel(request: try calendarRequest("req_cal_event"), store: none, hasEventEditor: false, offersSkip: true)
+    #expect(await stuck.add() == .cannotShow(reason: CannotShowReason.notSupportedOnDevice))
+    #expect(stuck.phase == .ready && !stuck.isSaved)
+
     let flaky = FakeCalendarStore(.failed)
     let model = InteractiveCalendarModel(request: try calendarRequest("req_cal_reminder"), store: flaky, hasEventEditor: false, offersSkip: true)
     #expect(await model.add() == nil && model.phase == .failed && !model.isBusy)
@@ -945,10 +951,51 @@ struct DeviceAvailabilityTests {
     #expect(DeviceAvailability.none.offers("input.form") && !DeviceAvailability.none.offers("device.location"))
   }
 
-  @Test("this device reads its own availability, and offers the contact picker")
+  @Test("this device reads its own availability; the contact picker is offered on iPhone and iPad, not on the Mac")
   func systemAvailability() {
-    #expect(DeviceAvailability.system.contact)
-    #expect(InteractiveCapabilities.deviceMethods().contains("device.contact"))
+    #if os(macOS)
+      let offersContact = false
+    #else
+      let offersContact = true
+    #endif
+    #expect(DeviceAvailability.system.contact == offersContact)
+    #expect(InteractiveCapabilities.deviceMethods().contains("device.contact") == offersContact)
     #expect(Set(InteractiveCapabilities.deviceMethods()).isSubset(of: Set(ServerRequestBody.Method.interactive)))
+  }
+
+  @Test("the Mac's contact picker is not offered until it has been verified on a Mac")
+  func macContactPicker() {
+    #expect(DeviceAvailability.contactPickerOffered(onMac: false))
+    #expect(!DeviceAvailability.contactPickerOffered(onMac: true))
+    #expect(!DeviceAvailability.macContactPickerVerified)
+    #expect(DeviceAvailability.contactPickerOffered(onMac: true, macVerified: true))
+  }
+
+  @Test("a code scan is offered with a camera AND a reader; Vision reads QR here, so the Mac has one")
+  func scanNeedsACameraAndAReader() {
+    #expect(DeviceAvailability.scanOffered(camera: true, reader: true))
+    #expect(!DeviceAvailability.scanOffered(camera: true, reader: false))
+    #expect(!DeviceAvailability.scanOffered(camera: false, reader: true))
+    #expect(CodeReaders.isAvailable && CodeReaders.visionReads().contains(.qr))
+  }
+
+  @Test("the calendar is offered unless both events and reminders are restricted; on the Mac a granted store with no default calendar is not")
+  func calendarGates() {
+    func offered(
+      _ event: EKAuthorizationStatus, _ reminder: EKAuthorizationStatus = .notDetermined, onMac: Bool = false,
+      hasCalendar: Bool = true
+    ) -> Bool {
+      DeviceAvailability.calendarOffered(event: event, reminder: reminder, onMac: onMac, hasDefaultEventCalendar: { hasCalendar })
+    }
+
+    #expect(offered(.notDetermined) && offered(.denied) && offered(.writeOnly) && offered(.fullAccess))
+    #expect(!offered(.restricted, .restricted), "nothing could ever be saved")
+    #expect(offered(.restricted, .notDetermined) && offered(.notDetermined, .restricted), "the other kind still can")
+
+    #expect(!offered(.writeOnly, onMac: true, hasCalendar: false))
+    #expect(!offered(.fullAccess, onMac: true, hasCalendar: false))
+    #expect(offered(.writeOnly, onMac: true, hasCalendar: true))
+    #expect(offered(.notDetermined, onMac: true, hasCalendar: false), "before a grant it cannot be known")
+    #expect(offered(.writeOnly, onMac: false, hasCalendar: false), "the system's edit sheet saves it elsewhere")
   }
 }

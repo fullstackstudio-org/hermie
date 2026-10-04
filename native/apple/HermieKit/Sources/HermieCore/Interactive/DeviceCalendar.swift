@@ -401,6 +401,9 @@ public enum CalendarSaveOutcome: Sendable, Equatable {
   case denied
   /// The system could not write it.
   case failed
+  /// Access was given but the system has no default calendar (or Reminders list) to put it in, so
+  /// the entry can never be saved here: retrying cannot help.
+  case noCalendar
 }
 
 /// The system's calendar and reminders, behind a seam so the sheet's rules can be tested: the model
@@ -496,6 +499,10 @@ public final class InteractiveCalendarModel {
       case .failed:
         phase = .failed
         return nil
+      case .noCalendar:
+        // Not a failure to try again: this device cannot save it. Said to the agent with a reason of its own.
+        phase = .ready
+        return .cannotShow(reason: CannotShowReason.notSupportedOnDevice)
       }
     }
   }
@@ -635,8 +642,9 @@ public final class InteractiveCalendarModel {
             return .denied
           }
 
+          // Under write-only access a Mac may hand out no default calendar: say so rather than fail again.
           guard let calendar = store.defaultCalendarForNewEvents else {
-            return .failed
+            return .noCalendar
           }
 
           let event = item.makeEvent(in: store)
@@ -648,7 +656,7 @@ public final class InteractiveCalendarModel {
           }
 
           guard let calendar = store.defaultCalendarForNewReminders() else {
-            return .failed
+            return .noCalendar
           }
 
           let reminder = EKReminder(eventStore: store)

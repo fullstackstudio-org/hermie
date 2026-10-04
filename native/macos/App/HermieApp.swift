@@ -22,6 +22,9 @@ struct HermieApp: App {
   @State private var wiring: LiveWiring
 
   init() {
+    // What this device can show of the device requests is read off the main thread, before a session asks for it.
+    DeviceAvailability.warmUp()
+
     let launch = AppLaunch(environment: .live(), pushSystem: SystemPushBridge())
     _launch = State(initialValue: launch)
     let accounts = GatewayAccounts.app(launch)
