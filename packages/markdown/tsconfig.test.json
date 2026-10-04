@@ -6,7 +6,7 @@
   // `contract/markdown` reads files and needs Node's types. This project checks
   // the tests with them and emits nothing. It is not composite and not
   // referenced from the root `tsconfig.json`; the root `typecheck` script runs
-  // it as a separate pass, as it does for `packages/hermie-web`.
+  // it as a separate pass, as it does for `scripts/golden`.
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "composite": false,

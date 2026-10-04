@@ -10,7 +10,6 @@
     "android:release": "node scripts/android-release.mjs",
     "mac": "node scripts/run-mac.mjs",
     "prebuild": "expo prebuild",
-    "export:web": "node scripts/export-web.mjs",
     "doctor": "expo-doctor",
     "test": "jest"
   },

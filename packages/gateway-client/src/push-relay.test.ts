@@ -66,8 +66,8 @@ const relayRow = (patch: Record<string, unknown> = {}): Record<string, unknown> 
  * The reader every notifier and app shipped before the relay transport, frozen.
  *
  * This is `pushRegistrationOf`'s transport rule from `hermie-web` 0.1.9
- * (`packages/hermie-web/src/push/registrations.ts`), restated without its
- * bookkeeping: `v` must be 1, `expo` needs a token and no endpoint, `webpush`
+ * (the old Hermie Web's `src/push/registrations.ts`, removed from the
+ * repository), restated without its bookkeeping: `v` must be 1, `expo` needs a token and no endpoint, `webpush`
  * needs an endpoint and both keys and no token, and ANY other transport is
  * dropped. It must not be edited to follow the current reader; it is the
  * baseline the new rows are checked against.

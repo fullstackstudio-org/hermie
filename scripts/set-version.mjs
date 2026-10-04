@@ -5,18 +5,15 @@
  *   node scripts/set-version.mjs 0.2.0
  *   node scripts/set-version.mjs 0.2.0 --check    # report, change nothing
  *
- * Seven places now, and they drift because most of them are easy to forget:
+ * Six places now, and they drift because most of them are easy to forget:
  * the root package.json, the app's package.json, `version` in app.config.ts —
  * the marketing version every platform ships: iOS, Android, and the Mac,
  * which is the iOS build (ADR-0011) — and, since the desktop shell
  * (ADR-0027), its own package.json, `tauri.conf.json`'s `version`, and
  * `Cargo.toml`'s `[package].version`, which is what CI's `cargo
  * check`/`tauri build` embed in the shell binary and the platform installers
- * read. The seventh, added because it drifted silently for two releases
- * (0.1.6 while the rest read 0.1.8), is `packages/hermie-web/package.json`:
- * Hermie Web reads its own version from that file to answer `/hermie/update`
- * and to label the release zip and the GHCR image, so it has to track the
- * app the same way the desktop shell does. The other workspace packages
+ * read. (A seventh, `packages/hermie-web/package.json`, went away with the
+ * old Hermie Web server.) The other workspace packages
  * (`fake-gateway`, `gateway-client`, `transcript`) are `private` and pinned
  * at `0.0.0` on purpose — they never ship on their own — and
  * `hermes-shared` is vendored from upstream and is never touched by this
@@ -216,14 +213,12 @@ if (version) {
     /(?<=^\[\[package\]\]\nname = "hermie-desktop"\n)version = "[^"]+"/m,
     `version = "${version}"`
   )
-  edit('packages/hermie-web/package.json', 'the version field', /"version":\s*"[^"]+"/, `"version": "${version}"`)
 
   editLockVersions('package-lock.json', [
     { label: 'the root document version', get: lock => lock },
     { label: 'packages[""] (the root workspace)', get: lock => lock.packages?.[''] },
     { label: 'packages["expo/hermie"]', get: lock => lock.packages?.['expo/hermie'] },
-    { label: 'packages["apps/desktop"]', get: lock => lock.packages?.['apps/desktop'] },
-    { label: 'packages["packages/hermie-web"]', get: lock => lock.packages?.['packages/hermie-web'] }
+    { label: 'packages["apps/desktop"]', get: lock => lock.packages?.['apps/desktop'] }
   ])
 }
 

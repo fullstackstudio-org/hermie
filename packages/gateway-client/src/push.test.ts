@@ -4,8 +4,8 @@
  * Three things are worth pinning here and they are all about a section that
  * belongs to more than one device:
  *
- *  - the ROW: the daemon's reader
- *    (`packages/hermie-web/src/push/registrations.ts`) drops an entry that
+ *  - the ROW: the notifier's reader (the plugin's, and before it Hermie Web's
+ *    daemon, since removed) drops an entry that
  *    carries the fields of both transports, so a writer that emits both is
  *    writing an entry nobody will ever send to. The expectations below are
  *    written against that reader's rules rather than against this module's own
@@ -313,8 +313,8 @@ describe('the small pieces', () => {
 
   it('drops a `dm` an older build of this app wrote, rather than carrying it', () => {
     // The plugin cannot produce one — there is no hook — so a switch for it
-    // would be a switch that never does anything. `hermie-web --push` can still
-    // send one and reads its own list; this is only about what the app offers.
+    // would be a switch that never does anything. The removed Hermie Web daemon
+    // could still send one; this is only about what the app offers.
     expect(pushTypesOf({ message: true, dm: true })).not.toHaveProperty('dm')
   })
 

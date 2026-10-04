@@ -36,7 +36,7 @@ let loaded: RequestsContract | undefined
 /**
  * Where `contract/requests` is: `HERMIE_REQUESTS_CONTRACT` when set, else the nearest one above the
  * working directory (the fake runs from inside the repository: `npm run fake-gateway`, the test runners).
- * Not found relative to this file: the package is also type-checked as CommonJS, which has no `import.meta`.
+ * The search starts at the working directory, not at this file, so it needs no `import.meta`.
  */
 function contractDirectory(): string {
   const named = process.env.HERMIE_REQUESTS_CONTRACT

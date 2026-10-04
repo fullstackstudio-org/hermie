@@ -6,7 +6,6 @@
     { "path": "./packages/fake-gateway" },
     { "path": "./packages/transcript" },
     { "path": "./packages/markdown" },
-    { "path": "./packages/hermie-web" },
     { "path": "./expo/hermie" },
     { "path": "./apps/desktop" },
     { "path": "./native/web" },

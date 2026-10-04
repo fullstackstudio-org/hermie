@@ -3,7 +3,7 @@
   // recorder and its vitest config, and the two dump scripts. None of it ships
   // and none of it is under a package's `src/`, so no package tsconfig sees it.
   //
-  // Like `packages/hermie-web/tsconfig.test.json`, this emits nothing and is not
+  // Like `packages/markdown/tsconfig.test.json`, this emits nothing and is not
   // a composite project; the root `typecheck` script runs it as its own pass.
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {

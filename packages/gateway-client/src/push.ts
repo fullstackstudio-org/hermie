@@ -4,10 +4,11 @@
  * [ADR-0017](../../../docs/adr/0017-push-through-hermie-web.md) puts a device's
  * push registration in the `hermie-app` key of the default profile's `ui_meta`
  * rather than at an endpoint: the app never talks to the daemon, so there is no
- * inbound surface and nothing on the network can make a phone buzz. The daemon's
- * READER lives in `packages/hermie-web/src/push/registrations.ts`; this is the
- * WRITER, and it is here rather than in the app because the browser build and
- * the native build both have to produce the same bytes.
+ * inbound surface and nothing on the network can make a phone buzz. The
+ * notifier's READER is the `hermie` gateway plugin (it was Hermie Web's push
+ * daemon, since removed); this is the WRITER, and it is here rather than in the
+ * app because the browser build and the native build both have to produce the
+ * same bytes.
  *
  * Two properties are the whole of what this module exists for, and both are
  * about a section that belongs to more than one device:
@@ -49,7 +50,7 @@ export const PUSH_SECTION_KEY = 'push'
  * bot-to-bot DM has no hook in Hermes, so the plugin — which is now the default
  * notifier — cannot produce one and does not advertise it. The type stays in
  * the wire schema, because a registration written by an older build still
- * carries it and `hermie-web --push` can still send one; what changed is that
+ * carries it and the removed Hermie Web daemon could still send one; what changed is that
  * this app no longer offers a switch for something that will never arrive.
  *
  * `turn_done` and `turn_failed` are the amendment's two additions, from

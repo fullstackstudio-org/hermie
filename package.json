@@ -15,7 +15,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "typecheck": "tsc -b && tsc -p packages/hermie-web/tsconfig.test.json && tsc -p packages/markdown/tsconfig.test.json && tsc -p scripts/golden/tsconfig.json && tsc -p scripts/i18n/tsconfig.json && tsc -p scripts/web/tsconfig.json",
+    "typecheck": "tsc -b && tsc -p packages/markdown/tsconfig.test.json && tsc -p scripts/golden/tsconfig.json && tsc -p scripts/i18n/tsconfig.json && tsc -p scripts/web/tsconfig.json",
     "typecheck:clean": "tsc -b --clean",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -50,8 +50,6 @@
     "client:check-bundle": "node scripts/web/check-bundle.mjs",
     "client:check-reproducible": "node scripts/web/check-reproducible.mjs",
     "client:guard-scan": "node scripts/web/guard-scan.mjs",
-    "web:build": "npm run build --workspace @hermie/web && npm run export:web --workspace @hermie/app",
-    "web": "npm run web:build && node scripts/dev-web.mjs",
     "ios": "npm run ios --workspace @hermie/app",
     "android": "npm run android --workspace @hermie/app",
     "android:release": "npm run android:release --workspace @hermie/app --",

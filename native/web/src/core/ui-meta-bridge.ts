@@ -231,8 +231,8 @@ export const PUSH_FIELD = 'push'
 
 /**
  * The availability stamp Hermie Web's push daemon wrote into the app-owned
- * `push` (`packages/hermie-web/src/push/announce.ts`): retired with Hermie Web,
- * because the plugin's advert says the same under the plugin's own key.
+ * `push` (`src/push/announce.ts` of the old Hermie Web, removed from this
+ * repository): retired with Hermie Web, because the plugin's advert says the same under the plugin's own key.
  */
 export const RETIRED_PUSH_FIELDS: readonly string[] = [
   'daemonVersion',

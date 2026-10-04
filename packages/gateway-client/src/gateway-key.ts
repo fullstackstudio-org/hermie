@@ -5,7 +5,7 @@
  * app's `gateway/registry.ts`), and that id is exactly the wrong thing to put
  * in a push payload or a deep link: it is minted on one device, it means
  * nothing on another, and nothing outside the app has ever seen it. The
- * notifier — whether that is the gateway plugin or `hermie-web --push` — knows
+ * notifier — the gateway plugin (earlier also `hermie-web --push`) — knows
  * its own ADDRESS and nothing else about the devices it sends to.
  *
  * So the wire carries a key derived from the address, and the app maps it back
