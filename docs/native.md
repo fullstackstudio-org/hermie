@@ -1913,7 +1913,9 @@ The golden corpus (`contract/transcript/golden/author.json`, `preview.json`) and
 
 Settings › Chats and Settings › Appearance (`HermieUI/Settings/ChatsSettingsPage.swift`,
 `AppearanceSettingsPage.swift`) read and write one model, `AppSettings` (`HermieCore/Settings`,
-`AppLaunch.settings`). It holds two halves, and which setting is in which is the decision:
+`AppLaunch.settings`). The Chats page also hosts the folder management of the chat list
+(`ChatListFolderSections`, below the defaults and the cache; it needs a live gateway, the rest does not).
+`AppSettings` holds two halves, and which setting is in which is the decision:
 
 | Setting                                             | Where it lives                                                       | Follows     |
 | --------------------------------------------------- | -------------------------------------------------------------------- | ----------- |
