@@ -370,6 +370,8 @@
 	<string>Skip</string>
 	<key>native.connectionRequest.title</key>
 	<string>Connect an account to continue</string>
+	<key>native.connectors.linkRefused</key>
+	<string>The gateway sent a sign-in link that Hermie will not open.</string>
 	<key>native.conversations.actionFailed</key>
 	<string>That did not work: %@</string>
 	<key>native.conversations.actionsFor</key>

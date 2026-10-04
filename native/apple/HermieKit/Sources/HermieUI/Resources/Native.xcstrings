@@ -4336,6 +4336,30 @@
         }
       }
     },
+    "native.connectors.linkRefused" : {
+      "comment" : "Connectors page: the gateway’s sign-in link is not an https link, or the system would not open it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Gateway hat einen Anmeldelink gesendet, den Hermie nicht öffnet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The gateway sent a sign-in link that Hermie will not open."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De gateway stuurde een inloglink die Hermie niet opent."
+          }
+        }
+      }
+    },
     "native.conversations.actionFailed" : {
       "comment" : "A rename, delete or swap the gateway refused. The argument is the gateway's reason, as plain text.",
       "extractionState" : "manual",

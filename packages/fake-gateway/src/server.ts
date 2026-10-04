@@ -359,6 +359,12 @@ export interface FakeGatewayOptions {
    */
   memoryEdit?: boolean
   /**
+   * Whether connectors are available (`manage_connections`, the connector service). Default true.
+   * `false` is a gateway or bot with them off: `connectors.list` answers `available: false` as a
+   * success and `connectors.connect` refuses with 4031.
+   */
+  connectors?: boolean
+  /**
    * Whether the plugin advertises `push.relay`.
    *
    * Default true: the plugin can deliver to a `transport: "relay"` row. `false`
@@ -3187,7 +3193,7 @@ function initialState(options: FakeGatewayOptions): FakeGatewayState {
       { slug: 'sprint', name: 'Sprint', description: 'This fortnight', tasks: [] }
     ],
     kanbanDispatches: 0,
-    connectorsUnavailable: false,
+    connectorsUnavailable: options.connectors === false,
     connectorOps: new Map<string, FakeConnectorOp>(),
     connectorSeq: 0,
     connectionResponses: [],

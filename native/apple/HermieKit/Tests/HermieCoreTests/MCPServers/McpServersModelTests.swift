@@ -122,7 +122,7 @@ private final class Browser {
 private func opened(profile: String? = "writer", maxPolls: Int = 10) async -> (McpServersModel, McpGateway) {
   let gateway = McpGateway()
   let model = McpServersModel(
-    service: McpServersService(gateway: gateway.rpc.gateway), profile: profile, pause: { _ in }, pollInterval: .zero,
+    service: McpServersService(gateway: gateway.rpc.gateway), profile: profile, pollInterval: .zero,
     maxPolls: maxPolls)
   await model.load()
 
@@ -244,6 +244,17 @@ private func opened(profile: String? = "writer", maxPolls: Int = 10) async -> (M
     #expect(gateway.rpc.calls("mcp.servers.oauth.cancel").isEmpty, "an approved flow needs no cancelling")
   }
 
+  @Test func aWalkWithARealIntervalBetweenPollsApprovesToo() async {
+    // A real suspension between polls, which the zero-interval tests do not make: the walk's loop
+    // crashed the Swift 6.4 runtime once on exactly this.
+    let gateway = McpGateway()
+    let model = McpServersModel(
+      service: McpServersService(gateway: gateway.rpc.gateway), profile: "writer", pollInterval: .milliseconds(2))
+
+    #expect(await model.authorise("calendar", open: Browser().open))
+    #expect(gateway.rpc.calls("mcp.servers.oauth.poll").count == 3)
+  }
+
   @Test func aRefusedAuthorisationIsToldAndTheFlowIsCancelled() async {
     let (model, gateway) = await opened()
     gateway.state.withLock { $0.pollAnswer = #"{"ok": true, "status": "error", "error_message": "access_denied"}"# }
@@ -285,7 +296,7 @@ private func opened(profile: String? = "writer", maxPolls: Int = 10) async -> (M
     gateway.rpc.respond(
       "mcp.servers.oauth.start",
       jsonValue(#"{"ok": true, "session_id": "f", "auth_url": "https://trusted.example@elsewhere.example/x", "flow": "pkce"}"#))
-    let other = McpServersModel(service: McpServersService(gateway: gateway.rpc.gateway), profile: nil, pause: { _ in })
+    let other = McpServersModel(service: McpServersService(gateway: gateway.rpc.gateway), profile: nil, pollInterval: .zero)
     let browser = Browser()
 
     #expect(await other.authorise("calendar", open: browser.open) == false)
@@ -312,8 +323,8 @@ private func opened(profile: String? = "writer", maxPolls: Int = 10) async -> (M
   }
 
   @Test func leavingThePageMidWalkCancelsTheFlow() async {
-    let (model, gateway) = await opened()
-    gateway.state.withLock { $0.pollsBeforeApproval = 1_000 }
+    let (model, gateway) = await opened(maxPolls: 1_000_000)
+    gateway.state.withLock { $0.pollsBeforeApproval = 10_000_000 }
     let browser = Browser()
 
     let walk = Task { await model.authorise("calendar", open: browser.open) }

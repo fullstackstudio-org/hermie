@@ -370,6 +370,8 @@
 	<string>Overslaan</string>
 	<key>native.connectionRequest.title</key>
 	<string>Koppel een account om verder te gaan</string>
+	<key>native.connectors.linkRefused</key>
+	<string>De gateway stuurde een inloglink die Hermie niet opent.</string>
 	<key>native.conversations.actionFailed</key>
 	<string>Dat lukte niet: %@</string>
 	<key>native.conversations.actionsFor</key>

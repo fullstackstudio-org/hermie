@@ -247,3 +247,90 @@ describe('mcp.catalog and mcp.servers.add / set_api_key / remove', () => {
     close()
   })
 })
+
+describe('connectors.* for the account', () => {
+  const account = { type: 'account' }
+
+  it('lists the account’s connectors the way a chat’s are listed', async () => {
+    const live = await start()
+    const { call, close } = await connect(live)
+
+    const frame = await call('connectors.list', { owner: account, profile: 'researcher' })
+    const result = frame.result as { available: boolean; connectors: Record<string, unknown>[] }
+
+    expect(result.available).toBe(true)
+    expect(result.connectors.map(row => row.connector)).toEqual(['gmail', 'notion', 'slack'])
+
+    close()
+  })
+
+  it('refuses a top-level session_id and a missing owner with 4000', async () => {
+    const live = await start()
+    const { call, close } = await connect(live)
+
+    expect((await call('connectors.list', { session_id: 'rt-1' })).error?.code).toBe(4000)
+    expect((await call('connectors.list', { owner: { type: 'nobody' } })).error?.code).toBe(4000)
+
+    close()
+  })
+
+  it('answers available: false as a success when connectors are off, and refuses a connect with 4031', async () => {
+    const live = await start({ connectors: false })
+    const { call, close } = await connect(live)
+
+    expect((await call('connectors.list', { owner: account })).result).toEqual({ available: false, connectors: [] })
+    expect((await call('connectors.connect', { owner: account, connectors: ['notion'] })).error?.code).toBe(4031)
+
+    close()
+  })
+
+  it('walks an account connect: a link on the target, then settled once the watcher has read it', async () => {
+    const live = await start()
+    const { call, close } = await connect(live)
+
+    const started = (await call('connectors.connect', { owner: account, connectors: ['notion'] })).result as {
+      op_id: string
+      targets: { name: string; state: string; connect_url?: string }[]
+    }
+
+    expect(started.targets[0]).toMatchObject({ name: 'notion', state: 'initiated' })
+    expect(started.targets[0]?.connect_url).toMatch(/^https:\/\/vendor\.test\/authorize\/notion/u)
+
+    const first = (await call('connectors.operation.status', { owner: account, op_id: started.op_id })).result as {
+      targets: { state: string }[]
+    }
+    const second = (await call('connectors.operation.status', { owner: account, op_id: started.op_id })).result as {
+      settled: boolean
+      targets: { state: string }[]
+    }
+
+    expect(first.targets[0]?.state).toBe('initiated')
+    expect(second.targets[0]?.state).toBe('connected')
+    expect(second.settled).toBe(true)
+
+    // A settled operation is no longer open, which is what a finished flow answers.
+    expect((await call('connectors.operation.status', { owner: account, op_id: started.op_id })).error?.code).toBe(4004)
+
+    close()
+  })
+
+  it('does not let a session reach an operation the account opened', async () => {
+    const live = await start()
+    const { call, close } = await connect(live)
+
+    const started = (await call('connectors.connect', { owner: account, connectors: ['notion'] })).result as {
+      op_id: string
+    }
+
+    expect(
+      (
+        await call('connectors.operation.status', {
+          owner: { type: 'session', session_id: 'rt-1' },
+          op_id: started.op_id
+        })
+      ).error?.code
+    ).toBe(4004)
+
+    close()
+  })
+})

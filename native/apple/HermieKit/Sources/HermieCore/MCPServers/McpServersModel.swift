@@ -89,31 +89,32 @@ public final class McpServersModel {
   public private(set) var addError: String?
 
   @ObservationIgnored private let service: McpServersService
-  @ObservationIgnored private let pause: @Sendable (Duration) async -> Void
   @ObservationIgnored private let pollInterval: Duration
   @ObservationIgnored private let maxPolls: Int
   @ObservationIgnored private var round = 0
 
   /// - Parameters:
-  ///   - pause: how the walk waits between polls (a test's is instant).
-  ///   - pollInterval: how often `oauth.poll` is asked, as the desktop's own driver does.
+  ///   - pollInterval: how often `oauth.poll` is asked, as the desktop's own driver does. Zero (a
+  ///     test's) waits for no time at all.
   ///   - maxPolls: how many polls the walk makes before it gives up: six minutes at the default.
   public init(
-    service: McpServersService, profile: String?,
-    pause: @escaping @Sendable (Duration) async -> Void = McpServersModel.wait,
-    pollInterval: Duration = .seconds(1), maxPolls: Int = 360
+    service: McpServersService, profile: String?, pollInterval: Duration = .seconds(1), maxPolls: Int = 360
   ) {
     self.service = service
     self.profile = profile
-    self.pause = pause
     self.pollInterval = pollInterval
     self.maxPolls = maxPolls
   }
 
-  /// How the walk waits between polls. A named function, not a closure written in the default
-  /// argument: the Swift 6.4 runtime aborts on that closure the first time it really suspends.
-  @Sendable public static func wait(_ duration: Duration) async {
-    try? await Task.sleep(for: duration)
+  /// Wait for the next poll: the interval, or just a turn of the executor where the interval is zero
+  /// (a test's). Not an injected closure: the Swift 6.4 runtime aborts on calling a stored `async`
+  /// closure here the first time it really suspends.
+  private func waitForNextPoll() async {
+    if pollInterval > .zero {
+      try? await Task.sleep(for: pollInterval)
+    } else {
+      await Task.yield()
+    }
   }
 
   // MARK: Reading
@@ -251,7 +252,7 @@ public final class McpServersModel {
 
           return false
         case .pending:
-          await pause(pollInterval)
+          await waitForNextPoll()
         }
       } catch {
         // Always tell the gateway the flow is over.

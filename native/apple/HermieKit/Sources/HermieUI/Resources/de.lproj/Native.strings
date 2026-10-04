@@ -370,6 +370,8 @@
 	<string>Überspringen</string>
 	<key>native.connectionRequest.title</key>
 	<string>Verbinde ein Konto, um fortzufahren</string>
+	<key>native.connectors.linkRefused</key>
+	<string>Das Gateway hat einen Anmeldelink gesendet, den Hermie nicht öffnet.</string>
 	<key>native.conversations.actionFailed</key>
 	<string>Das hat nicht geklappt: %@</string>
 	<key>native.conversations.actionsFor</key>

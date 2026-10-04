@@ -139,4 +139,11 @@ extension NativeStrings {
       String(localized: "native.mcpServers.needs", defaultValue: "Needs \(keys)", table: "Native", bundle: .module)
     }
   }
+
+  enum ConnectorsPage {
+    /// The gateway sent a sign-in link that Hermie will not open. (not an https link, or the system would not open it)
+    static var linkRefused: String {
+      String(localized: "native.connectors.linkRefused", table: "Native", bundle: .module)
+    }
+  }
 }
