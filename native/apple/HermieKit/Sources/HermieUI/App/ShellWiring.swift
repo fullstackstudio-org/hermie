@@ -16,7 +16,16 @@ extension LiveWiring {
     PushInbox.shared.attach(launch.push)
 
     let surfaces = launch.environment.appGroupContainer == nil ? nil : SystemSurfaces.live(copy: .localized)
-    let wiring = LiveWiring(launch: launch, accounts: accounts, live: live, surfaces: surfaces)
+    // What a bot asks while the app is not in front is also a local notification: the permission is
+    // the onboarding's to ask for, and a confirmation bounces the Dock icon once on the Mac.
+    let alerts = RequestAlerts(
+      push: launch.push,
+      center: SystemLocalNotifications(),
+      copy: .localized,
+      requestDockAttention: { DockAttention.bounce() }
+    )
+
+    let wiring = LiveWiring(launch: launch, accounts: accounts, live: live, surfaces: surfaces, alerts: alerts)
 
     wiring.start()
     return wiring

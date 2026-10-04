@@ -262,6 +262,53 @@ public struct ChatSummary: Sendable, Equatable {
   public var attached: Bool
   /// `lastMessageAt`, unix seconds.
   public var lastMessageAt: Double
+  /// The approvals, questions and interactive cards open in this chat, oldest first: what a local
+  /// notification needs (`RequestAlerts`), for a chat no screen observes too.
+  public var asks: [OpenAsk] = []
+}
+
+/// One request open on a chat's transcript (an approval, a clarify question or an interactive card),
+/// reduced to what a notification may be built from. No answer, no choices, no field and no detail.
+public struct OpenAsk: Sendable, Equatable {
+  /// The wire method (`PushRequestMethod`).
+  public var method: String
+  /// An approval's queue id (what `approval.pending` lists and a remote push carries); every other
+  /// request's `srq-…` id.
+  public var requestId: String
+  /// An approval's own description or a clarify's first question: one cleaned and bounded line, for a
+  /// notification when the reader allowed previews. Empty for an interactive card.
+  public var text: String
+
+  public init(method: String, requestId: String, text: String = "") {
+    self.method = method
+    self.requestId = requestId
+    self.text = text
+  }
+
+  /// The longest line kept.
+  public static let textLimit = 200
+
+  /// What a transcript item that waits for the person says, or nil for any other item.
+  public static func of(_ item: TranscriptItem) -> OpenAsk? {
+    switch item {
+    case .approval(let approval):
+      OpenAsk(
+        method: "approval",
+        requestId: approval.approvalID.isEmpty ? approval.requestID : approval.approvalID,
+        text: InteractivePrompt.line(approval.description, limit: textLimit)
+      )
+    case .clarify(let clarify):
+      OpenAsk(
+        method: "clarify",
+        requestId: clarify.requestID,
+        text: InteractivePrompt.line(clarify.questions.first?.question, limit: textLimit)
+      )
+    case .request(let request):
+      OpenAsk(method: request.method, requestId: request.requestID)
+    default:
+      nil
+    }
+  }
 }
 
 /// Everything that changed between two frames, delivered to the main actor in one hop.

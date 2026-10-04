@@ -35,6 +35,8 @@ public final class LiveWiring {
   public let surfaces: SystemSurfaces?
   /// The live gateway's ui_meta bridge, while it has a session.
   public private(set) var meta: GatewayMetaBridge?
+  /// The local notifications for open requests, when the shell has them (`RequestAlerts`).
+  public let alerts: RequestAlerts?
 
   /// How long a notification action waits for the socket before it gives up and only opens.
   var readyWait: Duration = .seconds(15)
@@ -48,6 +50,10 @@ public final class LiveWiring {
   private var tasks: [Task<Void, Never>] = []
   /// Follows the live session's chat list for the surfaces; one at a time.
   private var surfaceTask: Task<Void, Never>?
+  /// Follows the live session's open requests for `alerts`; one at a time.
+  private var requestTask: Task<Void, Never>?
+  private var retryTask: Task<Void, Never>?
+  private weak var alertedSession: GatewaySession?
   private var foreground = true
   private var foregroundWindows: Set<UUID> = []
   private var openChat: ChatTarget?
@@ -56,20 +62,25 @@ public final class LiveWiring {
 
   private let installLock: (@escaping @Sendable () -> Bool) -> Void
 
-  /// - Parameter installLock: where the surfaces' lock state is installed; `SystemSurfaceLock` in
-  ///   the app. A test passes its own, so the process-wide lock other tests read stays untouched.
+  /// - Parameters:
+  ///   - installLock: where the surfaces' lock state is installed; `SystemSurfaceLock` in
+  ///     the app. A test passes its own, so the process-wide lock other tests read stays untouched.
+  ///   - alerts: the local notifications for what the bots ask while the app is not in front; the
+  ///     live session's open requests are handed to it. `nil`: none (a test, a preview).
   public init(
     launch: AppLaunch,
     accounts: GatewayAccounts?,
     live: LiveGateway,
     surfaces: SystemSurfaces?,
-    installLock: @escaping (@escaping @Sendable () -> Bool) -> Void = { SystemSurfaceLock.install($0) }
+    installLock: @escaping (@escaping @Sendable () -> Bool) -> Void = { SystemSurfaceLock.install($0) },
+    alerts: RequestAlerts? = nil
   ) {
     self.launch = launch
     self.accounts = accounts
     self.live = live
     self.surfaces = surfaces
     self.installLock = installLock
+    self.alerts = alerts
   }
 
   /// Install the seams and start following. Idempotent.
@@ -102,11 +113,27 @@ public final class LiveWiring {
 
   /// A window closed: it no longer keeps the app in front.
   public func windowClosed(_ window: UUID) {
+    alerts?.presence.windowClosed(window)
+
     guard foregroundWindows.contains(window) else {
       return
     }
 
     setForeground(false, window: window)
+  }
+
+  /**
+   What one window shows, for the local notifications (`AppPresence`): whether the app is active in
+   it, whether it is the key window, and the chat on screen in it. Not the same as `setForeground`: a
+   window that is merely visible keeps the `seen` heartbeat going but is not looked at.
+   */
+  public func setPresence(window: UUID, active: Bool, key: Bool, gatewayId: String?, bot: String?) {
+    alerts?.presence.report(
+      window: window,
+      active: active,
+      key: key,
+      chat: bot.map { AppPresence.Chat(gatewayId: gatewayId ?? "", bot: $0) }
+    )
   }
 
   /// Whether the app is in front, as the windows reported it.
@@ -262,6 +289,17 @@ public final class LiveWiring {
   }
 
   func leaving(_ gatewayId: String) async {
+    // Nothing it still says, while it ends, may bring a notification back.
+    if alertedSession?.gatewayID == gatewayId {
+      requestTask?.cancel()
+      requestTask = nil
+      retryTask?.cancel()
+      retryTask = nil
+      alertedSession = nil
+    }
+
+    alerts?.sessionEnded(gatewayId: gatewayId)
+
     if let meta, meta.gatewayID == gatewayId {
       self.meta = nil
       // Nothing is written for this gateway any more: a purge after this stays purged.
@@ -297,6 +335,8 @@ public final class LiveWiring {
   private func sessionChanged() async {
     let session = live.session
 
+    followRequests(of: session)
+
     // A session rebuilt for the same gateway (new credentials) gets a bridge of its own.
     if let meta, session.map(meta.follows) != true {
       meta.stop()
@@ -329,6 +369,121 @@ public final class LiveWiring {
     bridge.setOpenChat(openChat?.gatewayId == session.gatewayID ? openChat?.bot : nil)
     bridge.start()
     followSurfaces(session, gatewayKey: entry.key)
+  }
+
+  // MARK: Open requests
+
+  /**
+   A tap on the notification of a request: the request comes up again even if the person had put it
+   away (Later, Esc, or leaving the chat while its sheet was up), because they asked for it. Only on
+   the live gateway, and only by an id that names a request there; the chat's own screen raises the
+   sheet once nothing holds it back, and shows nothing for a request that is no longer open.
+   */
+  public func bringBack(gatewayKey: String, bot: String, requestId: String) {
+    guard !requestId.isEmpty, let session = live.session,
+      launch.gateways.entry(id: session.gatewayID)?.key == gatewayKey
+    else {
+      return
+    }
+
+    for kind in [RequestShelf.Kind.answer, .secure, .interactive] {
+      session.requestShelf.bringBack(requestId, chat: bot, kind: kind)
+    }
+  }
+
+  /**
+   Hand the live session's open requests to `alerts`, now and whenever they change. A new session
+   (another gateway, or the same one with new credentials) replaces the old one: the requests of the
+   old one can no longer be answered from here, so its notifications are taken away first.
+   */
+  private func followRequests(of session: GatewaySession?) {
+    guard let alerts else {
+      return
+    }
+
+    if let session, session === alertedSession {
+      return
+    }
+
+    requestTask?.cancel()
+    requestTask = nil
+    retryTask?.cancel()
+    retryTask = nil
+
+    if let previous = alertedSession {
+      alerts.sessionEnded(gatewayId: previous.gatewayID)
+    }
+
+    alertedSession = session
+
+    guard let session else {
+      return
+    }
+
+    let gatewayKey = launch.gateways.entry(id: session.gatewayID)?.key ?? ""
+
+    requestTask = Task { [weak self, weak session] in
+      guard let session else {
+        return
+      }
+
+      let samples = Observations { session.openRequestSample() }
+
+      for await sample in samples {
+        guard let self, !Task.isCancelled else {
+          return
+        }
+
+        await self.alert(session, gatewayKey: gatewayKey, sample: sample)
+      }
+    }
+  }
+
+  private func alert(_ session: GatewaySession, gatewayKey: String, sample: OpenRequestSample) async {
+    guard let alerts else {
+      return
+    }
+
+    let (requests, unresolved) = await session.openRequests(from: sample)
+
+    // A session that is no longer the live one has nothing left to say.
+    guard alertedSession === session, !Task.isCancelled else {
+      return
+    }
+
+    retryTask?.cancel()
+    retryTask = nil
+
+    alerts.update(gatewayId: session.gatewayID, gatewayKey: gatewayKey, requests: requests, authoritative: sample.ready)
+
+    // A confirmation whose chat the store cannot name yet is not lost: ask again for a few seconds.
+    guard unresolved > 0 else {
+      return
+    }
+
+    retryTask = Task { [weak self, weak session] in
+      for _ in 0..<5 {
+        try? await Task.sleep(for: .seconds(1))
+
+        guard !Task.isCancelled, let self, let session, self.alertedSession === session else {
+          return
+        }
+
+        let sample = session.openRequestSample()
+        let (requests, unresolved) = await session.openRequests(from: sample)
+
+        guard self.alertedSession === session, !Task.isCancelled else {
+          return
+        }
+
+        self.alerts?.update(
+          gatewayId: session.gatewayID, gatewayKey: gatewayKey, requests: requests, authoritative: sample.ready)
+
+        if unresolved == 0 {
+          return
+        }
+      }
+    }
   }
 
   private func installationID() async -> String? {

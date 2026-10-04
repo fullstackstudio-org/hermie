@@ -19875,6 +19875,462 @@
         }
       }
     },
+    "native.requestAlert.approval" : {
+      "comment" : "A notification: the agent waits for an approval.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Braucht deine Freigabe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs your approval"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wacht op je goedkeuring"
+          }
+        }
+      }
+    },
+    "native.requestAlert.attention" : {
+      "comment" : "Shown on a notification about a request when previews are off.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Braucht deine Aufmerksamkeit"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs your attention"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vraagt je aandacht"
+          }
+        }
+      }
+    },
+    "native.requestAlert.calendar" : {
+      "comment" : "A notification: the agent has an event for the calendar.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hat einen Termin für deinen Kalender"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Has an event for your calendar"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heeft een afspraak voor je agenda"
+          }
+        }
+      }
+    },
+    "native.requestAlert.clarify" : {
+      "comment" : "A notification: the agent asked a question.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hat dir eine Frage gestellt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Asked you a question"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heeft je een vraag gesteld"
+          }
+        }
+      }
+    },
+    "native.requestAlert.confirmPasskey" : {
+      "comment" : "A notification: a confirmation that needs the passkey, in the app.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestätige das in der App"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm this in the app"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bevestig dit in de app"
+          }
+        }
+      }
+    },
+    "native.requestAlert.confirmPlain" : {
+      "comment" : "A notification: a confirmation.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Braucht deine Bestätigung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs your confirmation"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wacht op je bevestiging"
+          }
+        }
+      }
+    },
+    "native.requestAlert.contact" : {
+      "comment" : "A notification: the agent needs a contact.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Braucht einen Kontakt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs a contact"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heeft een contact nodig"
+          }
+        }
+      }
+    },
+    "native.requestAlert.diff" : {
+      "comment" : "A notification: the agent has changes to review.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hat Änderungen zur Durchsicht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Has changes to review"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heeft wijzigingen om na te kijken"
+          }
+        }
+      }
+    },
+    "native.requestAlert.draft" : {
+      "comment" : "A notification: the agent has a draft to review.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hat einen Entwurf zur Durchsicht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Has a draft to review"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heeft een concept om na te kijken"
+          }
+        }
+      }
+    },
+    "native.requestAlert.file" : {
+      "comment" : "A notification: the agent needs a file from the device.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Braucht eine Datei"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs a file"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heeft een bestand nodig"
+          }
+        }
+      }
+    },
+    "native.requestAlert.form" : {
+      "comment" : "A notification: the agent has a form to fill in.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hat ein Formular für dich"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Has a form for you"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heeft een formulier voor je"
+          }
+        }
+      }
+    },
+    "native.requestAlert.location" : {
+      "comment" : "A notification: the agent needs the device location.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Braucht deinen Standort"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs your location"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heeft je locatie nodig"
+          }
+        }
+      }
+    },
+    "native.requestAlert.scan" : {
+      "comment" : "A notification: the agent needs a code read with the camera.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Braucht einen Scan"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs a scan"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heeft een scan nodig"
+          }
+        }
+      }
+    },
+    "native.requestAlert.secret" : {
+      "comment" : "A notification: the agent needs a secret value.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Braucht ein Geheimnis"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs a secret"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heeft een geheim nodig"
+          }
+        }
+      }
+    },
+    "native.requestAlert.signature" : {
+      "comment" : "A notification: the agent needs a signature.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Braucht deine Unterschrift"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs your signature"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heeft je handtekening nodig"
+          }
+        }
+      }
+    },
+    "native.requestAlert.sudo" : {
+      "comment" : "A notification: the agent needs the administrator password.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Braucht dein Passwort"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs your password"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heeft je wachtwoord nodig"
+          }
+        }
+      }
+    },
+    "native.requestAlert.vaultCode" : {
+      "comment" : "A notification: the agent needs a one-time code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Braucht einen Bestätigungscode"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs a verification code"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heeft een verificatiecode nodig"
+          }
+        }
+      }
+    },
+    "native.requestAlert.vaultSaveLogin" : {
+      "comment" : "A notification: the agent wants to save a login.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Möchte ein Login speichern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wants to save a login"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wil een login opslaan"
+          }
+        }
+      }
+    },
+    "native.requestAlert.vaultUnlock" : {
+      "comment" : "A notification: the agent needs the master password of a password manager.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Braucht dein Master-Passwort"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs your master password"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heeft je hoofdwachtwoord nodig"
+          }
+        }
+      }
+    },
     "native.requests.answered" : {
       "comment" : "Spoken by VoiceOver when the answer to a bot's question was sent.",
       "extractionState" : "manual",

@@ -1662,6 +1662,44 @@
 	<string>Hermie kan de meldingsinstellingen van dit apparaat niet lezen, dus meldingen staan hier stil.</string>
 	<key>native.push.waiting</key>
 	<string>Wacht op het pushadres van dit apparaat…</string>
+	<key>native.requestAlert.approval</key>
+	<string>Wacht op je goedkeuring</string>
+	<key>native.requestAlert.attention</key>
+	<string>Vraagt je aandacht</string>
+	<key>native.requestAlert.calendar</key>
+	<string>Heeft een afspraak voor je agenda</string>
+	<key>native.requestAlert.clarify</key>
+	<string>Heeft je een vraag gesteld</string>
+	<key>native.requestAlert.confirmPasskey</key>
+	<string>Bevestig dit in de app</string>
+	<key>native.requestAlert.confirmPlain</key>
+	<string>Wacht op je bevestiging</string>
+	<key>native.requestAlert.contact</key>
+	<string>Heeft een contact nodig</string>
+	<key>native.requestAlert.diff</key>
+	<string>Heeft wijzigingen om na te kijken</string>
+	<key>native.requestAlert.draft</key>
+	<string>Heeft een concept om na te kijken</string>
+	<key>native.requestAlert.file</key>
+	<string>Heeft een bestand nodig</string>
+	<key>native.requestAlert.form</key>
+	<string>Heeft een formulier voor je</string>
+	<key>native.requestAlert.location</key>
+	<string>Heeft je locatie nodig</string>
+	<key>native.requestAlert.scan</key>
+	<string>Heeft een scan nodig</string>
+	<key>native.requestAlert.secret</key>
+	<string>Heeft een geheim nodig</string>
+	<key>native.requestAlert.signature</key>
+	<string>Heeft je handtekening nodig</string>
+	<key>native.requestAlert.sudo</key>
+	<string>Heeft je wachtwoord nodig</string>
+	<key>native.requestAlert.vaultCode</key>
+	<string>Heeft een verificatiecode nodig</string>
+	<key>native.requestAlert.vaultSaveLogin</key>
+	<string>Wil een login opslaan</string>
+	<key>native.requestAlert.vaultUnlock</key>
+	<string>Heeft je hoofdwachtwoord nodig</string>
 	<key>native.requests.answered</key>
 	<string>Antwoord verstuurd</string>
 	<key>native.requests.closesIn</key>

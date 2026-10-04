@@ -121,6 +121,11 @@ public final class GatewaySession {
   /// The person a session-token gateway's app section is kept under (`OWNER_USER_ID`).
   public nonisolated static let sessionTokenUser = "owner"
 
+  /// The approvals, questions and interactive cards open on each chat's transcript, by chat key: from
+  /// the chat summaries, so also for a chat no screen observes. Moves only when what is open does
+  /// (`openRequestSample()` reads it).
+  public internal(set) var openAsks: [String: [OpenAsk]] = [:]
+
   /// Told once per finished `/background` task, with the chat it ran in. The
   /// transcript shows the result as well; this is the seam for a local
   /// notification.
@@ -559,6 +564,7 @@ public final class GatewaySession {
     let cpuStart = clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)
 
     chatList.apply(batch.summaries, removed: batch.removed)
+    applyAsks(batch)
 
     for (key, snapshot) in batch.chats {
       models[key]?.apply(snapshot)

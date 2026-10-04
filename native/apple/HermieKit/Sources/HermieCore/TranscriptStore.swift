@@ -1112,15 +1112,18 @@ public actor TranscriptStore {
     let state = record.state
     let author = options.ownAuthor()
 
+    let needsInput = hasOpenRequest(state)
+
     return ChatSummary(
       key: key,
       preview: previewFromChat(state, ChatPreviewOptions(groupChat: true, ownAuthorID: author?.id)),
       unread: unreadCountSince(state, seenAt[key] ?? 0),
-      needsInput: hasOpenRequest(state),
+      needsInput: needsInput,
       busy: isBusy(state),
       hydration: state.hydration,
       attached: !(state.runtimeSessionID ?? "").isEmpty,
-      lastMessageAt: lastMessageAt(state)
+      lastMessageAt: lastMessageAt(state),
+      asks: needsInput ? openRequests(state).compactMap(OpenAsk.of) : []
     )
   }
 

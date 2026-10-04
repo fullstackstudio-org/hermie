@@ -199,6 +199,7 @@ public struct ChatWindow: View {
     .appAppearance(launch.settings)
     .modifier(TestProbes(launch: launch))
     .privacyCover(launch.lock)
+    .chatWindowPresence(chat)
     .task {
       ApplicationActivity.follow(launch.lock)
 

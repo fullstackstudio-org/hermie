@@ -34,6 +34,7 @@ struct PushLifecycle: ViewModifier {
           follow(route)
         }
         wiring?.setForeground(scenePhase != .background, window: handlerId)
+        reportPresence()
       }
       .onDisappear {
         launch.push.detachLinkHandler(handlerId)
@@ -52,9 +53,12 @@ struct PushLifecycle: ViewModifier {
       }
       .onChange(of: router.selectedChat, initial: true) { _, chat in
         wiring?.setOpenChat(gatewayId: chat?.gatewayId, bot: chat?.bot)
+        reportPresence()
       }
       #if os(macOS)
         .onChange(of: controlActiveState) { _, state in
+          reportPresence()
+
           if state == .key {
             launch.push.activateLinkHandler(handlerId)
             wiring?.setOpenChat(gatewayId: router.selectedChat?.gatewayId, bot: router.selectedChat?.bot)
@@ -66,6 +70,7 @@ struct PushLifecycle: ViewModifier {
   private func sceneChanged(_ phase: ScenePhase) {
     // Per window: the wiring keeps the app in front while any window is.
     wiring?.setForeground(phase != .background, window: handlerId)
+    reportPresence(phase)
 
     guard phase == .active else {
       return
@@ -76,6 +81,26 @@ struct PushLifecycle: ViewModifier {
   }
 
   /**
+   What this window shows the person, for the local notifications of requests (`AppPresence`): the
+   app is active in it, it is the key window, and the chat on screen. On the Mac a window that is
+   visible but not the one typed into does not count as looked at.
+   */
+  private func reportPresence(_ phase: ScenePhase? = nil) {
+    let phase = phase ?? scenePhase
+    let chat = router.selectedChat
+
+    #if os(macOS)
+      let active = phase != .background && controlActiveState != .inactive
+      let key = phase != .background && controlActiveState == .key
+    #else
+      let active = phase == .active
+      let key = active
+    #endif
+
+    wiring?.setPresence(window: handlerId, active: active, key: key, gatewayId: chat?.gatewayId, bot: chat?.bot)
+  }
+
+  /**
    Where a tap lands. A request that is not an approval opens the bot's chat: the request is shown
    there as it is today (the confirmation, secure input and passkey sheets come with their own
    task), and an approval's card is in that chat's transcript. A `security` notice opens the
@@ -83,7 +108,11 @@ struct PushLifecycle: ViewModifier {
    */
   private func follow(_ route: PushRoute) {
     switch route {
-    case .chat(let link), .conversation(let link, _), .request(let link, _):
+    case .request(let link, let request):
+      // Asked for by the tap, so it comes up again even if it had been put away.
+      wiring?.bringBack(gatewayKey: request.gatewayKey, bot: request.bot, requestId: request.requestId)
+      perform(router.handle(link), on: launch)
+    case .chat(let link), .conversation(let link, _):
       // Seam: the router has no conversation route yet, so a named conversation opens the bot's chat.
       perform(router.handle(link), on: launch)
     case .security(let gatewayId):
@@ -116,5 +145,51 @@ extension View {
   /// See `PushLifecycle`.
   func pushLifecycle(launch: AppLaunch, router: AppRouter) -> some View {
     modifier(PushLifecycle(launch: launch, router: router))
+  }
+}
+
+/**
+ What an extra window for one chat shows the person, for the local notifications of requests
+ (`AppPresence`): its own entry beside the main window's, so a request for the chat in the window
+ that is in front raises nothing, and one for the chat in the window behind does.
+ */
+struct ChatWindowPresence: ViewModifier {
+  let chat: ChatRef?
+
+  @State private var windowId = UUID()
+  @Environment(\.scenePhase) private var scenePhase
+  @Environment(\.liveWiring) private var wiring
+  #if os(macOS)
+    @Environment(\.controlActiveState) private var controlActiveState
+  #endif
+
+  func body(content: Content) -> some View {
+    content
+      .onAppear { report() }
+      .onDisappear { wiring?.windowClosed(windowId) }
+      .onChange(of: scenePhase) { report() }
+      .onChange(of: chat) { report() }
+      #if os(macOS)
+        .onChange(of: controlActiveState) { report() }
+      #endif
+  }
+
+  private func report() {
+    #if os(macOS)
+      let active = scenePhase != .background && controlActiveState != .inactive
+      let key = scenePhase != .background && controlActiveState == .key
+    #else
+      let active = scenePhase == .active
+      let key = active
+    #endif
+
+    wiring?.setPresence(window: windowId, active: active, key: key, gatewayId: chat?.gatewayId, bot: chat?.bot)
+  }
+}
+
+extension View {
+  /// See `ChatWindowPresence`.
+  func chatWindowPresence(_ chat: ChatRef?) -> some View {
+    modifier(ChatWindowPresence(chat: chat))
   }
 }

@@ -1662,6 +1662,44 @@
 	<string>Hermie cannot read this device’s notification settings, so notifications are paused here.</string>
 	<key>native.push.waiting</key>
 	<string>Waiting for this device’s push address…</string>
+	<key>native.requestAlert.approval</key>
+	<string>Needs your approval</string>
+	<key>native.requestAlert.attention</key>
+	<string>Needs your attention</string>
+	<key>native.requestAlert.calendar</key>
+	<string>Has an event for your calendar</string>
+	<key>native.requestAlert.clarify</key>
+	<string>Asked you a question</string>
+	<key>native.requestAlert.confirmPasskey</key>
+	<string>Confirm this in the app</string>
+	<key>native.requestAlert.confirmPlain</key>
+	<string>Needs your confirmation</string>
+	<key>native.requestAlert.contact</key>
+	<string>Needs a contact</string>
+	<key>native.requestAlert.diff</key>
+	<string>Has changes to review</string>
+	<key>native.requestAlert.draft</key>
+	<string>Has a draft to review</string>
+	<key>native.requestAlert.file</key>
+	<string>Needs a file</string>
+	<key>native.requestAlert.form</key>
+	<string>Has a form for you</string>
+	<key>native.requestAlert.location</key>
+	<string>Needs your location</string>
+	<key>native.requestAlert.scan</key>
+	<string>Needs a scan</string>
+	<key>native.requestAlert.secret</key>
+	<string>Needs a secret</string>
+	<key>native.requestAlert.signature</key>
+	<string>Needs your signature</string>
+	<key>native.requestAlert.sudo</key>
+	<string>Needs your password</string>
+	<key>native.requestAlert.vaultCode</key>
+	<string>Needs a verification code</string>
+	<key>native.requestAlert.vaultSaveLogin</key>
+	<string>Wants to save a login</string>
+	<key>native.requestAlert.vaultUnlock</key>
+	<string>Needs your master password</string>
 	<key>native.requests.answered</key>
 	<string>Answer sent</string>
 	<key>native.requests.closesIn</key>
