@@ -13,7 +13,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
   case appearance
   case privacy
   case voice
-  case capabilities
+  case skills
   case advanced
   case about
 
@@ -24,7 +24,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
     [.account, .gateways, .passkeys, .mcp],
     [.chats, .notifications, .memory],
     [.appearance, .privacy, .voice],
-    [.capabilities],
+    [.skills],
     [.advanced, .about]
   ]
 
@@ -40,7 +40,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
     case .appearance: Strings.App.Settings.Categories.appearance
     case .privacy: Strings.App.Settings.Categories.privacy
     case .voice: Strings.App.Settings.Categories.voice
-    case .capabilities: Strings.App.Settings.Categories.capabilities
+    case .skills: Strings.Skills.title
     case .advanced: Strings.App.Settings.Categories.advanced
     case .about: Strings.App.Settings.Categories.about
     }
@@ -58,7 +58,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
     case .appearance: Strings.App.Settings.Categories.Blurb.appearance
     case .privacy: Strings.App.Settings.Categories.Blurb.privacy
     case .voice: Strings.App.Settings.Categories.Blurb.voice
-    case .capabilities: Strings.App.Settings.Categories.Blurb.capabilities
+    case .skills: Strings.Skills.Settings.hint
     case .advanced: Strings.App.Settings.Categories.Blurb.advanced
     case .about: Strings.App.Settings.Categories.Blurb.about
     }
@@ -76,7 +76,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
     case .appearance: "circle.lefthalf.filled"
     case .privacy: "lock"
     case .voice: "mic"
-    case .capabilities: "bolt"
+    case .skills: "wand.and.stars"
     case .advanced: "slider.horizontal.3"
     case .about: "info.circle"
     }
@@ -88,7 +88,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
  the `Settings` window with a sidebar on the Mac.
 
  Implemented: Account, Privacy (the app lock), Gateways, MCP, Chats (the defaults, the cache and the folders),
- Notifications, Memory, Appearance, Voice and About. Every other category is a placeholder page until its task lands.
+ Notifications, Memory, Skills, Appearance, Voice and About. Every other category is a placeholder page until its task lands.
  */
 public struct SettingsView: View {
   private let onAddGateway: @MainActor () -> Void
@@ -237,6 +237,8 @@ struct SettingsPage: View {
         ChatListSettingsEntry()
       case .memory:
         MemorySettingsEntry()
+      case .skills:
+        SkillsSettingsEntry()
       case .notifications:
         NotificationsSettingsPage()
       case .appearance:

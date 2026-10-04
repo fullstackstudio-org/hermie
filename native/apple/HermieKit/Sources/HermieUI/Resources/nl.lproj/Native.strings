@@ -1380,6 +1380,30 @@
 	<string>Toch de browser gebruiken</string>
 	<key>native.signIn.waitingForBrowser</key>
 	<string>Wachten op de aanmelding in je browser…</string>
+	<key>native.skills.copyRemoveCommand</key>
+	<string>Kopieer het commando om te verwijderen</string>
+	<key>native.skills.detailsLoading</key>
+	<string>Details ophalen…</string>
+	<key>native.skills.detailsUnknown</key>
+	<string>De hub heeft niets over deze skill.</string>
+	<key>native.skills.more</key>
+	<string>Toon meer</string>
+	<key>native.skills.openBotSettings</key>
+	<string>Zet skills aan of uit in de instellingen van %@</string>
+	<key>native.skills.preview</key>
+	<string>Begin van SKILL.md</string>
+	<key>native.skills.removeFooter</key>
+	<string>Een skill verwijder je op de machine waar de gateway draait. Kopieer het commando uit het menu van de skill.</string>
+	<key>native.skills.source</key>
+	<string>Bron</string>
+	<key>native.skills.state.off</key>
+	<string>Uit</string>
+	<key>native.skills.state.on</key>
+	<string>Aan</string>
+	<key>native.skills.tags</key>
+	<string>Labels</string>
+	<key>native.skills.trust</key>
+	<string>Vertrouwen</string>
 	<key>native.tool.editedFile</key>
 	<string>Bestand bewerkt</string>
 	<key>native.tool.ranCode</key>

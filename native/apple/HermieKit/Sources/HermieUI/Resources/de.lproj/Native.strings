@@ -1380,6 +1380,30 @@
 	<string>Stattdessen den Browser verwenden</string>
 	<key>native.signIn.waitingForBrowser</key>
 	<string>Warte auf die Anmeldung im Browser…</string>
+	<key>native.skills.copyRemoveCommand</key>
+	<string>Befehl zum Entfernen kopieren</string>
+	<key>native.skills.detailsLoading</key>
+	<string>Details werden gelesen…</string>
+	<key>native.skills.detailsUnknown</key>
+	<string>Der Hub hat keine Angaben zu diesem Skill.</string>
+	<key>native.skills.more</key>
+	<string>Mehr anzeigen</string>
+	<key>native.skills.openBotSettings</key>
+	<string>Skills in den Einstellungen von %@ ein- oder ausschalten</string>
+	<key>native.skills.preview</key>
+	<string>Anfang von SKILL.md</string>
+	<key>native.skills.removeFooter</key>
+	<string>Ein Skill wird auf dem Rechner entfernt, auf dem das Gateway läuft. Kopiere den Befehl aus dem Menü des Skills.</string>
+	<key>native.skills.source</key>
+	<string>Quelle</string>
+	<key>native.skills.state.off</key>
+	<string>Aus</string>
+	<key>native.skills.state.on</key>
+	<string>An</string>
+	<key>native.skills.tags</key>
+	<string>Tags</string>
+	<key>native.skills.trust</key>
+	<string>Vertrauen</string>
 	<key>native.tool.editedFile</key>
 	<string>Datei bearbeitet</string>
 	<key>native.tool.ranCode</key>

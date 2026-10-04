@@ -16489,6 +16489,294 @@
         }
       }
     },
+    "native.skills.copyRemoveCommand" : {
+      "comment" : "Skills page: a skill's menu item that copies the command that removes it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Befehl zum Entfernen kopieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy the command that removes it"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopieer het commando om te verwijderen"
+          }
+        }
+      }
+    },
+    "native.skills.detailsLoading" : {
+      "comment" : "Skills page, a hub skill's details: while they are read.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details werden gelesen…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reading the details…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details ophalen…"
+          }
+        }
+      }
+    },
+    "native.skills.detailsUnknown" : {
+      "comment" : "Skills page, a hub skill's details: the hub answered with nothing.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Hub hat keine Angaben zu diesem Skill."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The hub has nothing on this skill."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De hub heeft niets over deze skill."
+          }
+        }
+      }
+    },
+    "native.skills.more" : {
+      "comment" : "Skills page: the button that reads the next page of the hub.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mehr anzeigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show more"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toon meer"
+          }
+        }
+      }
+    },
+    "native.skills.openBotSettings" : {
+      "comment" : "Skills page: the link to the bot's own settings, where skills are switched on and off. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skills in den Einstellungen von %@ ein- oder ausschalten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch skills on or off in %@’s settings"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zet skills aan of uit in de instellingen van %@"
+          }
+        }
+      }
+    },
+    "native.skills.preview" : {
+      "comment" : "Skills page, a hub skill's details: the start of its SKILL.md.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anfang von SKILL.md"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start of SKILL.md"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Begin van SKILL.md"
+          }
+        }
+      }
+    },
+    "native.skills.removeFooter" : {
+      "comment" : "Skills page: why there is no Remove button. The gateway's socket cannot remove a skill.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Skill wird auf dem Rechner entfernt, auf dem das Gateway läuft. Kopiere den Befehl aus dem Menü des Skills."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A skill is removed on the machine that runs the gateway. Copy the command from the skill’s menu."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een skill verwijder je op de machine waar de gateway draait. Kopieer het commando uit het menu van de skill."
+          }
+        }
+      }
+    },
+    "native.skills.source" : {
+      "comment" : "Skills page, a hub skill's details: where it comes from.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quelle"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bron"
+          }
+        }
+      }
+    },
+    "native.skills.state.off" : {
+      "comment" : "Skills page: a skill the bot has switched off.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uit"
+          }
+        }
+      }
+    },
+    "native.skills.state.on" : {
+      "comment" : "Skills page: a skill the bot has switched on.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aan"
+          }
+        }
+      }
+    },
+    "native.skills.tags" : {
+      "comment" : "Skills page, a hub skill's details: its tags.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tags"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tags"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Labels"
+          }
+        }
+      }
+    },
+    "native.skills.trust" : {
+      "comment" : "Skills page, a hub skill's details: how far the hub trusts it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vertrauen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trust"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vertrouwen"
+          }
+        }
+      }
+    },
     "native.tool.editedFile" : {
       "comment" : "A tool call that edited a file.",
       "extractionState" : "manual",

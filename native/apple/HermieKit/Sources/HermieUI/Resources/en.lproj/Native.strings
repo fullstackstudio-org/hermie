@@ -1380,6 +1380,30 @@
 	<string>Use the browser instead</string>
 	<key>native.signIn.waitingForBrowser</key>
 	<string>Waiting for the sign-in in your browser…</string>
+	<key>native.skills.copyRemoveCommand</key>
+	<string>Copy the command that removes it</string>
+	<key>native.skills.detailsLoading</key>
+	<string>Reading the details…</string>
+	<key>native.skills.detailsUnknown</key>
+	<string>The hub has nothing on this skill.</string>
+	<key>native.skills.more</key>
+	<string>Show more</string>
+	<key>native.skills.openBotSettings</key>
+	<string>Switch skills on or off in %@’s settings</string>
+	<key>native.skills.preview</key>
+	<string>Start of SKILL.md</string>
+	<key>native.skills.removeFooter</key>
+	<string>A skill is removed on the machine that runs the gateway. Copy the command from the skill’s menu.</string>
+	<key>native.skills.source</key>
+	<string>Source</string>
+	<key>native.skills.state.off</key>
+	<string>Off</string>
+	<key>native.skills.state.on</key>
+	<string>On</string>
+	<key>native.skills.tags</key>
+	<string>Tags</string>
+	<key>native.skills.trust</key>
+	<string>Trust</string>
 	<key>native.tool.editedFile</key>
 	<string>Edited a file</string>
 	<key>native.tool.ranCode</key>
