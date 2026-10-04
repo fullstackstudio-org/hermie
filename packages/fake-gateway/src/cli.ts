@@ -21,6 +21,7 @@ const { values } = parseArgs({
     'no-native-revoke': { type: 'boolean', default: false },
     idp: { type: 'string', default: 'single' },
     'plugin-assets': { type: 'string' },
+    'profile-home': { type: 'string', multiple: true },
     'no-web-client': { type: 'boolean', default: false },
     'no-web-push-key': { type: 'boolean', default: false },
     passkey: { type: 'boolean', default: false },
@@ -74,6 +75,10 @@ if (values.help) {
       '                          web client), with the dashboard route’s own rules: a suffix',
       '                          allow-list, 404 for a directory, no-store, and the sign-in gate',
       '                          (302 to /login?next=…) under --auth cookie',
+      '  --profile-home <p=dir>  a profile’s home on this machine, for GET /api/files/images/{name}?profile=<p>',
+      '                          (repeatable): <dir>/images/ holds the pictures that profile’s chats attached,',
+      '                          served by the real route’s rules (one name with an image suffix, a regular',
+      '                          file directly in images/, no link, 25 MB, 404 for everything else)',
       '  --no-web-client         drop `web.client`, the `web` block and `modules.web` from the',
       '                          plugin advert, staging a plugin older than the bundled client',
       '  --no-web-push-key       drop `push.webpush.key` and `webPush` from the advert, staging a',
@@ -192,6 +197,19 @@ if (values.scenario) {
   scenario = JSON.parse(readFileSync(values.scenario, 'utf8')) as Scenario
 }
 
+const profileHomes: Record<string, string> = {}
+
+for (const entry of values['profile-home'] ?? []) {
+  const at = entry.indexOf('=')
+
+  if (at < 1 || at === entry.length - 1) {
+    console.error(`--profile-home is <profile>=<directory> (got ${entry}).`)
+    process.exit(1)
+  }
+
+  profileHomes[entry.slice(0, at)] = entry.slice(at + 1)
+}
+
 const passkeyUrls = values['passkey-base-url'] ?? []
 const passkeyRps = values['passkey-rp'] ?? []
 const coolingOff = values['passkey-cooling-off']
@@ -273,6 +291,7 @@ const gateway = await startFakeGateway({
   ...(values['no-native-revoke'] ? { nativeRevoke: false as const } : {}),
   ...(values.idp === 'staged' ? { idp: 'staged' as const } : {}),
   ...(values['plugin-assets'] ? { pluginAssets: values['plugin-assets'] } : {}),
+  ...(Object.keys(profileHomes).length ? { profileHomes } : {}),
   ...(values['no-web-client'] ? { webClient: false as const } : {}),
   ...(values['no-web-push-key'] ? { webPushKey: false as const } : {}),
   ...(passkey ? { passkey } : {}),

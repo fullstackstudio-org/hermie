@@ -39,6 +39,7 @@ import { GRANT_FAILURES, type GrantFailure } from './passkey/store'
 import { InteractiveGate, type RaisedInteractive } from './interactive-gate'
 import { defaultParams, INTERACTIVE_METHODS, isInteractiveMethod, type InteractiveMethod } from './interactive'
 import { scheduleRefusal } from './cron-schedule'
+import { type AttachedImageSource, readAttachedImage } from './attached-images'
 import { DiffError, headOldPath, headPath, parseDiff } from './diff-hunks'
 import { ReviewRegister } from './review-register'
 import { grantView as mcpGrantView, handleMcpRoute, PREFIX as MCP_PREFIX } from './mcp/routes'
@@ -418,6 +419,19 @@ export interface FakeGatewayOptions {
    * `/dashboard-plugins/...` request answers 404.
    */
   pluginAssets?: string
+  /**
+   * Where each profile's home is on this machine, for `GET /api/files/images/{name}?profile=<profile>`: a
+   * profile name to a directory whose `images/` folder holds the pictures that profile's chats attached.
+   *
+   * It stages `<profile home>` of the real gateway (`hermes_cli/web_routers/files.py::get_attached_image`),
+   * with the route's own rules (`attached-images.ts`): one path component with an image suffix, a regular
+   * file directly in `images/`, no link, at most 25 MB, a 404 for everything else. A profile with no entry
+   * has no images; `default` is the profile a request without `profile` is for. The paths a transcript names
+   * (`/root/.hermes/images/…`) never have to exist: the bytes come from here.
+   *
+   * Absent: every request answers 404.
+   */
+  profileHomes?: Record<string, string>
   /**
    * Whether the plugin advertises the web client: `web.client`, the `web`
    * block and `modules.web`.
@@ -915,6 +929,8 @@ export interface FakeGatewayState {
   failNextTicketMints: number
   /** The ids `GET /api/auth/picture` was asked for, in order: a picture fetched twice shows twice. */
   pictureRequests: string[]
+  /** What `GET /api/files/images/{name}` was asked for and answered, in order. */
+  attachedImageRequests: { name: string; profile: string | null; status: number }[]
   /** Ticket mints answered with 503 because of `failNextTicketMints`. */
   ticketMintsFailed: number
   /**
@@ -2931,6 +2947,7 @@ function initialState(options: FakeGatewayOptions): FakeGatewayState {
     rejectNextUpgrades: 0,
     failNextTicketMints: 0,
     pictureRequests: [],
+    attachedImageRequests: [],
     ticketMintsFailed: 0,
     spentRefreshTokens: new Set<string>(),
     refreshReuseAttempts: 0,
@@ -3977,6 +3994,62 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
   // ---------------------------------------------------------------- HTTP ---
 
   /**
+   * `GET /api/files/images/{name}?profile=<profile>`, from `options.profileHomes` (`attached-images.ts`).
+   *
+   * Behind the gate like every `/api/` route, and only by what the gate accepts: a header or the session
+   * cookie, never `?token=` (an `<img>` address that carried the token would be a leaked credential).
+   */
+  function serveAttachedImage(req: IncomingMessage, res: ServerResponse, url: URL): void {
+    if (req.method !== 'GET') {
+      res.writeHead(405, { 'content-type': 'application/json', allow: 'GET' })
+      res.end(JSON.stringify({ detail: 'Method Not Allowed' }))
+
+      return
+    }
+
+    let name: string
+
+    try {
+      name = decodeURIComponent(url.pathname.slice('/api/files/images/'.length))
+    } catch {
+      json(res, 404, { detail: 'Not Found' })
+
+      return
+    }
+
+    // `{name}` is one path segment: a slash (encoded or not) leaves the route, as it does upstream.
+    if (name === '' || name.includes('/')) {
+      json(res, 404, { detail: 'Not Found' })
+
+      return
+    }
+
+    const source: AttachedImageSource = {
+      defaultProfile: LAUNCH_PROFILE,
+      profiles: new Set([LAUNCH_PROFILE, ...state.profiles.map(row => row.name)]),
+      homes: options.profileHomes ?? {}
+    }
+    const answer = readAttachedImage(source, name, url.searchParams.get('profile'))
+
+    state.attachedImageRequests.push({ name, profile: url.searchParams.get('profile'), status: answer.status })
+
+    if (answer.status !== 200) {
+      json(res, answer.status, { detail: answer.detail })
+
+      return
+    }
+
+    res.writeHead(200, {
+      'content-type': answer.contentType,
+      'content-length': answer.body.length,
+      'x-content-type-options': 'nosniff',
+      'content-disposition': `inline; filename="${name}"`,
+      'cache-control': 'private, max-age=3600'
+    })
+    res.end(answer.body)
+  }
+
+  /**
    * `GET /dashboard-plugins/{plugin_name}/{file_path:path}`, from `options.pluginAssets`.
    *
    * Only `hermie` is a plugin here, and only when the plugin is there at all
@@ -4532,6 +4605,8 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         interactiveRequests: interactive.list(),
         // Every `connection.respond` the strict contract accepted, as it was sent.
         connectionResponses: state.connectionResponses,
+        // What `GET /api/files/images/{name}` was asked for (name, profile) and answered (status).
+        attachedImageRequests: state.attachedImageRequests,
         // Stored ids of the sessions with a turn still streaming: how a client
         // that is away can tell the turn it missed has finished.
         runningSessions: [...state.runningSessions],
@@ -5437,6 +5512,12 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
     if (path === '/api/files/upload-stream' && method === 'POST') {
       await handleFileUpload(req, res)
+
+      return
+    }
+
+    if (path.startsWith('/api/files/images/')) {
+      serveAttachedImage(req, res, url)
 
       return
     }

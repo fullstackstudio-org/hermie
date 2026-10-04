@@ -428,3 +428,22 @@ code **4090**, `data.reason` `SESSION_NOT_OWNED`, and a message of the sentence 
 (or `gateway.state.ownedElsewhere`, stored session id to details line) stages it for a chat until `owned: false`;
 a new conversation is another session and goes through. `gateway.state.promptFailure` (a string) makes every
 `prompt.submit` fail with 5000 and that message, of any length. Tests: `src/session-owned.test.ts`.
+
+## Attached chat images (`--profile-home`)
+
+`GET /api/files/images/{name}?profile=<profile>` is the gateway's route for the bytes of an image attached
+to a chat (`hermes_cli/web_routers/files.py::get_attached_image`). A turn names such an image by its path,
+and a client may ask for it here only when the path's folder is that profile's own `images/` folder.
+
+| How                                                               | What it does                                                                                                                              |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run fake-gateway -- --profile-home researcher=/some/dir`     | `/some/dir/images/` is where `researcher`'s attached images are (repeatable; `default` is the profile a request without `profile` is for) |
+| `startFakeGateway({ profileHomes: { researcher: '/some/dir' } })` | the same in-process                                                                                                                       |
+
+The rules are the route's: one path component with an image suffix (`.png .jpg .jpeg .gif .webp .bmp`), a
+regular file directly in `images/` (no subfolder, no link at the file or the folder), at most 25 MB (413),
+a 404 for everything else with no hint whether the file exists, `400` for an invalid `profile` and `404` for
+an unknown one. It is behind the gate like every `/api/` route, by a header or the session cookie; a token in
+the address is not accepted. The paths a transcript names (`/root/.hermes/images/…`) never have to exist:
+`GET /__fake/state` reads back `attachedImageRequests` (`name`, `profile`, `status`, in order) to show what a
+client asked for. Tests: `src/attached-images.test.ts`.
