@@ -2044,6 +2044,20 @@
 	<string>Persönliche Stimme</string>
 	<key>native.voiceSetup.personalUse</key>
 	<string>Meine persönliche Stimme verwenden</string>
+	<key>native.voiceSetup.previewCallActive</key>
+	<string>Beispiele können während eines Sprachanrufs nicht abgespielt werden.</string>
+	<key>native.voiceSetup.previewLoading</key>
+	<string>Beispiel wird geladen</string>
+	<key>native.voiceSetup.previewNoSample</key>
+	<string>Das Gateway hat kein Beispiel dieser Stimme.</string>
+	<key>native.voiceSetup.previewPlay</key>
+	<string>Beispiel von %@ abspielen</string>
+	<key>native.voiceSetup.previewStop</key>
+	<string>Stopp</string>
+	<key>native.voiceSetup.previewUnplayable</key>
+	<string>Das Beispiel konnte nicht abgespielt werden.</string>
+	<key>native.voiceSetup.previewUnreachable</key>
+	<string>Das Beispiel konnte nicht geladen werden. Versuche es noch einmal.</string>
 	<key>native.voiceSetup.qualityCompact</key>
 	<string>einfach</string>
 	<key>native.voiceSetup.qualityEnhanced</key>
@@ -2072,5 +2086,11 @@
 	<string>Stimme</string>
 	<key>native.voiceSetup.voiceNumber</key>
 	<string>Stimme %lld</string>
+	<key>native.voiceSetup.voicesRetry</key>
+	<string>Erneut versuchen</string>
+	<key>native.voiceSetup.voicesStillLoading</key>
+	<string>Dein Gateway lädt seine Stimmen noch.</string>
+	<key>native.voiceSetup.voicesUnavailable</key>
+	<string>Dein Gateway kann seine Stimmen gerade nicht auflisten.</string>
 </dict>
 </plist>

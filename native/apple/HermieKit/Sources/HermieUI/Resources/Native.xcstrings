@@ -24494,6 +24494,174 @@
         }
       }
     },
+    "native.voiceSetup.previewCallActive" : {
+      "comment" : "Shown when a sample is asked for during a voice call.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beispiele können während eines Sprachanrufs nicht abgespielt werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Samples can't play during a voice call."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voorbeelden kunnen niet tijdens een spraakgesprek worden afgespeeld."
+          }
+        }
+      }
+    },
+    "native.voiceSetup.previewLoading" : {
+      "comment" : "Accessibility value of a voice's play button while its sample is fetched.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beispiel wird geladen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading the sample"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voorbeeld laden"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.previewNoSample" : {
+      "comment" : "Shown under a voice whose sample the gateway does not have.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Gateway hat kein Beispiel dieser Stimme."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The gateway has no sample of this voice."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je gateway heeft geen voorbeeld van deze stem."
+          }
+        }
+      }
+    },
+    "native.voiceSetup.previewPlay" : {
+      "comment" : "Accessibility label of a voice's play button; %@ is the voice's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beispiel von %@ abspielen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play sample of %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voorbeeld van %@ afspelen"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.previewStop" : {
+      "comment" : "Accessibility label of a voice's play button while its sample loads or plays.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stopp"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.previewUnplayable" : {
+      "comment" : "Shown under a voice whose sample could not be played.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Beispiel konnte nicht abgespielt werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't play the sample."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het voorbeeld kon niet worden afgespeeld."
+          }
+        }
+      }
+    },
+    "native.voiceSetup.previewUnreachable" : {
+      "comment" : "Shown under a voice whose sample could not be fetched.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Beispiel konnte nicht geladen werden. Versuche es noch einmal."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't get the sample. Try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het voorbeeld kon niet worden opgehaald. Probeer het opnieuw."
+          }
+        }
+      }
+    },
     "native.voiceSetup.qualityCompact" : {
       "comment" : "A compact (basic) voice's quality, in the dot's accessibility label.",
       "extractionState" : "manual",
@@ -24826,6 +24994,78 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Stem %lld"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.voicesRetry" : {
+      "comment" : "Button that asks the gateway for its voice list again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut versuchen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opnieuw proberen"
+          }
+        }
+      }
+    },
+    "native.voiceSetup.voicesStillLoading" : {
+      "comment" : "Shown instead of the voice list while the gateway is still reading it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Gateway lädt seine Stimmen noch."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your gateway is still loading its voices."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je gateway is zijn stemmen nog aan het laden."
+          }
+        }
+      }
+    },
+    "native.voiceSetup.voicesUnavailable" : {
+      "comment" : "Shown instead of the voice list when the gateway could not read it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Gateway kann seine Stimmen gerade nicht auflisten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your gateway can't list its voices right now."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je gateway kan zijn stemmen nu niet tonen."
           }
         }
       }

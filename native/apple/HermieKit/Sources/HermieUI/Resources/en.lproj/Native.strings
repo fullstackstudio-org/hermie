@@ -2044,6 +2044,20 @@
 	<string>Personal Voice</string>
 	<key>native.voiceSetup.personalUse</key>
 	<string>Use my Personal Voice</string>
+	<key>native.voiceSetup.previewCallActive</key>
+	<string>Samples can't play during a voice call.</string>
+	<key>native.voiceSetup.previewLoading</key>
+	<string>Loading the sample</string>
+	<key>native.voiceSetup.previewNoSample</key>
+	<string>The gateway has no sample of this voice.</string>
+	<key>native.voiceSetup.previewPlay</key>
+	<string>Play sample of %@</string>
+	<key>native.voiceSetup.previewStop</key>
+	<string>Stop</string>
+	<key>native.voiceSetup.previewUnplayable</key>
+	<string>Couldn't play the sample.</string>
+	<key>native.voiceSetup.previewUnreachable</key>
+	<string>Couldn't get the sample. Try again.</string>
 	<key>native.voiceSetup.qualityCompact</key>
 	<string>basic</string>
 	<key>native.voiceSetup.qualityEnhanced</key>
@@ -2072,5 +2086,11 @@
 	<string>Voice</string>
 	<key>native.voiceSetup.voiceNumber</key>
 	<string>Voice %lld</string>
+	<key>native.voiceSetup.voicesRetry</key>
+	<string>Try again</string>
+	<key>native.voiceSetup.voicesStillLoading</key>
+	<string>Your gateway is still loading its voices.</string>
+	<key>native.voiceSetup.voicesUnavailable</key>
+	<string>Your gateway can't list its voices right now.</string>
 </dict>
 </plist>

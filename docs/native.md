@@ -2350,6 +2350,17 @@ where the gateway can speak, see "The gateway's voice" below).
   list is offered only when `voice-config` says `voice_selection: true` (then `voice` rides in the POST body and the
   stream's text frame; `voices` lists Edge's), and until then the gateway speaks in the voice it is set up with.
   Pace and expressivity are the device voice's. Ogg from the file route cannot be read by the system (a fall-back).
+  **Hearing a voice first**: a voice row gets a small play button only where `voice-config` says the preview is free
+  (`tts.voice_preview`: `"sample"` is ElevenLabs, a recording per voice from
+  `GET /api/audio/elevenlabs/voices/{id}/preview`, offered for the voices whose list entry says `preview: true`;
+  `"speak"` is Edge, a short sentence through `POST /api/audio/speak`; absent is a paid provider and no button).
+  `GatewayVoicePreviewer` (one per screen) fetches and keeps each sample for the screen's lifetime, plays one at a
+  time on `GatewayClipPlayer`, never while a call holds the audio, and never changes the selection; a failure is
+  said under the voice it happened to. `tts.voices_error` shows the list empty: `loading` is asked again after 2 s,
+  up to 3 times, then offers a retry like `unavailable`. A stream `error` frame (`invalid_voice`, `unknown_voice`,
+  `voice_unsupported`, `voice_failed`, `invalid_prosody`) is spoken from the file route like `fallback`; a voice the
+  gateway does not know or could not make is not asked for again in the session, one it cannot stream is not
+  streamed again.
 - **A voice per bot** (bot settings › Voice, `BotVoiceSection`): Default (the Voice screen's choice) or a source and
   a voice for that bot, kept in the `hermie.voice` blob per gateway and bot (`VoiceSettings.botVoices`) and resolved
   by `VoiceSettings.speech(bot:gatewayID:)` when `ReadAloudModel` starts a request, which is what "Read aloud", the

@@ -17,12 +17,16 @@ public struct GatewayVoice: Sendable, Equatable, Identifiable {
   public var label: String
   /// A BCP-47 tag, when the gateway says.
   public var language: String?
+  /// The gateway has a recorded sample of this voice to play (`preview: true` in ElevenLabs' list).
+  /// False when it says nothing: a button is only shown for what the gateway says is there.
+  public var hasSample: Bool
 
-  public init(id: String, name: String, label: String? = nil, language: String? = nil) {
+  public init(id: String, name: String, label: String? = nil, language: String? = nil, hasSample: Bool = false) {
     self.id = id
     self.name = name
     self.label = label ?? name
     self.language = language
+    self.hasSample = hasSample
   }
 
   /// One entry of a voice list: `voice_id` (or `id`), `name`, `label`, `language`. Nil without an id.
@@ -41,10 +45,10 @@ public struct GatewayVoice: Sendable, Equatable, Identifiable {
     let name = object["name"]?.stringValue.flatMap { $0.isEmpty ? nil : $0 } ?? id
     let label = object["label"]?.stringValue.flatMap { $0.isEmpty ? nil : $0 }
     let language = object["language"]?.stringValue.flatMap { $0.isEmpty ? nil : $0 }
-    self.init(id: id, name: name, label: label, language: language)
+    self.init(id: id, name: name, label: label, language: language, hasSample: object["preview"]?.boolValue == true)
   }
 
-  /// `GET /api/audio/elevenlabs/voices`: `{available, voices: [{voice_id, name, label}]}`. Empty for a
+  /// `GET /api/audio/elevenlabs/voices`: `{available, voices: [{voice_id, name, label, preview}]}`. Empty for a
   /// gateway with no ElevenLabs key.
   static func elevenLabsList(_ body: JSONValue?) -> [GatewayVoice] {
     guard body?["available"]?.boolValue != false else {
@@ -53,6 +57,22 @@ public struct GatewayVoice: Sendable, Equatable, Identifiable {
 
     return (body?["voices"]?.arrayValue ?? []).compactMap(GatewayVoice.init(json:))
   }
+}
+
+/// How a voice can be heard before it is chosen, as `tts.voice_preview` says: free, or not at all.
+public enum GatewayVoicePreview: String, Sendable, Equatable {
+  /// A recorded sample per voice (ElevenLabs): `GET /api/audio/elevenlabs/voices/{id}/preview`.
+  case sample
+  /// The voice speaks a short sentence through `POST /api/audio/speak` (Edge, which costs nothing).
+  case speak
+}
+
+/// Why the gateway's voice list is empty, as `tts.voices_error` says.
+public enum GatewayVoicesError: String, Sendable, Equatable {
+  /// The provider's list cannot be read now.
+  case unavailable
+  /// The gateway is still reading it.
+  case loading
 }
 
 /**
@@ -68,6 +88,11 @@ public struct GatewayVoice: Sendable, Equatable, Identifiable {
    serves itself through `/api/audio/speak`. Either way the gateway can speak: TTS is available when
    the answer has a `tts` object at all, and not when the route is missing or failed.
  - A relay verdict names its provider only inside its reason ("provider 'edge' has no client wire").
+ - `voice_preview` says whether a voice may be heard before it is chosen, and how: `"sample"` (a
+   recording per voice) or `"speak"` (the voice says a sentence; free). Absent, the provider is a paid
+   one and the app offers no preview at all.
+ - `prosody` is a gateway that takes pace and pitch with a request; `voices_error` (`unavailable` or
+   `loading`) says the voice list could not be had, and the app shows it empty with a retry.
  - Two optional fields are for a gateway that can speak in a voice the request names, which the
    gateway as shipped cannot (`TTSSpeakRequest` is just `text`): `voice_selection: true`, and for a
    provider with no voice list of its own, `voices: [{id, name, language}]`. Without
@@ -84,16 +109,26 @@ public struct GatewayVoiceConfig: Sendable, Equatable {
   public var voiceSelection: Bool
   /// The voices the gateway lists for its provider (not ElevenLabs': `elevenLabsVoices` is its own route).
   public var voices: [GatewayVoice]
+  /// How a voice can be heard before it is chosen; nil where it may not be (a paid provider).
+  public var voicePreview: GatewayVoicePreview?
+  /// The gateway takes pace and pitch with a request.
+  public var prosody: Bool
+  /// Why the voice list is empty, when the gateway says it could not read it.
+  public var voicesError: GatewayVoicesError?
 
   public init(
     ttsAvailable: Bool, provider: String? = nil, defaultVoice: String? = nil, voiceSelection: Bool = false,
-    voices: [GatewayVoice] = []
+    voices: [GatewayVoice] = [], voicePreview: GatewayVoicePreview? = nil, prosody: Bool = false,
+    voicesError: GatewayVoicesError? = nil
   ) {
     self.ttsAvailable = ttsAvailable
     self.provider = provider
     self.defaultVoice = defaultVoice
     self.voiceSelection = voiceSelection
     self.voices = voices
+    self.voicePreview = voicePreview
+    self.prosody = prosody
+    self.voicesError = voicesError
   }
 
   /// A gateway that cannot be asked, or that cannot speak.
@@ -126,7 +161,10 @@ public struct GatewayVoiceConfig: Sendable, Equatable {
 
     return GatewayVoiceConfig(
       ttsAvailable: true, provider: provider.flatMap { $0.isEmpty ? nil : $0 }, defaultVoice: voice,
-      voiceSelection: tts["voice_selection"]?.boolValue == true, voices: voices)
+      voiceSelection: tts["voice_selection"]?.boolValue == true, voices: voices,
+      voicePreview: tts["voice_preview"]?.stringValue.flatMap(GatewayVoicePreview.init(rawValue:)),
+      prosody: tts["prosody"]?.boolValue == true,
+      voicesError: tts["voices_error"]?.stringValue.flatMap(GatewayVoicesError.init(rawValue:)))
   }
 
   /// `provider 'edge' has no client wire` → `edge`.
@@ -198,6 +236,9 @@ public enum GatewayStreamEvent: Sendable, Equatable {
   case end
   /// The provider has no chunked API: use `POST /api/audio/speak`.
   case fallback
+  /// The gateway refused the request's voice or prosody and closed: `code` is `invalid_voice`,
+  /// `unknown_voice`, `voice_unsupported`, `voice_failed` or `invalid_prosody` (or one a newer gateway adds).
+  case error(code: String, message: String)
 }
 
 /**
@@ -210,7 +251,16 @@ public protocol GatewaySpeechTransport: Sendable {
   func elevenLabsVoices(profile: String?) async throws -> [GatewayVoice]
   /// `POST /api/audio/speak`: the whole sentence as one clip. `voice` is sent only when it is named.
   func speak(text: String, profile: String?, voice: String?) async throws -> GatewayAudioClip
+  /// `GET /api/audio/elevenlabs/voices/{id}/preview`: the recorded sample of one ElevenLabs voice.
+  /// Throws `GatewayPreviewError.noSample` where the gateway has none (404).
+  func previewSample(voiceID: String, profile: String?) async throws -> GatewayAudioClip
   /// `WS /api/audio/speak-stream`: the text as one piece, its audio as it is made. The stream ends
-  /// after `.end` or `.fallback`, or throws; cancelling the consumer closes the socket (barge-in).
+  /// after `.end`, `.fallback` or `.error`, or throws; cancelling the consumer closes the socket (barge-in).
   func stream(text: String, profile: String?, voice: String?) -> AsyncThrowingStream<GatewayStreamEvent, any Error>
+}
+
+/// Why a voice's sample could not be had.
+public enum GatewayPreviewError: Error, Equatable, Sendable {
+  /// The gateway has no sample of this voice.
+  case noSample
 }

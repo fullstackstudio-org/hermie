@@ -35,6 +35,8 @@ public struct LiveGatewaySpeech: GatewaySpeechTransport {
   static let configPath = "/api/audio/voice-config"
   static let voicesPath = "/api/audio/elevenlabs/voices"
   static let speakPath = "/api/audio/speak"
+  /// The most a sample may weigh: a few seconds of speech, not a recording of a minute.
+  static let previewMaxBytes = 4 * 1024 * 1024
 
   public func voiceConfig(profile: String?) async throws -> GatewayVoiceConfig {
     GatewayVoiceConfig.parse(try await http.get(Self.configPath + Self.query(profile), timeoutMs: Self.configTimeoutMs))
@@ -42,6 +44,25 @@ public struct LiveGatewaySpeech: GatewaySpeechTransport {
 
   public func elevenLabsVoices(profile: String?) async throws -> [GatewayVoice] {
     GatewayVoice.elevenLabsList(try await http.get(Self.voicesPath + Self.query(profile), timeoutMs: Self.configTimeoutMs))
+  }
+
+  public func previewSample(voiceID: String, profile: String?) async throws -> GatewayAudioClip {
+    let answer = try await http.fetchBinary(
+      Self.previewPath(voiceID: voiceID) + Self.query(profile), maxBytes: Self.previewMaxBytes,
+      timeoutMs: Self.speakTimeoutMs)
+
+    if answer.status == 404 {
+      throw GatewayPreviewError.noSample
+    }
+
+    guard let data = answer.data, !data.isEmpty else {
+      throw GatewayError(
+        answer.status == 0 ? .network : .protocol, "The gateway gave no sample of the voice (HTTP \(answer.status)).",
+        status: answer.status == 0 ? nil : answer.status)
+    }
+
+    let type = answer.contentType.split(separator: ";").first.map { $0.trimmingCharacters(in: .whitespaces).lowercased() } ?? ""
+    return GatewayAudioClip(data: data, mimeType: type.hasPrefix("audio/") ? type : "audio/mpeg")
   }
 
   public func speak(text: String, profile: String?, voice: String?) async throws -> GatewayAudioClip {
@@ -94,7 +115,7 @@ public struct LiveGatewaySpeech: GatewaySpeechTransport {
 
               continuation.yield(event)
 
-              if event == .end || event == .fallback {
+              if event.endsStream {
                 continuation.finish()
                 await opened.close(code: WebSocketClosed.normalClosure, reason: nil)
                 return
@@ -118,7 +139,8 @@ public struct LiveGatewaySpeech: GatewaySpeechTransport {
     }
   }
 
-  /// A text frame: `{"type": "start", "sample_rate": N, "channels": 1}`, `{"type": "end"}`, `{"type": "fallback"}`.
+  /// A text frame: `{"type": "start", "sample_rate": N, "channels": 1}`, `{"type": "end"}`, `{"type": "fallback"}`,
+  /// `{"type": "error", "code": …, "message": …}` (the socket closes after the last three).
   static func event(from text: String) -> GatewayStreamEvent? {
     guard let frame = try? JSONValue(parsing: text), let type = frame["type"]?.stringValue else {
       return nil
@@ -131,8 +153,17 @@ public struct LiveGatewaySpeech: GatewaySpeechTransport {
       return rate > 0 ? .start(sampleRate: rate, channels: max(1, channels)) : nil
     case "end": return .end
     case "fallback": return .fallback
+    case "error":
+      let code = frame["code"]?.stringValue ?? ""
+      return .error(code: code.isEmpty ? "unknown" : code, message: frame["message"]?.stringValue ?? "")
     default: return nil
     }
+  }
+
+  /// `/api/audio/elevenlabs/voices/{id}/preview`, the id as one path segment.
+  static func previewPath(voiceID: String) -> String {
+    let allowed = CharacterSet.urlPathAllowed.subtracting(CharacterSet(charactersIn: "/?#%"))
+    return voicesPath + "/" + (voiceID.addingPercentEncoding(withAllowedCharacters: allowed) ?? voiceID) + "/preview"
   }
 
   static func query(_ profile: String?) -> String {
@@ -142,5 +173,15 @@ public struct LiveGatewaySpeech: GatewaySpeechTransport {
 
     let allowed = CharacterSet.urlQueryAllowed.subtracting(CharacterSet(charactersIn: "&=+#?"))
     return "?profile=" + (profile.addingPercentEncoding(withAllowedCharacters: allowed) ?? profile)
+  }
+}
+
+extension GatewayStreamEvent {
+  /// The gateway has nothing more to say on this socket after it.
+  var endsStream: Bool {
+    switch self {
+    case .end, .fallback, .error: true
+    case .start, .pcm: false
+    }
   }
 }

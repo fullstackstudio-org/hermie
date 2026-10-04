@@ -2044,6 +2044,20 @@
 	<string>Persoonlijke stem</string>
 	<key>native.voiceSetup.personalUse</key>
 	<string>Mijn persoonlijke stem gebruiken</string>
+	<key>native.voiceSetup.previewCallActive</key>
+	<string>Voorbeelden kunnen niet tijdens een spraakgesprek worden afgespeeld.</string>
+	<key>native.voiceSetup.previewLoading</key>
+	<string>Voorbeeld laden</string>
+	<key>native.voiceSetup.previewNoSample</key>
+	<string>Je gateway heeft geen voorbeeld van deze stem.</string>
+	<key>native.voiceSetup.previewPlay</key>
+	<string>Voorbeeld van %@ afspelen</string>
+	<key>native.voiceSetup.previewStop</key>
+	<string>Stop</string>
+	<key>native.voiceSetup.previewUnplayable</key>
+	<string>Het voorbeeld kon niet worden afgespeeld.</string>
+	<key>native.voiceSetup.previewUnreachable</key>
+	<string>Het voorbeeld kon niet worden opgehaald. Probeer het opnieuw.</string>
 	<key>native.voiceSetup.qualityCompact</key>
 	<string>basis</string>
 	<key>native.voiceSetup.qualityEnhanced</key>
@@ -2072,5 +2086,11 @@
 	<string>Stem</string>
 	<key>native.voiceSetup.voiceNumber</key>
 	<string>Stem %lld</string>
+	<key>native.voiceSetup.voicesRetry</key>
+	<string>Opnieuw proberen</string>
+	<key>native.voiceSetup.voicesStillLoading</key>
+	<string>Je gateway is zijn stemmen nog aan het laden.</string>
+	<key>native.voiceSetup.voicesUnavailable</key>
+	<string>Je gateway kan zijn stemmen nu niet tonen.</string>
 </dict>
 </plist>

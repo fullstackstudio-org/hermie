@@ -57,6 +57,22 @@ public struct HTTPExchange: Sendable, Equatable {
   public var ok: Bool { (200...299).contains(status) }
 }
 
+/// What `HTTPClient.fetchBinary` came back with.
+public struct BinaryAnswer: Sendable, Equatable {
+  /// The HTTP status; 0 when the gateway could not be reached or the answer was too large.
+  public var status: Int
+  /// The body of a 2xx answer.
+  public var data: Data?
+  /// The `content-type` header of that answer, verbatim; empty when absent.
+  public var contentType: String
+
+  public init(status: Int, data: Data? = nil, contentType: String = "") {
+    self.status = status
+    self.data = data
+    self.contentType = contentType
+  }
+}
+
 /// What fetching an authenticated picture came back with (`PictureFetchOutcome`).
 public enum PictureFetchOutcome: Sendable, Equatable {
   case ready(dataURI: String)
@@ -177,6 +193,31 @@ public struct HTTPClient: Sendable {
     }
 
     return data
+  }
+
+  /// `GET` a binary answer with its status and type, with the same 401-then-retry as every other call
+  /// and no redirect followed (a clip of audio, say, where a 404 means "there is none" and is not a
+  /// failure). `status` is 0 when the gateway could not be reached; `data` is nil unless the answer
+  /// was a 2xx no larger than `maxBytes`. Throws only what the credential provider throws.
+  public func fetchBinary(_ path: String, maxBytes: Int = 8 * 1024 * 1024, timeoutMs: Int? = nil) async throws -> BinaryAnswer {
+    var attempt = try await attemptBinary(path, timeoutMs: timeoutMs, auth: AuthHeaderOptions(), maxBytes: maxBytes)
+
+    if attempt.status == 401 {
+      timeline?.record(AuthEvent(.restUnauthorized, status: 401, kind: .auth))
+
+      if try await credentials.onRejected(rejectedToken: attempt.usedToken) == .reauth {
+        return BinaryAnswer(status: 401)
+      }
+
+      attempt = try await attemptBinary(
+        path, timeoutMs: timeoutMs, auth: AuthHeaderOptions(forceRefresh: false), maxBytes: maxBytes)
+    }
+
+    guard attempt.ok, let data = attempt.data, data.count <= maxBytes else {
+      return BinaryAnswer(status: attempt.status)
+    }
+
+    return BinaryAnswer(status: attempt.status, data: data, contentType: attempt.contentType)
   }
 
   /// The headers a fetch this client does NOT make would still need (an

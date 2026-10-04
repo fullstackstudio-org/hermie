@@ -236,6 +236,139 @@ extension Integration {
       }
     }
 
+    // MARK: Hearing a voice first
+
+    @Test("a gateway with recorded samples says so, and a sample is fetched over HTTP and decodes as audio")
+    func sampleOfAVoice() async throws {
+      let arguments = ["--tts-provider", "elevenlabs", "--tts-voice-selection", "--tts-voice-preview", "sample"]
+
+      try await withCapabilitySession(FakeGateway.Options(extraArguments: arguments)) { session, gateway in
+        let access = try access(session)
+        await access.loadConfig()
+        await access.loadVoices()
+
+        #expect(access.config?.voicePreview == .sample)
+        let rachel = try #require(access.selectableVoices.first { $0.id == "voice-rachel" })
+        #expect(rachel.hasSample)
+        #expect(access.canPreview(rachel))
+
+        let clip = try await access.previewClip(for: rachel, sentence: "unused")
+
+        #expect(clip.mimeType == "audio/mpeg")
+        #expect(!(try GatewayAudioDecoding.decode(clip)).isEmpty, "the system's reader opens it as a reply's file is opened")
+
+        let asked = try await requests(gateway)
+        #expect(asked.map { $0["kind"]?.stringValue } == ["preview"])
+        #expect(asked.first?["voice"] == .string("voice-rachel"))
+        #expect(asked.first?["profile"] == .string("researcher"))
+      }
+    }
+
+    @Test("a voice the gateway has no sample of is a 404, said as such")
+    func noSample() async throws {
+      let arguments = ["--tts-provider", "elevenlabs", "--tts-voice-selection", "--tts-voice-preview", "sample"]
+
+      try await withCapabilitySession(FakeGateway.Options(extraArguments: arguments)) { session, _ in
+        let access = try access(session)
+        await access.loadConfig()
+
+        await #expect(throws: GatewayPreviewError.noSample) {
+          _ = try await access.transport.previewSample(voiceID: "voice-nobody", profile: nil)
+        }
+      }
+    }
+
+    @Test("a provider that speaks for nothing is previewed through speak, in the voice")
+    func speakPreview() async throws {
+      let arguments = ["--tts-voice-selection", "--tts-voice-preview", "speak"]
+
+      try await withCapabilitySession(FakeGateway.Options(extraArguments: arguments)) { session, gateway in
+        let access = try access(session)
+        await access.loadConfig()
+        let colette = GatewayVoice(id: "nl-NL-ColetteNeural", name: "Colette", language: "nl-NL")
+
+        #expect(access.config?.voicePreview == .speak)
+        #expect(access.canPreview(colette))
+
+        let clip = try await access.previewClip(for: colette, sentence: "A short sentence.")
+
+        #expect(!(try GatewayAudioDecoding.decode(clip)).isEmpty)
+        let asked = try await requests(gateway)
+        #expect(asked.first?["kind"] == .string("speak"))
+        #expect(asked.first?["text"] == .string("A short sentence."))
+        #expect(asked.first?["voice"] == .string("nl-NL-ColetteNeural"))
+      }
+    }
+
+    @Test("a gateway that says nothing of previews offers none")
+    func paidProvider() async throws {
+      try await withCapabilitySession(FakeGateway.Options(extraArguments: ["--tts-provider", "openai"])) { session, _ in
+        let access = try access(session)
+        await access.loadConfig()
+
+        #expect(access.config?.voicePreview == nil)
+        #expect(!access.canPreview(GatewayVoice(id: "alloy", name: "Alloy", hasSample: true)))
+      }
+    }
+
+    @Test("a voice list that could not be read is empty, and a retry reads it again")
+    func voicesError() async throws {
+      let arguments = ["--tts-voice-selection", "--tts-voices-error", "unavailable"]
+
+      try await withCapabilitySession(FakeGateway.Options(extraArguments: arguments)) { session, _ in
+        let access = try access(session)
+        await access.loadConfig()
+        await access.loadVoices()
+
+        #expect(access.voicesError == .unavailable)
+        #expect(access.selectableVoices.isEmpty)
+
+        await access.retryVoices()
+
+        #expect(access.voicesError == .unavailable, "this gateway always fails: the retry asked and was told so")
+      }
+    }
+
+    // MARK: The stream's error frame
+
+    @Test("an error frame is spoken from the file route, and a voice the gateway does not know is not asked for again")
+    func errorFrame() async throws {
+      let arguments = ["--tts-voice-selection", "--tts-stream-error", "unknown_voice"]
+
+      try await withCapabilitySession(FakeGateway.Options(extraArguments: arguments)) { session, gateway in
+        let (renderer, fallback) = renderer(try access(session))
+        let first = Heard()
+        var request = sentence
+        request.gatewayVoice = "ghost"
+
+        renderer.render(request, rate: 1, voice: nil, deliver: first.deliver)
+        try await wait("the sentence") { first.ended }
+
+        #expect(first.frames == 1_600, "the file route's clip, not the stream's")
+        #expect(fallback.renders == 0)
+        #expect(try await requests(gateway).compactMap { $0["kind"]?.stringValue } == ["stream", "speak"])
+
+        renderer.render(request, rate: 1, voice: nil, deliver: Heard().deliver)
+
+        #expect(fallback.renders == 1, "the device speaks it")
+        #expect(try await requests(gateway).count == 2, "and the gateway was not asked again")
+      }
+    }
+
+    @Test("a refused voice on speak falls back to the device's voice")
+    func speakRefused() async throws {
+      let arguments = ["--tts-voice-selection", "--tts-stream-error", "invalid_voice", "--tts-speak-error", "invalid_voice"]
+
+      try await withCapabilitySession(FakeGateway.Options(extraArguments: arguments)) { session, _ in
+        let (renderer, fallback) = renderer(try access(session))
+        var request = sentence
+        request.gatewayVoice = "bad id"
+
+        renderer.render(request, rate: 1, voice: nil, deliver: Heard().deliver)
+        try await capabilityWait("the fall-back") { fallback.renders == 1 }
+      }
+    }
+
     @Test("cutting in closes the audio socket before the gateway has finished")
     func cuttingIn() async throws {
       try await withCapabilitySession(FakeGateway.Options(extraArguments: ["--tts-delay", "1500"])) { session, gateway in

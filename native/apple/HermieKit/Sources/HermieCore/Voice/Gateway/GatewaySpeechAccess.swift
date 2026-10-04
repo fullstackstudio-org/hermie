@@ -23,12 +23,18 @@ public final class GatewaySpeechAccess {
   public private(set) var loadingVoices = false
   public private(set) var voicesLoaded = false
 
+  /// How long a gateway that is still reading its voice list (`voices_error: "loading"`) is given, and how
+  /// many times it is asked again before the screen offers a retry instead.
+  @ObservationIgnored private let loadingRetryDelay: Duration
+  public static let loadingRetries = 3
+
   @ObservationIgnored private var configFailed = false
   @ObservationIgnored private var loadingConfig: Task<Void, Never>?
 
-  public init(transport: any GatewaySpeechTransport, profile: String?) {
+  public init(transport: any GatewaySpeechTransport, profile: String?, loadingRetryDelay: Duration = .seconds(2)) {
     self.transport = transport
     self.profile = profile
+    self.loadingRetryDelay = loadingRetryDelay
   }
 
   /// The gateway can speak. False until `voice-config` has said so.
@@ -40,9 +46,10 @@ public final class GatewaySpeechAccess {
 
   public var providerName: String? { config?.providerName }
 
-  /// The voices a person can choose between, when the gateway lets a request name one.
+  /// The voices a person can choose between, when the gateway lets a request name one. Empty while the
+  /// gateway says it could not read its list (`voicesError`).
   public var selectableVoices: [GatewayVoice] {
-    guard let config, config.voiceSelection else {
+    guard let config, config.voiceSelection, config.voicesError == nil else {
       return []
     }
 
@@ -51,6 +58,29 @@ public final class GatewaySpeechAccess {
 
   /// A voice can be chosen: the gateway takes one per request, and has a list to choose from.
   public var canChooseVoice: Bool { config?.choosesFromList == true }
+
+  /// The gateway says it could not read its voice list; a retry asks again.
+  public var voicesError: GatewayVoicesError? { config?.voicesError }
+
+  /// A voice may be heard before it is chosen, and the gateway says that is free: a sample of ElevenLabs'
+  /// voices that have one, any voice of a provider that speaks for nothing. A paid provider: never.
+  public func canPreview(_ voice: GatewayVoice) -> Bool {
+    switch config?.voicePreview {
+    case .sample: voice.hasSample
+    case .speak: true
+    case nil: false
+    }
+  }
+
+  /// The audio of `voice` to hear before choosing it: its recorded sample, or `sentence` spoken in it,
+  /// as `voice_preview` says. Throws `GatewayPreviewError.noSample` where the gateway offers neither.
+  public func previewClip(for voice: GatewayVoice, sentence: String) async throws -> GatewayAudioClip {
+    switch config?.voicePreview {
+    case .sample: try await transport.previewSample(voiceID: voice.id, profile: profile)
+    case .speak: try await transport.speak(text: sentence, profile: profile, voice: voice.id)
+    case nil: throw GatewayPreviewError.noSample
+    }
+  }
 
   /// Read `voice-config`. Once it has answered it is not read again; a failure is.
   public func loadConfig() async {
@@ -81,9 +111,55 @@ public final class GatewaySpeechAccess {
     config = answer ?? .unavailable
   }
 
+  /// Ask again for a voice list the gateway could not give: `voice-config` is read anew (it carries the
+  /// verdict and Edge's list), and ElevenLabs' list after it. A failed read leaves what was there.
+  public func retryVoices() async {
+    guard !loadingVoices else {
+      return
+    }
+
+    loadingVoices = true
+    let answer = try? await transport.voiceConfig(profile: profile)
+    loadingVoices = false
+
+    if let answer {
+      configRead(answer)
+    }
+
+    voicesLoaded = false
+    await loadVoices()
+  }
+
+  /// A gateway on a cold cache says `voices_error: "loading"` with no voices while it fetches them: ask
+  /// again after a moment, up to `loadingRetries` times, with the list shown as loading meanwhile.
+  private func waitOutLoadingVoices() async {
+    var attempts = 0
+
+    while config?.voicesError == .loading, attempts < Self.loadingRetries, !loadingVoices {
+      attempts += 1
+      loadingVoices = true
+
+      do {
+        try await Task.sleep(for: loadingRetryDelay)
+      } catch {
+        loadingVoices = false
+        return
+      }
+
+      let answer = try? await transport.voiceConfig(profile: profile)
+      loadingVoices = false
+
+      if let answer {
+        configRead(answer)
+      }
+    }
+  }
+
   /// Read the voice list of a provider that has one (ElevenLabs'): after `loadConfig`.
   public func loadVoices() async {
-    guard config?.isElevenLabs == true, !voicesLoaded, !loadingVoices else {
+    await waitOutLoadingVoices()
+
+    guard config?.isElevenLabs == true, config?.voicesError == nil, !voicesLoaded, !loadingVoices else {
       return
     }
 

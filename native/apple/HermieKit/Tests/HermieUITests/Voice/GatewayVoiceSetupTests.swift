@@ -9,6 +9,8 @@ private struct StubSpeech: GatewaySpeechTransport {
   var config: GatewayVoiceConfig
   var voices: [GatewayVoice] = []
   var configFails = false
+  /// What a voice's sample is, when the gateway has one.
+  var sample: GatewayAudioClip?
 
   struct Down: Error {}
 
@@ -22,6 +24,13 @@ private struct StubSpeech: GatewaySpeechTransport {
 
   func elevenLabsVoices(profile: String?) async throws -> [GatewayVoice] { voices }
   func speak(text: String, profile: String?, voice: String?) async throws -> GatewayAudioClip { throw Down() }
+  func previewSample(voiceID: String, profile: String?) async throws -> GatewayAudioClip {
+    guard let sample else {
+      throw Down()
+    }
+
+    return sample
+  }
 
   func stream(text: String, profile: String?, voice: String?) -> AsyncThrowingStream<GatewayStreamEvent, any Error> {
     AsyncThrowingStream { $0.finish(throwing: Down()) }
@@ -250,5 +259,120 @@ private let mine = GatewayVoice(id: "voice-clone-1", name: "Mine", label: "Mine 
       BotVoiceLogic.appleChoices(voices: voices, chosen: "nl-a", deviceTag: "en-US").map(\.id) == ["nl-a"],
       "a chosen voice sets the language the page opens on")
     #expect(BotVoiceLogic.appleChoices(voices: [], chosen: "x", deviceTag: "en-US").isEmpty)
+  }
+}
+
+/// A player that records and says nothing.
+@MainActor
+private final class SilentPlayer: GatewayClipPlaying {
+  private(set) var played = 0
+  private(set) var stops = 0
+
+  func play(_ clip: GatewayAudioClip, finished: @escaping @MainActor @Sendable () -> Void) async throws { played += 1 }
+  func stop() { stops += 1 }
+}
+
+private let withSample = GatewayVoice(id: "voice-rachel", name: "Rachel", label: "Rachel (premade)", hasSample: true)
+
+/// Hearing a gateway voice on the Voice screen, and what the screen says of a voice list it could not get.
+@MainActor
+@Suite struct GatewayVoicePreviewScreenTests {
+  private func model(
+    _ config: GatewayVoiceConfig, speaker: HeldSpeaker = HeldSpeaker(), player: SilentPlayer = SilentPlayer(),
+    callActive: @escaping @MainActor () -> Bool = { false }
+  ) async -> (VoiceSetupModel, HeldSpeaker, SilentPlayer) {
+    let clip = GatewayAudioClip(data: Data([1]), mimeType: "audio/mpeg")
+    let stub = StubSpeech(config: config, voices: [withSample], sample: clip)
+    let access = GatewaySpeechAccess(transport: stub, profile: "hermes", loadingRetryDelay: .milliseconds(1))
+    let setup = VoiceSetupModel(
+      settings: VoiceSettings(), speaker: speaker, gateway: access, deviceTag: "en-US", sample: "Hello", clipPlayer: player,
+      callActive: callActive)
+    await setup.loadGateway()
+    return (setup, speaker, player)
+  }
+
+  private func elevenLabs(_ preview: GatewayVoicePreview?) -> GatewayVoiceConfig {
+    GatewayVoiceConfig(
+      ttsAvailable: true, provider: "elevenlabs", defaultVoice: "voice-rachel", voiceSelection: true, voicePreview: preview)
+  }
+
+  @Test func theButtonIsOfferedOnlyWhereThePreviewIsFree() async {
+    let (free, _, _) = await model(elevenLabs(.sample))
+    let (paid, _, _) = await model(elevenLabs(nil))
+
+    #expect(free.previewer?.offers(withSample) == true)
+    #expect(paid.previewer?.offers(withSample) == false)
+  }
+
+  @Test func playingASampleDoesNotChangeTheSelectionAndSilencesTheDevicesSentence() async {
+    let (setup, speaker, player) = await model(elevenLabs(.sample))
+    let stopsBefore = speaker.stops
+
+    setup.togglePreview(withSample)
+    await eventually("the sample plays") { setup.previewer?.phase(of: withSample.id) == .playing }
+
+    #expect(setup.settings.gatewayVoice == nil, "the voice is chosen by the row, never by its play button")
+    #expect(setup.settings.speechSource == .apple)
+    #expect(speaker.spoken.isEmpty)
+    #expect(speaker.stops > stopsBefore)
+    #expect(player.played == 1)
+  }
+
+  @Test func choosingAVoiceOrLeavingTheScreenStopsTheSample() async {
+    let (setup, _, player) = await model(elevenLabs(.sample))
+
+    setup.togglePreview(withSample)
+    await eventually("the sample plays") { setup.previewer?.phase(of: withSample.id) == .playing }
+    let stops = player.stops
+
+    setup.selectGatewayVoice("voice-rachel")
+
+    #expect(player.stops > stops, "picking a voice says its own sentence, and the sample stops")
+    #expect(setup.previewer?.activeVoice == nil)
+
+    setup.togglePreview(withSample)
+    await eventually("the sample plays") { setup.previewer?.phase(of: withSample.id) == .playing }
+    setup.stop()
+
+    #expect(setup.previewer?.activeVoice == nil)
+  }
+
+  @Test func nothingPlaysDuringACallAndTheRowSaysSo() async {
+    let (setup, _, player) = await model(elevenLabs(.sample), callActive: { true })
+
+    setup.togglePreview(withSample)
+
+    #expect(setup.previewer?.failure(of: withSample.id) == .callActive)
+    #expect(player.played == 0)
+    #expect(GatewayVoicePreviewLogic.message(for: .callActive) == NativeStrings.VoiceSetup.previewCallActive)
+  }
+
+  @Test func aVoiceListTheGatewayCouldNotReadIsEmptyWithAMessageAndARetry() async {
+    let failed = GatewayVoiceConfig(
+      ttsAvailable: true, provider: "edge", voiceSelection: true, voices: [], voicesError: .unavailable)
+    let (setup, _, _) = await model(failed)
+
+    #expect(setup.gatewayVoices.isEmpty)
+    #expect(setup.gatewayVoicesError == .unavailable)
+    #expect(!setup.loadingGatewayVoices)
+    #expect(GatewayVoicePreviewLogic.message(for: GatewayVoicesError.unavailable) == NativeStrings.VoiceSetup.voicesUnavailable)
+    #expect(GatewayVoicePreviewLogic.message(for: GatewayVoicesError.loading) == NativeStrings.VoiceSetup.voicesStillLoading)
+  }
+
+  @Test func anElevenLabsListThatCouldNotBeReadIsNotShownAsLoadingForEver() async {
+    var config = elevenLabs(.sample)
+    config.voicesError = .unavailable
+    let (setup, _, _) = await model(config)
+
+    #expect(!setup.loadingGatewayVoices)
+    #expect(setup.gatewayVoicesError == .unavailable)
+  }
+
+  @Test func theButtonsAreNamedForTheVoiceAndStop() {
+    #expect(
+      GatewayVoicePreviewLogic.accessibilityLabel(name: "Rachel (premade)", phase: .idle)
+        == NativeStrings.VoiceSetup.previewPlay("Rachel (premade)"))
+    #expect(GatewayVoicePreviewLogic.accessibilityLabel(name: "Rachel", phase: .playing) == NativeStrings.VoiceSetup.previewStop)
+    #expect(GatewayVoicePreviewLogic.accessibilityLabel(name: "Rachel", phase: .loading) == NativeStrings.VoiceSetup.previewStop)
   }
 }

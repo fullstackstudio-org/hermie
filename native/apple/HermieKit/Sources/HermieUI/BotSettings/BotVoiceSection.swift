@@ -84,6 +84,16 @@ struct BotVoicePage: View {
   let gateway: GatewaySpeechAccess?
 
   @State private var appleVoices: [SpeechVoice] = []
+  /// Hearing a gateway voice before choosing it; one for as long as the page is shown.
+  @State private var previewer: GatewayVoicePreviewer?
+
+  init(chat: ChatRef, settings: VoiceSettings, gateway: GatewaySpeechAccess?) {
+    self.chat = chat
+    self.settings = settings
+    self.gateway = gateway
+    _previewer = State(
+      initialValue: gateway.map { GatewayVoicePreviewer(access: $0, sentence: NativeStrings.VoiceSetup.sample) })
+  }
 
   var body: some View {
     let current = settings.botVoice(bot: chat.bot, gatewayID: chat.gatewayId)
@@ -136,11 +146,28 @@ struct BotVoicePage: View {
                   .foregroundStyle(.secondary)
               }
               .accessibilityElement(children: .combine)
+            } else if let error = gateway.voicesError {
+              GatewayVoicesErrorView(
+                error: error, retry: { Task { await gateway.retryVoices() } }, identifierPrefix: "hermie.botSettings.voice")
             }
 
             ForEach(gateway.selectableVoices) { voice in
-              row(voice.label, selected: current == BotVoice(source: .gateway, voice: voice.id), id: "gateway.\(voice.id)") {
-                choose(BotVoice(source: .gateway, voice: voice.id))
+              VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                  row(voice.label, selected: current == BotVoice(source: .gateway, voice: voice.id), id: "gateway.\(voice.id)") {
+                    choose(BotVoice(source: .gateway, voice: voice.id))
+                  }
+
+                  if let previewer, previewer.offers(voice) {
+                    GatewayVoicePreviewButton(
+                      voice: voice, previewer: previewer, identifierPrefix: "hermie.botSettings.voice.gateway")
+                  }
+                }
+
+                if let previewer {
+                  GatewayVoicePreviewMessage(
+                    voiceID: voice.id, previewer: previewer, identifierPrefix: "hermie.botSettings.voice.gateway")
+                }
               }
             }
           }
@@ -162,6 +189,7 @@ struct BotVoicePage: View {
       await gateway?.loadConfig()
       await gateway?.loadVoices()
     }
+    .onDisappear { previewer?.stop() }
     .accessibilityIdentifier("hermie.botSettings.voicePage")
   }
 

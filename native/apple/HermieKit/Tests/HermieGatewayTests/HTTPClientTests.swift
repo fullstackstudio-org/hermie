@@ -72,6 +72,30 @@ import Testing
     #expect(try await http.fetchFile("/api/files/a.pdf", maxBytes: 100) == nil)
   }
 
+  // MARK: fetchBinary
+
+  @Test("a binary answer comes back with its status and type, and a 404 is an answer, not a failure")
+  func binaryAnswers() async throws {
+    let clip = Data([0x49, 0x44, 0x33, 0x04])
+    let server = StubServer { request in
+      request.url.contains("/missing") ? .text("none", status: 404) : .respond(status: 200, body: clip, headers: ["content-type": "audio/mpeg"])
+    }
+    let http = try Self.http(server)
+
+    #expect(try await http.fetchBinary("/api/audio/x/preview") == BinaryAnswer(status: 200, data: clip, contentType: "audio/mpeg"))
+
+    let missing = try await http.fetchBinary("/api/audio/missing/preview")
+    #expect(missing.status == 404)
+    #expect(missing.data == nil)
+  }
+
+  @Test("a binary answer larger than the cap has no data")
+  func binaryCap() async throws {
+    let server = StubServer { _ in .respond(status: 200, body: Data(repeating: 1, count: 64), headers: ["content-type": "audio/mpeg"]) }
+
+    #expect(try await Self.http(server).fetchBinary("/api/audio/x/preview", maxBytes: 16).data == nil)
+  }
+
   @Test("a declared length over the cap is refused before the body is read")
   func fileCapDeclared() async throws {
     let server = StubServer { _ in

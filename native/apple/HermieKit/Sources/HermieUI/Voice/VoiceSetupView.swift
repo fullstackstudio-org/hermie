@@ -185,6 +185,9 @@ final class VoiceSetupModel {
   /// The gateway's text-to-speech as this screen's bot (or the default profile) sees it; nil where the
   /// screen has no gateway to ask.
   let gateway: GatewaySpeechAccess?
+  /// Hearing a gateway voice before choosing it, where the gateway says that is free; one per screen, so
+  /// a fetched sample is kept as long as the screen is.
+  let previewer: GatewayVoicePreviewer?
 
   @ObservationIgnored private let deviceTag: String
   @ObservationIgnored private let sample: String
@@ -194,11 +197,16 @@ final class VoiceSetupModel {
   init(
     settings: VoiceSettings, speaker: any SpeechSynthesizing, gateway: GatewaySpeechAccess? = nil,
     deviceTag: String = Locale.preferredLanguages.first ?? Locale.current.identifier,
-    sample: String = NativeStrings.VoiceSetup.sample
+    sample: String = NativeStrings.VoiceSetup.sample, clipPlayer: (any GatewayClipPlaying)? = nil,
+    callActive: (@MainActor () -> Bool)? = nil
   ) {
     self.settings = settings
     self.speaker = speaker
     self.gateway = gateway
+    previewer = gateway.map {
+      GatewayVoicePreviewer(
+        access: $0, player: clipPlayer ?? GatewayClipPlayer(), sentence: sample, callActive: callActive)
+    }
     self.deviceTag = deviceTag
     self.sample = sample
   }
@@ -260,7 +268,28 @@ final class VoiceSetupModel {
     return same.contains(where: { $0.id != chosen }) ? same : all
   }
 
-  var loadingGatewayVoices: Bool { gateway?.loadingVoices == true || (gateway?.voicesLoaded == false && gatewayVoices.isEmpty && gateway?.config?.isElevenLabs == true) }
+  var loadingGatewayVoices: Bool {
+    gateway?.loadingVoices == true
+      || (gateway?.voicesLoaded == false && gatewayVoices.isEmpty && gateway?.config?.isElevenLabs == true
+        && gateway?.voicesError == nil)
+  }
+
+  /// Why the gateway's voice list is empty, when it says it could not read it (and is not being asked again).
+  var gatewayVoicesError: GatewayVoicesError? { loadingGatewayVoices ? nil : gateway?.voicesError }
+
+  /// Ask the gateway for its voice list again.
+  func retryGatewayVoices() async {
+    await gateway?.retryVoices()
+  }
+
+  /// A play button's tap: the sample of `voice`, or silence if it is the one playing. The sentence the
+  /// device was saying stops first, and the selection is left as it is.
+  func togglePreview(_ voice: GatewayVoice) {
+    speaker.stop()
+    generation += 1
+    previewing = false
+    previewer?.toggle(voice)
+  }
 
   /// Choose a gateway voice (nil is the gateway's own), and say the sample in it.
   func selectGatewayVoice(_ id: String?) {
@@ -322,6 +351,7 @@ final class VoiceSetupModel {
 
   /// Say the sample in the voice, pace and expressivity in force; whatever it was saying stops.
   func preview() {
+    previewer?.stop()
     speaker.stop()
     generation += 1
 
@@ -351,6 +381,7 @@ final class VoiceSetupModel {
     generation += 1
     previewing = false
     speaker.stop()
+    previewer?.stop()
   }
 
   func requestPersonalVoice() async {
@@ -819,6 +850,10 @@ struct VoiceSetupView: View {
             }
             .padding(.vertical, 10)
             .accessibilityElement(children: .combine)
+          } else if let error = model.gatewayVoicesError {
+            GatewayVoicesErrorView(
+              error: error, color: Self.secondary, tint: Self.accent,
+              retry: { Task { await model.retryGatewayVoices() } }, identifierPrefix: "hermie.voiceSetup.gateway")
           } else if model.gatewayVoices.isEmpty {
             Text(NativeStrings.VoiceSetup.gatewayVoicesNone)
               .font(.footnote)
@@ -829,7 +864,7 @@ struct VoiceSetupView: View {
 
           LazyVStack(alignment: .leading, spacing: 0) {
             ForEach(model.gatewayVoices) { voice in
-              gatewayRow(title: voice.label, id: voice.id)
+              gatewayRow(title: voice.label, id: voice.id, voice: voice)
             }
           }
         }
@@ -845,31 +880,48 @@ struct VoiceSetupView: View {
     }
   }
 
-  private func gatewayRow(title: String, id: String?) -> some View {
+  /// One voice to choose. `voice` is given for a listed voice (not "Default"): its play button, where the
+  /// gateway says a sample is free, sits beside the choosing button and never chooses.
+  private func gatewayRow(title: String, id: String?, voice: GatewayVoice? = nil) -> some View {
     let selected = settings.gatewayVoice == id
 
-    return Button {
-      model.selectGatewayVoice(id)
-    } label: {
-      HStack(spacing: 10) {
-        Text(title)
-          .font(.body)
-          .multilineTextAlignment(.leading)
-          .frame(maxWidth: .infinity, alignment: .leading)
+    return VStack(alignment: .leading, spacing: 2) {
+      HStack(spacing: 6) {
+        Button {
+          model.selectGatewayVoice(id)
+        } label: {
+          HStack(spacing: 10) {
+            Text(title)
+              .font(.body)
+              .multilineTextAlignment(.leading)
+              .frame(maxWidth: .infinity, alignment: .leading)
 
-        if selected {
-          Image(systemName: "checkmark")
-            .font(.body.weight(.semibold))
-            .accessibilityHidden(true)
+            if selected {
+              Image(systemName: "checkmark")
+                .font(.body.weight(.semibold))
+                .accessibilityHidden(true)
+            }
+          }
+          .padding(.vertical, 10)
+          .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(selected ? "\(title), \(NativeStrings.VoiceSetup.selected)" : title)
+        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
+        .accessibilityIdentifier("hermie.voiceSetup.gatewayVoice.\(id ?? "default")")
+
+        if let voice, let previewer = model.previewer, previewer.offers(voice) {
+          GatewayVoicePreviewButton(
+            voice: voice, previewer: previewer, tint: Self.accent, identifierPrefix: "hermie.voiceSetup.gatewayVoice")
         }
       }
-      .padding(.vertical, 10)
-      .contentShape(.rect)
+
+      if let voice, let previewer = model.previewer {
+        GatewayVoicePreviewMessage(
+          voiceID: voice.id, previewer: previewer, color: Self.secondary, identifierPrefix: "hermie.voiceSetup.gatewayVoice")
+          .padding(.bottom, 6)
+      }
     }
-    .buttonStyle(.plain)
-    .accessibilityLabel(selected ? "\(title), \(NativeStrings.VoiceSetup.selected)" : title)
-    .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
-    .accessibilityIdentifier("hermie.voiceSetup.gatewayVoice.\(id ?? "default")")
   }
 
   private var sampleButton: some View {
@@ -1187,6 +1239,62 @@ extension NativeStrings {
     static var gatewayStopSample: String {
       String(
         localized: "native.voiceSetup.gatewayStopSample", defaultValue: "Stop the sample", table: "Native", bundle: .module)
+    }
+    /// A voice's play button: "Play sample of Rachel"
+    static func previewPlay(_ name: String) -> String {
+      String(
+        localized: "native.voiceSetup.previewPlay", defaultValue: "Play sample of \(name)", table: "Native",
+        bundle: .module)
+    }
+    /// The same button while the sample loads or plays
+    static var previewStop: String {
+      String(localized: "native.voiceSetup.previewStop", defaultValue: "Stop", table: "Native", bundle: .module)
+    }
+    /// The play button's value while the sample is fetched
+    static var previewLoading: String {
+      String(
+        localized: "native.voiceSetup.previewLoading", defaultValue: "Loading the sample", table: "Native",
+        bundle: .module)
+    }
+    /// The gateway has no sample of the voice
+    static var previewNoSample: String {
+      String(
+        localized: "native.voiceSetup.previewNoSample", defaultValue: "The gateway has no sample of this voice.",
+        table: "Native", bundle: .module)
+    }
+    /// The sample could not be fetched
+    static var previewUnreachable: String {
+      String(
+        localized: "native.voiceSetup.previewUnreachable", defaultValue: "Couldn't get the sample. Try again.",
+        table: "Native", bundle: .module)
+    }
+    /// The sample could not be played
+    static var previewUnplayable: String {
+      String(
+        localized: "native.voiceSetup.previewUnplayable", defaultValue: "Couldn't play the sample.", table: "Native",
+        bundle: .module)
+    }
+    /// A sample was asked for during a voice call
+    static var previewCallActive: String {
+      String(
+        localized: "native.voiceSetup.previewCallActive", defaultValue: "Samples can't play during a voice call.",
+        table: "Native", bundle: .module)
+    }
+    /// The gateway could not read its voice list
+    static var voicesUnavailable: String {
+      String(
+        localized: "native.voiceSetup.voicesUnavailable", defaultValue: "Your gateway can't list its voices right now.",
+        table: "Native", bundle: .module)
+    }
+    /// The gateway is still reading its voice list
+    static var voicesStillLoading: String {
+      String(
+        localized: "native.voiceSetup.voicesStillLoading", defaultValue: "Your gateway is still loading its voices.",
+        table: "Native", bundle: .module)
+    }
+    /// Asks the gateway for its voice list again
+    static var voicesRetry: String {
+      String(localized: "native.voiceSetup.voicesRetry", defaultValue: "Try again", table: "Native", bundle: .module)
     }
     /// Continue (the button on first run)
     static var continueLabel: String {

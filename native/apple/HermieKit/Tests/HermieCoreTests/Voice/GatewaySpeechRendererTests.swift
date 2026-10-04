@@ -1,5 +1,6 @@
 import AVFoundation
 import Foundation
+import Synchronization
 import Testing
 
 @testable import HermieCore
@@ -128,6 +129,114 @@ import Testing
     #expect(delivered.buffers == [300])
     #expect(fallback.renders.isEmpty, "half a sentence is not said twice")
     #expect(transport.speakCalls.isEmpty)
+  }
+
+  // MARK: The stream's error frame
+
+  private func voiced(_ voice: String?, _ text: String = "Hello there.") -> ReadRequest {
+    var request = ReadRequest(id: "a#0", text: text, language: "en", source: .gateway)
+    request.gatewayVoice = voice
+    return request
+  }
+
+  @Test func anErrorFrameIsSpokenFromTheFileRouteInTheSameVoice() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { _ in .events([.error(code: "invalid_prosody", message: "bad pace")]) }
+    transport.speak = { _ in AudioFixtures.clip(frames: 1_600) }
+    let (renderer, fallback, _) = make(transport)
+    let delivered = Delivered()
+
+    renderer.render(voiced("voice-adam"), rate: 1, voice: nil, deliver: delivered.deliver)
+    await eventually { delivered.ended }
+
+    #expect(delivered.buffers.reduce(0, +) == 1_600)
+    #expect(transport.speakCalls.map(\.voice) == ["voice-adam"])
+    #expect(fallback.renders.isEmpty)
+  }
+
+  @Test func anErrorFrameThenAFileRouteThatFailsTooIsSpokenByTheDevice() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { _ in .events([.error(code: "voice_unsupported", message: "")]) }
+    let (renderer, fallback, _) = make(transport)
+    let told = Told()
+    renderer.setFallbackHandler { told.count += 1 }
+    let delivered = Delivered()
+
+    renderer.render(voiced("voice-adam"), rate: 1, voice: "apple.voice", deliver: delivered.deliver)
+    await eventually { !fallback.renders.isEmpty }
+
+    #expect(transport.speakCalls.count == 1, "the file route was tried first")
+    #expect(fallback.renders == [.init(request: voiced("voice-adam"), voice: "apple.voice")])
+    #expect(told.count == 1)
+  }
+
+  @Test(arguments: ["unknown_voice", "invalid_voice", "voice_failed"])
+  func aVoiceTheGatewayDoesNotKnowIsNotAskedForAgainThisSession(_ code: String) async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { call in call.voice == "ghost" ? .events([.error(code: code, message: "")]) : .pcm([100]) }
+    transport.speak = { _ in AudioFixtures.clip() }
+    let clock = SpeechTestClock()
+    let (renderer, fallback, _) = make(transport, cooldown: 1, clock: clock)
+    let first = Delivered()
+
+    renderer.render(voiced("ghost"), rate: 1, voice: nil, deliver: first.deliver)
+    await eventually { first.ended }
+
+    let asked = transport.calls.count
+    clock.advance(5)
+    renderer.render(voiced("ghost", "Again."), rate: 1, voice: "apple.voice", deliver: Delivered().deliver)
+    renderer.prefetch(voiced("ghost", "Later."), rate: 1, voice: nil)
+
+    #expect(transport.calls.count == asked, "the gateway is not asked in that voice again, not even a prefetch")
+    #expect(fallback.renders.map(\.request.text) == ["Again."], "the device speaks it")
+
+    let other = Delivered()
+    renderer.render(voiced("voice-adam"), rate: 1, voice: nil, deliver: other.deliver)
+    await eventually { other.ended }
+
+    #expect(transport.streamCalls.last?.voice == "voice-adam", "another voice is as good as ever")
+  }
+
+  @Test func aVoiceThatCannotBeStreamedIsSpokenFromTheFileRouteWithoutTryingTheStreamAgain() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { call in call.voice == "plain" ? .events([.error(code: "voice_unsupported", message: "")]) : .pcm([100]) }
+    transport.speak = { _ in AudioFixtures.clip() }
+    let (renderer, _, _) = make(transport)
+    let first = Delivered()
+    let second = Delivered()
+    let other = Delivered()
+
+    renderer.render(voiced("plain"), rate: 1, voice: nil, deliver: first.deliver)
+    await eventually { first.ended }
+    renderer.render(voiced("plain", "Again."), rate: 1, voice: nil, deliver: second.deliver)
+    await eventually { second.ended }
+
+    #expect(transport.streamCalls.filter { $0.voice == "plain" }.count == 1, "streamed once, refused once")
+    #expect(transport.speakCalls.map(\.text) == ["Hello there.", "Again."])
+
+    renderer.render(voiced("voice-adam", "Third."), rate: 1, voice: nil, deliver: other.deliver)
+    await eventually { other.ended }
+
+    #expect(transport.streamCalls.last?.voice == "voice-adam", "the stream is still good for another voice")
+  }
+
+  @Test func anErrorFrameThatIsNotAboutTheVoiceLeavesTheNextSentenceToTheStream() async {
+    let transport = FakeGatewayTransport()
+    let refuse = SpeechSwitch(true)
+    transport.stream = { _ in refuse.value ? .events([.error(code: "invalid_prosody", message: "")]) : .pcm([100]) }
+    transport.speak = { _ in AudioFixtures.clip() }
+    let (renderer, _, _) = make(transport)
+    let first = Delivered()
+    let second = Delivered()
+
+    renderer.render(voiced("voice-adam"), rate: 1, voice: nil, deliver: first.deliver)
+    await eventually { first.ended }
+    refuse.value = false
+    renderer.render(voiced("voice-adam", "Again."), rate: 1, voice: nil, deliver: second.deliver)
+    await eventually { second.ended }
+
+    #expect(transport.streamCalls.count == 2)
+    #expect(second.buffers == [100])
   }
 
   // MARK: Falling back to the device's voice

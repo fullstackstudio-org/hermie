@@ -10,9 +10,18 @@ enum GatewayFetchEvent: Sendable {
 }
 
 /// Whether the streamed route is worth trying: the gateway said its provider has no chunked API
-/// (for good), or a stream failed (for a while). Read and written from whichever task is fetching.
+/// (for good), or a stream failed (for a while). And which voices the gateway has refused: it does not
+/// know one or could not make it (`unknown_voice`, `invalid_voice`, `voice_failed`), so that voice is not asked for again, or it cannot
+/// stream one (`voice_unsupported`), so that voice is not streamed again. Read and written from
+/// whichever task is fetching.
 final class GatewayStreamSupport: Sendable {
+  private struct Refused {
+    var voices: Set<String> = []
+    var streamed: Set<String> = []
+  }
+
   private let disabledUntil = Mutex<Double>(-.infinity)
+  private let refused = Mutex(Refused())
 
   func allowed(at now: Double) -> Bool {
     disabledUntil.withLock { now >= $0 }
@@ -20,6 +29,44 @@ final class GatewayStreamSupport: Sendable {
 
   func disable(until moment: Double) {
     disabledUntil.withLock { $0 = max($0, moment) }
+  }
+
+  /// The stream is worth trying for this voice: it has not said it cannot stream it.
+  func allowsStream(voice: String?) -> Bool {
+    guard let voice else {
+      return true
+    }
+
+    return refused.withLock { !$0.streamed.contains(voice) }
+  }
+
+  /// The gateway does not take this voice: not asked for again in this session.
+  func reject(voice: String?) {
+    if let voice {
+      _ = refused.withLock { $0.voices.insert(voice) }
+    }
+  }
+
+  func isRejected(voice: String?) -> Bool {
+    guard let voice else {
+      return false
+    }
+
+    return refused.withLock { $0.voices.contains(voice) }
+  }
+
+  /// What an `error` frame of the stream means for the voice it was sent with. The sentence itself is
+  /// asked again as a file either way.
+  func streamRefused(code: String, voice: String?) {
+    guard let voice else {
+      return
+    }
+
+    switch code {
+    case "unknown_voice", "invalid_voice", "voice_failed": reject(voice: voice)
+    case "voice_unsupported": _ = refused.withLock { $0.streamed.insert(voice) }
+    default: break
+    }
   }
 }
 
@@ -81,9 +128,10 @@ final class GatewayFetch {
   ) async {
     var delivered = false
 
-    if support.allowed(at: clock()) {
+    if support.allowed(at: clock()), support.allowsStream(voice: voice) {
       var decoder: GatewayAudioDecoding.PCM16Stream?
       var rejected = false
+      var refusedByGateway = false
 
       do {
         for try await event in transport.stream(text: text, profile: profile, voice: voice) {
@@ -102,9 +150,14 @@ final class GatewayFetch {
           case .fallback:
             // This provider has no stream: the route is not tried again.
             support.disable(until: .infinity)
+          case .error(let code, _):
+            // The gateway refused the voice (or the prosody) and closed: the sentence goes on as a
+            // file, and a voice it does not know is not asked for again.
+            support.streamRefused(code: code, voice: voice)
+            refusedByGateway = true
           }
 
-          if rejected {
+          if rejected || refusedByGateway {
             break
           }
         }
@@ -364,10 +417,10 @@ public final class GatewaySpeechRenderer: VoiceSpeechRenderer {
 
   // MARK: Inside
 
-  /// The gateway is asked for this request: it is meant for it, the gateway has text-to-speech, and
-  /// it has not just let the call down.
+  /// The gateway is asked for this request: it is meant for it, the gateway has text-to-speech, it
+  /// has not just let the call down, and it has not said it does not know the voice.
   private func wantsGateway(_ request: ReadRequest) -> Bool {
-    request.source == .gateway && available() && clock() >= downUntil
+    request.source == .gateway && available() && clock() >= downUntil && !support.isRejected(voice: request.gatewayVoice)
   }
 
   private func makeFetch(_ request: ReadRequest) -> GatewayFetch {

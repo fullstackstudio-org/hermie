@@ -8,7 +8,7 @@ import Testing
 /// A gateway's speech routes that never touch a network: the test says what each one does.
 final class FakeGatewayTransport: GatewaySpeechTransport, @unchecked Sendable {
   struct Call: Equatable, Sendable {
-    enum Kind: Sendable { case stream, speak }
+    enum Kind: Sendable { case stream, speak, preview }
     var kind: Kind
     var text: String
     var profile: String?
@@ -35,6 +35,7 @@ final class FakeGatewayTransport: GatewaySpeechTransport, @unchecked Sendable {
   private struct State {
     var calls: [Call] = []
     var cancelledTexts: [String] = []
+    var configReads = 0
   }
 
   private let state = Mutex(State())
@@ -42,6 +43,8 @@ final class FakeGatewayTransport: GatewaySpeechTransport, @unchecked Sendable {
   var stream: @Sendable (Call) -> Stream = { _ in .fail }
   /// Called for every file call.
   var speak: @Sendable (Call) async throws -> GatewayAudioClip = { _ in throw GatewayFakeError.refused }
+  /// Called for every sample of a voice.
+  var preview: @Sendable (Call) async throws -> GatewayAudioClip = { _ in throw GatewayFakeError.refused }
   var config = GatewayVoiceConfig(ttsAvailable: true, provider: "edge")
   var voices: [GatewayVoice] = []
 
@@ -50,18 +53,36 @@ final class FakeGatewayTransport: GatewaySpeechTransport, @unchecked Sendable {
   var calls: [Call] { state.withLock { $0.calls } }
   var streamCalls: [Call] { calls.filter { $0.kind == .stream } }
   var speakCalls: [Call] { calls.filter { $0.kind == .speak } }
+  var previewCalls: [Call] { calls.filter { $0.kind == .preview } }
   /// Streams whose consumer went away before they ended (one that was let go of after its last event too).
   var cancelled: Int { state.withLock { $0.cancelledTexts.count } }
   /// The text of each of those.
   var cancelledTexts: [String] { state.withLock { $0.cancelledTexts } }
 
-  func voiceConfig(profile: String?) async throws -> GatewayVoiceConfig { config }
+  /// How the config changes from one read to the next, by the number of reads before it (default: it does not).
+  var configAfter: (@Sendable (Int) -> GatewayVoiceConfig)?
+  var configReads: Int { state.withLock { $0.configReads } }
+
+  func voiceConfig(profile: String?) async throws -> GatewayVoiceConfig {
+    let before = state.withLock { state -> Int in
+      defer { state.configReads += 1 }
+      return state.configReads
+    }
+
+    return configAfter?(before) ?? config
+  }
   func elevenLabsVoices(profile: String?) async throws -> [GatewayVoice] { voices }
 
   func speak(text: String, profile: String?, voice: String?) async throws -> GatewayAudioClip {
     let call = Call(kind: .speak, text: text, profile: profile, voice: voice)
     state.withLock { $0.calls.append(call) }
     return try await speak(call)
+  }
+
+  func previewSample(voiceID: String, profile: String?) async throws -> GatewayAudioClip {
+    let call = Call(kind: .preview, text: "", profile: profile, voice: voiceID)
+    state.withLock { $0.calls.append(call) }
+    return try await preview(call)
   }
 
   func stream(text: String, profile: String?, voice: String?) -> AsyncThrowingStream<GatewayStreamEvent, any Error> {
