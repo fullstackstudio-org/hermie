@@ -37,6 +37,18 @@ export default defineConfig({
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } } },
     { name: 'webkit', use: { ...devices['Desktop Safari'], viewport: { width: 1280, height: 800 } } },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'], viewport: { width: 1280, height: 800 } } }
+    {
+      name: 'firefox',
+      use: {
+        ...devices['Desktop Firefox'],
+        viewport: { width: 1280, height: 800 },
+        launchOptions: {
+          // A runner has no microphone or audio device, and a Web Audio stream does not start in Firefox there, so a
+          // recording is made from Firefox's own fake microphone (a tone) instead of the stream the other browsers
+          // are given (`e2e/requests-device.spec.ts`). No prompt either: nobody is there to answer it.
+          firefoxUserPrefs: { 'media.navigator.streams.fake': true, 'media.navigator.permission.disabled': true }
+        }
+      }
+    }
   ]
 })

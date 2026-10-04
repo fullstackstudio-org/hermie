@@ -167,6 +167,13 @@ const DEVICE_STUBS = (): void => {
           return stream
         }
 
+        // On a CI runner Firefox's Web Audio does not start (no audio device: the stream below never arrived and the
+        // sheet waited for its microphone), so Firefox gets its own fake microphone (`firefoxUserPrefs` in
+        // `playwright.config.ts`); the other browsers record a stream made here.
+        if (/Firefox/u.test(navigator.userAgent) && real) {
+          return real(constraints as MediaStreamConstraints)
+        }
+
         const context = new AudioContext()
         const source = context.createOscillator()
         const destination = context.createMediaStreamDestination()
@@ -277,10 +284,33 @@ test.describe('the location', () => {
 
   test('tells the bot when the browser says no: 4041 permission_denied, not a made-up skip', async ({
     app,
+    browserName,
     context,
-    gateway
+    gateway,
+    page
   }) => {
     await context.clearPermissions()
+
+    if (browserName === 'firefox') {
+      // Firefox, with nobody to answer its prompt, leaves the request pending instead of refusing it. This is the
+      // person pressing Block: the page is told what a refusal tells it.
+      await page.addInitScript(() => {
+        navigator.geolocation.getCurrentPosition = (_ok, fail) => {
+          setTimeout(
+            () =>
+              fail?.({
+                code: 1,
+                message: 'User denied Geolocation',
+                PERMISSION_DENIED: 1,
+                POSITION_UNAVAILABLE: 2,
+                TIMEOUT: 3
+              }),
+            0
+          )
+        }
+      })
+    }
+
     await app.open()
     await app.ready()
 
