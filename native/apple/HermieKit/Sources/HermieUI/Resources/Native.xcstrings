@@ -10906,6 +10906,54 @@
         }
       }
     },
+    "native.kanban.boardGone" : {
+      "comment" : "Boards page: a board that was removed from the gateway since the list was read.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Board gibt es auf dem Gateway nicht mehr."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This board is no longer on the gateway."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit board staat niet meer op de gateway."
+          }
+        }
+      }
+    },
+    "native.kanban.noAssignee" : {
+      "comment" : "Boards page, a card: the choice of nobody as its assignee.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niemand"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nobody"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niemand"
+          }
+        }
+      }
+    },
     "native.later" : {
       "extractionState" : "manual",
       "localizations" : {

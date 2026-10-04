@@ -910,6 +910,10 @@
 	<string>%@ asks you to fill in a form</string>
 	<key>native.interactive.tryAgain</key>
 	<string>Try again</string>
+	<key>native.kanban.boardGone</key>
+	<string>This board is no longer on the gateway.</string>
+	<key>native.kanban.noAssignee</key>
+	<string>Nobody</string>
 	<key>native.later</key>
 	<string>Coming in a later build.</string>
 	<key>native.lock.coverLabel</key>

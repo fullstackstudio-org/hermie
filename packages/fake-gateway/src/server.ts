@@ -365,6 +365,11 @@ export interface FakeGatewayOptions {
    */
   connectors?: boolean
   /**
+   * Whether the Kanban plugin is mounted. Default true. `false` is a gateway without it: every route
+   * under `/api/plugins/kanban` answers 404, and the Boards page says so.
+   */
+  kanban?: boolean
+  /**
    * Whether the plugin advertises `push.relay`.
    *
    * Default true: the plugin can deliver to a `transport: "relay"` row. `false`
@@ -3148,50 +3153,53 @@ function initialState(options: FakeGatewayOptions): FakeGatewayState {
         statusReason: 'the workspace revoked the token'
       }
     ],
-    kanbanBoards: [
-      {
-        slug: 'default',
-        name: 'Default',
-        description: '',
-        tasks: [
-          {
-            id: 't_aa11bb22',
-            title: 'Write the release notes',
-            body: 'Pull them from the changelog.',
-            status: 'todo',
-            assignee: null,
-            priority: 0,
-            created_at: 1_760_000_000,
-            parents: [],
-            comments: [{ id: 1, author: 'writer', body: 'Started on this.', created_at: 1_760_000_100 }]
-          },
-          {
-            id: 't_cc33dd44',
-            title: 'Ship the build',
-            body: null,
-            status: 'todo',
-            assignee: 'writer',
-            priority: 2,
-            // Gated on the notes above, which is what makes a `ready` move refusable.
-            created_at: 1_760_000_050,
-            parents: ['t_aa11bb22'],
-            comments: []
-          },
-          {
-            id: 't_ee55ff66',
-            title: 'Tidy the worktrees',
-            body: null,
-            status: 'running',
-            assignee: 'writer',
-            priority: 0,
-            created_at: 1_760_000_075,
-            parents: [],
-            comments: []
-          }
-        ]
-      },
-      { slug: 'sprint', name: 'Sprint', description: 'This fortnight', tasks: [] }
-    ],
+    kanbanBoards:
+      options.kanban === false
+        ? null
+        : [
+            {
+              slug: 'default',
+              name: 'Default',
+              description: '',
+              tasks: [
+                {
+                  id: 't_aa11bb22',
+                  title: 'Write the release notes',
+                  body: 'Pull them from the changelog.',
+                  status: 'todo',
+                  assignee: null,
+                  priority: 0,
+                  created_at: 1_760_000_000,
+                  parents: [],
+                  comments: [{ id: 1, author: 'writer', body: 'Started on this.', created_at: 1_760_000_100 }]
+                },
+                {
+                  id: 't_cc33dd44',
+                  title: 'Ship the build',
+                  body: null,
+                  status: 'todo',
+                  assignee: 'writer',
+                  priority: 2,
+                  // Gated on the notes above, which is what makes a `ready` move refusable.
+                  created_at: 1_760_000_050,
+                  parents: ['t_aa11bb22'],
+                  comments: []
+                },
+                {
+                  id: 't_ee55ff66',
+                  title: 'Tidy the worktrees',
+                  body: null,
+                  status: 'running',
+                  assignee: 'writer',
+                  priority: 0,
+                  created_at: 1_760_000_075,
+                  parents: [],
+                  comments: []
+                }
+              ]
+            },
+            { slug: 'sprint', name: 'Sprint', description: 'This fortnight', tasks: [] }
+          ],
     kanbanDispatches: 0,
     connectorsUnavailable: options.connectors === false,
     connectorOps: new Map<string, FakeConnectorOp>(),
@@ -4677,6 +4685,8 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         // What an MCP server's API key or bearer token was written as, by server: the one place a
         // secret is visible, because the gateway never sends one back.
         mcpSecrets: Object.fromEntries(state.mcpSecrets),
+        // Completed Kanban `POST /dispatch` nudges: what a write to a card kicks.
+        kanbanDispatches: state.kanbanDispatches,
         // What `GET /api/files/images/{name}` was asked for (name, profile) and answered (status).
         attachedImageRequests: state.attachedImageRequests,
         // Stored ids of the sessions with a turn still streaming: how a client

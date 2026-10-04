@@ -16,6 +16,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
   case skills
   case mcpServers
   case connectors
+  case kanban
   case advanced
   case about
 
@@ -26,7 +27,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
     [.account, .gateways, .passkeys, .mcp],
     [.chats, .notifications, .memory],
     [.appearance, .privacy, .voice],
-    [.skills, .mcpServers, .connectors],
+    [.skills, .mcpServers, .connectors, .kanban],
     [.advanced, .about]
   ]
 
@@ -45,6 +46,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
     case .skills: Strings.Skills.title
     case .mcpServers: Strings.Mcp.title
     case .connectors: Strings.Connectors.title
+    case .kanban: Strings.Kanban.title
     case .advanced: Strings.App.Settings.Categories.advanced
     case .about: Strings.App.Settings.Categories.about
     }
@@ -65,6 +67,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
     case .skills: Strings.Skills.Settings.hint
     case .mcpServers: Strings.Mcp.Settings.hint
     case .connectors: Strings.Connectors.Settings.hint
+    case .kanban: Strings.Kanban.Settings.hint
     case .advanced: Strings.App.Settings.Categories.Blurb.advanced
     case .about: Strings.App.Settings.Categories.Blurb.about
     }
@@ -85,6 +88,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
     case .skills: "wand.and.stars"
     case .mcpServers: "wrench.and.screwdriver"
     case .connectors: "link"
+    case .kanban: "rectangle.split.3x1"
     case .advanced: "slider.horizontal.3"
     case .about: "info.circle"
     }
@@ -96,7 +100,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
  the `Settings` window with a sidebar on the Mac.
 
  Implemented: Account, Privacy (the app lock), Gateways, MCP, Chats (the defaults, the cache and the folders),
- Notifications, Memory, Skills, MCP servers, Connectors, Appearance, Voice and About. Every other category is a placeholder page until its task lands.
+ Notifications, Memory, Skills, MCP servers, Connectors, Boards, Appearance, Voice and About. Every other category is a placeholder page until its task lands.
  */
 public struct SettingsView: View {
   private let onAddGateway: @MainActor () -> Void
@@ -251,6 +255,8 @@ struct SettingsPage: View {
         McpServersSettingsEntry()
       case .connectors:
         ConnectorsSettingsEntry()
+      case .kanban:
+        KanbanSettingsEntry()
       case .notifications:
         NotificationsSettingsPage()
       case .appearance:

@@ -334,3 +334,28 @@ describe('connectors.* for the account', () => {
     close()
   })
 })
+
+describe('the Kanban plugin', () => {
+  const kanban = '/api/plugins/kanban'
+
+  it('is there by default, with the boards on disk', async () => {
+    const live = await start()
+    const response = await fetch(`${live.url}${kanban}/boards`)
+    const body = (await response.json()) as { boards: { slug: string }[] }
+
+    expect(response.status).toBe(200)
+    expect(body.boards.map(board => board.slug)).toEqual(['default', 'sprint'])
+  })
+
+  it('is not mounted on a gateway staged without it: every route answers 404', async () => {
+    const live = await start({ kanban: false })
+
+    for (const path of ['/boards', '/board?board=default', '/tasks/t_aa11bb22?board=default']) {
+      const response = await fetch(`${live.url}${kanban}${path}`)
+      const body = (await response.json()) as { detail?: string }
+
+      expect(response.status).toBe(404)
+      expect(body.detail).toBe('Not Found')
+    }
+  })
+})

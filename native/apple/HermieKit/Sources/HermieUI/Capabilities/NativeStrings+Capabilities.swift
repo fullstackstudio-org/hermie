@@ -146,4 +146,11 @@ extension NativeStrings {
       String(localized: "native.connectors.linkRefused", table: "Native", bundle: .module)
     }
   }
+
+  enum KanbanPage {
+    /// This board is no longer on the gateway. (a board that was removed since the list was read)
+    static var boardGone: String { String(localized: "native.kanban.boardGone", table: "Native", bundle: .module) }
+    /// Nobody (a card with no assignee)
+    static var noAssignee: String { String(localized: "native.kanban.noAssignee", table: "Native", bundle: .module) }
+  }
 }

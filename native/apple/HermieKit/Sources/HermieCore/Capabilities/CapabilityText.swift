@@ -38,15 +38,12 @@ enum CapabilityText {
     (error as? GatewayError)?.status
   }
 
-  /// A route that is not mounted at all: a 404 that carries no `detail` of its own. A 404 WITH one is
-  /// the router answering about something that is not there (one missing card), which is an ordinary
-  /// failure and not "this gateway has no such feature".
+  /// A 404. The REST client attaches no sentence to one (`HTTPClient` words every 404 as "no such
+  /// endpoint"), so a 404 cannot tell "the plugin is not mounted" from "the plugin answered that this
+  /// one thing is not there". A route that exists whenever the plugin does (the list of boards, the
+  /// memory listing) is therefore the one to ask; a 404 from anything under it means the thing is gone.
   static func isMissingRoute(_ error: any Error) -> Bool {
-    guard let gateway = error as? GatewayError, gateway.status == 404 else {
-      return false
-    }
-
-    return (gateway.hint ?? "").isEmpty
+    (error as? GatewayError)?.status == 404
   }
 
   /// A route that is there and switched off for this profile (403).

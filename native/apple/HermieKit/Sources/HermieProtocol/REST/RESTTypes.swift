@@ -32,7 +32,7 @@ public enum RESTPath {
   public static func pluginProfile(_ name: String) -> String { "/api/plugins/hermie/profiles/\(segment(name))" }
 
   /// One path segment, percent-encoded as `encodeURIComponent` would.
-  static func segment(_ value: String) -> String {
+  public static func segment(_ value: String) -> String {
     var allowed = CharacterSet.alphanumerics
     allowed.insert(charactersIn: "-_.!~*'()")
     return value.addingPercentEncoding(withAllowedCharacters: allowed) ?? value

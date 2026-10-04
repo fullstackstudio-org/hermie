@@ -910,6 +910,10 @@
 	<string>%@ vraagt je een formulier in te vullen</string>
 	<key>native.interactive.tryAgain</key>
 	<string>Opnieuw proberen</string>
+	<key>native.kanban.boardGone</key>
+	<string>Dit board staat niet meer op de gateway.</string>
+	<key>native.kanban.noAssignee</key>
+	<string>Niemand</string>
 	<key>native.later</key>
 	<string>Komt in een latere build.</string>
 	<key>native.lock.coverLabel</key>
