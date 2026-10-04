@@ -250,14 +250,16 @@ test('when the dashboard still has the refused token, the line stays, and its bu
 
   // The gateway takes a new token, but its dashboard page still hands out the old one (a cached proxy, say).
   const dashboardPage = (url: URL) => url.href === `${gateway.url}/`
+  let dashboardReads = 0
 
-  await page.route(dashboardPage, route =>
-    route.fulfill({
+  await page.route(dashboardPage, async route => {
+    await route.fulfill({
       status: 200,
       contentType: 'text/html; charset=utf-8',
       body: `<!doctype html><html><head><script>window.__HERMES_SESSION_TOKEN__="${TOKEN}";</script></head></html>`
     })
-  )
+    dashboardReads += 1
+  })
 
   const fresh = 'e2e-token-after-restart-Kw2'
 
@@ -267,6 +269,12 @@ test('when the dashboard still has the refused token, the line stays, and its bu
   const line = page.getByRole('alert').filter({ hasText: /did not accept the token/u })
 
   await expect(line).toBeVisible()
+
+  // The line shows as soon as the token is refused; the client's own single read of the dashboard
+  // follows (a probe first, then the page). It has to be answered with the stale page before the page
+  // catches up: a read that reaches the fresh one takes the new token by itself and restarts the app,
+  // and the line (the button with it) is gone before anyone could click it.
+  await expect.poll(() => dashboardReads).toBeGreaterThan(0)
 
   // The page catches up; the button reads it again.
   await page.unroute(dashboardPage)
