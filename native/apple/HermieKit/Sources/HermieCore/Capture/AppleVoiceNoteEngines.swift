@@ -30,10 +30,21 @@ enum VoiceNoteAudioSession {
   }
 }
 
+/// Runs `work` on the main actor: at once when the system already called on the main thread (the delegates of
+/// `AVAudioRecorder` and `AVAudioPlayer` are called on the thread the object was made on, the main one here), and
+/// by hopping there otherwise, so a callback from another thread is never a crash.
+private func onMain(_ work: @escaping @MainActor @Sendable () -> Void) {
+  if Thread.isMainThread {
+    MainActor.assumeIsolated(work)
+  } else {
+    Task { @MainActor in work() }
+  }
+}
+
 /// `AVAudioRecorder`: AAC in an MP4 container at 64 kbit/s, mono, 44.1 kHz. A voice note is speech; this is small
 /// (about 8 KB a second) and clear.
 @MainActor
-public final class AppleVoiceRecorder: NSObject, VoiceRecording, @preconcurrency AVAudioRecorderDelegate {
+public final class AppleVoiceRecorder: NSObject, VoiceRecording, AVAudioRecorderDelegate {
   public var onEvent: (@MainActor (VoiceRecorderEvent) -> Void)?
 
   private var recorder: AVAudioRecorder?
@@ -145,8 +156,22 @@ public final class AppleVoiceRecorder: NSObject, VoiceRecording, @preconcurrency
 
   // MARK: AVAudioRecorderDelegate
 
-  public func audioRecorderDidFinishRecording(_ finished: AVAudioRecorder, successfully flag: Bool) {
-    guard finished === recorder else {
+  // Both callbacks are nonisolated and hop to the main actor (`onMain`), as the player's do: the system's object
+  // only travels as an identity, to compare with the current one.
+
+  public nonisolated func audioRecorderDidFinishRecording(_ finished: AVAudioRecorder, successfully flag: Bool) {
+    let identity = ObjectIdentifier(finished)
+    onMain { [self] in recorderEnded(identity, successfully: flag) }
+  }
+
+  public nonisolated func audioRecorderEncodeErrorDidOccur(_ finished: AVAudioRecorder, error: (any Error)?) {
+    let identity = ObjectIdentifier(finished)
+    onMain { [self] in recorderEnded(identity, successfully: false) }
+  }
+
+  /// A recording ended: only the current one counts; an older, cancelled one reports nothing.
+  private func recorderEnded(_ identity: ObjectIdentifier, successfully flag: Bool) {
+    guard let current = recorder, ObjectIdentifier(current) == identity else {
       return
     }
 
@@ -155,18 +180,6 @@ public final class AppleVoiceRecorder: NSObject, VoiceRecording, @preconcurrency
     recorder = nil
     VoiceNoteAudioSession.end()
     onEvent?(flag ? .finished(seconds: seconds) : .failed)
-  }
-
-  public func audioRecorderEncodeErrorDidOccur(_ finished: AVAudioRecorder, error: (any Error)?) {
-    guard finished === recorder else {
-      return
-    }
-
-    meter?.cancel()
-    meter = nil
-    recorder = nil
-    VoiceNoteAudioSession.end()
-    onEvent?(.failed)
   }
 }
 
@@ -230,16 +243,30 @@ public final class AppleVoicePlayer: NSObject, VoicePlaying, AVAudioPlayerDelega
     VoiceNoteAudioSession.end()
   }
 
-  public func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
-    clock?.cancel()
-    clock = nil
-    // The next play starts from the beginning.
-    player.currentTime = 0
-    onEvent?(flag ? .finished : .failed)
+  public nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+    let identity = ObjectIdentifier(player)
+    onMain { [self] in playerEnded(identity, successfully: flag) }
   }
 
-  public func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: (any Error)?) {
-    onEvent?(.failed)
+  public nonisolated func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: (any Error)?) {
+    let identity = ObjectIdentifier(player)
+    onMain { [self] in playerEnded(identity, successfully: false, finishedPlaying: false) }
+  }
+
+  /// Only the current player reports: one that was replaced or stopped says nothing.
+  private func playerEnded(_ identity: ObjectIdentifier, successfully flag: Bool, finishedPlaying: Bool = true) {
+    guard let current = player, ObjectIdentifier(current) == identity else {
+      return
+    }
+
+    if finishedPlaying {
+      clock?.cancel()
+      clock = nil
+      // The next play starts from the beginning.
+      current.currentTime = 0
+    }
+
+    onEvent?(flag ? .finished : .failed)
   }
 }
 
