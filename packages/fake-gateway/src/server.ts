@@ -36,6 +36,7 @@ import { clearedReauthCookie, cookieValue, handlePasskeyRoute, PREFIX as PASSKEY
 import { GRANT_FAILURES, type GrantFailure } from './passkey/store'
 import { InteractiveGate, type RaisedInteractive } from './interactive-gate'
 import { defaultParams, INTERACTIVE_METHODS, isInteractiveMethod, type InteractiveMethod } from './interactive'
+import { scheduleRefusal } from './cron-schedule'
 import { grantView as mcpGrantView, handleMcpRoute, PREFIX as MCP_PREFIX } from './mcp/routes'
 import { McpGateway, type McpGrantInput, type McpOptions } from './mcp/store'
 
@@ -6133,6 +6134,14 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
       if (method === 'POST') {
         const body = await readBody(req)
+        const refused = typeof body.schedule === 'string' ? scheduleRefusal(body.schedule) : null
+
+        if (refused) {
+          json(res, 400, { detail: refused })
+
+          return
+        }
+
         const job = addCronJob({ ...body, profile: profile || state.cronLaunchProfile })
         json(res, 200, annotateCronJob(job))
 
@@ -6204,6 +6213,14 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       // `CronJobUpdate` is `{updates: {...}}` and the route MERGES it; a client
       // that sends only a schedule must not lose the prompt.
       const updates = (isRecord(body.updates) ? body.updates : body) as Record<string, unknown>
+      const refused = typeof updates.schedule === 'string' ? scheduleRefusal(updates.schedule) : null
+
+      if (refused) {
+        json(res, 400, { detail: refused })
+
+        return
+      }
+
       Object.assign(job, updates)
 
       if (typeof updates.schedule === 'string') {
@@ -9297,6 +9314,12 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     }
 
     if (action === 'add') {
+      const refused = typeof params.schedule === 'string' ? scheduleRefusal(params.schedule) : null
+
+      if (refused) {
+        return { success: false, error: refused }
+      }
+
       const job = addCronJob({
         name,
         schedule: params.schedule,
