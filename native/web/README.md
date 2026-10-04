@@ -681,6 +681,7 @@ own chat: nothing in `App` does.
 | `ChatHeader.tsx`     | the line under the bot's name: its presence bead and what it is doing (the chat list's own rules)                           |
 | `rows.ts`            | from `visibleItems` to the list's rows: date separators, the status line while busy, the typing row, the tool being written |
 | `items/TodoList.tsx` | the bot's task list (`todo.updated`), a strip over the composer, folded to one line by default                              |
+| `AgentsBar.tsx`      | the subagents at work: a strip over the composer with the count and the clock, and its panel (below)                        |
 | `JumpToLatest.tsx`   | the button over the bottom of the transcript, with how many messages arrived while the reader was above                     |
 | `MessageMenu.tsx`    | the transcript's one message menu and how it is reached (below); the menu itself is `MessageMenuPopup.tsx`, a lazy chunk    |
 | `ChatOptions.tsx`    | the chat's options: verbosity, bot-to-bot, thinking (the panel, `ChatOptionsPanel.tsx`, is a lazy chunk)                    |
@@ -769,6 +770,24 @@ last in `ChatState.todo`, so it is a strip over the composer (`TodoList`): folde
 progress; open, every task with its mark (said in words to a screen reader) and a subtask indented under its parent.
 A list that is all done goes once the turn is over. A task's words are cleaned and bounded (`displayText`) and never
 Markdown; a task in an undocumented shape is read as far as it can be (an unknown status is "to do").
+
+**The Agents bar** (`AgentsBar.tsx`, `use-subagent-transcript.ts`, `core/chats/subagent-transcript.ts`) is the Expo app's
+bar and agents sheet as a strip over the composer, next to the task list. While a bot has children queued or running it
+says "3 agents working", ticks a clock from the earliest start and offers **Show**; the count is also said once, politely,
+when it changes (the clock is not: a name that changes every second is no name). The panel is the delegation tree, a row
+for each child: its goal, its status in words, how long it ran, the tool it is on, the last four lines it wrote and, once
+it ends, its summary. A running child has **Steer** (a field under the row takes the focus and sends the words as
+written with `subagent.steer`; "Too late to steer" when the gateway rejects it) and **Stop** (`subagent.interrupt`; the
+focus goes to the row when the button goes with the child), and a child with a session of its own has **Open
+transcript**, which takes the panel's place under a way back: the live `subagent.tail`, read again every three seconds
+while the child runs, and the child's stored transcript (`session.history` under its own id) once it has finished. The
+source follows the child, so a transcript open while the child ends moves from one to the other by itself and keeps the
+last text until the stored one is there. One read at a time; a failed read says so and leaves the text. Escape goes back
+one level (steer field, transcript, panel) and the focus goes back to the control that opened it. The bar stays while its
+panel is open when the last child finishes ("No agents running"), so a panel being read does not vanish. Everything an
+agent wrote is cleaned and bounded (`displayText`) and drawn as plain text. `AgentsBar.test.tsx`,
+`use-subagent-transcript.test.ts`, `subagent-transcript.test.ts` and `e2e/agents-bar.spec.ts` (the fake's "delegate" fan-out,
+slowed with `subagentStepMs`).
 
 Gateway-injected rows are notices, never the reader's own bubble. Everything the gateway or an agent wrote that is
 not Markdown (tool arguments, results, notice bodies, a thought) is shown as characters.

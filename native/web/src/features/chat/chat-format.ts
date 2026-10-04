@@ -76,3 +76,20 @@ export function formatBytes(bytes: number): string {
 
 /** A cap in whole binary megabytes, as the gateway states it (`25`, `100`). */
 export const megabytesOf = (bytes: number): number => Math.round(bytes / (1024 * 1024))
+
+/** `0:42`, `12:05`, `1:02:03`: a running clock, as the Agents bar ticks it. */
+export function formatElapsedClock(seconds: number | undefined): string {
+  if (seconds === undefined || !Number.isFinite(seconds) || seconds < 0) {
+    return '0:00'
+  }
+
+  const whole = Math.floor(seconds)
+  const minutes = Math.floor(whole / 60)
+  const rest = String(whole % 60).padStart(2, '0')
+
+  if (minutes < 60) {
+    return `${minutes}:${rest}`
+  }
+
+  return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}:${rest}`
+}

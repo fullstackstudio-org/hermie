@@ -658,6 +658,37 @@ export const SHEET_STRINGS_SOURCE = {
       de: ({ name }: { name: string }) => `${name} ist angelegt.`
     }
   },
+  /**
+   * The Agents bar over a chat's composer and the panel it opens (`features/chat/AgentsBar.tsx`, in the chat
+   * screen's chunk). The words it shares with the apps (the count, Show, the statuses, Steer, Stop, the transcript's
+   * two sources) are the catalogue's (`strings.chat.subagents`).
+   */
+  agents: {
+    /** The bar's button while the panel is open (it reads Show while it is closed). */
+    hide: {
+      en: 'Hide',
+      nl: 'Verbergen',
+      de: 'Ausblenden'
+    },
+    /** What a Steer or a Stop the gateway did not take is told, with the gateway's own words after it. */
+    actionFailed: {
+      en: ({ reason }: { reason: string }) => `That did not go through: ${reason}`,
+      nl: ({ reason }: { reason: string }) => `Dat is niet gelukt: ${reason}`,
+      de: ({ reason }: { reason: string }) => `Das hat nicht geklappt: ${reason}`
+    },
+    /** The open transcript could not be read; the last text stays and the next read tries again. */
+    readFailed: {
+      en: ({ reason }: { reason: string }) => `Could not read the transcript: ${reason}`,
+      nl: ({ reason }: { reason: string }) => `Het transcript kon niet worden gelezen: ${reason}`,
+      de: ({ reason }: { reason: string }) => `Das Transkript konnte nicht gelesen werden: ${reason}`
+    },
+    /** Said once a transcript is being read for the first time. */
+    loading: {
+      en: 'Reading the transcript…',
+      nl: 'Het transcript wordt gelezen…',
+      de: 'Das Transkript wird gelesen…'
+    }
+  },
   requests: {
     /** A clarify question left unanswered on purpose: the bot is told "no answer". */
     skip: {

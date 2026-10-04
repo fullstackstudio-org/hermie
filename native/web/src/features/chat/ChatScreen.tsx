@@ -50,6 +50,9 @@
  * **What it shows** is the reader's choice for this chat (`ChatOptions`, kept in
  * `state/chat-view.ts`), unless a test hands in a `view`.
  *
+ * **The Agents bar** (`AgentsBar.tsx`) sits over the field, next to the task list, while a bot has subagents at
+ * work: their count and clock, and the panel that steers, stops and reads each one.
+ *
  * **A message's actions** (copy, copy as Markdown, read aloud, edit and resend, regenerate,
  * branch from here, copy link) are one menu for the whole transcript (`MessageMenuLayer`), reached by pointer, long press and
  * the keyboard's roving focus over messages; no message holds a control of its
@@ -102,6 +105,7 @@ import { SecureInputNotice } from '../notices/SecureInputNotice'
 import { useFindRequest } from '../search/find-request'
 import { useFindInChat } from '../search/use-find-in-chat'
 import { chatHref, conversationHref, conversationsHref } from '../shell/router'
+import { AgentsBar } from './AgentsBar'
 import { clipLine } from './chat-format'
 import { ChatHeader } from './ChatHeader'
 import { ChatOptions } from './ChatOptions'
@@ -744,6 +748,9 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
 
       {/* The bot's task list: about now, so over the field rather than in the transcript. */}
       <TodoList key={`todo:${key ?? bot}`} todo={chat?.todo} turnActive={turnActive} />
+
+      {/* The subagents at work, over the field: the count and the clock, and the panel with Steer, Stop and each one's transcript. */}
+      {runtime && key !== undefined && !viewer ? <AgentsBar key={`agents:${key}`} chatKey={key} /> : null}
 
       {/* A past conversation or a branch can be read and not answered; a chat the gateway does not list has no one to ask. */}
       {runtime && key !== undefined && !viewer && record ? (

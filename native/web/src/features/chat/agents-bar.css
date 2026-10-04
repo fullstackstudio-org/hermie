@@ -1,0 +1,293 @@
+/*
+ * The Agents bar over the composer and its panel (`AgentsBar.tsx`). Colours, radii and gutters are the theme's
+ * (`ui/theme.css`); the policy forbids inline styles, so every variation is a class or a data attribute. It sits
+ * where the task list does, and has the same width and the same plain strip for a head.
+ */
+
+.hm-agentsbar {
+  flex: none;
+  box-sizing: border-box;
+  width: calc(100% - 2 * var(--hm-gutter));
+  max-width: 54rem;
+  margin: 0 auto 6px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+  color: var(--hm-text);
+}
+
+.hm-agentsbar__head {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hm-agentsbar__head:hover {
+  background: var(--hm-surface-hover);
+}
+
+/* Three still dots at falling strength: agents working is information, and nothing here is allowed to move. */
+.hm-agentsbar__pips {
+  display: inline-flex;
+  flex: none;
+  gap: 3px;
+}
+
+.hm-agentsbar__pips span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--hm-presence-working);
+}
+
+.hm-agentsbar__pips span:nth-child(2) {
+  opacity: 0.7;
+}
+
+.hm-agentsbar__pips span:nth-child(3) {
+  opacity: 0.45;
+}
+
+.hm-agentsbar__count {
+  flex: none;
+  font-weight: 600;
+}
+
+.hm-agentsbar__clock {
+  flex: none;
+  color: var(--hm-text-muted);
+  font-family: var(--hm-mono);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.hm-agentsbar__open {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--hm-tint-text);
+  font-weight: 600;
+  text-align: end;
+}
+
+.hm-agentsbar__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: min(24rem, 50vh);
+  padding: 0 12px 12px;
+  overflow: auto;
+}
+
+.hm-agentsbar__notice,
+.hm-agentsbar__idle,
+.hm-agentsbar__error,
+.hm-agentsbar__source {
+  margin: 0;
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.hm-agentsbar__notice[data-empty='true'] {
+  display: none;
+}
+
+.hm-agentsbar__error {
+  color: var(--hm-danger-text);
+}
+
+.hm-agentsbar__tree {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A child hangs off its parent by a rail: indentation alone stops reading as a tree past the first level. */
+.hm-agentsbar__tree .hm-agentsbar__tree {
+  margin-top: 8px;
+  margin-inline-start: 8px;
+  padding-inline-start: 12px;
+  border-inline-start: 1px solid var(--hm-line);
+}
+
+.hm-agentsbar__row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-bg);
+  overflow-wrap: anywhere;
+}
+
+.hm-agentsbar__row:focus-visible {
+  outline: var(--hm-focus-width) solid var(--hm-focus);
+  outline-offset: 2px;
+}
+
+.hm-agentsbar__line,
+.hm-agentsbar__meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+}
+
+.hm-agentsbar__glyph {
+  flex: none;
+  width: 1em;
+  color: var(--hm-text-muted);
+  text-align: center;
+}
+
+.hm-agentsbar__row[data-status='running'] > .hm-agentsbar__line .hm-agentsbar__glyph,
+.hm-agentsbar__row[data-status='completed'] > .hm-agentsbar__line .hm-agentsbar__glyph {
+  color: var(--hm-tint-text);
+}
+
+.hm-agentsbar__row[data-status='failed'] > .hm-agentsbar__line .hm-agentsbar__glyph {
+  color: var(--hm-danger-text);
+}
+
+.hm-agentsbar__goal {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.hm-agentsbar__duration {
+  flex: none;
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+}
+
+.hm-agentsbar__status {
+  flex: none;
+  color: var(--hm-text-muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hm-agentsbar__row[data-status='failed'] .hm-agentsbar__status {
+  color: var(--hm-danger-text);
+}
+
+.hm-agentsbar__tool {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--hm-text-faint);
+  font-family: var(--hm-mono);
+  font-size: 0.8125rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hm-agentsbar__stream {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+}
+
+.hm-agentsbar__stream li[data-error='true'] {
+  color: var(--hm-danger-text);
+}
+
+.hm-agentsbar__summary {
+  margin: 0;
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+}
+
+.hm-agentsbar__actions,
+.hm-agentsbar__steer,
+.hm-agentsbar__transcript-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.hm-agentsbar__actions:empty {
+  display: none;
+}
+
+.hm-agentsbar__steer input {
+  box-sizing: border-box;
+  flex: 1 1 12rem;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-bg);
+  color: var(--hm-text);
+  font: inherit;
+}
+
+.hm-agentsbar__transcript {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hm-agentsbar__transcript-title {
+  flex: 1 1 10rem;
+  min-width: 0;
+  margin: 0;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.hm-agentsbar__transcript-title:focus-visible {
+  outline: var(--hm-focus-width) solid var(--hm-focus);
+  outline-offset: 2px;
+}
+
+.hm-agentsbar__text {
+  box-sizing: border-box;
+  max-height: 16rem;
+  padding: 8px 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-bg);
+  overflow: auto;
+}
+
+.hm-agentsbar__text:focus-visible {
+  outline: var(--hm-focus-width) solid var(--hm-focus);
+  outline-offset: 2px;
+}
+
+.hm-agentsbar__text p {
+  margin: 0;
+  color: var(--hm-text-muted);
+}
+
+.hm-agentsbar__text pre {
+  margin: 0;
+  font-family: var(--hm-mono);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

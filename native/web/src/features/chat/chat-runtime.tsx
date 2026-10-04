@@ -28,7 +28,8 @@ import type { DraftStore } from './drafts'
  * (the request layer, which is over every chat and so is given the same
  * controller), and a bot's other conversations (`features/sessions`: list,
  * rename, delete, make one the Bot Chat, start a new one, branch the chat at a message). `uploadFile` is the
- * attachment tray's (`use-attachment-tray.ts`), and the Activity timeline's are `loadActivity` (every bot's recent
+ * attachment tray's (`use-attachment-tray.ts`), the Agents bar's are the three `*Subagent` calls and
+ * `childTranscript` (`AgentsBar.tsx`), and the Activity timeline's are `loadActivity` (every bot's recent
  * tail into the chat store) and the two counters (`features/activity`).
  */
 export type ChatScreenController = Pick<
@@ -68,6 +69,10 @@ export type ChatScreenController = Pick<
   | 'refreshUsage'
   | 'loadActivity'
   | 'activeSubagentCount'
+  | 'steerSubagent'
+  | 'interruptSubagent'
+  | 'tailSubagent'
+  | 'childTranscript'
   | 'inFlightDeliveries'
 >
 
