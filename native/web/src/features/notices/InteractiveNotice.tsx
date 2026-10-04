@@ -13,6 +13,7 @@ import type { StoreApi } from 'zustand/vanilla'
 
 import { BOT_NAME_LIMIT, displayText } from '../../core/requests/secure-input'
 import { useLocale } from '../../i18n/use-locale'
+import { sheetStrings } from '../../i18n/sheet-strings'
 import { webStrings } from '../../i18n/web-strings'
 import { botsStore } from '../../state/bots'
 import { type InteractiveNoticeKind, type InteractiveState, interactiveStore } from '../../state/interactive'
@@ -34,7 +35,7 @@ export function interactiveNoticeText(notice: InteractiveNoticeKind, name: strin
     case 'may_not_have_arrived':
       return webStrings.requests.answerMayNotHaveArrived({ name })
     case 'cannot_show': {
-      const words = webStrings.chat.request
+      const words = sheetStrings.chat.request
 
       const what =
         notice.method === 'input.file'
@@ -86,7 +87,7 @@ export function InteractiveNotice({
         />
       </p>
       <Button variant="quiet" onClick={() => runtime?.dismissNotice(chatKey)}>
-        {webStrings.secureInput.close}
+        {sheetStrings.secureNotice.close}
       </Button>
     </div>
   )

@@ -26,7 +26,7 @@ import { memo } from 'react'
 
 import { strings } from '../../../generated/strings'
 import { useLocale } from '../../../i18n/use-locale'
-import { webStrings } from '../../../i18n/web-strings'
+import { sheetStrings } from '../../../i18n/sheet-strings'
 import { senderName } from '../../bots/preview'
 import { clockOf, isoOf } from '../chat-format'
 import { messageTargetProps } from '../message-menu'
@@ -91,7 +91,7 @@ function UserBubbleView({ item, presentation }: RowViewProps<UserItem>) {
       data-side={foreign ? 'other' : 'own'}
       data-pending={item.pending ? 'true' : 'false'}
       {...messageTargetProps(item.id)}
-      aria-label={name ? (clock ? webStrings.chat.messageFrom({ name, time: clock }) : name) : undefined}
+      aria-label={name ? (clock ? sheetStrings.chat.messageFrom({ name, time: clock }) : name) : undefined}
     >
       {caption && name ? <p className="hm-msg__sender">{name}</p> : null}
 

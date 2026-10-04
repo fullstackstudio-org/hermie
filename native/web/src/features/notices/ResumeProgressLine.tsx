@@ -12,7 +12,7 @@ import { useStore } from 'zustand'
 import type { StoreApi } from 'zustand/vanilla'
 
 import { useLocale } from '../../i18n/use-locale'
-import { webStrings } from '../../i18n/web-strings'
+import { sheetStrings } from '../../i18n/sheet-strings'
 import { type SessionStatusState, sessionStatusStore } from '../../state/session-status'
 import { Button } from '../../ui/primitives'
 import { useSessionSignalsRuntime } from './signals-runtime'
@@ -39,7 +39,7 @@ export function ResumeProgressLine({
   if (progress.status === 'loading') {
     return (
       <p className="hm-chat__banner" role="status" aria-busy="true" data-resume-progress="loading">
-        {webStrings.resumeProgress.loading}
+        {sheetStrings.resumeProgress.loading}
       </p>
     )
   }
@@ -47,11 +47,11 @@ export function ResumeProgressLine({
   return (
     <div className="hm-chat__banner" data-tone="danger" role="alert" data-resume-progress="failed">
       <p>
-        {webStrings.resumeProgress.failed}
-        {progress.message ? ` ${webStrings.resumeProgress.reason({ reason: progress.message })}` : ''}
+        {sheetStrings.resumeProgress.failed}
+        {progress.message ? ` ${sheetStrings.resumeProgress.reason({ reason: progress.message })}` : ''}
       </p>
       <Button variant="quiet" onClick={() => runtime?.status.dismissProgress(chatKey)}>
-        {webStrings.resumeProgress.close}
+        {sheetStrings.resumeProgress.close}
       </Button>
     </div>
   )

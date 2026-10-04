@@ -28,7 +28,7 @@ import {
 } from 'react'
 
 import { strings } from '../../generated/strings'
-import { webStrings } from '../../i18n/web-strings'
+import { sheetStrings } from '../../i18n/sheet-strings'
 import type { ItemHost } from './items/item-host'
 import { type MessageMenuId, messageMenuEntries } from './message-menu'
 import type { OpenMenu } from './MessageMenu'
@@ -48,9 +48,9 @@ function titleOf(id: MessageMenuId): string {
     case 'regenerate':
       return strings.chat.menu.regenerate
     case 'branch':
-      return webStrings.chat.menu.branch
+      return sheetStrings.chat.menu.branch
     case 'copyLinks':
-      return webStrings.chat.menu.copyLinks
+      return sheetStrings.chat.menu.copyLinks
     default:
       // `copyLink:0`, the one link of a message that has just one.
       return strings.chat.menu.copyLink

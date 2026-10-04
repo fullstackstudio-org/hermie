@@ -13,7 +13,7 @@
 import { type ReactElement } from 'react'
 
 import { useLocale } from '../../i18n/use-locale'
-import { webStrings } from '../../i18n/web-strings'
+import { sheetStrings } from '../../i18n/sheet-strings'
 import type { YoloControl } from './use-yolo'
 
 export interface YoloBadgeProps {
@@ -27,7 +27,7 @@ export function YoloBadge({ yolo }: YoloBadgeProps): ReactElement | null {
     return null
   }
 
-  const label = webStrings.chat.yolo.badgeLabel
+  const label = sheetStrings.chat.yolo.badgeLabel
 
   return (
     <button
@@ -42,7 +42,7 @@ export function YoloBadge({ yolo }: YoloBadgeProps): ReactElement | null {
         }
       }}
     >
-      {webStrings.chat.yolo.badge}
+      {sheetStrings.chat.yolo.badge}
     </button>
   )
 }

@@ -15,7 +15,7 @@ import { memo } from 'react'
 
 import { displayText, NAME_LIMIT } from '../../../core/requests/secure-input'
 import { useLocale } from '../../../i18n/use-locale'
-import { webStrings } from '../../../i18n/web-strings'
+import { sheetStrings } from '../../../i18n/sheet-strings'
 import { WithName } from '../../requests/with-name'
 
 function ToolGeneratingView({ name }: { name: string }) {
@@ -37,7 +37,7 @@ function ToolGeneratingView({ name }: { name: string }) {
           <span className="hm-dots__dot" />
         </span>
         <span className="hm-generating__text">
-          <WithName phrase={tool => webStrings.chat.preparingTool({ name: tool })} name={shown} />
+          <WithName phrase={tool => sheetStrings.chat.preparingTool({ name: tool })} name={shown} />
         </span>
       </p>
     </div>

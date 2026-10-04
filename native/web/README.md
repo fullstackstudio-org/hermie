@@ -171,9 +171,9 @@ draw is kept out of the entry instead. These do that today.
   is a dialog with nothing in it until the chunk is there, and a failed fetch is asked for again every few seconds
   while there is a request to show.
 - **The sheets' own words** (`src/i18n/sheet-strings.ts`, the same table as `web-strings.ts`) travel with them, and
-  the settings pages' words are in it too, and so are the words only the chat screen's chunk says (the attachment tray,
-  the diff view, the composer's refusals, the Conversations page). Only a module that is itself loaded on demand may
-  import that file.
+  the settings pages' words are in it too, and so are the words only the chat screen's chunk says (the transcript's
+  own lines, the attachment tray, the diff view, the composer's refusals, the Conversations page, the chat's notices).
+  Only a module that is itself loaded on demand may import that file.
 - **Settings** is one chunk (`features/settings/SettingsHost.tsx`: the home, the way back, the section a route names),
   fetched when a settings route is opened or when the sidebar's link to it is pointed at or focused
   (`features/settings/load.ts`, the only part the entry imports), and each section is a chunk inside it (`Account`,

@@ -86,7 +86,6 @@ import { sentPreviewFor } from '../../core/chats/sent-previews'
 import { strings } from '../../generated/strings'
 import { useLocale } from '../../i18n/use-locale'
 import { sheetStrings } from '../../i18n/sheet-strings'
-import { webStrings } from '../../i18n/web-strings'
 import { writeClipboard } from '../../platform/clipboard'
 import { type HashRouter, pageHashRouter } from '../../platform/hash-router'
 import { botsStore } from '../../state/bots'
@@ -472,7 +471,7 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
 
   act.current.editResend = (text, attachments) => {
     setPrefill(current => ({ text: editResendText(text, attachments), serial: (current?.serial ?? 0) + 1 }))
-    host.announce(webStrings.chat.menu.editResendReady)
+    host.announce(sheetStrings.chat.menu.editResendReady)
   }
 
   act.current.branch = (id, text) => {
@@ -487,7 +486,7 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
         // drawn again for that route (`App`), so the new page's own banner is what says where the reader is.
         router.navigate(conversationHref(bot, branch.id))
       })
-      .catch((error: unknown) => setBranchFailure(webStrings.chat.menu.branchFailed({ message: messageOf(error) })))
+      .catch((error: unknown) => setBranchFailure(sheetStrings.chat.menu.branchFailed({ message: messageOf(error) })))
   }
 
   // The conversation as a file, from the rows on screen. The writer is fetched when it is first asked for.
@@ -621,7 +620,7 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
   useEffect(() => {
     if (wasRunning.current && !turnActive && latestReply) {
       setAnnouncement(
-        webStrings.chat.replied({ name: displayName, text: clipLine(plainTextPreview(latestReply), ANNOUNCE_CHARS) })
+        sheetStrings.chat.replied({ name: displayName, text: clipLine(plainTextPreview(latestReply), ANNOUNCE_CHARS) })
       )
     }
 
@@ -659,7 +658,7 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
 
       {viewer ? (
         <div className="hm-chat__banner">
-          <p>{webStrings.chat.readOnly}</p>
+          <p>{sheetStrings.chat.readOnly}</p>
           <p className="hm-chat__banner-links">
             <a href={chatHref(bot)}>{sheetStrings.sessions.backToChat}</a>
             <a href={conversationsHref(bot)}>{strings.chat.sessions.conversations}</a>
@@ -678,9 +677,9 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
       ) : null}
       {yoloError ? (
         <div className="hm-chat__banner" data-tone="danger" role="alert">
-          <p>{webStrings.chat.yolo.failed({ message: yoloError })}</p>
+          <p>{sheetStrings.chat.yolo.failed({ message: yoloError })}</p>
           <Button variant="quiet" onClick={dismissYoloError}>
-            {webStrings.chat.yolo.dismiss}
+            {sheetStrings.chat.yolo.dismiss}
           </Button>
         </div>
       ) : null}
@@ -708,7 +707,7 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
       <ResumeProgressLine chatKey={key ?? bot} />
 
       <div className="hm-chat__stage" ref={stage}>
-        {notOnGateway ? <p className="hm-chat__note">{webStrings.chat.notOnGateway}</p> : null}
+        {notOnGateway ? <p className="hm-chat__note">{sheetStrings.chat.notOnGateway}</p> : null}
         {opening ? (
           <p className="hm-chat__note" role="status">
             {strings.app.chat.hydrating}
@@ -724,7 +723,7 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
                 renderItem={renderItem}
                 onReachTop={onReachTop}
                 onStickChange={onStickChange}
-                label={webStrings.chat.transcriptLabel({ name: displayName })}
+                label={sheetStrings.chat.transcriptLabel({ name: displayName })}
                 describedBy={hintId}
                 busy={turnActive}
                 listRef={listRef}

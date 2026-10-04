@@ -26,7 +26,7 @@ import { memo } from 'react'
 import { strings } from '../../../generated/strings'
 import { formatNumber } from '../../../i18n/format'
 import { useLocale } from '../../../i18n/use-locale'
-import { webStrings } from '../../../i18n/web-strings'
+import { sheetStrings } from '../../../i18n/sheet-strings'
 import { clockOf, formatDuration, isoOf } from '../chat-format'
 import { messageTargetProps } from '../message-menu'
 import { AttachmentGallery } from './AttachmentGallery'
@@ -110,7 +110,7 @@ function AssistantBubbleView({ item, presentation }: RowViewProps<AssistantItem>
       data-side="bot"
       data-interim={item.interim ? 'true' : 'false'}
       {...messageTargetProps(item.id)}
-      aria-label={clock ? webStrings.chat.messageFrom({ name: botName, time: clock }) : botName || undefined}
+      aria-label={clock ? sheetStrings.chat.messageFrom({ name: botName, time: clock }) : botName || undefined}
     >
       {item.replyToBotHandle ? (
         <p className="hm-msg__sender">{strings.chat.assistant.replyTo({ handle: item.replyToBotHandle })}</p>

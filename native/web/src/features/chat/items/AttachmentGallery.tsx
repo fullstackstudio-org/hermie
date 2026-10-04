@@ -28,7 +28,7 @@ import { memo, useCallback } from 'react'
 
 import { namesAPicture } from '../../../core/chats/attachment-fetch'
 import { useLocale } from '../../../i18n/use-locale'
-import { webStrings } from '../../../i18n/web-strings'
+import { sheetStrings } from '../../../i18n/sheet-strings'
 import { OpenableChip, RemotePicture } from './AttachmentEntries'
 import { FileChip } from './FileChip'
 import { gatewayImageSrc, ImageCard } from './ImageCard'
@@ -95,7 +95,7 @@ function AttachmentGalleryImpl({ attachments, onAccent = false }: AttachmentGall
   const layout = columns > 1 ? 'cell' : 'solo'
 
   return (
-    <ul className="hm-gallery" data-columns={columns} aria-label={webStrings.chat.attachments}>
+    <ul className="hm-gallery" data-columns={columns} aria-label={sheetStrings.chat.attachments}>
       {resolved.map(entry => (
         <li
           key={entry.reference}

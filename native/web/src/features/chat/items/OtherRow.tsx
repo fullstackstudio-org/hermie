@@ -13,7 +13,7 @@ import { useStore } from 'zustand'
 
 import { strings } from '../../../generated/strings'
 import { useLocale } from '../../../i18n/use-locale'
-import { webStrings } from '../../../i18n/web-strings'
+import { sheetStrings } from '../../../i18n/sheet-strings'
 import { requestLaterStore } from '../../../state/request-later'
 import { interactiveKey } from '../../../state/requests'
 import { Button } from '../../../ui/primitives'
@@ -31,7 +31,7 @@ const BODY_CHARS = 1_200
 
 /** How a form, a file request or a draft stands, in words: waiting, answered (how), or ended without an answer. */
 function requestState(item: RequestItem, away: boolean): string {
-  const words = webStrings.chat.request
+  const words = sheetStrings.chat.request
 
   if (item.state === 'open') {
     return away ? words.later : words.open
@@ -93,12 +93,12 @@ function plainOf(item: TranscriptItem, away: boolean): Plain | null {
       return {
         eyebrow:
           item.method === 'input.file'
-            ? webStrings.chat.request.kindFile
+            ? sheetStrings.chat.request.kindFile
             : item.method === 'review.draft'
-              ? webStrings.chat.request.kindDraft
+              ? sheetStrings.chat.request.kindDraft
               : item.method === 'review.diff'
-                ? webStrings.chat.request.kindDiff
-                : webStrings.chat.request.kindForm,
+                ? sheetStrings.chat.request.kindDiff
+                : sheetStrings.chat.request.kindForm,
         text: `${item.title}\n${requestState(item, away)}`
       }
 
@@ -134,10 +134,10 @@ function OtherRowView({ item, presentation }: RowViewProps<TranscriptItem>) {
       {away && item.kind === 'request' && item.state === 'open' ? (
         <Button
           variant="quiet"
-          aria-label={webStrings.chat.request.openNamed({ title: item.title })}
+          aria-label={sheetStrings.chat.request.openNamed({ title: item.title })}
           onClick={() => requestLaterStore.getState().bringBack(requestKey)}
         >
-          {webStrings.chat.request.openAction}
+          {sheetStrings.chat.request.openAction}
         </Button>
       ) : null}
     </article>

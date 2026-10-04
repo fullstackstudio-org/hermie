@@ -194,6 +194,373 @@ export const SHEET_STRINGS_SOURCE = {
       }
     }
   },
+  /*
+    What only the chat screen's chunk says, moved here from `web-strings.ts` so it is not first-load weight: the
+    transcript's own lines (`chat`), the line about a conversation the gateway is still loading (`resumeProgress`),
+    and the chat's line about a secret, sudo or vault prompt that ended without an answer (`secureNotice`; the
+    request layer's announcement of a lapsed one is the entry's, `webStrings.secureInput.noticeLapsed`).
+  */
+  chat: {
+    /** The message menu's lines the shared catalogue words differently or not at all (`MessageMenuPopup`). */
+    menu: {
+      /** The line that forks the conversation at this message (the catalogue's ends in an ellipsis: a sheet follows there, nothing does here). */
+      branch: {
+        en: 'Branch from here',
+        nl: 'Vertak vanaf hier',
+        de: 'Ab hier verzweigen'
+      },
+      /** The line that opens the list of a message's links, and that list's accessible name. */
+      copyLinks: {
+        en: 'Copy links',
+        nl: 'Links kopiëren',
+        de: 'Links kopieren'
+      },
+      /** The line above the chat when the gateway refused to branch, with its reason. */
+      branchFailed: {
+        en: ({ message }: { message: string }) => `This conversation could not be branched: ${message}`,
+        nl: ({ message }: { message: string }) => `Dit gesprek kon niet vertakt worden: ${message}`,
+        de: ({ message }: { message: string }) => `Diese Unterhaltung konnte nicht verzweigt werden: ${message}`
+      },
+      /** Said once the words of a turn are in the field again, ready to be changed and sent. */
+      editResendReady: {
+        en: 'The message is in the field. Change it and send it again.',
+        nl: 'Het bericht staat in het veld. Pas het aan en stuur het opnieuw.',
+        de: 'Die Nachricht steht im Feld. Ändere sie und sende sie erneut.'
+      }
+    },
+    /** YOLO mode of a chat: skipping its approval requests (`ChatOptionsPanel`, `YoloBadge`). */
+    yolo: {
+      /** Asked before turning it on, in the chat's options. */
+      confirm: {
+        en: 'Approval requests are skipped in this chat until you turn it off.',
+        nl: 'Toestemmingsverzoeken worden in dit gesprek overgeslagen tot je het weer uitzet.',
+        de: 'Zugriffsanfragen werden in diesem Chat übersprungen, bis du es wieder ausschaltest.'
+      },
+      /** The confirmation's button that turns it on. */
+      confirmAction: {
+        en: 'Turn on YOLO mode',
+        nl: 'YOLO-modus aanzetten',
+        de: 'YOLO-Modus einschalten'
+      },
+      /** The confirmation's way out. */
+      cancel: {
+        en: 'Cancel',
+        nl: 'Annuleren',
+        de: 'Abbrechen'
+      },
+      /** In the chat's header while it is on: the word on the badge (a name, so the same in every language). */
+      badge: {
+        en: 'YOLO',
+        nl: 'YOLO',
+        de: 'YOLO'
+      },
+      /** The badge's accessible name and tooltip: what it says and what pressing it does. */
+      badgeLabel: {
+        en: 'YOLO mode is on: approval requests are skipped in this chat. Turn it off',
+        nl: 'YOLO-modus staat aan: toestemmingsverzoeken worden in dit gesprek overgeslagen. Zet uit',
+        de: 'YOLO-Modus ist an: Zugriffsanfragen werden in diesem Chat übersprungen. Ausschalten'
+      },
+      /** The line above the chat when the gateway refused to change it. */
+      failed: {
+        en: ({ message }: { message: string }) => `YOLO mode could not be changed: ${message}`,
+        nl: ({ message }: { message: string }) => `De YOLO-modus kon niet worden gewijzigd: ${message}`,
+        de: ({ message }: { message: string }) => `Der YOLO-Modus konnte nicht geändert werden: ${message}`
+      },
+      /** Closes that line. */
+      dismiss: {
+        en: 'Dismiss',
+        nl: 'Sluiten',
+        de: 'Schließen'
+      }
+    },
+    /** The record in the transcript of a form, a file request or a draft the bot asked for (`OtherRow`). */
+    request: {
+      kindForm: {
+        en: 'Form',
+        nl: 'Formulier',
+        de: 'Formular'
+      },
+      kindFile: {
+        en: 'File request',
+        nl: 'Bestandsverzoek',
+        de: 'Dateianfrage'
+      },
+      kindDraft: {
+        en: 'Draft to review',
+        nl: 'Concept om na te kijken',
+        de: 'Entwurf zur Prüfung'
+      },
+      kindDiff: {
+        en: 'Changes to review',
+        nl: 'Wijzigingen om na te kijken',
+        de: 'Änderungen zur Prüfung'
+      },
+      /** A diff review that was answered: how many hunks were approved of all of them (`approved` is at least 1). */
+      hunksApproved: {
+        en: ({ approved, total }: { approved: number; total: number }) =>
+          `${approved} of ${total} ${total === 1 ? 'hunk' : 'hunks'} approved`,
+        nl: ({ approved, total }: { approved: number; total: number }) =>
+          `${approved} van ${total} ${total === 1 ? 'wijziging' : 'wijzigingen'} goedgekeurd`,
+        de: ({ approved, total }: { approved: number; total: number }) =>
+          `${approved} von ${total} ${total === 1 ? 'Änderung' : 'Änderungen'} freigegeben`
+      },
+      /** The line under the bot's heading while the question waits. */
+      open: {
+        en: 'Waiting for your answer',
+        nl: 'Wacht op je antwoord',
+        de: 'Wartet auf deine Antwort'
+      },
+      answered: {
+        en: 'Answered',
+        nl: 'Beantwoord',
+        de: 'Beantwortet'
+      },
+      skipped: {
+        en: 'Skipped',
+        nl: 'Overgeslagen',
+        de: 'Übersprungen'
+      },
+      files: {
+        en: ({ count }: { count: number }) => (count === 1 ? '1 file sent' : `${count} files sent`),
+        nl: ({ count }: { count: number }) => (count === 1 ? '1 bestand verstuurd' : `${count} bestanden verstuurd`),
+        de: ({ count }: { count: number }) => (count === 1 ? '1 Datei gesendet' : `${count} Dateien gesendet`)
+      },
+      approved: {
+        en: 'Approved',
+        nl: 'Goedgekeurd',
+        de: 'Freigegeben'
+      },
+      approvedEdited: {
+        en: 'Approved with changes',
+        nl: 'Goedgekeurd met wijzigingen',
+        de: 'Mit Änderungen freigegeben'
+      },
+      rejected: {
+        en: 'Rejected',
+        nl: 'Afgewezen',
+        de: 'Abgelehnt'
+      },
+      timedOut: {
+        en: 'Timed out',
+        nl: 'Verlopen',
+        de: 'Abgelaufen'
+      },
+      withdrawn: {
+        en: 'Withdrawn',
+        nl: 'Ingetrokken',
+        de: 'Zurückgezogen'
+      },
+      /** The person chose not to share (`4041 declined`). */
+      notShared: {
+        en: 'Not shared',
+        nl: 'Niet gedeeld',
+        de: 'Nicht geteilt'
+      },
+      /** The sheet was put away (Later) and the request still waits. */
+      later: {
+        en: 'Put away for later',
+        nl: 'Voor later opzij gezet',
+        de: 'Für später beiseitegelegt'
+      },
+      /** Brings the sheet back; on the transcript's record of a request that was put away. */
+      openAction: {
+        en: 'Open',
+        nl: 'Openen',
+        de: 'Öffnen'
+      },
+      /** The accessible name of that button: which request it opens. */
+      openNamed: {
+        en: ({ title }: { title: string }) => `Open ${title}`,
+        nl: ({ title }: { title: string }) => `${title} openen`,
+        de: ({ title }: { title: string }) => `${title} öffnen`
+      },
+      /** The chat's line when the person chose not to share what a bot asked for: the bot was told. */
+      noticeDeclined: {
+        en: ({ name, what }: { name: string; what: string }) =>
+          `You chose not to share what ${name} asked for (${what}). ${name} was told.`,
+        nl: ({ name, what }: { name: string; what: string }) =>
+          `Je koos ervoor niet te delen wat ${name} vroeg (${what}). ${name} is op de hoogte gebracht.`,
+        de: ({ name, what }: { name: string; what: string }) =>
+          `Du hast dich entschieden, nicht zu teilen, worum ${name} gebeten hat (${what}). ${name} wurde informiert.`
+      },
+      /** This page told the gateway it could not show the request (`4041`). */
+      cannotShow: {
+        en: 'Could not be shown here',
+        nl: 'Kon hier niet getoond worden',
+        de: 'Konnte hier nicht angezeigt werden'
+      },
+      /** What a bot asked for, after a verb ("sent a form"), for the chat's line about a request this page could not show. */
+      whatForm: {
+        en: 'a form',
+        nl: 'een formulier',
+        de: 'ein Formular'
+      },
+      whatFile: {
+        en: 'a file request',
+        nl: 'een bestandsverzoek',
+        de: 'eine Dateianfrage'
+      },
+      whatDraft: {
+        en: 'a draft to review',
+        nl: 'een concept om na te kijken',
+        de: 'einen Entwurf zur Prüfung'
+      },
+      whatDiff: {
+        en: 'changes to review',
+        nl: 'wijzigingen om na te kijken',
+        de: 'Änderungen zur Prüfung'
+      },
+      /** The chat's line when this page told the gateway it could not show a request: the bot was told. */
+      noticeCannotShow: {
+        en: ({ name, what }: { name: string; what: string }) =>
+          `${name} sent ${what}, and this page could not show it. ${name} was told.`,
+        nl: ({ name, what }: { name: string; what: string }) =>
+          `${name} stuurde ${what}, en deze pagina kon het niet tonen. ${name} is op de hoogte gebracht.`,
+        de: ({ name, what }: { name: string; what: string }) =>
+          `${name} hat ${what} gesendet, und diese Seite konnte es nicht anzeigen. ${name} wurde informiert.`
+      }
+    },
+    /** The accessible name of the transcript region (`role="log"`). */
+    transcriptLabel: {
+      en: ({ name }: { name: string }) => `Conversation with ${name}`,
+      nl: ({ name }: { name: string }) => `Gesprek met ${name}`,
+      de: ({ name }: { name: string }) => `Unterhaltung mit ${name}`
+    },
+    /** Announced politely when a reply has finished: who, and the start of what they said. */
+    replied: {
+      en: ({ name, text }: { name: string; text: string }) => `${name} replied: ${text}`,
+      nl: ({ name, text }: { name: string; text: string }) => `${name} antwoordde: ${text}`,
+      de: ({ name, text }: { name: string; text: string }) => `${name} hat geantwortet: ${text}`
+    },
+    /** Shown instead of a conversation whose bot the gateway does not list. */
+    notOnGateway: {
+      en: 'This chat is not on this gateway.',
+      nl: 'Deze chat staat niet op deze gateway.',
+      de: 'Dieser Chat ist nicht auf diesem Gateway.'
+    },
+    /** Above a past conversation or a branch, which can be read and not answered. */
+    readOnly: {
+      en: 'You are reading an earlier conversation. It cannot be answered.',
+      nl: 'Je leest een eerder gesprek. Daar kun je niet meer op antwoorden.',
+      de: 'Du liest eine frühere Unterhaltung. Darauf lässt sich nicht mehr antworten.'
+    },
+    /** The name of the list of files a message carries. */
+    attachments: {
+      en: 'Attachments',
+      nl: 'Bijlagen',
+      de: 'Anhänge'
+    },
+    /** The name of a message for assistive technology: who said it, and when. */
+    messageFrom: {
+      en: ({ name, time }: { name: string; time: string }) => `${name}, ${time}`,
+      nl: ({ name, time }: { name: string; time: string }) => `${name}, ${time}`,
+      de: ({ name, time }: { name: string; time: string }) => `${name}, ${time}`
+    },
+    /** The bot is writing a tool call (`tool.generating`) and has named the tool, before the call exists. */
+    preparingTool: {
+      en: ({ name }: { name: string }) => `Preparing ${name}…`,
+      nl: ({ name }: { name: string }) => `${name} wordt voorbereid…`,
+      de: ({ name }: { name: string }) => `${name} wird vorbereitet…`
+    },
+    /** The name of the bot's task list over the composer (`todo.updated`). */
+    todoTitle: {
+      en: 'Tasks',
+      nl: 'Taken',
+      de: 'Aufgaben'
+    },
+    /** Beside the title: how far the list is. */
+    todoProgress: {
+      en: ({ done, total }: { done: number; total: number }) => `${done} of ${total} done`,
+      nl: ({ done, total }: { done: number; total: number }) => `${done} van ${total} klaar`,
+      de: ({ done, total }: { done: number; total: number }) => `${done} von ${total} erledigt`
+    },
+    /** What each task's mark means, said to assistive technology. */
+    todoStatus: {
+      pending: {
+        en: 'To do',
+        nl: 'Te doen',
+        de: 'Offen'
+      },
+      in_progress: {
+        en: 'In progress',
+        nl: 'Bezig',
+        de: 'In Arbeit'
+      },
+      completed: {
+        en: 'Done',
+        nl: 'Klaar',
+        de: 'Erledigt'
+      },
+      cancelled: {
+        en: 'Cancelled',
+        nl: 'Geannuleerd',
+        de: 'Abgebrochen'
+      }
+    }
+  },
+  resumeProgress: {
+    /** On the chat while the gateway loads the conversation behind a resume. */
+    loading: {
+      en: 'The gateway is still loading this conversation…',
+      nl: 'De gateway laadt dit gesprek nog…',
+      de: 'Das Gateway lädt dieses Gespräch noch…'
+    },
+    /** On the chat when the gateway could not load the conversation. */
+    failed: {
+      en: 'The gateway could not load this conversation’s history.',
+      nl: 'De gateway kon de geschiedenis van dit gesprek niet laden.',
+      de: 'Das Gateway konnte den Verlauf dieses Gesprächs nicht laden.'
+    },
+    /** After the failure line: the gateway's reason. */
+    reason: {
+      en: ({ reason }: { reason: string }) => `The gateway says: ${reason}`,
+      nl: ({ reason }: { reason: string }) => `De gateway zegt: ${reason}`,
+      de: ({ reason }: { reason: string }) => `Das Gateway sagt: ${reason}`
+    },
+    close: {
+      en: 'Close',
+      nl: 'Sluiten',
+      de: 'Schließen'
+    }
+  },
+  secureNotice: {
+    /** On the chat: a prompt ran out of time before it was answered. */
+    noticeExpired: {
+      en: ({ name }: { name: string }) => `The request from ${name} expired. Nothing was sent.`,
+      nl: ({ name }: { name: string }) => `Het verzoek van ${name} is verlopen. Er is niets verstuurd.`,
+      de: ({ name }: { name: string }) => `Die Anfrage von ${name} ist abgelaufen. Es wurde nichts gesendet.`
+    },
+    /** On the chat: the bot stopped asking before it was answered. */
+    noticeWithdrawn: {
+      en: ({ name }: { name: string }) => `${name} no longer asks for this. Nothing was sent.`,
+      nl: ({ name }: { name: string }) => `${name} vraagt hier niet meer om. Er is niets verstuurd.`,
+      de: ({ name }: { name: string }) => `${name} fragt nicht mehr danach. Es wurde nichts gesendet.`
+    },
+    /** On the chat: an answer went out just as the gateway stopped waiting; it may not have been taken. */
+    noticeMayNotHaveArrived: {
+      en: ({ name }: { name: string }) =>
+        `Your answer to ${name} may not have arrived: the request ended at the same moment.`,
+      nl: ({ name }: { name: string }) =>
+        `Je antwoord aan ${name} is mogelijk niet aangekomen: het verzoek eindigde op hetzelfde moment.`,
+      de: ({ name }: { name: string }) =>
+        `Deine Antwort an ${name} ist vielleicht nicht angekommen: Die Anfrage endete im selben Moment.`
+    },
+    /** On the chat: the bot asked for something only the desktop app can do, and the page said no. */
+    noticeUnsupported: {
+      en: ({ name, method }: { name: string; method: string }) =>
+        `${name} sent a request that needs the Hermes desktop app (${method}). It was declined here.`,
+      nl: ({ name, method }: { name: string; method: string }) =>
+        `${name} stuurde een verzoek dat de Hermes-desktop-app nodig heeft (${method}). Het is hier geweigerd.`,
+      de: ({ name, method }: { name: string; method: string }) =>
+        `${name} hat eine Anfrage gesendet, die die Hermes-Desktop-App braucht (${method}). Sie wurde hier abgelehnt.`
+    },
+    /** Takes a notice away. */
+    close: {
+      en: 'Close',
+      nl: 'Sluiten',
+      de: 'Schließen'
+    }
+  },
   sessions: {
     /** The button on a bot's Conversations page that puts the current conversation away and starts a new one (`/new`). */
     newConversation: {

@@ -60,7 +60,6 @@ import { type Conversation, type ConversationAction, conversationActions } from 
 import { strings } from '../../generated/strings'
 import { useLocale } from '../../i18n/use-locale'
 import { sheetStrings } from '../../i18n/sheet-strings'
-import { webStrings } from '../../i18n/web-strings'
 import { type HashRouter, pageHashRouter } from '../../platform/hash-router'
 import { botsStore } from '../../state/bots'
 import { chatsStore } from '../../state/chats'
@@ -134,7 +133,7 @@ export function ConversationsPage({ bot, router = pageHashRouter }: Conversation
   /** The chat live under the bot's key, opened if it is not: a swap and a new conversation retire it. */
   const ensureOpen = useCallback(async () => {
     if (!controller || !record) {
-      throw new Error(webStrings.chat.notOnGateway)
+      throw new Error(sheetStrings.chat.notOnGateway)
     }
 
     if (!chatsStore.getState().chats[bot]?.runtimeSessionId) {

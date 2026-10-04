@@ -17,7 +17,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { strings } from '../../generated/strings'
 import { useLocale } from '../../i18n/use-locale'
-import { webStrings } from '../../i18n/web-strings'
+import { sheetStrings } from '../../i18n/sheet-strings'
 import { chatViewFor, chatViewStore, hasChatViewOverride, VERBOSITIES } from '../../state/chat-view'
 import type { ExportFormat } from './chat-export'
 import { ExportOptions, SessionOptions } from './ConversationOptions'
@@ -167,7 +167,7 @@ function YoloOption({ yolo }: { yolo: YoloControl }): ReactElement {
             }
           }}
         >
-          <p id={questionId}>{webStrings.chat.yolo.confirm}</p>
+          <p id={questionId}>{sheetStrings.chat.yolo.confirm}</p>
           <div className="hm-chat-options__confirm-actions">
             <button
               type="button"
@@ -178,10 +178,10 @@ function YoloOption({ yolo }: { yolo: YoloControl }): ReactElement {
                 void yolo.set(true)
               }}
             >
-              {webStrings.chat.yolo.confirmAction}
+              {sheetStrings.chat.yolo.confirmAction}
             </button>
             <button ref={cancel} type="button" className="hm-chat-options__reset" onClick={withdraw}>
-              {webStrings.chat.yolo.cancel}
+              {sheetStrings.chat.yolo.cancel}
             </button>
           </div>
         </div>
@@ -308,7 +308,7 @@ export function ChatOptionsPanel({
             <div className="hm-chat-options__alert" role="alert">
               <p>{sessionError}</p>
               <button type="button" className="hm-chat-options__reset" onClick={dismissSessionError}>
-                {webStrings.chat.yolo.dismiss}
+                {sheetStrings.chat.yolo.dismiss}
               </button>
             </div>
           ) : null}

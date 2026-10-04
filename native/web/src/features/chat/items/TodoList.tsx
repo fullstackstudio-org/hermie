@@ -24,7 +24,7 @@ import { type ReactElement, useId, useMemo, useState } from 'react'
 
 import { displayText, TEXT_LIMIT } from '../../../core/requests/secure-input'
 import { useLocale } from '../../../i18n/use-locale'
-import { webStrings } from '../../../i18n/web-strings'
+import { sheetStrings } from '../../../i18n/sheet-strings'
 import { Icon } from '../../../ui/icons'
 
 export type TodoStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled'
@@ -138,7 +138,7 @@ export function TodoList({ todo, turnActive }: TodoListProps): ReactElement | nu
   const counted = entries.filter(entry => entry.status !== 'cancelled')
   const done = counted.filter(entry => entry.status === 'completed').length
   const current = entries.find(entry => entry.status === 'in_progress')
-  const title = webStrings.chat.todoTitle
+  const title = sheetStrings.chat.todoTitle
 
   return (
     <section className="hm-todo" aria-label={title} data-open={open ? 'true' : 'false'}>
@@ -150,7 +150,7 @@ export function TodoList({ todo, turnActive }: TodoListProps): ReactElement | nu
         onClick={() => setOpen(!open)}
       >
         <span className="hm-todo__title">{title}</span>
-        <span className="hm-todo__progress">{webStrings.chat.todoProgress({ done, total: counted.length })}</span>
+        <span className="hm-todo__progress">{sheetStrings.chat.todoProgress({ done, total: counted.length })}</span>
         {!open && current ? <span className="hm-todo__current">{current.content}</span> : null}
         <Icon name={open ? 'chevronDown' : 'chevronRight'} size={16} />
       </button>
@@ -162,7 +162,7 @@ export function TodoList({ todo, turnActive }: TodoListProps): ReactElement | nu
               <span className="hm-todo__mark" aria-hidden="true">
                 {MARKS[entry.status]}
               </span>
-              <span className="hm-sr">{webStrings.chat.todoStatus[entry.status]}: </span>
+              <span className="hm-sr">{sheetStrings.chat.todoStatus[entry.status]}: </span>
               <span className="hm-todo__text">{entry.content}</span>
             </li>
           ))}
