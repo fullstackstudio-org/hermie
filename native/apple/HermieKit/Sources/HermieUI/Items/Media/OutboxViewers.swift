@@ -1,5 +1,6 @@
 import AVKit
 import HermieCore
+import HermieMarkdown
 import HermieTranscript
 import PDFKit
 import SwiftUI
@@ -151,38 +152,79 @@ struct OutboxPDFViewer: View {
   }
 }
 
-/// PDFKit's view of one document: continuous scrolling, scaled to the width.
+/// Where a link in a bot's PDF may go: the schemes a link in a message may leave the app through
+/// (`MarkdownInline.openableSchemes`: web, mail, phone), and nothing else. A PDF is the bot's document; a link in it
+/// to `file:`, another app's scheme or anything else is not followed. A link to a page of the document itself is
+/// PDFKit's own, and never comes here.
+@MainActor
+final class OutboxPDFLinks: NSObject, PDFViewDelegate {
+  /// Opens an address that passed (the environment's `openURL`, as a link in a message is opened).
+  var open: (URL) -> Void
+
+  init(open: @escaping (URL) -> Void) {
+    self.open = open
+  }
+
+  /// Whether a link to `url` in a shared PDF is followed.
+  nonisolated static func allows(_ url: URL) -> Bool {
+    MarkdownInline.isOpenable(url)
+  }
+
+  /// PDFKit asks before it follows a link out of the document; implementing this replaces its own opening.
+  nonisolated func pdfViewWillClick(onLink sender: PDFView, with url: URL) {
+    guard Self.allows(url) else { return }
+    MainActor.assumeIsolated { open(url) }
+  }
+}
+
+/// PDFKit's view of one document: continuous scrolling, scaled to the width, links held to `OutboxPDFLinks`.
 #if os(iOS)
   struct PDFKitView: UIViewRepresentable {
     let url: URL
+    @Environment(\.openURL) private var openURL
+
+    func makeCoordinator() -> OutboxPDFLinks {
+      OutboxPDFLinks { _ in }
+    }
 
     func makeUIView(context: Context) -> PDFView {
       let view = PDFView()
       view.autoScales = true
       view.displayMode = .singlePageContinuous
       view.displayDirection = .vertical
+      context.coordinator.open = { openURL($0) }
+      view.delegate = context.coordinator
       view.document = PDFDocument(url: url)
       return view
     }
 
     func updateUIView(_ view: PDFView, context: Context) {
+      context.coordinator.open = { openURL($0) }
       if view.document?.documentURL != url { view.document = PDFDocument(url: url) }
     }
   }
 #else
   struct PDFKitView: NSViewRepresentable {
     let url: URL
+    @Environment(\.openURL) private var openURL
+
+    func makeCoordinator() -> OutboxPDFLinks {
+      OutboxPDFLinks { _ in }
+    }
 
     func makeNSView(context: Context) -> PDFView {
       let view = PDFView()
       view.autoScales = true
       view.displayMode = .singlePageContinuous
       view.displayDirection = .vertical
+      context.coordinator.open = { openURL($0) }
+      view.delegate = context.coordinator
       view.document = PDFDocument(url: url)
       return view
     }
 
     func updateNSView(_ view: PDFView, context: Context) {
+      context.coordinator.open = { openURL($0) }
       if view.document?.documentURL != url { view.document = PDFDocument(url: url) }
     }
   }

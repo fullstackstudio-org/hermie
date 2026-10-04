@@ -153,6 +153,8 @@ public final class ReadAloudModel {
   @ObservationIgnored public var blocked: @MainActor () -> Bool = { false }
   /// The last thing in line has been said (not called for a `stop()`): voice mode listens again.
   @ObservationIgnored public var onDrained: (@MainActor () -> Void)?
+  /// A reply is about to be spoken: whatever else plays (a sound a bot shared) stops first.
+  @ObservationIgnored public var onSpeak: (@MainActor () -> Void)?
 
   // The automatic read's bookkeeping.
   @ObservationIgnored private var seeded = false
@@ -275,6 +277,7 @@ public final class ReadAloudModel {
     speakingID = next.id
     publish()
 
+    onSpeak?()
     engine.speak(next, rate: settings.rate, voice: voice) { [weak self] in
       self?.finished(current)
     }

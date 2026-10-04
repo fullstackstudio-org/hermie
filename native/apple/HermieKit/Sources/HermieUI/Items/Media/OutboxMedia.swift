@@ -81,15 +81,31 @@ final class OutboxMedia {
       panel.nameFieldStringValue = OutboxText.savedName(name)
       panel.allowsOtherFileTypes = true
       panel.canCreateDirectories = true
+      // The whole name, extension included: `report.pdf.app` is never shown as `report.pdf`.
+      panel.isExtensionHidden = false
       guard panel.runModal() == .OK, let destination = panel.url else { return true }
 
       do {
-        try? FileManager.default.removeItem(at: destination)
-        try FileManager.default.copyItem(at: file, to: destination)
+        try copy(file, to: destination)
         return true
       } catch {
         return false
       }
+    }
+
+    /// Copy a shared file to `destination` and mark the copy as downloaded (`com.apple.quarantine`), as a browser marks
+    /// what it downloads: opening it later goes through Gatekeeper, whatever the bot put in it.
+    static func copy(_ file: URL, to destination: URL) throws {
+      try? FileManager.default.removeItem(at: destination)
+      try FileManager.default.copyItem(at: file, to: destination)
+
+      var values = URLResourceValues()
+      values.quarantineProperties = [
+        kLSQuarantineTypeKey as String: kLSQuarantineTypeWebDownload as String,
+        kLSQuarantineAgentNameKey as String: Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "Hermie",
+      ]
+      var marked = destination
+      try marked.setResourceValues(values)
     }
   }
 #endif

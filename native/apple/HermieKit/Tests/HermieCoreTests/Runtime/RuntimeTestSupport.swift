@@ -234,8 +234,10 @@ final class ScriptedLink: GatewayLink, Sendable {
     var fileCalls: [String] = []
     var downloads: [Download] = []
     var downloadHandler: (@Sendable (Download, @Sendable (Double) -> Void) async throws -> Data)?
-    var mediaAnswer: @Sendable (String) throws -> MediaRequest = { _ in throw GatewayError(.config, "no media") }
-    var mediaCalls: [String] = []
+    var rangeAnswer: @Sendable (String, MediaRange) throws -> (ByteRangeHead, Data) = { _, _ in
+      throw FileDownloadError.unreachable
+    }
+    var rangeCalls: [(path: String, range: MediaRange, maxBytes: Int)] = []
     var declineData: [String: JSONValue] = [:]
     /// What every answer says it lists in full (`RPCReply.listedRequests`).
     var listed: Set<String> = Set(ServerRequestBody.Method.interactive)
@@ -341,13 +343,13 @@ final class ScriptedLink: GatewayLink, Sendable {
     state.withLock { $0.downloadHandler = handler }
   }
 
-  /// What `mediaRequest` answers from now on, by the path it was asked for.
-  func setMediaRequest(_ answer: @escaping @Sendable (String) throws -> MediaRequest) {
-    state.withLock { $0.mediaAnswer = answer }
+  /// What `readRange` answers from now on, by the path and the range it was asked for: the head and the bytes.
+  func onRange(_ answer: @escaping @Sendable (String, MediaRange) throws -> (ByteRangeHead, Data)) {
+    state.withLock { $0.rangeAnswer = answer }
   }
 
-  /// The paths `mediaRequest` was asked for, in order.
-  var mediaCalls: [String] { state.withLock { $0.mediaCalls } }
+  /// The ranges `readRange` was asked for, in order.
+  var rangeCalls: [(path: String, range: MediaRange, maxBytes: Int)] { state.withLock { $0.rangeCalls } }
 
   func downloadFile(
     _ path: String,
@@ -371,12 +373,22 @@ final class ScriptedLink: GatewayLink, Sendable {
     return FileDownload(url: destination, bytes: data.count, sha256: expectedSHA256 ?? "")
   }
 
-  func mediaRequest(_ path: String) async throws -> MediaRequest {
-    let answer = state.withLock { state -> @Sendable (String) throws -> MediaRequest in
-      state.mediaCalls.append(path)
-      return state.mediaAnswer
+  func readRange(
+    _ path: String,
+    offset: Int,
+    length: Int?,
+    maxBytes: Int,
+    onHead: @escaping @Sendable (ByteRangeHead) -> Void,
+    onData: @escaping @Sendable (Data) -> Void
+  ) async throws {
+    let range = MediaRange(offset: offset, length: length)
+    let answer = state.withLock { state -> @Sendable (String, MediaRange) throws -> (ByteRangeHead, Data) in
+      state.rangeCalls.append((path, range, maxBytes))
+      return state.rangeAnswer
     }
-    return try answer(path)
+    let (head, data) = try answer(path, range)
+    onHead(head)
+    onData(data)
   }
 
   func probeIdentity() async -> IdentityProbe {

@@ -5,7 +5,13 @@ extension MarkdownInline {
   /// The schemes a tap may leave the app through. Anything else — a path on
   /// the gateway's disk from a `MEDIA:` tag, a relative link — is drawn as a
   /// link but stays inert, as in the Expo app.
-  static let openableSchemes: Set<String> = ["http", "https", "mailto", "tel"]
+  public static let openableSchemes: Set<String> = ["http", "https", "mailto", "tel"]
+
+  /// Whether a tap may leave the app through `url`: its scheme is one of `openableSchemes`.
+  public static func isOpenable(_ url: URL) -> Bool {
+    guard let scheme = url.scheme?.lowercased() else { return false }
+    return openableSchemes.contains(scheme)
+  }
 
   /// The runs as an `AttributedString` for `Text`.
   ///
@@ -38,7 +44,7 @@ extension MarkdownInline {
         piece.backgroundColor = codeBackground
       }
       if let link = run.link {
-        if let url = URL(string: link), let scheme = url.scheme?.lowercased(), Self.openableSchemes.contains(scheme) {
+        if let url = URL(string: link), Self.isOpenable(url) {
           piece.link = url
         } else {
           piece.underlineStyle = .single

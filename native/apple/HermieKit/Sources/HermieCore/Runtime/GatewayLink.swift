@@ -107,10 +107,18 @@ public protocol GatewayLink: Sendable {
     onProgress: (@Sendable (Double) -> Void)?
   ) async throws -> FileDownload
 
-  /// The address and the headers a media player reads a file of this gateway with (`AVURLAsset`): the
-  /// link's own credentials, so the player seeks by byte ranges without the file being fetched first. Throws
-  /// when the link has none (the default).
-  func mediaRequest(_ path: String) async throws -> MediaRequest
+  /// `length` bytes of a file this gateway serves from `offset` (to its end when nil), for a media player that reads
+  /// by byte ranges (`HTTPClient.readRange`): the link's own credentials, this gateway's origin only, no redirect
+  /// followed, `maxBytes` capping the whole file. `onHead` is called once before any `onData`. Throws
+  /// `FileDownloadError`; a link without a REST side refuses (the default).
+  func readRange(
+    _ path: String,
+    offset: Int,
+    length: Int?,
+    maxBytes: Int,
+    onHead: @escaping @Sendable (ByteRangeHead) -> Void,
+    onData: @escaping @Sendable (Data) -> Void
+  ) async throws
 
   /// The gateway's text-to-speech (`/api/audio/…`), through the link's own credentials, only ever this
   /// gateway's. A link without a REST side has none (the default).
@@ -330,8 +338,15 @@ extension GatewayLink {
     throw FileDownloadError.unreachable
   }
 
-  public func mediaRequest(_ path: String) async throws -> MediaRequest {
-    throw GatewayError(.config, "This connection cannot stream files.")
+  public func readRange(
+    _ path: String,
+    offset: Int,
+    length: Int?,
+    maxBytes: Int,
+    onHead: @escaping @Sendable (ByteRangeHead) -> Void,
+    onData: @escaping @Sendable (Data) -> Void
+  ) async throws {
+    throw FileDownloadError.unreachable
   }
 
   public var gatewayAddress: String? { nil }

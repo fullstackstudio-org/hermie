@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import HermieGateway
 import HermieTranscript
@@ -138,8 +139,14 @@ public final class OutboxFiles {
   public typealias Downloader = @Sendable (
     _ attachment: OutboxAttachment, _ onProgress: @escaping @Sendable (Double) -> Void
   ) async throws -> URL
-  /// The address and the credentials a media player reads one attachment with.
-  public typealias MediaSource = @Sendable (_ attachment: OutboxAttachment) async throws -> MediaRequest
+  /// Reads one byte range of one attachment for a media player (`OutboxMediaLoader`): `onHead` once, then the bytes.
+  /// Throws `FileDownloadError`.
+  public typealias MediaSource = @Sendable (
+    _ attachment: OutboxAttachment,
+    _ range: MediaRange,
+    _ onHead: @escaping @Sendable (ByteRangeHead) -> Void,
+    _ onData: @escaping @Sendable (Data) -> Void
+  ) async throws -> Void
 
   let download: Downloader
   private let source: MediaSource
@@ -158,14 +165,20 @@ public final class OutboxFiles {
     return model
   }
 
-  /// The address and the headers a player reads `attachment` with. Throws `FileDownloadError.tooLarge` for a
-  /// file over what this device takes, and what the link throws when it has no address for it.
-  public func mediaRequest(for attachment: OutboxAttachment) async throws -> MediaRequest {
+  /// What a player reads `attachment` through: a loader that serves the asset it makes a byte range at a time, through
+  /// this chat's session, held to the attachment's cap. Throws `FileDownloadError.tooLarge` for a file over what this
+  /// device takes.
+  public func mediaLoader(for attachment: OutboxAttachment) throws -> OutboxMediaLoader {
     guard OutboxLimits.allows(attachment) else { throw FileDownloadError.tooLarge }
-    return try await source(attachment)
+    let source = self.source
+    return OutboxMediaLoader(attachment: attachment, maxBytes: OutboxLimits.maxBytes(for: attachment.kind)) {
+      range, onHead, onData in
+      try await source(attachment, range, onHead, onData)
+    }
   }
 
-  /// Stop every load that is running (the chat is closing). What is on disk stays until the gateway signs out.
+  /// Stop every load that is running (the chat is closing). What is on disk stays for the next time the chat is
+  /// opened (`OutboxDownloads`), until it is old, the folder is over its size, or the gateway signs out.
   public func cancelAll() {
     for model in models.values { model.cancel() }
   }
@@ -173,11 +186,44 @@ public final class OutboxFiles {
 
 // MARK: - The session's side
 
-/// How a session fetches a shared file: into a folder of its own gateway, under a name the person could read.
+/// How a session fetches a shared file: into a folder of its own gateway, under a name the person could read, kept
+/// for the next time the chat is opened.
+///
+/// A file is kept at `<gateway's opened files>/outbox/<profile>/<token>/<saved name>` (`AttachmentOpening.directory`,
+/// which signing out of the gateway removes). A token names one file for good, so a copy whose size and SHA-256 are
+/// still the attachment's is used again instead of asking the gateway; the profile is part of the place, so a chat of
+/// another profile still asks the gateway, which answers only the profile the file was shared with. What is older
+/// than `maximumAge`, and the oldest beyond `maximumBytes` in all, is removed (`purge`), as `AttachmentTray.purge`
+/// does for staged uploads.
 public enum OutboxDownloads {
-  /// Fetch `attachment` through `link` into a fresh folder of `gatewayID`'s opened files (the one
-  /// `AttachmentOpening.discardOpened` removes on sign-out), named as a copy of it is saved
-  /// (`OutboxText.savedName`). One folder per fetch, so two files of one name never meet.
+  /// A kept file not used for this long is removed.
+  public static let maximumAge: TimeInterval = 7 * 24 * 60 * 60
+  /// The most one gateway's kept files take; the least recently used go first.
+  public static let maximumBytes = 500 * 1024 * 1024
+
+  /// Where `gatewayID`'s shared files are kept.
+  public static func directory(gateway gatewayID: String) -> URL {
+    AttachmentOpening.directory(gateway: gatewayID).appendingPathComponent("outbox", isDirectory: true)
+  }
+
+  /// The folder of one profile's files: a digest of its handle, so no handle is a path and no two are one folder.
+  static func profileFolder(_ profile: String?) -> String {
+    guard let profile, !profile.isEmpty else { return "default" }
+    let digest = SHA256.hash(data: Data(profile.utf8)).prefix(12).map { String(format: "%02x", $0) }.joined()
+    return "p-\(digest)"
+  }
+
+  /// Where `attachment` is kept for `profile`.
+  public static func location(of attachment: OutboxAttachment, profile: String?, gateway gatewayID: String) -> URL {
+    directory(gateway: gatewayID)
+      .appendingPathComponent(profileFolder(profile), isDirectory: true)
+      .appendingPathComponent(attachment.id, isDirectory: true)
+      .appendingPathComponent(OutboxText.savedName(attachment.name))
+  }
+
+  /// Fetch `attachment` through `link` into its place (`location(of:profile:gateway:)`), or use the copy already there
+  /// when its size and SHA-256 are still the attachment's. The bytes arrive in a file of their own next to it and take
+  /// its place only once they are whole and checked, so a copy being shown is never half-written.
   public static func download(
     _ attachment: OutboxAttachment,
     profile: String?,
@@ -188,22 +234,123 @@ public enum OutboxDownloads {
     let cap = OutboxLimits.maxBytes(for: attachment.kind)
     guard attachment.size <= cap else { throw FileDownloadError.tooLarge }
 
-    let folder = AttachmentOpening.directory(gateway: gatewayID).appendingPathComponent(UUID().uuidString, isDirectory: true)
-    let destination = folder.appendingPathComponent(OutboxText.savedName(attachment.name))
+    let destination = location(of: attachment, profile: profile, gateway: gatewayID)
+    let folder = destination.deletingLastPathComponent()
+
+    if isIntact(destination, as: attachment) {
+      // Used again: it is the newest of what is kept.
+      try? FileManager.default.setAttributes([.modificationDate: Date()], ofItemAtPath: destination.path)
+      onProgress(1)
+      return destination
+    }
+
+    let partial = folder.appendingPathComponent(".partial-\(UUID().uuidString)")
 
     do {
-      let result = try await link.downloadFile(
+      _ = try await link.downloadFile(
         OutboxRoute.path(for: attachment, profile: profile),
-        to: destination,
+        to: partial,
         maxBytes: cap,
         expectedSize: attachment.size,
         expectedSHA256: attachment.sha256,
         onProgress: onProgress)
-      return result.url
+      try place(partial, at: destination)
+      return destination
     } catch {
-      try? FileManager.default.removeItem(at: folder)
+      try? FileManager.default.removeItem(at: partial)
+      // A token folder with nothing kept in it goes too.
+      if ((try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []).isEmpty {
+        try? FileManager.default.removeItem(at: folder)
+      }
       if error is CancellationError || error is FileDownloadError { throw error }
       throw FileDownloadError.unreachable
+    }
+  }
+
+  /// Put the whole, checked file where the kept copy goes, in one step.
+  private static func place(_ file: URL, at destination: URL) throws {
+    let manager = FileManager.default
+    if manager.fileExists(atPath: destination.path) {
+      _ = try manager.replaceItemAt(destination, withItemAt: file)
+    } else {
+      try manager.moveItem(at: file, to: destination)
+    }
+  }
+
+  /// Whether the file at `url` is `attachment`: its size, then its SHA-256, read a piece at a time.
+  static func isIntact(_ url: URL, as attachment: OutboxAttachment) -> Bool {
+    guard let size = (try? url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])),
+      size.isRegularFile == true, size.fileSize == attachment.size,
+      let handle = try? FileHandle(forReadingFrom: url)
+    else {
+      return false
+    }
+    defer { try? handle.close() }
+
+    var hasher = SHA256()
+    do {
+      // `nil` or nothing is the end of the file.
+      while let chunk = try handle.read(upToCount: 1 << 20), !chunk.isEmpty {
+        hasher.update(data: chunk)
+      }
+    } catch {
+      return false
+    }
+
+    let digest = hasher.finalize().map { String(format: "%02x", $0) }.joined()
+    return digest == attachment.sha256.lowercased()
+  }
+
+  /// Remove what is kept under `root` (one gateway's `directory(gateway:)`) and was not used for `age`, then, oldest
+  /// first, what goes beyond `limit` bytes in all. A file is as old as its last use (`download` touches a copy it uses
+  /// again). Whole token folders go, and the profile folders they leave empty.
+  public static func purge(
+    in root: URL, olderThan age: TimeInterval = maximumAge, keepingAtMost limit: Int = maximumBytes, now: Date = Date()
+  ) {
+    let manager = FileManager.default
+    let keys: Set<URLResourceKey> = [.contentModificationDateKey, .fileSizeKey, .isRegularFileKey]
+
+    struct Kept {
+      var folder: URL
+      var used: Date
+      var bytes: Int
+    }
+
+    var kept: [Kept] = []
+    let profiles = (try? manager.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? []
+
+    for profile in profiles {
+      let tokens = (try? manager.contentsOfDirectory(at: profile, includingPropertiesForKeys: nil)) ?? []
+
+      for token in tokens {
+        let files = (try? manager.contentsOfDirectory(at: token, includingPropertiesForKeys: Array(keys))) ?? []
+        var used = Date.distantPast
+        var bytes = 0
+
+        for file in files {
+          guard let values = try? file.resourceValues(forKeys: keys), values.isRegularFile == true else { continue }
+          used = max(used, values.contentModificationDate ?? .distantPast)
+          bytes += values.fileSize ?? 0
+        }
+
+        kept.append(Kept(folder: token, used: used, bytes: bytes))
+      }
+    }
+
+    // Newest first: what fits under the limit stays, and from the first that does not, everything older goes.
+    var total = 0
+    var full = false
+    for entry in kept.sorted(by: { $0.used > $1.used }) {
+      full = full || total + entry.bytes > limit
+      if full || now.timeIntervalSince(entry.used) > age {
+        try? manager.removeItem(at: entry.folder)
+      } else {
+        total += entry.bytes
+      }
+    }
+
+    for profile in profiles where ((try? manager.contentsOfDirectory(atPath: profile.path)) ?? []).isEmpty {
+      try? manager.removeItem(at: profile)
     }
   }
 }
@@ -214,13 +361,19 @@ extension GatewaySession {
     let link = self.link
     let gatewayID = self.gatewayID
 
+    // What earlier chats kept and no longer need goes, away from the screen being opened.
+    let kept = OutboxDownloads.directory(gateway: gatewayID)
+    Task.detached(priority: .utility) { OutboxDownloads.purge(in: kept) }
+
     return OutboxFiles(
       download: { attachment, onProgress in
         try await OutboxDownloads.download(
           attachment, profile: profile, link: link, gatewayID: gatewayID, onProgress: onProgress)
       },
-      mediaSource: { attachment in
-        try await link.mediaRequest(OutboxRoute.path(for: attachment, profile: profile))
+      mediaSource: { attachment, range, onHead, onData in
+        try await link.readRange(
+          OutboxRoute.path(for: attachment, profile: profile), offset: range.offset, length: range.length,
+          maxBytes: OutboxLimits.maxBytes(for: attachment.kind), onHead: onHead, onData: onData)
       })
   }
 }

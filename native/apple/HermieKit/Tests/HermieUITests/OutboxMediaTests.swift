@@ -4,7 +4,9 @@ import HermieCore
 import HermieGateway
 import HermieTranscript
 import Observation
+import PDFKit
 import SwiftUI
+import Synchronization
 import Testing
 
 @testable import HermieUI
@@ -53,12 +55,31 @@ enum OutboxUIFixtures {
     return url
   }
 
-  /// An `OutboxFiles` that hands a player `request` and downloads `file`.
+  /// What a player reads through `OutboxMediaLoader`: the ranges of the bytes `serve` answers for an attachment (or
+  /// what it throws), as the outbox route answers them. The head names no type: the loader goes by the name.
+  nonisolated static func reader(
+    _ serve: @escaping @Sendable (OutboxAttachment) throws -> Data
+  ) -> OutboxFiles.MediaSource {
+    { attachment, range, onHead, onData in
+      let data = try serve(attachment)
+      guard range.offset < data.count else { throw FileDownloadError.refused(status: 416) }
+      let end = range.length.map { min(data.count, range.offset + $0) } ?? data.count
+      onHead(ByteRangeHead(contentType: nil, totalLength: data.count, rangesSupported: true))
+      onData(data.subdata(in: range.offset..<end))
+    }
+  }
+
+  /// The bytes of the file at `url`.
+  nonisolated static func serving(_ url: URL) -> @Sendable (OutboxAttachment) throws -> Data {
+    { _ in try Data(contentsOf: url) }
+  }
+
+  /// An `OutboxFiles` whose player reads what `serve` answers and whose downloads are `file`.
   static func files(
-    request: @escaping @Sendable (OutboxAttachment) throws -> MediaRequest = { _ in throw FileDownloadError.unreachable },
+    serve: @escaping @Sendable (OutboxAttachment) throws -> Data = { _ in throw FileDownloadError.unreachable },
     file: URL = URL(fileURLWithPath: "/dev/null")
   ) -> OutboxFiles {
-    OutboxFiles(download: { _, _ in file }, mediaSource: request)
+    OutboxFiles(download: { _, _ in file }, mediaSource: reader(serve))
   }
 }
 
@@ -159,14 +180,10 @@ enum OutboxUIFixtures {
 
 @MainActor
 @Suite(.serialized) struct MediaPlaybackTests {
-  private func request(_ url: URL) -> @Sendable (OutboxAttachment) throws -> MediaRequest {
-    { _ in MediaRequest(url: url, headers: ["authorization": "Bearer never-sent-to-a-file"]) }
-  }
-
   @Test func aPlayerReadsTheLengthAndIsReady() async throws {
     let url = try OutboxUIFixtures.wav(seconds: 1)
     defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
-    let center = MediaPlaybackCenter(files: OutboxUIFixtures.files(request: request(url)))
+    let center = MediaPlaybackCenter(files: OutboxUIFixtures.files(serve: OutboxUIFixtures.serving(url)))
     let playback = center.playback(for: OutboxUIFixtures.attachment(.audio, name: "tone.wav"))
 
     #expect(playback.phase == .idle)
@@ -181,7 +198,7 @@ enum OutboxUIFixtures {
   @Test func theCenterKeepsOnePlayerPerTokenAndOnePreparationAtATime() async throws {
     let url = try OutboxUIFixtures.wav()
     defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
-    let center = MediaPlaybackCenter(files: OutboxUIFixtures.files(request: request(url)))
+    let center = MediaPlaybackCenter(files: OutboxUIFixtures.files(serve: OutboxUIFixtures.serving(url)))
     let attachment = OutboxUIFixtures.attachment(.audio, name: "tone.wav")
 
     #expect(center.playback(for: attachment) === center.playback(for: attachment))
@@ -197,7 +214,7 @@ enum OutboxUIFixtures {
     defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
     var call = true
     let center = MediaPlaybackCenter(
-      files: OutboxUIFixtures.files(request: request(url)), arbiter: PlaybackArbiter { call })
+      files: OutboxUIFixtures.files(serve: OutboxUIFixtures.serving(url)), arbiter: PlaybackArbiter { call })
     let playback = center.playback(for: OutboxUIFixtures.attachment(.audio, name: "tone.wav"))
 
     // A voice call has the audio: the sound does not start.
@@ -218,7 +235,7 @@ enum OutboxUIFixtures {
   @Test func startingASecondSoundPausesTheFirst() async throws {
     let url = try OutboxUIFixtures.wav()
     defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
-    let center = MediaPlaybackCenter(files: OutboxUIFixtures.files(request: request(url)))
+    let center = MediaPlaybackCenter(files: OutboxUIFixtures.files(serve: OutboxUIFixtures.serving(url)))
     let first = center.playback(for: OutboxUIFixtures.attachment(.audio, name: "one.wav", token: "a"))
     let second = center.playback(for: OutboxUIFixtures.attachment(.audio, name: "two.wav", token: "b"))
 
@@ -235,7 +252,7 @@ enum OutboxUIFixtures {
   @Test func closingTheChatStopsEverythingAndLetsThePlayersGo() async throws {
     let url = try OutboxUIFixtures.wav()
     defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
-    let center = MediaPlaybackCenter(files: OutboxUIFixtures.files(request: request(url)))
+    let center = MediaPlaybackCenter(files: OutboxUIFixtures.files(serve: OutboxUIFixtures.serving(url)))
     let audio = center.playback(for: OutboxUIFixtures.attachment(.audio, name: "tone.wav", token: "a"))
     let video = center.playback(for: OutboxUIFixtures.attachment(.video, name: "clip.wav", token: "b"))
     await audio.prepare()
@@ -260,7 +277,7 @@ enum OutboxUIFixtures {
   @Test func dismissingTheFullScreenVideoPausesIt() async throws {
     let url = try OutboxUIFixtures.wav()
     defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
-    let center = MediaPlaybackCenter(files: OutboxUIFixtures.files(request: request(url)))
+    let center = MediaPlaybackCenter(files: OutboxUIFixtures.files(serve: OutboxUIFixtures.serving(url)))
     let video = center.playback(for: OutboxUIFixtures.attachment(.video, name: "clip.wav"))
     center.present(video: video)
     await video.play()
@@ -275,7 +292,7 @@ enum OutboxUIFixtures {
   @Test func aSeekIsHeldInsideTheFile() async throws {
     let url = try OutboxUIFixtures.wav(seconds: 2)
     defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
-    let center = MediaPlaybackCenter(files: OutboxUIFixtures.files(request: request(url)))
+    let center = MediaPlaybackCenter(files: OutboxUIFixtures.files(serve: OutboxUIFixtures.serving(url)))
     let playback = center.playback(for: OutboxUIFixtures.attachment(.audio, name: "tone.wav"))
     await playback.prepare()
 
@@ -290,17 +307,16 @@ enum OutboxUIFixtures {
   }
 
   @Test func aFileThatIsNotThereIsGoneAndOneThatCannotBePlayedFails() async throws {
-    let missing = FileManager.default.temporaryDirectory.appendingPathComponent("outbox-missing-\(UUID().uuidString).wav")
-    let gone = MediaPlaybackCenter(files: OutboxUIFixtures.files(request: request(missing)))
+    let gone = MediaPlaybackCenter(files: OutboxUIFixtures.files(serve: { _ in throw FileDownloadError.notFound }))
       .playback(for: OutboxUIFixtures.attachment(.audio, name: "tone.wav"))
     await gone.prepare()
-    #expect(gone.phase == .gone || gone.phase == .failed)
+    #expect(gone.phase == .gone, "the gateway's 404, through the loader, is gone")
     #expect(gone.player == nil)
 
     let garbage = FileManager.default.temporaryDirectory.appendingPathComponent("outbox-garbage-\(UUID().uuidString).wav")
     try Data("not audio at all".utf8).write(to: garbage)
     defer { try? FileManager.default.removeItem(at: garbage) }
-    let broken = MediaPlaybackCenter(files: OutboxUIFixtures.files(request: request(garbage)))
+    let broken = MediaPlaybackCenter(files: OutboxUIFixtures.files(serve: OutboxUIFixtures.serving(garbage)))
       .playback(for: OutboxUIFixtures.attachment(.audio, name: "tone.wav"))
     await broken.prepare()
     #expect(broken.phase == .failed)
@@ -310,7 +326,7 @@ enum OutboxUIFixtures {
   }
 
   @Test func aFileOverTheCapIsNeverHandedToAPlayer() async {
-    let center = MediaPlaybackCenter(files: OutboxUIFixtures.files(request: { _ in Issue.record("asked"); throw FileDownloadError.unreachable }))
+    let center = MediaPlaybackCenter(files: OutboxUIFixtures.files(serve: { _ in Issue.record("asked"); throw FileDownloadError.unreachable }))
     let playback = center.playback(
       for: OutboxUIFixtures.attachment(.video, name: "huge.mp4", size: OutboxLimits.fileBytes + 1))
     await playback.prepare()
@@ -321,9 +337,9 @@ enum OutboxUIFixtures {
     let url = try OutboxUIFixtures.wav()
     defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
     let attempts = Attempts()
-    let files = OutboxUIFixtures.files(request: { _ in
+    let files = OutboxUIFixtures.files(serve: { _ in
       if attempts.next() == 1 { throw FileDownloadError.unreachable }
-      return MediaRequest(url: url, headers: [:])
+      return try Data(contentsOf: url)
     })
     let playback = MediaPlaybackCenter(files: files).playback(for: OutboxUIFixtures.attachment(.audio, name: "tone.wav"))
 
@@ -332,6 +348,152 @@ enum OutboxUIFixtures {
     playback.retry()
     for _ in 0..<500 where playback.phase != .ready { try await Task.sleep(for: .milliseconds(10)) }
     #expect(playback.phase == .ready)
+  }
+}
+
+/// A reader that holds every range until it is opened: the player is "being made" for as long as a test needs.
+private final class Gate: Sendable {
+  private let state = Mutex((open: false, asked: 0))
+  var asked: Int { state.withLock { $0.asked } }
+  func open() { state.withLock { $0.open = true } }
+
+  func reader(_ url: URL) -> OutboxFiles.MediaSource {
+    let inner = OutboxUIFixtures.reader(OutboxUIFixtures.serving(url))
+    return { [self] attachment, range, onHead, onData in
+      state.withLock { $0.asked += 1 }
+      while !state.withLock({ $0.open }) { try await Task.sleep(for: .milliseconds(5)) }
+      try await inner(attachment, range, onHead, onData)
+    }
+  }
+}
+
+@MainActor
+private func eventually(_ condition: @MainActor () -> Bool) async throws {
+  for _ in 0..<500 where !condition() { try await Task.sleep(for: .milliseconds(10)) }
+}
+
+/// What the reader meant: a stop, a pause or a closed video while the player was still being made keeps it from
+/// starting after; the system's own controls ask the arbiter like the row's button does.
+@MainActor
+@Suite(.serialized) struct MediaPlaybackIntentTests {
+  private func gated(_ url: URL, gate: Gate, arbiter: PlaybackArbiter = PlaybackArbiter()) -> MediaPlaybackCenter {
+    MediaPlaybackCenter(
+      files: OutboxFiles(download: { _, _ in URL(fileURLWithPath: "/dev/null") }, mediaSource: gate.reader(url)),
+      arbiter: arbiter)
+  }
+
+  @Test func aStopWhileThePlayerIsMadeMeansNothingPlays() async throws {
+    let url = try OutboxUIFixtures.wav()
+    defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+    let gate = Gate()
+    let center = gated(url, gate: gate)
+    let audio = center.playback(for: OutboxUIFixtures.attachment(.audio, name: "tone.wav"))
+
+    let pressed = Task { await audio.play() }
+    try await eventually { gate.asked > 0 }
+    #expect(audio.phase == .preparing)
+
+    // The chat is left.
+    center.stopAll()
+    gate.open()
+    await pressed.value
+    try await Task.sleep(for: .milliseconds(100))
+
+    #expect(!audio.isPlaying)
+    #expect(audio.player == nil, "the player being made was let go")
+    #expect(audio.phase == .idle)
+    #expect(center.arbiter.activeID == nil)
+  }
+
+  @Test func closingTheVideoWhileItIsMadeMeansNothingPlays() async throws {
+    let url = try OutboxUIFixtures.wav()
+    defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+    let gate = Gate()
+    let center = gated(url, gate: gate)
+    let video = center.playback(for: OutboxUIFixtures.attachment(.video, name: "clip.wav"))
+    center.present(video: video)
+
+    let shown = Task { await video.play() }
+    try await eventually { gate.asked > 0 }
+
+    center.dismissVideo()
+    gate.open()
+    await shown.value
+    try await eventually { video.phase == .ready }
+
+    #expect(video.phase == .ready, "the player is made, for the next time")
+    #expect(!video.isPlaying)
+    #expect(video.player?.rate == 0)
+    #expect(center.arbiter.activeID == nil)
+    #expect(center.video == nil)
+  }
+
+  @Test func aSecondPressWhileThePlayerIsMadeIsAPause() async throws {
+    let url = try OutboxUIFixtures.wav()
+    defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+    let gate = Gate()
+    let center = gated(url, gate: gate)
+    let audio = center.playback(for: OutboxUIFixtures.attachment(.audio, name: "tone.wav"))
+
+    audio.toggle()
+    try await eventually { gate.asked > 0 }
+    audio.toggle()
+    gate.open()
+    try await eventually { audio.phase == .ready }
+    try await Task.sleep(for: .milliseconds(100))
+
+    #expect(!audio.isPlaying)
+    #expect(center.arbiter.activeID == nil)
+    center.stopAll()
+  }
+
+  @Test func theSystemsOwnControlsAskTheArbiterLikeTheRowsButton() async throws {
+    let url = try OutboxUIFixtures.wav(seconds: 3)
+    defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+    var call = false
+    let center = MediaPlaybackCenter(
+      files: OutboxUIFixtures.files(serve: OutboxUIFixtures.serving(url)), arbiter: PlaybackArbiter { call })
+    let sound = center.playback(for: OutboxUIFixtures.attachment(.audio, name: "tone.wav", token: "a"))
+    let video = center.playback(for: OutboxUIFixtures.attachment(.video, name: "clip.wav", token: "b"))
+    await sound.play()
+    await video.prepare()
+    #expect(sound.isPlaying)
+
+    // The full-screen player's own play button: the sound that played stops.
+    let player = try #require(video.player)
+    player.play()
+    try await eventually { center.arbiter.activeID == video.id }
+    #expect(center.arbiter.activeID == video.id)
+    #expect(video.isPlaying)
+    #expect(!sound.isPlaying)
+    #expect(sound.player?.rate == 0)
+
+    // Its own pause lets go.
+    player.pause()
+    try await eventually { center.arbiter.activeID == nil }
+    #expect(center.arbiter.activeID == nil)
+    #expect(!video.isPlaying)
+
+    // While a call has the audio, the system's controls cannot start it either.
+    call = true
+    player.play()
+    try await eventually { player.rate == 0 }
+    #expect(player.rate == 0)
+    #expect(center.arbiter.activeID == nil)
+    center.stopAll()
+  }
+
+  @Test func whateverElseUsesTheAudioIsToldWhenAPlayerStarts() {
+    let arbiter = PlaybackArbiter()
+    var started = 0
+    arbiter.onStart = { started += 1 }
+
+    #expect(arbiter.claim("a") {})
+    #expect(started == 1)
+
+    arbiter.isBlocked = { true }
+    #expect(!arbiter.claim("b") {})
+    #expect(started == 1, "a refused start stops nothing")
   }
 }
 
@@ -397,7 +559,7 @@ private final class Attempts: @unchecked Sendable {
         if let failure { throw failure }
         return png!
       },
-      mediaSource: { _ in throw FileDownloadError.unreachable })
+      mediaSource: OutboxUIFixtures.reader { _ in throw FileDownloadError.unreachable })
     return (MessageImageStore { _ in nil }, files)
   }
 
@@ -452,7 +614,7 @@ private final class Attempts: @unchecked Sendable {
         if attempts.next() == 1 { throw FileDownloadError.unreachable }
         return png
       },
-      mediaSource: { _ in throw FileDownloadError.unreachable })
+      mediaSource: OutboxUIFixtures.reader { _ in throw FileDownloadError.unreachable })
     let store = MessageImageStore { _ in nil }
     let attachment = OutboxUIFixtures.attachment(.image, name: "photo.png")
     store.register(outbox: [attachment], files: files)
@@ -479,7 +641,7 @@ private final class Attempts: @unchecked Sendable {
     let url = try OutboxUIFixtures.wav()
     defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
     let media = OutboxMedia(
-      files: OutboxUIFixtures.files(request: { _ in MediaRequest(url: url, headers: [:]) }))
+      files: OutboxUIFixtures.files(serve: OutboxUIFixtures.serving(url)))
     let audio = media.playback.playback(for: OutboxUIFixtures.attachment(.audio, name: "tone.wav"))
     let pdf = media.files.model(for: OutboxUIFixtures.attachment(.pdf, name: "a.pdf", token: "p"))
     await audio.play()
@@ -498,7 +660,7 @@ private final class Attempts: @unchecked Sendable {
     let url = try OutboxUIFixtures.wav()
     defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
     let media = OutboxMedia(
-      files: OutboxUIFixtures.files(request: { _ in MediaRequest(url: url, headers: [:]) }))
+      files: OutboxUIFixtures.files(serve: OutboxUIFixtures.serving(url)))
     var call = true
     media.blockPlayback { call }
     let audio = media.playback.playback(for: OutboxUIFixtures.attachment(.audio, name: "tone.wav"))
@@ -513,6 +675,23 @@ private final class Attempts: @unchecked Sendable {
   }
 
   #if os(macOS)
+    @Test func aSavedCopyIsMarkedAsDownloaded() throws {
+      let folder = FileManager.default.temporaryDirectory.appendingPathComponent("outbox-save-\(UUID().uuidString)")
+      try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+      defer { try? FileManager.default.removeItem(at: folder) }
+      let file = folder.appendingPathComponent("fetched.zip")
+      try Data("zip".utf8).write(to: file)
+      let destination = folder.appendingPathComponent("saved.zip")
+      try Data("older".utf8).write(to: destination)
+
+      try OutboxSaver.copy(file, to: destination)
+
+      #expect(try Data(contentsOf: destination) == Data("zip".utf8), "what was there is replaced")
+      let quarantine = try #require(
+        try destination.resourceValues(forKeys: [.quarantinePropertiesKey]).quarantineProperties)
+      #expect(quarantine[kLSQuarantineTypeKey as String] as? String == kLSQuarantineTypeWebDownload as String)
+    }
+
     @Test func aSavedNameIsWhatTheCardShowsWithoutWhatAFileSystemRefuses() {
       // The save panel opens with `OutboxText.savedName` (the panel itself is never opened by a test).
       #expect(OutboxText.savedName("a\u{202E}b:c.zip") == "ab_c.zip")
@@ -547,8 +726,8 @@ private final class Attempts: @unchecked Sendable {
 
   @Test func theStatesOfAFileChipDrawEachOne() async throws {
     let attachment = OutboxUIFixtures.attachment(.file, name: "backup.zip")
-    let gone = OutboxFiles(download: { _, _ in throw FileDownloadError.notFound }, mediaSource: { _ in throw FileDownloadError.unreachable })
-    let failing = OutboxFiles(download: { _, _ in throw FileDownloadError.unreachable }, mediaSource: { _ in throw FileDownloadError.unreachable })
+    let gone = OutboxFiles(download: { _, _ in throw FileDownloadError.notFound }, mediaSource: OutboxUIFixtures.reader { _ in throw FileDownloadError.unreachable })
+    let failing = OutboxFiles(download: { _, _ in throw FileDownloadError.unreachable }, mediaSource: OutboxUIFixtures.reader { _ in throw FileDownloadError.unreachable })
     let large = OutboxUIFixtures.attachment(.file, name: "huge.bin", size: OutboxLimits.fileBytes + 1)
 
     for (files, attachment) in [(gone, attachment), (failing, attachment), (failing, large)] {
@@ -565,5 +744,40 @@ private final class Attempts: @unchecked Sendable {
     let row = TranscriptRow(VisibleItem(item: .assistant(item), presentation: .full))
 
     #expect(try render(TranscriptItemView(row: row)).height > 0)
+  }
+}
+
+// MARK: - Links in a shared PDF
+
+@MainActor
+@Suite struct OutboxPDFLinkTests {
+  @Test func aLinkInASharedPDFOpensOnlyForTheSchemesAMessageLinkMay() throws {
+    for allowed in ["https://example.com/a", "http://example.com", "HTTPS://EXAMPLE.COM", "mailto:a@example.com", "tel:+31201234567"] {
+      #expect(OutboxPDFLinks.allows(try #require(URL(string: allowed))), Comment(rawValue: allowed))
+    }
+    for refused in [
+      "file:///etc/passwd", "javascript:alert(1)", "data:text/html,x", "hermie://chat/x", "smb://host/share",
+      "x-apple.systempreferences:com.apple.preference.security", "sms:123", "relative/path", "ftp://example.com",
+    ] {
+      #expect(!OutboxPDFLinks.allows(try #require(URL(string: refused))), Comment(rawValue: refused))
+    }
+  }
+
+  @Test func aRefusedLinkIsNotOpenedAndAnAllowedOneIsOpenedThroughTheApp() throws {
+    var opened: [URL] = []
+    let links = OutboxPDFLinks { opened.append($0) }
+    let view = PDFView()
+    view.delegate = links
+
+    links.pdfViewWillClick(onLink: view, with: try #require(URL(string: "file:///etc/passwd")))
+    links.pdfViewWillClick(onLink: view, with: try #require(URL(string: "hermie://x")))
+    #expect(opened.isEmpty)
+
+    let web = try #require(URL(string: "https://example.com"))
+    links.pdfViewWillClick(onLink: view, with: web)
+    #expect(opened == [web])
+
+    // PDFKit asks this, by its Objective-C name, before it follows a link out of the document.
+    #expect(links.responds(to: NSSelectorFromString("PDFViewWillClickOnLink:withURL:")))
   }
 }

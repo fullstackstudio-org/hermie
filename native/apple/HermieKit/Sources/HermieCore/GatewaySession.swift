@@ -788,9 +788,15 @@ public struct ConnectionLink: GatewayLink {
       onProgress: onProgress)
   }
 
-  public func mediaRequest(_ path: String) async throws -> MediaRequest {
-    let request = try await http.mediaRequest(path)
-    return MediaRequest(url: request.url, headers: request.headers)
+  public func readRange(
+    _ path: String,
+    offset: Int,
+    length: Int?,
+    maxBytes: Int,
+    onHead: @escaping @Sendable (ByteRangeHead) -> Void,
+    onData: @escaping @Sendable (Data) -> Void
+  ) async throws {
+    try await http.readRange(path, offset: offset, length: length, maxBytes: maxBytes, onHead: onHead, onData: onData)
   }
 
   public var gatewayAddress: String? { http.baseURL }

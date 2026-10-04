@@ -733,7 +733,9 @@ A reply can carry files (`contract/outbox/`, the gateway fork's contract, copied
   `packages/transcript/src/outbox.ts`) keeps an attachment only if it is exactly the schema: the id is
   32 characters of `[A-Za-z0-9_-]`, the name one component of at most 180 code points with no control
   character, `/` or `\`, and the `url` is `/api/files/outbox/<id>/<the name percent-encoded>`, compared by
-  code points. A key the contract does not have drops it; an unknown `kind` is a `file`. They are
+  code points (`unicodeScalars`/`utf8`, never Swift's `Character`, which would take a Kelvin sign for a `K`
+  and miss a `?` that carries a combining mark). The address asked for is built from the id and the name
+  (`OutboxRoute.path`), never from `url` as it arrived. A key the contract does not have drops it; an unknown `kind` is a `file`. They are
   `AssistantItem.outbox`, survive a history reload and the offline cache, count as a message, preview as
   their name and are named in an export.
 - **Fetching.** `HTTPClient.downloadFile` writes into a file as the bytes arrive, hashes them on the way,
@@ -741,7 +743,10 @@ A reply can carry files (`contract/outbox/`, the gateway fork's contract, copied
   `Content-Length` said), checks the size and the SHA-256 once it is whole, follows no redirect and retries
   a 401 once like every call. `OutboxFiles` / `OutboxFileModel` (`HermieCore/Outbox`) keep one model per
   token for the chat: `idle`, `loading(progress)`, `ready(url)`, `gone` (404, final), `tooLarge` (final) and
-  `failed` (retry). The files go to `hermie-opened/<gateway>/<uuid>/<name>`, which sign-out removes.
+  `failed` (retry). The files are kept at `hermie-opened/<gateway>/outbox/<profile digest>/<id>/<name>`
+  (`OutboxDownloads`), arrive in a partial file beside it and replace it only once checked, and a copy whose
+  size and SHA-256 still match is used again instead of fetched. Opening a chat purges what was not used for
+  7 days and, oldest first, what goes beyond 500 MiB; sign-out removes the whole gateway folder.
 - **Cards** (`OutboxPresentation`, `SharedFilesView`). Images are the message's grid, opening the same
   gallery; a sound is a row with a scrubber; a video a poster that plays full screen; a PDF a card with its
   size and, once loaded, its page count (a PDF of at most 4 MiB loads when the card appears) that opens
@@ -749,17 +754,28 @@ A reply can carry files (`contract/outbox/`, the gateway fork's contract, copied
   scripts, archives) is only ever saved: it is never opened, previewed or rendered, and never given the
   app's credentials. The name is shown without control and format characters (`OutboxText.displayName`) and
   saved under the same name without what a file system refuses (`OutboxText.savedName`).
-- **Saving.** On a Mac Save is an `NSSavePanel` (as the gallery's); on iPhone and iPad it is the share
-  sheet over the downloaded file, which has Save to Files.
-- **Playing.** `MediaPlayback` makes an `AVPlayer` over an `AVURLAsset` whose requests carry the session's
-  headers (the front door's and the credential; the key is `AVURLAssetHTTPHeaderFieldsKey`, which the SDK
-  does not export to Swift, so it is spelled out), so the player seeks by ranges and the file is not
-  fetched first. `PlaybackArbiter` lets one play at a time and none while a voice call is on; leaving the
-  chat or starting a call stops them all. A 404 from the player (`CoreMediaErrorDomain` -12938) is `gone`.
+- **Saving.** On a Mac Save is an `NSSavePanel` (as the gallery's, the extension always shown) and the copy
+  is marked as downloaded (`com.apple.quarantine`); on iPhone and iPad it is the share sheet over the
+  downloaded file, which has Save to Files. A saved name never starts with a dot.
+- **PDF links.** The PDF viewer's `PDFViewDelegate` (`OutboxPDFLinks`) follows a link out of the document only
+  for the schemes a message link may use (`MarkdownInline.openableSchemes`: http, https, mailto, tel), through
+  the app's `openURL`; anything else is not followed.
+- **Playing.** `MediaPlayback` makes an `AVPlayer` over an `AVURLAsset` on a `hermie-outbox://` address that
+  only `OutboxMediaLoader` (an `AVAssetResourceLoaderDelegate`) can load: it answers the content information
+  and each byte range itself through `HTTPClient.readRange` (the credential to the gateway's origin only, no
+  redirect followed, a 401 retried once, the whole file capped at 200 MiB), and cancels a range the player
+  gives up on. AVFoundation never makes a request of its own, so it can never copy the credential onto a
+  redirect; the video's poster is read through the same asset. `PlaybackArbiter` lets one play at a time and
+  none while a voice call is on; the system's own player controls are watched (`timeControlStatus`) and ask
+  it too. A reply read aloud and a shared sound never play together (`ReadAloudModel.onSpeak`,
+  `PlaybackArbiter.onStart`). A stop, pause or closed video while a player is still being made keeps it from
+  starting afterwards. A 404 is `gone`.
 
 Tests: `OutboxTests` (the contract's `examples.json`, hostile names and urls, the item, the history, the
 cache), `HTTPClientDownloadTests`, `OutboxFilesTests`, `OutboxMediaTests`, `ChatFeedOutboxTests` and the
-fake-gateway `OutboxIntegrationTests` (real downloads, ranges, a real `AVPlayer` with headers, a 404).
+fake-gateway `OutboxIntegrationTests` (real downloads, ranges, a real `AVPlayer` through the loader, a 404);
+`HTTPClientRangeTests` and `OutboxMediaLoaderTests` (ranges through the loader, a redirect to a second loopback
+origin that never receives the token).
 
 ### Confirm at level passkey
 

@@ -4,12 +4,14 @@ import HermieTranscript
 /// Where a file a bot shared is asked for, and how much of it this device takes (`contract/outbox/` §4).
 public enum OutboxRoute {
   /// `GET /api/files/outbox/<id>/<name>` with `?profile=<handle>`, exactly as the picture and upload routes
-  /// name a bot's profile. The attachment's own `url` is the whole address (the transcript only keeps one
-  /// that is exactly that route, `OutboxAttachment.parse`); a handle is added here and never anything else,
-  /// and never a token.
+  /// name a bot's profile. The address is built from the attachment's validated token and name
+  /// (`OutboxAttachment.encodedName`), never from its `url` as it arrived: what is asked for is always a place on
+  /// the outbox route, whatever a sender put in `url`. A handle is added here and never anything else, and never a
+  /// token.
   public static func path(for attachment: OutboxAttachment, profile: String?) -> String {
-    guard let profile, !profile.isEmpty else { return attachment.url }
-    return "\(attachment.url)?profile=\(queryValue(profile))"
+    let route = "/api/files/outbox/\(attachment.id)/\(OutboxAttachment.encodedName(attachment.name))"
+    guard let profile, !profile.isEmpty else { return route }
+    return "\(route)?profile=\(queryValue(profile))"
   }
 
   /// `encodeURIComponent`: everything but the unreserved characters is percent-encoded.
@@ -36,17 +38,5 @@ public enum OutboxLimits {
   /// Whether a file of this size and kind is within what this device takes.
   public static func allows(_ attachment: OutboxAttachment) -> Bool {
     attachment.size <= maxBytes(for: attachment.kind)
-  }
-}
-
-/// What a media player reads a gateway file with: the address and the credentials to send. The player
-/// seeks by byte ranges (the route answers them), so a long video is not fetched whole to be played.
-public struct MediaRequest: Sendable, Equatable {
-  public var url: URL
-  public var headers: [String: String]
-
-  public init(url: URL, headers: [String: String]) {
-    self.url = url
-    self.headers = headers
   }
 }

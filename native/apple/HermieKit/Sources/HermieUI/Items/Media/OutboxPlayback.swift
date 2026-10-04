@@ -19,6 +19,8 @@ final class PlaybackArbiter {
   var onIdle: (@MainActor () -> Void)?
   /// Called when a player is about to start while nothing else played: the device's audio is taken.
   var onBusy: (@MainActor () -> Void)?
+  /// Called whenever a player is let start: what else uses the audio (reading a reply aloud) stops.
+  var onStart: (@MainActor () -> Void)?
 
   private(set) var activeID: String?
   private var pauseActive: (@MainActor () -> Void)?
@@ -30,6 +32,7 @@ final class PlaybackArbiter {
   /// `id` wants to play. `pause` is what stops it again. False when nothing may start now.
   func claim(_ id: String, pause: @escaping @MainActor () -> Void) -> Bool {
     guard !isBlocked() else { return false }
+    onStart?()
 
     if let activeID, activeID != id {
       let previous = pauseActive
@@ -82,9 +85,12 @@ enum MediaAudioSession {
   }
 }
 
-/// One sound or video a bot shared, played from the gateway as it is read: the player seeks by byte ranges
-/// (the route answers them), and the credential goes in the request's headers (`AVURLAssetHTTPHeaderFieldsKey`),
-/// never in the address.
+/// One sound or video a bot shared, played from the gateway as it is read: the player seeks by byte ranges (the route
+/// answers them), each of which `OutboxMediaLoader` fetches through the chat's session. The player itself makes no
+/// request, so the credential is never handed to AVFoundation, and never follows a redirect.
+///
+/// Every stop, pause and dismissal bumps `generation`: a `play()` still waiting for its player when one comes does not
+/// start after it.
 @MainActor
 @Observable
 final class MediaPlayback: Identifiable {
@@ -119,9 +125,16 @@ final class MediaPlayback: Identifiable {
   @ObservationIgnored private let arbiter: PlaybackArbiter
   @ObservationIgnored private var timeObserver: Any?
   @ObservationIgnored private var endObserver: (any NSObjectProtocol)?
+  @ObservationIgnored private var statusObserver: NSKeyValueObservation?
   @ObservationIgnored private var asset: AVURLAsset?
+  /// Serves `asset`; the asset holds it weakly.
+  @ObservationIgnored private var loader: OutboxMediaLoader?
   @ObservationIgnored private var preparing: Task<Void, Never>?
   @ObservationIgnored private var posterAttempted = false
+  /// Bumped by every stop, pause and dismissal.
+  @ObservationIgnored private var generation = 0
+  /// The generation a `play()` that waits for its player started in.
+  @ObservationIgnored private var startingIn: Int?
 
   init(attachment: OutboxAttachment, files: OutboxFiles, arbiter: PlaybackArbiter) {
     self.attachment = attachment
@@ -154,43 +167,66 @@ final class MediaPlayback: Identifiable {
     let task = Task { await self.makePlayer() }
     preparing = task
     await task.value
-    preparing = nil
+    // A stop in the meantime let this one go, and another may have started since.
+    if preparing == task { preparing = nil }
   }
 
   private func makePlayer() async {
+    let loader: OutboxMediaLoader
     do {
-      let request = try await files.mediaRequest(for: attachment)
-      var options: [String: Any] = [:]
+      loader = try files.mediaLoader(for: attachment)
+    } catch {
+      phase = Self.phase(after: error)
+      return
+    }
 
-      // The credential rides in the headers of the player's own requests, and only for a gateway address. The key is
-      // `AVURLAssetHTTPHeaderFieldsKey`: AVFoundation honours it on every request the asset makes (the length, each
-      // byte range), but the SDK does not export the constant to Swift, so it is spelled out.
-      if !request.url.isFileURL {
-        options["AVURLAssetHTTPHeaderFieldsKey"] = request.headers
-      }
+    // Kept from the start, so a stop while the file is read closes what is on its way.
+    let asset = loader.makeAsset()
+    self.loader = loader
+    self.asset = asset
 
-      let asset = AVURLAsset(url: request.url, options: options)
+    do {
       let (length, playable) = try await asset.load(.duration, .isPlayable)
+      // Stopped while it was read: what was made is let go, and the phase is the stop's.
+      guard !Task.isCancelled, self.loader === loader else { return }
 
       guard playable else {
+        release(loader, asset)
         phase = .failed
         return
       }
 
       let item = AVPlayerItem(asset: asset)
       let player = AVPlayer(playerItem: item)
-      self.asset = asset
       self.player = player
       duration = length.isNumeric && length.seconds.isFinite && length.seconds > 0 ? length.seconds : nil
       observe(player, item)
       phase = .ready
     } catch {
-      phase = Self.phase(after: error)
+      guard !Task.isCancelled, self.loader === loader else { return }
+      release(loader, asset)
+      phase = Self.phase(after: error, served: loader.failure)
+    }
+  }
+
+  /// Let a loader and its asset go: nothing more is read for them.
+  private func release(_ loader: OutboxMediaLoader, _ asset: AVURLAsset) {
+    asset.cancelLoading()
+    loader.close()
+    if self.loader === loader {
+      self.loader = nil
+      self.asset = nil
     }
   }
 
   /// What a failed preparation or playback means: a `404` is final, a cap is final, anything else can be tried again.
-  nonisolated static func phase(after error: any Error) -> Phase {
+  /// `served` is what the gateway itself answered, when the loader knows it.
+  nonisolated static func phase(after error: any Error, served: FileDownloadError? = nil) -> Phase {
+    switch served {
+    case .notFound?: return .gone
+    case .tooLarge?: return .tooLarge
+    default: break
+    }
     if (error as? FileDownloadError) == .tooLarge { return .tooLarge }
     return isNotFound(error) ? .gone : .failed
   }
@@ -225,6 +261,36 @@ final class MediaPlayback: Identifiable {
     ) { [weak self] _ in
       MainActor.assumeIsolated { self?.ended() }
     }
+    // The system's own controls (the full-screen player's, the Mac's media keys) start and stop the player without
+    // asking: each change is put to the arbiter as a press of the row's own button would be.
+    statusObserver = player.observe(\.timeControlStatus, options: [.new]) { [weak self] _, _ in
+      Task { @MainActor in self?.timeControlChanged() }
+    }
+  }
+
+  /// The player started or stopped. One that starts without having asked (the system's controls) asks now, and is
+  /// paused again when the arbiter says no; one that stops lets go.
+  private func timeControlChanged() {
+    guard let player else { return }
+
+    switch player.timeControlStatus {
+    case .playing, .waitingToPlayAtSpecifiedRate:
+      if arbiter.activeID == attachment.id {
+        if !isPlaying { isPlaying = true }
+        return
+      }
+      if arbiter.claim(attachment.id, pause: { [weak self] in self?.pauseWithoutRelease() }) {
+        isPlaying = true
+      } else {
+        player.pause()
+        isPlaying = false
+      }
+    case .paused:
+      if isPlaying { isPlaying = false }
+      arbiter.release(attachment.id)
+    @unknown default:
+      break
+    }
   }
 
   private func tick(_ time: CMTime) {
@@ -258,20 +324,26 @@ final class MediaPlayback: Identifiable {
 
   // MARK: Playing
 
-  /// Start (or go on). A voice call, or a failure to prepare, keeps it from starting.
+  /// Start (or go on). A voice call, a failure to prepare, or a stop, pause or dismissal while the player was being
+  /// made (the chat was left, the full-screen video closed) keeps it from starting.
   func play() async {
     // Pressing play after a failure is asking again.
     if phase == .failed { phase = .idle }
-    await prepare()
-    guard phase == .ready, let player else { return }
+    let ticket = generation
+    startingIn = ticket
+    defer { if startingIn == ticket { startingIn = nil } }
 
-    let claimed = arbiter.claim(attachment.id) { [weak self] in self?.pauseWithoutRelease() }
-    guard claimed else { return }
+    await prepare()
+    guard ticket == generation, !Task.isCancelled, phase == .ready, let player else { return }
 
     if let duration, position >= duration - 0.05 {
       await player.seek(to: .zero)
+      guard ticket == generation, !Task.isCancelled, self.player === player else { return }
       position = 0
     }
+
+    let claimed = arbiter.claim(attachment.id) { [weak self] in self?.pauseWithoutRelease() }
+    guard claimed else { return }
 
     player.play()
     isPlaying = true
@@ -282,15 +354,16 @@ final class MediaPlayback: Identifiable {
     arbiter.release(attachment.id)
   }
 
-  /// The arbiter's own way to stop it: it has already let go of it.
+  /// The arbiter's own way to stop it: it has already let go of it. A `play()` still waiting does not start after it.
   private func pauseWithoutRelease() {
+    generation += 1
     player?.pause()
     isPlaying = false
   }
 
-  /// Play or pause, as the button of a row does.
+  /// Play or pause, as the button of a row does: a second press while the player is still being made is a pause.
   func toggle() {
-    if isPlaying {
+    if isPlaying || startingIn == generation {
       pause()
     } else {
       Task { await play() }
@@ -312,28 +385,37 @@ final class MediaPlayback: Identifiable {
     Task { await prepare() }
   }
 
-  /// Pause and let the player go (the chat closed): playing again makes a new one.
+  /// Pause and let the player go (the chat closed): playing again makes a new one. A player still being made is let go
+  /// too, and nothing it was waiting for starts.
   func stop() {
     pause()
+    preparing?.cancel()
+    preparing = nil
     teardown()
     phase = .idle
   }
 
   private func teardown() {
+    statusObserver?.invalidate()
+    statusObserver = nil
     if let timeObserver, let player { player.removeTimeObserver(timeObserver) }
     timeObserver = nil
     if let endObserver { NotificationCenter.default.removeObserver(endObserver) }
     endObserver = nil
     player?.pause()
     player = nil
+    asset?.cancelLoading()
     asset = nil
+    loader?.close()
+    loader = nil
     isPlaying = false
     position = 0
   }
 
   // MARK: The poster of a video
 
-  /// The first frame, for the card of a video. Read once; a video that gives none is a card without a picture.
+  /// The first frame, for the card of a video. Read once; a video that gives none is a card without a picture. The
+  /// generator reads the same asset, so the frame comes through the same loader as the player's bytes.
   func loadPoster() async {
     guard poster == nil, !posterAttempted else { return }
     await prepare()
@@ -378,7 +460,7 @@ final class MediaPlaybackCenter {
     video = playback
   }
 
-  /// The full-screen video was closed: it stops.
+  /// The full-screen video was closed: it stops, and one still being made does not start after.
   func dismissVideo() {
     video?.pause()
     video = nil

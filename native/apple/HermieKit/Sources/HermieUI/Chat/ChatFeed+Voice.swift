@@ -29,6 +29,11 @@ extension ChatFeed {
     dictation.onListening = { [weak reader] in reader?.stop() }
     dictation.blocked = { [weak self] in (self?.composer.held ?? true) || self?.voiceMode != nil }
     reader.blocked = { [weak dictation, weak self] in (dictation?.isActive ?? false) || self?.voiceMode != nil }
+    // A reply read aloud and a sound or video a bot shared never play together: whichever starts stops the other.
+    reader.onSpeak = { [weak self] in self?.itemActions.outbox?.playback.arbiter.stopAll() }
+    itemActions.outbox?.playback.arbiter.onStart = { [weak reader] in
+      if reader?.isReading == true { reader?.stop() }
+    }
     readAloud = reader
     voiceSettings = settings
     voiceEngines = engines

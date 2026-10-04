@@ -107,18 +107,6 @@ extension HTTPClient {
     return FileDownload(url: destination, bytes: outcome.bytes, sha256: digest)
   }
 
-  /// The address and the headers a media player needs to read a file of the gateway itself (`AVURLAsset`),
-  /// with this client's credentials and front-door headers: the player seeks by byte ranges on its own.
-  public func mediaRequest(_ path: String) async throws -> (url: URL, headers: [String: String]) {
-    let address = try GatewayAddress.apiURL(baseURL, path: path)
-
-    guard let url = URL(string: address), URLOrigin(url) != nil else {
-      throw GatewayError(.network, "Could not reach \(address): it is not a valid address.")
-    }
-
-    return (url, try await requestHeaders())
-  }
-
   static func error(forStatus status: Int) -> FileDownloadError {
     switch status {
     case 404: .notFound
@@ -160,20 +148,9 @@ extension HTTPClient {
     }
 
     let sink = DownloadSink(plan: plan)
-    // The transport's own configuration (no cache, no cookies; a test's stub protocol), with this download's
-    // delegate: the bytes are handed over as they arrive, not after the last one.
-    let session = URLSession(configuration: transport.session.configuration, delegate: sink, delegateQueue: nil)
-    defer { session.finishTasksAndInvalidate() }
-
-    let task = session.dataTask(with: request)
-    let outcome = await withTaskCancellationHandler {
-      await withCheckedContinuation { (continuation: CheckedContinuation<DownloadSink.Outcome, Never>) in
-        sink.begin(continuation)
-        task.resume()
-      }
-    } onCancel: {
-      task.cancel()
-    }
+    // The transport's own session (no cache, no cookies; a test's stub protocol), shared by every call, with this
+    // download's own delegate: the bytes are handed over as they arrive, and a redirect is its to refuse.
+    let outcome = await transport.run(request, delegate: sink) { continuation in sink.begin(continuation) }
 
     if Task.isCancelled {
       try? FileManager.default.removeItem(at: plan.destination)

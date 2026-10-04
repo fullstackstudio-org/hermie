@@ -259,20 +259,4 @@ import Testing
     }
     #expect(!FileManager.default.fileExists(atPath: destination.path))
   }
-
-  @Test("a player is handed the address and the headers: the credential, the front door, never a token in the address")
-  func mediaRequest() async throws {
-    let http = try HTTPClient(
-      baseURL: "https://gateway.test/base", credentials: AnonymousCredentials(headers: ["authorization": "Bearer at-1"]),
-      extraHeaders: ["x-front-door": "door"])
-
-    let request = try await http.mediaRequest(Self.route)
-
-    #expect(
-      request.url.absoluteString
-        == "https://gateway.test/base/api/files/outbox/q3Wm0B2v7yXk4Lr9TzPa1sDf6GhJ8cNe/clip.mp4?profile=writer")
-    #expect(request.headers["authorization"] == "Bearer at-1")
-    #expect(request.headers["x-front-door"] == "door")
-    #expect(!request.url.absoluteString.contains("at-1"))
-  }
 }

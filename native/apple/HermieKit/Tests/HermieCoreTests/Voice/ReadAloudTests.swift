@@ -72,6 +72,22 @@ import Testing
     #expect(!reader.isReading)
   }
 
+  @Test func eachReplyAboutToBeSpokenSaysSoFirstSoWhateverElsePlaysStops() {
+    let (reader, synth, _) = make()
+    var events: [String] = []
+    reader.onSpeak = { events.append("speak \(synth.spoken.count)") }
+
+    reader.enqueue(id: "a1", markdown: "first")
+    reader.enqueue(id: "a2", markdown: "second")
+    #expect(events == ["speak 0"], "before the synthesiser was asked, once for the one that starts")
+
+    synth.finishCurrent()
+    #expect(events == ["speak 0", "speak 1"])
+
+    reader.stop()
+    #expect(events.count == 2, "a stop is not a start")
+  }
+
   @Test func theSameReplyIsNeverInTheQueueTwice() {
     let (reader, synth, _) = make()
 

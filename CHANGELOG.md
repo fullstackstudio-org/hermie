@@ -49,7 +49,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   gateway as they are read, one at a time and never during a voice call, and stop when the chat
   closes. Downloads check their size and SHA-256 and are cut off at 25 MiB for a picture and 200 MiB
   for the rest. A file the gateway no longer has says "No longer available"; any other failure
-  offers a retry. The files survive a history reload and the offline cache.
+  offers a retry. The files survive a history reload and the offline cache. A fetched file is kept
+  for a week (at most 500 MB in all), so opening the chat again does not fetch it again; a link in a
+  shared PDF opens only for a web, mail or phone address; a copy saved on a Mac is marked as
+  downloaded.
 
 - **The web client shows the files a bot shares.** A reply that carries files (`contract/outbox/`)
   draws a picture as a thumbnail that opens the viewer (several are a grid), a video and a sound as

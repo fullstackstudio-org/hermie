@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import HermieGateway
 import HermieProtocol
@@ -35,6 +36,16 @@ enum OutboxFixtures {
         == "/api/files/outbox/q3Wm0B2v7yXk4Lr9TzPa1sDf6GhJ8cNe/Q3%20report.mp3?profile=writer")
     #expect(OutboxRoute.path(for: attachment, profile: nil) == attachment.url)
     #expect(OutboxRoute.path(for: attachment, profile: "") == attachment.url)
+  }
+
+  @Test func theRouteIsBuiltFromTheTokenAndTheNameNeverFromTheUrlAsItArrived() {
+    var attachment = OutboxFixtures.attachment(.audio, name: "Q3 report.mp3")
+    // What a sender could have slipped past a check: another route, a query, a different spelling.
+    attachment.url = "/api/files/download/elsewhere?token=x"
+
+    #expect(OutboxRoute.path(for: attachment, profile: nil) == "/api/files/outbox/\(attachment.id)/Q3%20report.mp3")
+    #expect(
+      OutboxRoute.path(for: attachment, profile: "w") == "/api/files/outbox/\(attachment.id)/Q3%20report.mp3?profile=w")
   }
 
   @Test func aProfileIsEncodedAsAQueryValueAndNeverCarriesAnythingElse() {
@@ -171,7 +182,7 @@ private final class Gate: Sendable {
         count.bump()
         return try await body(attachment, progress)
       },
-      mediaSource: { _ in throw FileDownloadError.unreachable })
+      mediaSource: { _, _, _, _ in throw FileDownloadError.unreachable })
     return (files, count)
   }
 
@@ -363,13 +374,17 @@ private final class Gate: Sendable {
     #expect(count.value == 2)
   }
 
-  @Test func aPlayerIsHandedTheAddressUnlessTheFileIsOverTheCap() async throws {
-    let request = MediaRequest(url: URL(string: "https://gateway.test/x")!, headers: ["authorization": "Bearer t"])
-    let files = OutboxFiles(download: { _, _ in URL(fileURLWithPath: "/dev/null") }, mediaSource: { _ in request })
+  @Test func aPlayerIsHandedALoaderOfItsOwnSchemeUnlessTheFileIsOverTheCap() throws {
+    let files = OutboxFiles(
+      download: { _, _ in URL(fileURLWithPath: "/dev/null") }, mediaSource: { _, _, _, _ in throw FileDownloadError.unreachable })
+    let attachment = OutboxFixtures.attachment(.audio, name: "a b.mp3")
 
-    #expect(try await files.mediaRequest(for: OutboxFixtures.attachment(.audio, name: "a.mp3")) == request)
+    let loader = try files.mediaLoader(for: attachment)
+    #expect(loader.url.scheme == OutboxMediaLoader.scheme, "no address a network stack can dial")
+    #expect(loader.url.absoluteString == "hermie-outbox://file/\(attachment.id)/a%20b.mp3")
+    #expect(loader.maxBytes == OutboxLimits.fileBytes)
     do {
-      _ = try await files.mediaRequest(for: OutboxFixtures.attachment(.video, name: "a.mp4", size: OutboxLimits.fileBytes + 1))
+      _ = try files.mediaLoader(for: OutboxFixtures.attachment(.video, name: "a.mp4", size: OutboxLimits.fileBytes + 1))
       Issue.record("a file over the cap was handed to a player")
     } catch {
       #expect((error as? FileDownloadError) == .tooLarge)
@@ -437,14 +452,94 @@ private final class Gate: Sendable {
     #expect(!FileManager.default.fileExists(atPath: folder.path))
   }
 
-  @Test func aPlayerIsHandedTheRouteToo() async throws {
+  @Test func aPlayerReadsItsRangesByTheRouteThroughTheSessionsLink() async throws {
     let link = ScriptedLink()
-    link.setMediaRequest { path in MediaRequest(url: URL(string: "https://gateway.test\(path)")!, headers: [:]) }
+    link.onRange { _, range in
+      (ByteRangeHead(contentType: "audio/mpeg", totalLength: 1000, rangesSupported: true), Data(count: range.length ?? 1))
+    }
     let files = session(link).outboxFiles(profile: "writer")
+    let loader = try files.mediaLoader(for: OutboxFixtures.attachment(.audio, name: "a.mp3"))
+    let asset = loader.makeAsset()
 
-    let request = try await files.mediaRequest(for: OutboxFixtures.attachment(.audio, name: "a.mp3"))
+    // Whatever the player makes of four zero bytes, it asked the session's link, by the route, with the cap.
+    _ = try? await asset.load(.duration)
 
-    #expect(link.mediaCalls == ["/api/files/outbox/\(OutboxFixtures.id)/a.mp3?profile=writer"])
-    #expect(request.url.absoluteString.hasSuffix("/a.mp3?profile=writer"))
+    let call = try #require(link.rangeCalls.first)
+    #expect(call.path == "/api/files/outbox/\(OutboxFixtures.id)/a.mp3?profile=writer")
+    #expect(call.maxBytes == OutboxLimits.fileBytes)
+    loader.close()
+  }
+
+  // MARK: Kept for the next time
+
+  /// An attachment whose size and SHA-256 are those of `bytes`.
+  private func attachment(of bytes: Data, name: String = "notes.txt", id: String = OutboxFixtures.id) -> OutboxAttachment {
+    var attachment = OutboxFixtures.attachment(.file, name: name, size: bytes.count, id: id)
+    attachment.sha256 = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
+    return attachment
+  }
+
+  @Test func aFileIsKeptPerTokenAndUsedAgainWhileItIsStillWhatTheAttachmentSays() async throws {
+    let gateway = "g-outbox-keep-\(UUID().uuidString)"
+    defer { AttachmentOpening.discardOpened(gateway: gateway) }
+    let link = ScriptedLink()
+    let bytes = Data("the notes".utf8)
+    link.onDownload { _, _ in bytes }
+    let attachment = attachment(of: bytes)
+
+    let first = try await OutboxDownloads.download(attachment, profile: "writer", link: link, gatewayID: gateway) { _ in }
+    #expect(first == OutboxDownloads.location(of: attachment, profile: "writer", gateway: gateway))
+    #expect(first.deletingLastPathComponent().lastPathComponent == attachment.id)
+    #expect(first.path.hasPrefix(OutboxDownloads.directory(gateway: gateway).path))
+    #expect(OutboxDownloads.isIntact(first, as: attachment))
+
+    // Opened again (another chat open): no request, the same file.
+    let again = try await OutboxDownloads.download(attachment, profile: "writer", link: link, gatewayID: gateway) { _ in }
+    #expect(again == first)
+    #expect(link.downloads.count == 1)
+    #expect(try Data(contentsOf: again) == bytes)
+    let leftovers = try FileManager.default.contentsOfDirectory(atPath: first.deletingLastPathComponent().path)
+    #expect(leftovers == ["notes.txt"], "no partial file is left beside it")
+
+    // A copy that is no longer the attachment's (changed on disk) is fetched again.
+    try Data("tampered".utf8).write(to: first)
+    let fetched = try await OutboxDownloads.download(attachment, profile: "writer", link: link, gatewayID: gateway) { _ in }
+    #expect(link.downloads.count == 2)
+    #expect(try Data(contentsOf: fetched) == bytes)
+
+    // Another profile's chat asks the gateway itself: it answers only the profile the file was shared with.
+    _ = try await OutboxDownloads.download(attachment, profile: "reader", link: link, gatewayID: gateway) { _ in }
+    #expect(link.downloads.count == 3)
+    #expect(OutboxDownloads.profileFolder("writer") != OutboxDownloads.profileFolder("reader"))
+    #expect(OutboxDownloads.profileFolder("../x").hasPrefix("p-"), "a handle is never a path")
+  }
+
+  @Test func whatIsKeptGoesWhenItIsOldAndTheOldestGoWhenThereIsTooMuch() throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent("outbox-purge-\(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: root) }
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+
+    func keep(_ token: String, profile: String = "p-a", bytes: Int, daysAgo: Double) throws -> URL {
+      let folder = root.appendingPathComponent(profile).appendingPathComponent(token)
+      try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+      let file = folder.appendingPathComponent("f.bin")
+      try Data(count: bytes).write(to: file)
+      try FileManager.default.setAttributes(
+        [.modificationDate: now.addingTimeInterval(-daysAgo * 86_400)], ofItemAtPath: file.path)
+      return folder
+    }
+
+    let fresh = try keep("fresh", bytes: 100, daysAgo: 1)
+    let stale = try keep("stale", bytes: 10, daysAgo: 8)
+    let middle = try keep("middle", bytes: 100, daysAgo: 2)
+    let oldest = try keep("oldest", profile: "p-b", bytes: 100, daysAgo: 3)
+
+    OutboxDownloads.purge(in: root, olderThan: 7 * 86_400, keepingAtMost: 250, now: now)
+
+    let exists = { (url: URL) in FileManager.default.fileExists(atPath: url.path) }
+    #expect(exists(fresh) && exists(middle))
+    #expect(!exists(stale), "not used for a week")
+    #expect(!exists(oldest), "the least recently used goes once the rest fill the limit")
+    #expect(!exists(root.appendingPathComponent("p-b")), "a profile folder left empty goes too")
   }
 }

@@ -5,6 +5,7 @@ import HermieGateway
 import HermieProtocol
 import HermieStore
 import HermieTranscript
+import Synchronization
 import Testing
 
 @testable import HermieCore
@@ -161,34 +162,43 @@ extension Integration {
       }
     }
 
-    @Test("a player's request carries the credential in a header and is answered a byte range; without it the gate refuses")
+    @Test("a player's range is read with the session's credential and answered as a byte range; without it the gate refuses")
     func rangesThroughTheSessionsCredentials() async throws {
       try await withOutboxGateway { gateway in
         let session = try await Self.open(gateway)
         let files = try await Self.shared(session)
         let clip = try #require(files.first { $0.kind == .video })
         let path = OutboxRoute.path(for: clip, profile: researcher)
+        let heads = Mutex<[ByteRangeHead]>([])
+        let bytes = Mutex(Data())
 
-        let request = try await session.link.mediaRequest(path)
-        #expect(!request.url.absoluteString.contains(token), "the credential is never in the address")
-        #expect(request.url.query == "profile=\(researcher)")
+        func read(_ offset: Int, _ length: Int?) async throws -> (ByteRangeHead?, Data) {
+          heads.withLock { $0 = [] }
+          bytes.withLock { $0 = Data() }
+          try await session.link.readRange(
+            path, offset: offset, length: length, maxBytes: OutboxLimits.fileBytes,
+            onHead: { head in heads.withLock { $0.append(head) } }, onData: { data in bytes.withLock { $0.append(data) } })
+          return (heads.withLock { $0.first }, bytes.withLock { $0 })
+        }
 
-        var headers = request.headers
-        headers["range"] = "bytes=0-9"
-        let part = try await FakeGateway.plainResponse("GET", request.url.absoluteString, headers: headers)
-        #expect(part.status == 206)
-        #expect(part.headers["content-range"] == "bytes 0-9/\(clip.size)")
-        #expect(part.headers["accept-ranges"] == "bytes")
-        #expect(part.headers["x-content-type-options"] == "nosniff")
+        let (head, part) = try await read(0, 10)
+        #expect(head?.rangesSupported == true, "the gate accepted the credential and answered the range")
+        #expect(head?.totalLength == clip.size)
+        #expect(part.count == 10)
 
-        let tail = try await FakeGateway.plainResponse("GET", request.url.absoluteString, headers: headers.merging(["range": "bytes=-34"]) { _, new in new })
-        #expect(tail.status == 206)
-        #expect(tail.headers["content-range"] == "bytes \(clip.size - 34)-\(clip.size - 1)/\(clip.size)")
+        let (_, tail) = try await read(clip.size - 34, nil)
+        #expect(tail.count == 34)
 
-        let past = try await FakeGateway.plainResponse("GET", request.url.absoluteString, headers: headers.merging(["range": "bytes=\(clip.size)-"]) { _, new in new })
-        #expect(past.status == 416)
+        do {
+          _ = try await read(clip.size, nil)
+          Issue.record("a range past the end was answered")
+        } catch {
+          #expect((error as? FileDownloadError) == .refused(status: 416))
+        }
 
-        let anonymous = try await FakeGateway.plainResponse("GET", request.url.absoluteString)
+        let address = try GatewayAddress.apiURL(try #require(session.link.gatewayAddress), path: path)
+        #expect(!address.contains(token), "the credential is never in the address")
+        let anonymous = try await FakeGateway.plainResponse("GET", address)
         #expect(anonymous.status == 401, "a request without the credential does not get the file")
         await session.shutdown()
       }
@@ -215,7 +225,7 @@ extension Integration {
       }
     }
 
-    @Test("the system's player reads a sound and a video from the gateway with the credential in its headers, by byte ranges")
+    @Test("the system's player reads a sound and a video from the gateway through the loader, by byte ranges")
     func playersReadThem() async throws {
       try await withOutboxGateway { gateway in
         let session = try await Self.open(gateway)
