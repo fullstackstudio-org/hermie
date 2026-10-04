@@ -4,6 +4,8 @@
  * the entry bundle; the chunk is fetched as soon as the session has started and
  * is in memory long before a bot can ask anything.
  */
+import type * as DeviceSheets from './device-sheets'
+
 export { ApprovalSheet } from './ApprovalSheet'
 export { ClarifySheet } from './ClarifySheet'
 export { ConfirmSheet } from './ConfirmSheet'
@@ -23,4 +25,4 @@ export { VaultUnlockSheet } from './VaultUnlockSheet'
  * are a chunk of their own, fetched when a request that needs one is on the page (`device-sheets.ts`). It is imported
  * from here, not from the first load, so it shares the frame, the strings and the upload with these sheets.
  */
-export const loadDeviceSheets = (): Promise<typeof import('./device-sheets')> => import('./device-sheets')
+export const loadDeviceSheets = (): Promise<typeof DeviceSheets> => import('./device-sheets')

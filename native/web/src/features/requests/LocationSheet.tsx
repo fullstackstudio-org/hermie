@@ -17,6 +17,7 @@ import { type ReactElement, useEffect, useId, useRef, useState } from 'react'
 import type { LocationAsk, LocationPrecision } from '../../core/requests/interactive-types'
 import { deviceStrings } from '../../i18n/device-strings'
 import { useLocale } from '../../i18n/use-locale'
+import { pageNavigator } from '../../platform/device-apis'
 import { Button } from '../../ui/primitives'
 import { DEFAULT_TAP_GUARD_MS } from './ApprovalSheet'
 import { locationAnswer } from './device-answers'
@@ -71,7 +72,7 @@ export function LocationSheet({
 
   const locked = !armed || sending.pending || sending.finished
   const busy = locked || locating
-  const fixed = geolocation ?? (typeof navigator === 'undefined' ? undefined : navigator.geolocation)
+  const fixed = geolocation ?? pageNavigator()?.geolocation
 
   function share(): void {
     if (busy || !fixed) {

@@ -47,6 +47,7 @@ const ON_DEMAND = [
     name => `features/requests/${name}.tsx`
   ),
   'features/requests/device-sheets.ts',
+  'features/requests/DeviceSheet.tsx',
   'features/requests/device-frame.tsx',
   'features/requests/device-answers.ts',
   'features/requests/signature-export.ts',

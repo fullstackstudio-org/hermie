@@ -17,6 +17,7 @@ import type { ContactAsk, ContactField } from '../../core/requests/interactive-t
 import { listOf, recordStrings } from '../../i18n/record-strings'
 import { deviceStrings } from '../../i18n/device-strings'
 import { useLocale } from '../../i18n/use-locale'
+import { pageNavigator } from '../../platform/device-apis'
 import { Button } from '../../ui/primitives'
 import { DEFAULT_TAP_GUARD_MS } from './ApprovalSheet'
 import {
@@ -42,7 +43,7 @@ export interface ContactSheetProps extends DeviceSheetProps<ContactAsk> {
 }
 
 const pageContacts = (): ContactsApi | undefined =>
-  typeof navigator === 'undefined' ? undefined : (navigator as unknown as { contacts?: ContactsApi }).contacts
+  (pageNavigator() as unknown as { contacts?: ContactsApi } | undefined)?.contacts
 
 /** The fields of a candidate that have something in them, in the contract's order. */
 const present = (candidate: ContactCandidate, fields: readonly ContactField[]): ContactField[] =>

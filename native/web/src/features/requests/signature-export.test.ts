@@ -40,21 +40,7 @@ function random(seed: number): () => number {
   }
 }
 
-const NASTY = [
-  NaN,
-  Infinity,
-  -Infinity,
-  -0,
-  0,
-  1e21,
-  -1e21,
-  1e-9,
-  599.99999,
-  600.05,
-  200.04,
-  -0.04,
-  123456789.123456789
-]
+const NASTY = [NaN, Infinity, -Infinity, -0, 0, 1e21, -1e21, 1e-9, 599.99999, 600.05, 200.04, -0.04, 123456789.12345679]
 
 /** A stroke the way a hostile or broken device might make one. */
 function strokeFrom(next: () => number, length: number): Stroke {

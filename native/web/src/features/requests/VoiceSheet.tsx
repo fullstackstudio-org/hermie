@@ -22,6 +22,7 @@ import { sha256Hex } from '../../core/requests/sha256'
 import { deviceStrings } from '../../i18n/device-strings'
 import { sheetStrings } from '../../i18n/sheet-strings'
 import { useLocale } from '../../i18n/use-locale'
+import { pageGlobal, pageNavigator } from '../../platform/device-apis'
 import { Button } from '../../ui/primitives'
 import { formatBytes } from '../chat/chat-format'
 import { DEFAULT_TAP_GUARD_MS } from './ApprovalSheet'
@@ -57,11 +58,11 @@ export interface VoiceSheetProps extends DeviceSheetProps<FileAsk> {
 }
 
 const pageEnvironment = (): VoiceEnvironment => ({
-  Recorder: (globalThis as unknown as { MediaRecorder?: RecorderClass }).MediaRecorder,
+  Recorder: pageGlobal<RecorderClass>('MediaRecorder'),
   getUserMedia:
-    typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia
+    pageNavigator()?.mediaDevices?.getUserMedia === undefined
       ? undefined
-      : constraints => navigator.mediaDevices.getUserMedia(constraints)
+      : constraints => (pageNavigator() as Navigator).mediaDevices.getUserMedia(constraints)
 })
 
 /** The types tried, best first: `audio/mp4` plays everywhere a voice note is read, the others where it is not offered. */
@@ -574,7 +575,6 @@ function Recorder({
           <div className="hm-voice__take">
             <p className="hm-requests__meta">{words.ready({ size: formatBytes(take.blob.size) })}</p>
             {take.url ? (
-              // eslint-disable-next-line jsx-a11y/media-has-caption
               <audio
                 className="hm-voice__player"
                 controls
