@@ -201,8 +201,8 @@ final class ChatFeed: ChatScreenFeed {
       }
       built.chooseMessageAction = { [weak self] action, item in self?.chooseMessageAction(action, item) }
       built.openAttachment = { [weak self] reference in self?.openAttachment(reference) }
-      built.images = MessageImageStore { [session] reference in
-        if case .preview(let url) = await session.prepareAttachment(reference) { url } else { nil }
+      built.images = MessageImageStore { [session, bot = chat.bot] reference in
+        if case .preview(let url) = await session.prepareAttachment(reference, profile: bot) { url } else { nil }
       }
     }
 
@@ -290,9 +290,10 @@ final class ChatFeed: ChatScreenFeed {
   func openAttachment(_ reference: String) {
     let session = self.session
     let store = itemActions.images
+    let bot = chat.bot
 
     Task {
-      let result = await session.prepareAttachment(reference)
+      let result = await session.prepareAttachment(reference, profile: bot)
 
       guard case .preview(let url) = result else {
         attachmentNotice = result

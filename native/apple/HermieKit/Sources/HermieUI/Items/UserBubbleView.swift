@@ -230,25 +230,35 @@ struct AttachmentSummary: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
       ForEach(Array(references.enumerated()), id: \.offset) { _, reference in
-        Button {
-          onOpen(reference)
-        } label: {
-          Label {
-            Text(ItemFormat.attachmentName(reference))
-              .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-              .truncationMode(.middle)
-          } icon: {
-            Image(systemName: ItemFormat.isImageAttachment(reference) ? "photo" : "doc")
+        if isImagePlaceholder(reference) {
+          // An image the gateway named no file for: nothing to fetch, so nothing to open. A name, not a control.
+          chip(reference)
+            .accessibilityElement(children: .combine)
+        } else {
+          Button {
+            onOpen(reference)
+          } label: {
+            chip(reference)
           }
-          .font(.callout)
-          .padding(.horizontal, 10)
-          .padding(.vertical, 6)
-          .background(.fill.tertiary, in: .rect(cornerRadius: 10))
+          .buttonStyle(.plain)
+          .accessibilityHint(Strings.Chat.Viewer.openHint)
         }
-        .buttonStyle(.plain)
-        .accessibilityHint(Strings.Chat.Viewer.openHint)
       }
     }
+  }
+
+  private func chip(_ reference: String) -> some View {
+    Label {
+      Text(ItemFormat.attachmentName(reference))
+        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+        .truncationMode(.middle)
+    } icon: {
+      Image(systemName: ItemFormat.isImageAttachment(reference) ? "photo" : "doc")
+    }
+    .font(.callout)
+    .padding(.horizontal, 10)
+    .padding(.vertical, 6)
+    .background(.fill.tertiary, in: .rect(cornerRadius: 10))
   }
 }
 

@@ -2,6 +2,7 @@ import Foundation
 import HermieCore
 import HermieMarkdown
 import HermieTranscript
+import Synchronization
 import Testing
 
 @testable import HermieUI
@@ -77,6 +78,75 @@ import Testing
     #expect(feed.attachmentNotice == .failed(name: "gone.pdf"))
     #expect(feed.attachmentPreview == nil)
     #expect(feed.itemActions.images?.presentation == nil)
+  }
+
+  // MARK: An image attached to this chat
+
+  /// The paths the gateway was asked for, in order.
+  private final class Asked: Sendable {
+    private let paths = Mutex<[String]>([])
+    func note(_ path: String) { paths.withLock { $0.append(path) } }
+    var all: [String] { paths.withLock { $0 } }
+  }
+
+  @Test func aChipForAnImageInThisChatsProfileFolderIsFetchedByTheImageRoute() async throws {
+    let asked = Asked()
+    let png = Self.png
+    // The chat's bot is `writer`, which is the profile the route is asked as.
+    let feed = try feed {
+      asked.note($0)
+      return $0 == "/api/files/images/upload_1.png?profile=writer" ? png : nil
+    }
+
+    feed.itemActions.openAttachment("@image:/root/.hermes/profiles/writer/images/upload_1.png")
+    await eventually("the gallery") { feed.itemActions.images?.presentation != nil }
+
+    #expect(asked.all == ["/api/files/images/upload_1.png?profile=writer"])
+    #expect(feed.attachmentNotice == nil)
+
+    // The thumbnail of the same picture goes the same way (the store's resolver is the session's own).
+    let store = try #require(feed.itemActions.images)
+    let drawn = await store.image("@image:/root/.hermes/profiles/writer/images/upload_1.png", maxPixel: 64)
+    #expect(drawn != nil)
+  }
+
+  @Test func aPathInAnotherProfilesFolderOrANestedOneIsNeverAskedOfTheImageRoute() async throws {
+    let asked = Asked()
+    let feed = try feed {
+      asked.note($0)
+      return nil
+    }
+
+    for path in [
+      "/root/.hermes/images/upload_1.png", "/root/.hermes/profiles/researcher/images/upload_1.png",
+      "/root/.hermes/profiles/writer/images/sub/upload_1.png"
+    ] {
+      feed.itemActions.openAttachment("@image:\(path)")
+      await eventually("the notice for \(path)") { feed.attachmentNotice == .failed(name: "upload_1.png") }
+    }
+
+    #expect(!asked.all.contains { $0.hasPrefix("/api/files/images/") }, "\(asked.all)")
+  }
+
+  @Test func theImageRouteRefusingItIsTheNoticeThatItCouldNotBeFetched() async throws {
+    let feed = try feed { _ in nil }
+
+    feed.itemActions.openAttachment("@image:/root/.hermes/profiles/writer/images/gone.png")
+    await eventually("the notice") { feed.attachmentNotice != nil }
+
+    #expect(feed.attachmentNotice == .failed(name: "gone.png"))
+    #expect(feed.itemActions.images?.presentation == nil)
+  }
+
+  @Test func theLineOfAnUnnamedImageIsAChipThatIsNotAControl() {
+    let stripped = stripUserText("what is this?\n[image]")
+    let pictures = MessageImages.pictures(
+      itemID: "r:1", inline: stripped.inlineImages ?? [], attachments: stripped.attachments ?? [], named: [], hasStore: true)
+
+    #expect(stripped.text == "what is this?")
+    #expect(pictures.images.isEmpty, "there is nothing to fetch")
+    #expect(pictures.chips == ["@image:Image"])
+    #expect(pictures.chips.allSatisfy(isImagePlaceholder), "the bubble draws it as a label, with no button")
   }
 
   // MARK: What a message shows

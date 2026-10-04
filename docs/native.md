@@ -500,6 +500,13 @@ dialled at a loopback address (`localhost`, `::1`, a real `127.x.x.x`). An absol
 gateway's disk (an upload, the `[Image attached at: <path>]` handle of an attached image) is asked of
 the gateway's managed-files route (`GET /api/files/download?path=`, then `GET /api/media?path=` for a
 picture): what its own policy allows comes back, the rest says it could not be fetched. A picture
+attached to this chat, whose path is directly in the chat's own profile's `images/` folder
+(`<home>/images/<file>` for `default`, `<home>/profiles/<profile>/images/<file>` for any other profile,
+`AttachmentOpening.attachedImagePath`), is asked first of the gateway's route for exactly that,
+`GET /api/files/images/<name>?profile=<profile>`, which a locked managed-files root does not close; the
+credentials go in a header, never in the address, and a path in another profile's folder, a nested or
+a differently named folder keeps the two routes above (the route takes a bare file name, so only that
+folder's path may be turned into one). A picture
 opens in the gallery, decided by its extension or, for a file with none (a screenshot tool's), by its
 first bytes; any other file opens in Quick Look. Nothing is ever silent: a bare name or a web address
 says it is not on this device, a refusal says it could not be fetched.
@@ -512,7 +519,9 @@ rows) lift both out (`scanInlineImages`, `packages/transcript/src/inline-images.
 webp, heic; at most 20 MiB; the first bytes must be a picture's whatever the declared type) becomes
 `inlineImages` on the item and a thumbnail drawn from those bytes; a handle becomes an `@image:<path>`
 reference (a thumbnail fetched as above); a blob that cannot be shown becomes the compact `@image:Image`
-chip. Neither the handle nor the blob is ever part of the text. A web address is never fetched.
+chip, and so does the `[image]` line the gateway's history shows for an attached image it has no name
+for (a chip that is not a button: there is nothing to fetch or open). Neither the handle nor the blob is
+ever part of the text. A web address is never fetched.
 
 **A message's menu.** A long press on a bubble (iOS) or a right-click (Mac) opens the message's menu, and
 VoiceOver offers the same lines as the row's actions (`MessageMenu`, drawn by `MessageMenuItems`). A reply

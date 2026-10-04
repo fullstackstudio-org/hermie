@@ -25,6 +25,12 @@ public enum AttachmentTarget: Sendable, Equatable {
  gateway), a file the gateway serves under `/api/files/`, and nothing else. A path that tries to
  leave `/api/files/` (`..`, an encoded dot, a backslash) is refused, as the web client refuses it.
 
+ A picture an image attached to a chat names by the gateway's own `images/` folder has a third, narrower
+ route that works where the managed-files root is locked: `GET /api/files/images/<name>?profile=<profile>`
+ (`attachedImagePath`). It is asked FIRST, and only for a path whose folder is that profile's `images/` folder
+ (never the file name of some other path: a file of that name there would be a different picture); the two
+ routes above are what is left for every other path, and for a gateway that does not have it.
+
  A path on this device's disk is opened only when the gateway runs on this device (it is dialled at
  a loopback address): then the path names a file of the gateway's own, which is also this device's.
  For any other gateway the same path would name a file of this device that the gateway knows
@@ -66,6 +72,83 @@ public enum AttachmentOpening {
   /// images, screenshots and cache folders).
   public static func mediaPath(_ path: String) -> String {
     "/api/media?path=\(queryValue(path))"
+  }
+
+  /// What `get_attached_image` serves: a name of one path component with one of these suffixes.
+  private static let attachedImageSuffixes: Set<String> = ["png", "jpg", "jpeg", "gif", "webp", "bmp"]
+
+  /// `GET /api/files/images/<name>?profile=<profile>` for `reference`, or nil when its path is not one of
+  /// `profile`'s own attached images.
+  ///
+  /// An attached image is written to `<profile home>/images/<file>`, and the home is `<HERMES_HOME>` for the
+  /// default profile (`default`) or `<HERMES_HOME>/profiles/<name>` for any other. The client cannot see the
+  /// disk, so it reads the shape and refuses anything it cannot be sure of:
+  ///
+  /// - the path is absolute, whole (no `.`/`..`, no empty or backslash part, no `?`, `#` or `%`) and ends
+  ///   `images/<file>`, the file being a name the route serves (one component, an image suffix of the six);
+  /// - for `default`, no part of the folder above `images` is `profiles` (that is another profile's), and it is
+  ///   not itself called `images` (`<home>/images/images/<file>` is not `<home>/images/<file>`);
+  /// - for any other profile, the folder above `images` is `profiles/<that profile>`, so a path in the
+  ///   default profile's folder, or in another profile's, is refused.
+  public static func attachedImagePath(_ reference: String, profile: String) -> String? {
+    let value = unwrapped(reference)
+
+    // `/api/files/…` is what the gateway itself serves (asked as it is), never a place on its disk.
+    guard isProfileName(profile), value.hasPrefix("/"), !value.hasPrefix("//"), !value.hasPrefix("/api/files/"),
+      !value.contains(where: { $0 == "\\" || $0 == "\0" || $0 == "?" || $0 == "#" || $0 == "%" })
+    else {
+      return nil
+    }
+
+    let parts = value.dropFirst().split(separator: "/", omittingEmptySubsequences: false).map(String.init)
+
+    guard parts.count >= 3, !parts.contains(where: { $0.isEmpty || $0 == "." || $0 == ".." }),
+      parts[parts.count - 2] == "images", let file = parts.last, isAttachedImageName(file)
+    else {
+      return nil
+    }
+
+    let home = parts.dropLast(2)
+    let own: Bool
+
+    if profile == "default" {
+      own = !home.contains("profiles") && home.last != "images"
+    } else {
+      own = home.count >= 2 && home[home.endIndex - 2] == "profiles" && home[home.endIndex - 1] == profile
+    }
+
+    guard own else {
+      return nil
+    }
+
+    return "/api/files/images/\(file)?profile=\(profile)"
+  }
+
+  /// `[a-z0-9][a-z0-9_-]{0,63}`: what the gateway takes as a profile name, so nothing else goes in an address.
+  private static func isProfileName(_ name: String) -> Bool {
+    guard (1...64).contains(name.utf8.count), let first = name.utf8.first, isLowerAlnum(first) else { return false }
+    return name.utf8.allSatisfy { isLowerAlnum($0) || $0 == UInt8(ascii: "_") || $0 == UInt8(ascii: "-") }
+  }
+
+  private static func isLowerAlnum(_ byte: UInt8) -> Bool {
+    (byte >= UInt8(ascii: "a") && byte <= UInt8(ascii: "z")) || (byte >= UInt8(ascii: "0") && byte <= UInt8(ascii: "9"))
+  }
+
+  /// `[A-Za-z0-9][A-Za-z0-9._-]{0,254}`, no `..`, one of the six image suffixes.
+  private static func isAttachedImageName(_ name: String) -> Bool {
+    let bytes = Array(name.utf8)
+
+    guard (1...255).contains(bytes.count), let first = bytes.first,
+      isLowerAlnum(first) || (first >= UInt8(ascii: "A") && first <= UInt8(ascii: "Z")),
+      bytes.allSatisfy({
+        isLowerAlnum($0) || ($0 >= UInt8(ascii: "A") && $0 <= UInt8(ascii: "Z")) || $0 == UInt8(ascii: ".")
+          || $0 == UInt8(ascii: "_") || $0 == UInt8(ascii: "-")
+      }), !name.contains(".."), let dot = name.lastIndex(of: "."), dot != name.startIndex
+    else {
+      return false
+    }
+
+    return attachedImageSuffixes.contains(name[name.index(after: dot)...].lowercased())
   }
 
   private static func queryValue(_ path: String) -> String {
@@ -239,8 +322,12 @@ public enum AttachmentOpenResult: Sendable, Equatable {
 extension GatewaySession {
   /// Make an attachment a message names ready to open: a file this device has, or one the gateway
   /// serves, fetched through this session's own credentials (`AttachmentOpening`).
+  ///
+  /// `profile` is the chat's own: it says which `images/` folder an attached picture's path may be asked for
+  /// from the gateway's attached-image route (`AttachmentOpening.attachedImagePath`).
   public func prepareAttachment(
     _ reference: String,
+    profile: String? = nil,
     fileExists: (String) -> Bool = { FileManager.default.fileExists(atPath: $0) }
   ) async -> AttachmentOpenResult {
     let localFiles = AttachmentOpening.isLoopback(link.gatewayAddress)
@@ -251,6 +338,15 @@ extension GatewaySession {
     case .unavailable(let name):
       return .unavailable(name: name)
     case .gatewayDisk(let path, let name):
+      // An image attached to this chat, in its profile's own images folder: the gateway's own route for
+      // exactly that, which a locked managed-files root does not close.
+      if let profile, let route = AttachmentOpening.attachedImagePath(reference, profile: profile),
+        let data = await link.fetchFile(route),
+        let url = try? AttachmentOpening.keep(data, name: name, gateway: gatewayID)
+      {
+        return .preview(url)
+      }
+
       // The upload (or the agent's file) is on the gateway's disk: its managed-files route serves it
       // when its policy allows, and its picture route serves an image under its images folders.
       if let data = await link.fetchFile(AttachmentOpening.managedDownloadPath(path)),
