@@ -1,7 +1,7 @@
 /**
  * The foot of the sidebar: who is signed in (and, when the gateway did not say,
  * that it did not: `IdentityNote`; on a gateway without sign-in, that there is
- * none), the ways to the Activity timeline, the Crons and Settings, the way out (there: forgetting the session token),
+ * none), the way to a new bot, the ways to the Activity timeline, the Crons and Settings, the way out (there: forgetting the session token),
  * and which client this is. Signing out is the entry module's business (stop the chats, stop the
  * client, end the gateway's session, clear this person's stored state, go to
  * the sign-in page); this only asks for it, once.
@@ -24,8 +24,9 @@ import { PersonAvatar } from '../chat/PersonAvatar'
 import { IdentityNote } from '../notices/IdentityNote'
 import { preloadActivityPage } from '../activity/load'
 import { preloadCronsPage } from '../cron/load'
+import { preloadNewBotPage } from '../profile/load'
 import { preloadSettingsHost } from '../settings/load'
-import { activityHref, cronsHref, formatRoute, type Route } from './router'
+import { activityHref, cronsHref, formatRoute, newBotHref, type Route } from './router'
 
 export interface SidebarFooterProps {
   /** Who is signed in: the display name, else the email, else the id; empty when the gateway named nobody. */
@@ -68,6 +69,16 @@ export function SidebarFooter({
       {gated ? <IdentityNote /> : null}
       {/* Each page's chunk is asked for as soon as a pointer or the focus reaches the link to it. */}
       <div className="hm-sidebar__links">
+        <a
+          className="hm-sidebar__link"
+          href={newBotHref()}
+          aria-current={current === 'new-bot' ? 'page' : undefined}
+          onPointerEnter={preloadNewBotPage}
+          onFocus={preloadNewBotPage}
+        >
+          <Icon name="plus" size={18} />
+          {strings.profiles.settings.newBot}
+        </a>
         <a
           className="hm-sidebar__link"
           href={activityHref()}

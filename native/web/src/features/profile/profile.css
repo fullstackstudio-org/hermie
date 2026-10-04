@@ -147,3 +147,27 @@
   border-radius: var(--hm-radius);
   background: var(--hm-surface);
 }
+/*
+ * The New bot page (`NewBotPage.tsx`). It borrows the profile page's layout and fields (`profile.css`); what it
+ * adds is the select, which the profile page has no use for, and a link that is drawn as a button.
+ */
+
+.hm-newbot .hm-profile__field select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-bg);
+  color: var(--hm-text);
+  font: inherit;
+}
+
+.hm-newbot .hm-profile__field label {
+  font-weight: 600;
+}
+
+.hm-newbot a.hm-button {
+  text-decoration: none;
+}

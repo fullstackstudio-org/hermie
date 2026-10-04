@@ -587,6 +587,77 @@ export const SHEET_STRINGS_SOURCE = {
       de: 'Es gab keine Verbindung, deshalb wurde nichts geändert.'
     }
   },
+  /**
+   * The New bot page (`features/profile/NewBotPage.tsx`): what a handle that cannot be used is told, in the
+   * words of the gateway's own rules. The labels, the hints and the buttons are the catalogue's
+   * (`strings.profiles.new`).
+   */
+  newBot: {
+    /** The gateway is not reachable: nothing can be made, and the button says so by being off. */
+    offline: {
+      en: 'Not connected to the gateway, so a bot cannot be made right now.',
+      nl: 'Geen verbinding met de gateway, dus er kan nu geen bot worden gemaakt.',
+      de: 'Nicht mit dem Gateway verbunden, deshalb kann im Moment kein Bot angelegt werden.'
+    },
+    /** Why a handle cannot be used: upstream's validator, as sentences. */
+    problem: {
+      empty: {
+        en: 'A bot needs a handle.',
+        nl: 'Een bot heeft een handle nodig.',
+        de: 'Ein Bot braucht ein Handle.'
+      },
+      default: {
+        en: '“default” is the built-in bot and cannot be made again.',
+        nl: '“default” is de ingebouwde bot en kan niet opnieuw worden gemaakt.',
+        de: '„default“ ist der eingebaute Bot und kann nicht noch einmal angelegt werden.'
+      },
+      invalid: {
+        en: ({ suggestion }: { suggestion: string }) =>
+          `Use lowercase letters, numbers, “-” or “_”, starting with a letter or number, up to 64 characters (for example: ${suggestion}).`,
+        nl: ({ suggestion }: { suggestion: string }) =>
+          `Gebruik kleine letters, cijfers, “-” of “_”, beginnend met een letter of cijfer, tot 64 tekens (bijvoorbeeld: ${suggestion}).`,
+        de: ({ suggestion }: { suggestion: string }) =>
+          `Nutze Kleinbuchstaben, Ziffern, „-“ oder „_“, beginnend mit einem Buchstaben oder einer Ziffer, bis zu 64 Zeichen (zum Beispiel: ${suggestion}).`
+      },
+      reserved: {
+        en: ({ name }: { name: string }) =>
+          `“${name}” is reserved: it collides with Hermes itself or with a common system command.`,
+        nl: ({ name }: { name: string }) =>
+          `“${name}” is gereserveerd: het botst met Hermes zelf of met een gangbaar systeemcommando.`,
+        de: ({ name }: { name: string }) =>
+          `„${name}“ ist reserviert: Es kollidiert mit Hermes selbst oder mit einem gängigen Systembefehl.`
+      },
+      taken: {
+        en: ({ name }: { name: string }) => `“${name}” already exists.`,
+        nl: ({ name }: { name: string }) => `“${name}” bestaat al.`,
+        de: ({ name }: { name: string }) => `„${name}“ gibt es schon.`
+      }
+    },
+    /** A legal handle that is also a `hermes` subcommand: the shortcut is not made, the bot is fine. */
+    subcommand: {
+      en: ({ name }: { name: string }) =>
+        `“${name}” is also a hermes subcommand, so the shortcut “hermes ${name}” will not be created. The bot itself is fine.`,
+      nl: ({ name }: { name: string }) =>
+        `“${name}” is ook een hermes-subcommando, dus de snelkoppeling “hermes ${name}” wordt niet gemaakt. De bot zelf werkt gewoon.`,
+      de: ({ name }: { name: string }) =>
+        `„${name}“ ist auch ein hermes-Unterbefehl, deshalb wird die Verknüpfung „hermes ${name}“ nicht angelegt. Der Bot selbst funktioniert trotzdem.`
+    },
+    /** The gateway made the bot and the roster did not list it. */
+    notListed: {
+      en: ({ name }: { name: string }) =>
+        `The gateway made ${name} but did not list it. Try the chat list again in a moment.`,
+      nl: ({ name }: { name: string }) =>
+        `De gateway heeft ${name} gemaakt maar toont hem niet in de lijst. Probeer de chatlijst zo nog eens.`,
+      de: ({ name }: { name: string }) =>
+        `Das Gateway hat ${name} angelegt, listet ihn aber nicht auf. Versuch es gleich noch einmal mit der Chatliste.`
+    },
+    /** After a create that left the bot without a model: said before the chat is offered. */
+    created: {
+      en: ({ name }: { name: string }) => `${name} is made.`,
+      nl: ({ name }: { name: string }) => `${name} is gemaakt.`,
+      de: ({ name }: { name: string }) => `${name} ist angelegt.`
+    }
+  },
   requests: {
     /** A clarify question left unanswered on purpose: the bot is told "no answer". */
     skip: {

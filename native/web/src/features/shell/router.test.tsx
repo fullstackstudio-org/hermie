@@ -38,7 +38,9 @@ describe('parseRoute', () => {
     ['#/crons/job-1', { name: 'crons', job: 'job-1' }],
     ['#/crons/job-1/edit', { name: 'crons', job: 'job-1', view: 'edit' }],
     ['#/crons/job-1/runs/cron_job-1_17', { name: 'crons', job: 'job-1', view: 'run', run: 'cron_job-1_17' }],
-    ['#/activity', { name: 'activity' }]
+    ['#/activity', { name: 'activity' }],
+    ['#/new-bot', { name: 'new-bot' }],
+    ['#/new-bot/', { name: 'new-bot' }]
   ])('reads %j', (hash, route) => {
     expect(parseRoute(hash)).toEqual(route)
   })
@@ -74,6 +76,7 @@ describe('parseRoute', () => {
     '#/crons//edit',
     '#/crons/new/edit',
     '#/activity/x',
+    '#/new-bot/x',
     '#chat/a',
     '/chat/a',
     '#//',
@@ -103,7 +106,8 @@ describe('formatRoute', () => {
     { name: 'crons', job: 'a/b?c#d' },
     { name: 'crons', job: 'a/b', view: 'edit' },
     { name: 'crons', job: 'a/b', view: 'run', run: 'cron_x y' },
-    { name: 'activity' }
+    { name: 'activity' },
+    { name: 'new-bot' }
   ]
 
   it('is the inverse of parseRoute for every route', () => {

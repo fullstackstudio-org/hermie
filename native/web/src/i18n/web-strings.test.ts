@@ -180,7 +180,9 @@ const SAMPLE = {
   // The Boards page: a column's heading, a card's line, a comment's author.
   assignee: MARKER,
   priority: MARKER,
-  author: MARKER
+  author: MARKER,
+  // The New bot page: the handle that would work instead of the one that was typed.
+  suggestion: MARKER
 }
 
 describe('the web-only strings', () => {

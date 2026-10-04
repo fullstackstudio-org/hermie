@@ -15,6 +15,7 @@
  * #/crons/<job>/edit          that cron's editor
  * #/crons/<job>/runs/<run>    one run of it, read-only
  * #/activity                  the timeline of what the bots said to each other
+ * #/new-bot                   the New bot page: a handle, and a fresh profile or a clone of another bot
  * ```
  *
  * Anything else is unknown, and an unknown route is sent to `#/` by rewriting
@@ -40,6 +41,7 @@ export type Route =
   /** The crons list, a new cron (`view: 'new'`), one cron, its editor, or one of its runs. A job id and a run id are gateway ids. */
   | { name: 'crons'; job?: string; view?: 'new' | 'edit' | 'run'; run?: string }
   | { name: 'activity' }
+  | { name: 'new-bot' }
 
 export const HOME: Route = { name: 'home' }
 
@@ -149,6 +151,9 @@ export function parseRoute(hash: string): Route | null {
     case 'activity':
       return parts.length === 2 ? { name: 'activity' } : null
 
+    case 'new-bot':
+      return parts.length === 2 ? { name: 'new-bot' } : null
+
     default:
       return null
   }
@@ -188,6 +193,8 @@ export function formatRoute(route: Route): string {
     }
     case 'activity':
       return '#/activity'
+    case 'new-bot':
+      return '#/new-bot'
   }
 }
 
@@ -206,6 +213,9 @@ export const cronRunHref = (job: string, run: string): string => formatRoute({ n
 
 /** The fragment of the activity timeline. */
 export const activityHref = (): string => formatRoute({ name: 'activity' })
+
+/** The fragment of the New bot page. */
+export const newBotHref = (): string => formatRoute({ name: 'new-bot' })
 
 /** The fragment of the list of a bot's conversations. */
 export const conversationsHref = (bot: string): string => formatRoute({ name: 'conversations', bot })

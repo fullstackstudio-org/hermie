@@ -584,6 +584,7 @@ only code outside `boot/` that touches `location.hash`):
 | `#/crons/<job>/edit`         | Crons          | that cron's editor                                |
 | `#/crons/<job>/runs/<run>`   | Crons          | one run, read-only (`RunView`)                    |
 | `#/activity`                 | Activity       | what the bots said to each other (`ActivityPage`) |
+| `#/new-bot`                  | New bot        | a handle, a model, a clone (`NewBotPage`)         |
 | anything else                | sent to `#/`   |                                                   |
 
 A bot name or session id is one percent-encoded segment; `parseRoute` and `formatRoute` are inverses. An unknown
@@ -1286,6 +1287,32 @@ language switch), `MessageHits.test.tsx` (names, the debounce, dropped hits, a s
 `sessions.axe.test.tsx` (both schemes, three languages, every form of the page open). `e2e/sessions.spec.ts` in the
 browser: a branch made with `session.branch` opened from the page in the viewer, renamed and deleted; a new
 conversation; a search hit opening the chat at its row, also 1,200 rows deep; axe in light and dark.
+
+## New bot
+
+`features/profile/NewBotPage.tsx` (`#/new-bot`, a chunk of its own, reached from "New bot…" in the sidebar's foot) and
+`core/bot-profile/new-bot.ts`: the Expo app's New-bot sheet as a page of the main pane. A handle, an optional
+description, an optional model to pin (a native `<select>` grouped by provider, from `model.options` with
+`explicit_only`; absent when the gateway cannot say) and an optional bot to clone the settings of, then
+`profiles.create`.
+
+- **The handle is checked as it is typed**, against a transcription of the gateway's own validator
+  (`checkProfileName`: lower case, `[a-z0-9][a-z0-9_-]{0,63}`, `default` and the reserved names refused, the roster's
+  names taken). The verdict is data (`NameProblem`), so the page says it in the reader's language
+  (`sheetStrings.newBot`); a hermes subcommand name is a warning and not a refusal (the bot works, `hermes <name>`
+  is not made). The gateway runs the checks again, and its refusal is shown under the form as plain text with what
+  was typed kept.
+- **There is no display-name field**: no gateway call writes a profile's display name. The reader's own name for a bot
+  is on its profile page.
+- **After a create** the roster is read again and the bot's chat opens (`#/chat/<handle>`); the chat screen resolves
+  the bot's one Bot Chat the ordinary way (ADR-0007), nothing here makes a conversation. A bot the gateway pinned no
+  model for and inherited none stays on the page, with a sentence and the way into its chat.
+- `mirror_credentials` is never sent (upstream defaults it to true, and a bot without credentials has no provider);
+  `clone_from` is omitted, not null, when nothing is cloned; `model` and `provider` go together or not at all.
+
+`new-bot.test.ts` (the handle's rules, the params, the order of a create), `NewBotPage.test.tsx` (the form, the
+verdicts in three languages, the create and its refusals, one create at a time, offline, axe) and
+`e2e/new-bot.spec.ts` (the flow against the fake gateway: the made bot's chat takes a message; axe in light and dark).
 
 ## Passkeys
 

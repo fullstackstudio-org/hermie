@@ -21,6 +21,7 @@
  * | `#/settings/<anything else>`  | Settings             | the home; the address is rewritten to `#/settings` |
  * | `#/crons`, `#/crons/new`, `#/crons/<job>`, `#/crons/<job>/edit`, `#/crons/<job>/runs/<run>` | Crons | the crons list, the editor, one cron or one of its runs (`CronsPage`, a chunk) |
  * | `#/activity`                  | Activity             | the timeline of what the bots said to each other (`ActivityPage`, a chunk) |
+ * | `#/new-bot`                   | New bot              | the New bot page (`NewBotPage`, a chunk) |
  * | anything else                 | sent to `#/`         |                                  |
  *
  * The request layer (a bot's approval or question, one at a time, over everything) is a
@@ -60,6 +61,7 @@ import { loadChatScreen, preloadChatScreen } from '../chat/load'
 import { ChatRuntimeContext, type ChatSessionRuntime } from '../chat/chat-runtime'
 import { type CronRuntime, CronRuntimeContext } from '../cron/cron-runtime'
 import { loadCronsPage } from '../cron/load'
+import { loadNewBotPage } from '../profile/load'
 import { loadSettingsHost } from '../settings/load'
 import { type McpActions, McpRuntimeContext } from '../settings/mcp-runtime'
 import { type SettingsRuntime, SettingsRuntimeContext } from '../settings/settings-runtime'
@@ -89,6 +91,9 @@ const ChatScreen = lazy(() => loadChatScreen().then(module => ({ default: module
 
 /** So is a bot's profile page, fetched when `#/chat/<bot>/profile` is opened or its menu line is pointed at. */
 const ProfilePage = lazy(() => import('../profile/ProfilePage').then(module => ({ default: module.ProfilePage })))
+
+/** So is the New bot page, fetched when `#/new-bot` is opened or its link in the sidebar is pointed at. */
+const NewBotPage = lazy(() => loadNewBotPage().then(module => ({ default: module.NewBotPage })))
 
 /** So is a bot's Conversations page, fetched when `#/chat/<bot>/conversations` is opened. */
 const ConversationsPage = lazy(() =>
@@ -191,7 +196,9 @@ export function App({
               ? strings.app.tabs.routines
               : route.name === 'activity'
                 ? strings.app.activity.title
-                : appName
+                : route.name === 'new-bot'
+                  ? strings.profiles.new.title
+                  : appName
 
   // Once the frame has been drawn, fetch the chat screen's chunk if no route has asked for it yet.
   useEffect(() => {
@@ -275,6 +282,10 @@ export function App({
                       ) : route.name === 'activity' ? (
                         <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
                           <ActivityPage />
+                        </Suspense>
+                      ) : route.name === 'new-bot' ? (
+                        <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
+                          <NewBotPage router={router} />
                         </Suspense>
                       ) : (
                         <p className="hm-main__body">{strings.app.chat.pickBot}</p>
