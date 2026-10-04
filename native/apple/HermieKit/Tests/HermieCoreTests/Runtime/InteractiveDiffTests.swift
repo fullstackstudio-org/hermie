@@ -260,9 +260,11 @@ struct InteractiveDiffTests {
     #expect(h.center.prompts.isEmpty && h.link.declines.isEmpty && h.link.answers.isEmpty)
   }
 
-  @Test("the device announces the four interactive methods, the diff among them")
+  @Test("the device announces the four interactive methods, the diff among them, and the device requests it offers")
   func announcesTheDiff() {
-    #expect(InteractiveCapabilities.deviceMethods() == ["input.form", "input.file", "review.draft", "review.diff"])
+    #expect(
+      InteractiveCapabilities.deviceMethods(availability: .none)
+        == ["input.form", "input.file", "review.draft", "review.diff"])
     #expect(InteractiveCapabilities.defaultMethods() == InteractiveCapabilities.deviceMethods())
   }
 }

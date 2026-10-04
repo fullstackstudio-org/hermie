@@ -220,7 +220,8 @@ struct InteractiveSheetTests {
     #expect(Card.kind(of: item("input.form", state: .open)) == "Form")
     #expect(Card.kind(of: item("input.file", state: .open)) == "File")
     #expect(Card.kind(of: item("review.draft", state: .open)) == "Draft review")
-    #expect(Card.kind(of: item("device.location", state: .open)) == nil)
+    #expect(Card.kind(of: item("device.location", state: .open)) == "Location")
+    #expect(Card.kind(of: item("input.other", state: .open)) == nil)
 
     #expect(Card.state(of: item(state: .open)) == "Waiting for your answer")
     #expect(Card.state(of: item(state: .answered, summary: RequestAnswerSummary(status: "answered"))) == "Answered")
@@ -388,11 +389,11 @@ struct InteractiveSheetTests {
       I.Card.answeredElsewhere, I.Card.openAction
     ]
 
-    for text in all {
+    for text in all + DeviceSheetTests.accessors {
       #expect(!text.isEmpty && !text.hasPrefix("native.interactive."), "\(text)")
     }
 
     // One accessor for each key of the table: a key nobody asks for is a leftover.
-    #expect(all.count == ((try? table("en"))?.count ?? -1))
+    #expect(all.count + DeviceSheetTests.accessors.count == ((try? table("en"))?.count ?? -1))
   }
 }

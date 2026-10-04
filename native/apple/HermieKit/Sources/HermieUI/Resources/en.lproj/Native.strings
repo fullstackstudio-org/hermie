@@ -610,6 +610,48 @@
 	<string>Hermie could not read that request. It may have been made by a newer version.</string>
 	<key>native.intents.withdrawn</key>
 	<string>The message was taken back out of the queue in Hermie before it went out, so nothing was sent.</string>
+	<key>native.interactive.calendar.addEvent</key>
+	<string>Add to calendar</string>
+	<key>native.interactive.calendar.addReminder</key>
+	<string>Add reminder</string>
+	<key>native.interactive.calendar.alert</key>
+	<string>Alert</string>
+	<key>native.interactive.calendar.alertAtStart</key>
+	<string>At the time</string>
+	<key>native.interactive.calendar.alertBefore</key>
+	<string>%@ before</string>
+	<key>native.interactive.calendar.allDay</key>
+	<string>All day</string>
+	<key>native.interactive.calendar.failed</key>
+	<string>It could not be saved. Try again.</string>
+	<key>native.interactive.calendar.kindEvent</key>
+	<string>Event</string>
+	<key>native.interactive.calendar.kindReminder</key>
+	<string>Reminder</string>
+	<key>native.interactive.calendar.link</key>
+	<string>Link (shown, never opened)</string>
+	<key>native.interactive.calendar.noTimeEvent</key>
+	<string>No time given: it will start at the next full hour.</string>
+	<key>native.interactive.calendar.noTimeReminder</key>
+	<string>No time given.</string>
+	<key>native.interactive.calendar.notSaved</key>
+	<string>It was not saved. Add it again, or choose not to share.</string>
+	<key>native.interactive.calendar.noteDirectEvent</key>
+	<string>Add saves this to your default calendar. The system asks first whether Hermie may add events (write only: Hermie cannot read your calendar).</string>
+	<key>native.interactive.calendar.noteEditor</key>
+	<string>Nothing is added until you save it in the system’s calendar sheet that opens next.</string>
+	<key>native.interactive.calendar.noteReminder</key>
+	<string>Add saves this to your default Reminders list. The system asks first whether Hermie may use your Reminders.</string>
+	<key>native.interactive.calendar.notes</key>
+	<string>Notes</string>
+	<key>native.interactive.calendar.saving</key>
+	<string>Saving…</string>
+	<key>native.interactive.calendar.when</key>
+	<string>When</string>
+	<key>native.interactive.calendar.where</key>
+	<string>Where</string>
+	<key>native.interactive.card.addedToCalendar</key>
+	<string>Added to calendar</string>
 	<key>native.interactive.card.answered</key>
 	<string>Answered</string>
 	<key>native.interactive.card.answeredElsewhere</key>
@@ -618,6 +660,10 @@
 	<string>Approved</string>
 	<key>native.interactive.card.approvedEdited</key>
 	<string>Approved with changes</string>
+	<key>native.interactive.card.calendar</key>
+	<string>Calendar</string>
+	<key>native.interactive.card.contact</key>
+	<string>Contact</string>
 	<key>native.interactive.card.diff</key>
 	<string>Change review</string>
 	<key>native.interactive.card.diffApproved</key>
@@ -632,18 +678,60 @@
 	<string>Files sent: %lld</string>
 	<key>native.interactive.card.form</key>
 	<string>Form</string>
+	<key>native.interactive.card.location</key>
+	<string>Location</string>
 	<key>native.interactive.card.open</key>
 	<string>Waiting for your answer</string>
 	<key>native.interactive.card.openAction</key>
 	<string>Open</string>
 	<key>native.interactive.card.rejected</key>
 	<string>Rejected</string>
+	<key>native.interactive.card.sharedApproximate</key>
+	<string>Shared approximate location</string>
+	<key>native.interactive.card.sharedContact</key>
+	<string>Shared contact: %@</string>
+	<key>native.interactive.card.sharedContactBare</key>
+	<string>Shared a contact</string>
+	<key>native.interactive.card.sharedPrecise</key>
+	<string>Shared precise location</string>
 	<key>native.interactive.card.skipped</key>
 	<string>Skipped</string>
 	<key>native.interactive.card.timedOut</key>
 	<string>Timed out</string>
 	<key>native.interactive.close</key>
 	<string>Close</string>
+	<key>native.interactive.contact.choose</key>
+	<string>Choose a contact</string>
+	<key>native.interactive.contact.chooseAnother</key>
+	<string>Choose another contact</string>
+	<key>native.interactive.contact.chosen</key>
+	<string>Chosen: %@</string>
+	<key>native.interactive.contact.field.birthday</key>
+	<string>Birthday</string>
+	<key>native.interactive.contact.field.emails</key>
+	<string>Email addresses</string>
+	<key>native.interactive.contact.field.name</key>
+	<string>Name</string>
+	<key>native.interactive.contact.field.organization</key>
+	<string>Organization</string>
+	<key>native.interactive.contact.field.phones</key>
+	<string>Phone numbers</string>
+	<key>native.interactive.contact.field.postal</key>
+	<string>Addresses</string>
+	<key>native.interactive.contact.fieldsHeading</key>
+	<string>What to share</string>
+	<key>native.interactive.contact.notOnContact</key>
+	<string>Not on this contact</string>
+	<key>native.interactive.contact.nothingTicked</key>
+	<string>Tick at least one field to share.</string>
+	<key>native.interactive.contact.pickerNote</key>
+	<string>You pick one contact in the system’s own picker. Hermie sees no other contact and does not ask for access to your address book.</string>
+	<key>native.interactive.contact.previewHeading</key>
+	<string>This will be sent</string>
+	<key>native.interactive.contact.share</key>
+	<string>Share</string>
+	<key>native.interactive.contact.unnamed</key>
+	<string>Contact without a name</string>
 	<key>native.interactive.decline</key>
 	<string>Don’t share</string>
 	<key>native.interactive.declineHint</key>
@@ -868,12 +956,44 @@
 	<string>%@, whole amounts</string>
 	<key>native.interactive.later</key>
 	<string>Later</string>
+	<key>native.interactive.location.approximate</key>
+	<string>Your approximate location</string>
+	<key>native.interactive.location.approximateDetail</key>
+	<string>Roughly the area you are in, about a kilometre or more.</string>
+	<key>native.interactive.location.heading</key>
+	<string>What will be shared</string>
+	<key>native.interactive.location.locating</key>
+	<string>Finding your location…</string>
+	<key>native.interactive.location.lowerNote</key>
+	<string>You can share less than was asked, never more.</string>
+	<key>native.interactive.location.oneFix</key>
+	<string>One reading, now. Hermie does not keep tracking you.</string>
+	<key>native.interactive.location.optionApproximate</key>
+	<string>Approximate</string>
+	<key>native.interactive.location.optionPrecise</key>
+	<string>Precise</string>
+	<key>native.interactive.location.permissionNote</key>
+	<string>The system asks for permission only after you choose to share.</string>
+	<key>native.interactive.location.precise</key>
+	<string>Your precise location</string>
+	<key>native.interactive.location.preciseDetail</key>
+	<string>Your position as exactly as this device can tell.</string>
+	<key>native.interactive.location.precisionLabel</key>
+	<string>Precision</string>
+	<key>native.interactive.location.share</key>
+	<string>Share location</string>
+	<key>native.interactive.location.shareHint</key>
+	<string>The system may ask for permission next.</string>
 	<key>native.interactive.notice.answeredElsewhere</key>
 	<string>This was answered on another device. Nothing was sent from here.</string>
 	<key>native.interactive.notice.cannotShow</key>
 	<string>Hermie could not show a request from %@ and told it so.</string>
+	<key>native.interactive.notice.locationUnavailable</key>
+	<string>Hermie could not find your location and told %@ so.</string>
 	<key>native.interactive.notice.notAllowed</key>
 	<string>This device is not allowed to answer this request. Another device has to.</string>
+	<key>native.interactive.notice.permissionDenied</key>
+	<string>Hermie is not allowed to do that on this device, so it told %@ it could not. You can change this in your device’s settings.</string>
 	<key>native.interactive.onBehalfOf</key>
 	<string>On behalf of %@</string>
 	<key>native.interactive.refusal.badShape</key>
@@ -904,6 +1024,12 @@
 	<string>Send</string>
 	<key>native.interactive.skip</key>
 	<string>Skip</string>
+	<key>native.interactive.title.calendarEvent</key>
+	<string>%@ suggests an event for your calendar</string>
+	<key>native.interactive.title.calendarReminder</key>
+	<string>%@ suggests a reminder</string>
+	<key>native.interactive.title.contact</key>
+	<string>%@ asks you to share a contact</string>
 	<key>native.interactive.title.diff</key>
 	<string>%@ asks you to review changes to a file</string>
 	<key>native.interactive.title.draft</key>
@@ -912,6 +1038,8 @@
 	<string>%@ asks you for a file</string>
 	<key>native.interactive.title.form</key>
 	<string>%@ asks you to fill in a form</string>
+	<key>native.interactive.title.location</key>
+	<string>%@ asks for your location</string>
 	<key>native.interactive.tryAgain</key>
 	<string>Try again</string>
 	<key>native.kanban.boardGone</key>

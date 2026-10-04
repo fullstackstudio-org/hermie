@@ -1,4 +1,5 @@
 import HermieCore
+import HermieProtocol
 import HermieTranscript
 import SwiftUI
 
@@ -69,6 +70,9 @@ struct InteractiveRequestCardView: View {
     case "input.file": NativeStrings.Interactive.Card.file
     case "review.draft": NativeStrings.Interactive.Card.draft
     case "review.diff": NativeStrings.Interactive.Card.diff
+    case "device.location": NativeStrings.Interactive.Card.location
+    case "device.contact": NativeStrings.Interactive.Card.contact
+    case "device.calendar": NativeStrings.Interactive.Card.calendar
     default: nil
     }
   }
@@ -82,7 +86,32 @@ struct InteractiveRequestCardView: View {
     case "input.file": return "paperclip"
     case "review.draft": return "text.badge.checkmark"
     case "review.diff": return "plusminus.circle"
+    case "device.location": return "location"
+    case "device.contact": return "person.crop.circle"
+    case "device.calendar": return "calendar"
     default: return "list.bullet.rectangle"
+    }
+  }
+
+  /// How a device request was answered, by the summary's keys alone (a precision, the names of the
+  /// fields shared); nil for a request that is not one, or one that was skipped.
+  static func deviceAnswer(of item: RequestItem) -> String? {
+    typealias Words = NativeStrings.Interactive.Card
+
+    guard item.answerSummary?.status == "answered" else {
+      return nil
+    }
+
+    switch item.method {
+    case "device.location":
+      return item.answerSummary?.precision == "precise" ? Words.sharedPrecise : Words.sharedApproximate
+    case "device.contact":
+      let names = (item.answerSummary?.fields ?? []).map { NativeStrings.Interactive.Contact.field(ContactField.named($0)) }
+      return names.isEmpty ? Words.sharedContactBare : Words.sharedContact(names.formatted(.list(type: .and, width: .narrow)))
+    case "device.calendar":
+      return Words.addedToCalendar
+    default:
+      return nil
     }
   }
 
@@ -95,6 +124,10 @@ struct InteractiveRequestCardView: View {
       return Words.open
     case .answered:
       let summary = item.answerSummary
+
+      if let words = deviceAnswer(of: item) {
+        return words
+      }
 
       if summary?.decision == "approved" {
         // A diff review: how many of its hunks were approved.

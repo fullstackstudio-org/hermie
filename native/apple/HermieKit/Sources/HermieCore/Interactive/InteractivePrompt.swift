@@ -13,6 +13,12 @@ public enum InteractiveBody: Sendable, Equatable {
   /// `review.diff`: the changes to one file, approved or rejected hunk by hunk. Read strictly
   /// (`ReviewDiff.read`): a frame that is not wholly in the contract is not shown.
   case diff(ReviewDiff)
+  /// `device.location`: where the device is, once, at the precision the person agrees to.
+  case location(DeviceLocationRequest)
+  /// `device.contact`: one picked contact, reduced to the fields asked for and ticked.
+  case contact(DeviceContactRequest)
+  /// `device.calendar`: one event or reminder, saved by the person.
+  case calendar(DeviceCalendarRequest)
 
   /// The wire method.
   public var method: String {
@@ -21,6 +27,9 @@ public enum InteractiveBody: Sendable, Equatable {
     case .file: ServerRequestBody.Method.inputFile
     case .draft: ServerRequestBody.Method.reviewDraft
     case .diff: ServerRequestBody.Method.reviewDiff
+    case .location: ServerRequestBody.Method.deviceLocation
+    case .contact: ServerRequestBody.Method.deviceContact
+    case .calendar: ServerRequestBody.Method.deviceCalendar
     }
   }
 }
@@ -38,7 +47,14 @@ public enum InteractiveAnswer: Sendable, Equatable {
   case reject(comment: String?)
   /// `review.diff`: a decision for EVERY hunk of the request, by hunk id.
   case diff([String: HunkDecision])
-  /// `input.*` with `optional`: Skip.
+  /// `device.location`: the position the person agreed to share.
+  case location(SharedLocation)
+  /// `device.contact`: the ticked fields of the picked contact.
+  case contact(SharedContact)
+  /// `device.calendar`: the person saved the entry (in the system's edit sheet, or after Add where
+  /// there is none).
+  case calendarSaved
+  /// `input.*` and `device.*` with `optional`: Skip.
   case skip
 }
 
@@ -210,6 +226,36 @@ public struct InteractivePrompt: Sendable, Equatable, Identifiable {
       case .failure:
         return .cannotShow(reason: CannotShowReason.notSupportedOnDevice)
       }
+    case .deviceLocation(let params):
+      guard params.v == 1 else {
+        return .cannotShow(reason: CannotShowReason.unsupportedVersion)
+      }
+
+      guard let request = DeviceLocationRequest.read(params) else {
+        return .cannotShow(reason: CannotShowReason.notSupportedOnDevice)
+      }
+
+      return .content(content(.location(request), params))
+    case .deviceContact(let params):
+      guard params.v == 1 else {
+        return .cannotShow(reason: CannotShowReason.unsupportedVersion)
+      }
+
+      guard let request = DeviceContactRequest.read(params) else {
+        return .cannotShow(reason: CannotShowReason.notSupportedOnDevice)
+      }
+
+      return .content(content(.contact(request), params))
+    case .deviceCalendar(let params):
+      guard params.v == 1 else {
+        return .cannotShow(reason: CannotShowReason.unsupportedVersion)
+      }
+
+      guard let request = DeviceCalendarRequest.read(params) else {
+        return .cannotShow(reason: CannotShowReason.notSupportedOnDevice)
+      }
+
+      return .content(content(.calendar(request), params))
     default:
       return .other
     }
@@ -308,6 +354,44 @@ public struct InteractivePrompt: Sendable, Equatable, Identifiable {
           "approvedHunks": .number(Double(approved)),
           "rejectedHunks": .number(Double(decisions.count - approved))
         ]
+      )
+    case (.location, .skip), (.contact, .skip), (.calendar, .skip):
+      guard offersSkip else {
+        return nil
+      }
+
+      return InteractiveReply(
+        result: ["status": .string("skipped")],
+        summary: ["status": .string("skipped")]
+      )
+    case (.location(let request), .location(let shared)):
+      // Never more precise than asked, and in range: the gateway refuses the rest.
+      guard shared.isValid(for: request) else {
+        return nil
+      }
+
+      return InteractiveReply(
+        result: shared.result.json,
+        summary: ["status": .string("answered"), "precision": .string(shared.precision.rawValue)]
+      )
+    case (.contact(let request), .contact(let shared)):
+      // Only keys the request listed, and something in it.
+      guard shared.isValid(for: request) else {
+        return nil
+      }
+
+      return InteractiveReply(
+        result: DeviceContactResult.answered(contact: shared.card).json,
+        summary: [
+          "status": .string("answered"),
+          "fields": .array(shared.fields.map { .string($0.rawValue) })
+        ]
+      )
+    case (.calendar, .calendarSaved):
+      // The gateway's status is `done`; the transcript's summary says `answered` (its closed set).
+      return InteractiveReply(
+        result: DeviceCalendarResult.done.json,
+        summary: ["status": .string("answered")]
       )
     default:
       return nil

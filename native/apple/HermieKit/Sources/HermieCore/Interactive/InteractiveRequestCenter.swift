@@ -54,10 +54,10 @@ public struct InteractiveNoticeEntry: Sendable, Equatable, Identifiable {
 public enum InteractiveCapabilities {
   /// The methods this device can show, computed when a session is made (the device does not change
   /// under a running session). `input.form`, `input.file`, `review.draft` and `review.diff` always
-  /// for now; the device methods (`device.*`) join behind their availability checks (a scanner, a
-  /// camera).
-  public static func deviceMethods() -> [String] {
-    ServerRequestBody.Method.interactive
+  /// for now; the device methods (`device.*`) join behind their availability checks
+  /// (`DeviceAvailability`: Location Services, the contact picker, EventKit), in the contract's order.
+  public static func deviceMethods(availability: DeviceAvailability = .system) -> [String] {
+    ServerRequestBody.Method.interactive.filter(availability.offers)
   }
 
   /// Whether a session announces `deviceMethods()` unless told otherwise. On since the sheets that
@@ -488,9 +488,11 @@ public final class InteractiveRequestCenter {
   }
 
   /// The sheet cannot show the request (a refused permission, a failed upload, no camera): answer
-  /// the error `4041 cannot_show` with `reason`. Answers whether it went out.
+  /// the error `4041 cannot_show` with `reason`. Answers whether it went out. With `notify` the chat
+  /// also keeps a notice that this app could not show the request and told the bot so (a refused
+  /// permission is something the person should see, not only the bot).
   @discardableResult
-  public func cannotShow(_ id: String, reason: String) async -> Bool {
+  public func cannotShow(_ id: String, reason: String, notify: Bool = false) async -> Bool {
     guard let prompt = prompts.first(where: { $0.id == id }), phases[id] != .sending else {
       return false
     }
@@ -500,7 +502,7 @@ public final class InteractiveRequestCenter {
       return false
     }
 
-    return await sendCannotShow(id, reason: reason, chatKey: prompt.chatKey)
+    return await sendCannotShow(id, reason: reason, chatKey: prompt.chatKey, notifying: notify ? prompt.method : nil)
   }
 
   /// Send a result through `request.answer` and act on the gateway's verdict. Answers whether the
@@ -600,7 +602,7 @@ public final class InteractiveRequestCenter {
 
   /// Answer `4041 cannot_show {reason}` on the request's own reply frame. Answers whether it went
   /// out.
-  private func sendCannotShow(_ id: String, reason: String, chatKey: String) async -> Bool {
+  private func sendCannotShow(_ id: String, reason: String, chatKey: String, notifying method: String? = nil) async -> Bool {
     guard let handle = handles[id] else {
       phases[id] = .failed
       return false
@@ -621,6 +623,11 @@ public final class InteractiveRequestCenter {
       serial += 1
       lastAnswered = AnsweredEntry(requestID: id, serial: serial)
       transcript { await $0.interactiveEnded(key, requestID: id, reason: "cannot_show") }
+
+      if let method {
+        show(.cannotShow(method: InteractivePrompt.line(method, limit: SecurePrompt.nameLimit), reason: reason), id, on: key)
+      }
+
       return true
     }
 

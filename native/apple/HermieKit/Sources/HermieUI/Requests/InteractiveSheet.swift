@@ -130,6 +130,15 @@ struct InteractiveSheetView: View {
       case .diff(let diff):
         DiffSheetView(model: model, prompt: prompt, diff: diff)
           .id(prompt.id)
+      case .location(let request):
+        LocationSheetView(model: model, prompt: prompt, request: request)
+          .id(prompt.id)
+      case .contact(let request):
+        ContactSheetView(model: model, prompt: prompt, request: request)
+          .id(prompt.id)
+      case .calendar(let request):
+        CalendarSheetView(model: model, prompt: prompt, request: request)
+          .id(prompt.id)
       }
     }
   }
@@ -520,7 +529,9 @@ public struct InteractiveNoticeView: View {
   /// On the chat, where the bot has to be named (`bot` already cleaned).
   static func text(_ notice: InteractiveNotice, bot: String) -> String {
     switch notice {
-    case .cannotShow: NativeStrings.Interactive.cannotShow(bot)
+    case .cannotShow(_, let reason):
+      // A refused permission or a missing position has words of its own; anything else is the general line.
+      NativeStrings.Interactive.cannotShowNotice(reason: reason, bot: bot) ?? NativeStrings.Interactive.cannotShow(bot)
     default: sheetText(notice)
     }
   }

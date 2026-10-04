@@ -239,14 +239,15 @@ public final class InteractiveModel {
   }
 
   /// The sheet cannot show the request (`reason`: `permission_denied`, `upload_failed`,
-  /// `no_camera`, ...): answer the error `4041 cannot_show`. Answers whether it went out.
+  /// `no_camera`, ...): answer the error `4041 cannot_show`. Answers whether it went out. With
+  /// `notify` the chat keeps a notice about it once the sheet is gone (a refused permission).
   @discardableResult
-  public func cannotShow(reason: String) async -> Bool {
+  public func cannotShow(reason: String, notify: Bool = false) async -> Bool {
     guard let id = presentedID else {
       return false
     }
 
-    return finish(id, await center.cannotShow(id, reason: reason))
+    return finish(id, await center.cannotShow(id, reason: reason, notify: notify))
   }
 
   /// Whether `answer` can answer the shown request at all (the sheet's Send button).

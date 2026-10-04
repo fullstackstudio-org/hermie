@@ -610,6 +610,48 @@
 	<string>Hermie kon dat verzoek niet lezen. Misschien is het gemaakt door een nieuwere versie.</string>
 	<key>native.intents.withdrawn</key>
 	<string>Het bericht is in Hermie uit de wachtrij gehaald voordat het eruit ging, dus er is niets verstuurd.</string>
+	<key>native.interactive.calendar.addEvent</key>
+	<string>Toevoegen aan agenda</string>
+	<key>native.interactive.calendar.addReminder</key>
+	<string>Herinnering toevoegen</string>
+	<key>native.interactive.calendar.alert</key>
+	<string>Melding</string>
+	<key>native.interactive.calendar.alertAtStart</key>
+	<string>Op het tijdstip zelf</string>
+	<key>native.interactive.calendar.alertBefore</key>
+	<string>%@ ervoor</string>
+	<key>native.interactive.calendar.allDay</key>
+	<string>De hele dag</string>
+	<key>native.interactive.calendar.failed</key>
+	<string>Het kon niet worden bewaard. Probeer het opnieuw.</string>
+	<key>native.interactive.calendar.kindEvent</key>
+	<string>Afspraak</string>
+	<key>native.interactive.calendar.kindReminder</key>
+	<string>Herinnering</string>
+	<key>native.interactive.calendar.link</key>
+	<string>Link (alleen getoond, nooit geopend)</string>
+	<key>native.interactive.calendar.noTimeEvent</key>
+	<string>Geen tijd opgegeven: het begint op het eerstvolgende hele uur.</string>
+	<key>native.interactive.calendar.noTimeReminder</key>
+	<string>Geen tijd opgegeven.</string>
+	<key>native.interactive.calendar.notSaved</key>
+	<string>Het is niet bewaard. Voeg het opnieuw toe, of kies ervoor het niet te delen.</string>
+	<key>native.interactive.calendar.noteDirectEvent</key>
+	<string>Toevoegen bewaart dit in je standaardagenda. Het systeem vraagt eerst of Hermie afspraken mag toevoegen (alleen schrijven: Hermie kan je agenda niet lezen).</string>
+	<key>native.interactive.calendar.noteEditor</key>
+	<string>Er wordt niets toegevoegd tot je het opslaat in het agenda-scherm van het systeem dat daarna opent.</string>
+	<key>native.interactive.calendar.noteReminder</key>
+	<string>Toevoegen bewaart dit in je standaardlijst in Herinneringen. Het systeem vraagt eerst of Hermie Herinneringen mag gebruiken.</string>
+	<key>native.interactive.calendar.notes</key>
+	<string>Notities</string>
+	<key>native.interactive.calendar.saving</key>
+	<string>Bewaren…</string>
+	<key>native.interactive.calendar.when</key>
+	<string>Wanneer</string>
+	<key>native.interactive.calendar.where</key>
+	<string>Waar</string>
+	<key>native.interactive.card.addedToCalendar</key>
+	<string>Toegevoegd aan agenda</string>
 	<key>native.interactive.card.answered</key>
 	<string>Beantwoord</string>
 	<key>native.interactive.card.answeredElsewhere</key>
@@ -618,6 +660,10 @@
 	<string>Goedgekeurd</string>
 	<key>native.interactive.card.approvedEdited</key>
 	<string>Goedgekeurd met wijzigingen</string>
+	<key>native.interactive.card.calendar</key>
+	<string>Agenda</string>
+	<key>native.interactive.card.contact</key>
+	<string>Contact</string>
 	<key>native.interactive.card.diff</key>
 	<string>Beoordeling van wijzigingen</string>
 	<key>native.interactive.card.diffApproved</key>
@@ -632,18 +678,60 @@
 	<string>Bestanden verstuurd: %lld</string>
 	<key>native.interactive.card.form</key>
 	<string>Formulier</string>
+	<key>native.interactive.card.location</key>
+	<string>Locatie</string>
 	<key>native.interactive.card.open</key>
 	<string>Wacht op je antwoord</string>
 	<key>native.interactive.card.openAction</key>
 	<string>Openen</string>
 	<key>native.interactive.card.rejected</key>
 	<string>Afgewezen</string>
+	<key>native.interactive.card.sharedApproximate</key>
+	<string>Globale locatie gedeeld</string>
+	<key>native.interactive.card.sharedContact</key>
+	<string>Contact gedeeld: %@</string>
+	<key>native.interactive.card.sharedContactBare</key>
+	<string>Contact gedeeld</string>
+	<key>native.interactive.card.sharedPrecise</key>
+	<string>Exacte locatie gedeeld</string>
 	<key>native.interactive.card.skipped</key>
 	<string>Overgeslagen</string>
 	<key>native.interactive.card.timedOut</key>
 	<string>Verlopen</string>
 	<key>native.interactive.close</key>
 	<string>Sluiten</string>
+	<key>native.interactive.contact.choose</key>
+	<string>Kies een contact</string>
+	<key>native.interactive.contact.chooseAnother</key>
+	<string>Kies een ander contact</string>
+	<key>native.interactive.contact.chosen</key>
+	<string>Gekozen: %@</string>
+	<key>native.interactive.contact.field.birthday</key>
+	<string>Verjaardag</string>
+	<key>native.interactive.contact.field.emails</key>
+	<string>E-mailadressen</string>
+	<key>native.interactive.contact.field.name</key>
+	<string>Naam</string>
+	<key>native.interactive.contact.field.organization</key>
+	<string>Organisatie</string>
+	<key>native.interactive.contact.field.phones</key>
+	<string>Telefoonnummers</string>
+	<key>native.interactive.contact.field.postal</key>
+	<string>Adressen</string>
+	<key>native.interactive.contact.fieldsHeading</key>
+	<string>Wat je deelt</string>
+	<key>native.interactive.contact.notOnContact</key>
+	<string>Niet bij dit contact</string>
+	<key>native.interactive.contact.nothingTicked</key>
+	<string>Vink minstens één veld aan om te delen.</string>
+	<key>native.interactive.contact.pickerNote</key>
+	<string>Je kiest één contact in de eigen kiezer van het systeem. Hermie ziet geen andere contacten en vraagt geen toegang tot je adresboek.</string>
+	<key>native.interactive.contact.previewHeading</key>
+	<string>Dit wordt verstuurd</string>
+	<key>native.interactive.contact.share</key>
+	<string>Delen</string>
+	<key>native.interactive.contact.unnamed</key>
+	<string>Contact zonder naam</string>
 	<key>native.interactive.decline</key>
 	<string>Niet delen</string>
 	<key>native.interactive.declineHint</key>
@@ -868,12 +956,44 @@
 	<string>%@, hele bedragen</string>
 	<key>native.interactive.later</key>
 	<string>Later</string>
+	<key>native.interactive.location.approximate</key>
+	<string>Je globale locatie</string>
+	<key>native.interactive.location.approximateDetail</key>
+	<string>Ongeveer het gebied waar je bent, op een kilometer of meer nauwkeurig.</string>
+	<key>native.interactive.location.heading</key>
+	<string>Wat er gedeeld wordt</string>
+	<key>native.interactive.location.locating</key>
+	<string>Je locatie bepalen…</string>
+	<key>native.interactive.location.lowerNote</key>
+	<string>Je mag minder delen dan gevraagd, nooit meer.</string>
+	<key>native.interactive.location.oneFix</key>
+	<string>Eén meting, nu. Hermie blijft je niet volgen.</string>
+	<key>native.interactive.location.optionApproximate</key>
+	<string>Globaal</string>
+	<key>native.interactive.location.optionPrecise</key>
+	<string>Exact</string>
+	<key>native.interactive.location.permissionNote</key>
+	<string>Het systeem vraagt pas om toestemming nadat je ervoor kiest te delen.</string>
+	<key>native.interactive.location.precise</key>
+	<string>Je exacte locatie</string>
+	<key>native.interactive.location.preciseDetail</key>
+	<string>Je positie zo nauwkeurig als dit apparaat die kan bepalen.</string>
+	<key>native.interactive.location.precisionLabel</key>
+	<string>Nauwkeurigheid</string>
+	<key>native.interactive.location.share</key>
+	<string>Locatie delen</string>
+	<key>native.interactive.location.shareHint</key>
+	<string>Het systeem vraagt hierna mogelijk om toestemming.</string>
 	<key>native.interactive.notice.answeredElsewhere</key>
 	<string>Dit is op een ander apparaat beantwoord. Er is niets vanaf hier verstuurd.</string>
 	<key>native.interactive.notice.cannotShow</key>
 	<string>Hermie kon een verzoek van %@ niet tonen en heeft dat gemeld.</string>
+	<key>native.interactive.notice.locationUnavailable</key>
+	<string>Hermie kon je locatie niet bepalen en heeft dat aan %@ laten weten.</string>
 	<key>native.interactive.notice.notAllowed</key>
 	<string>Dit apparaat mag dit verzoek niet beantwoorden. Een ander apparaat moet dat doen.</string>
+	<key>native.interactive.notice.permissionDenied</key>
+	<string>Hermie mag dat niet op dit apparaat, dus Hermie heeft %@ laten weten dat het niet kan. Je kunt dit wijzigen in de instellingen van je apparaat.</string>
 	<key>native.interactive.onBehalfOf</key>
 	<string>Namens %@</string>
 	<key>native.interactive.refusal.badShape</key>
@@ -904,6 +1024,12 @@
 	<string>Versturen</string>
 	<key>native.interactive.skip</key>
 	<string>Overslaan</string>
+	<key>native.interactive.title.calendarEvent</key>
+	<string>%@ stelt een afspraak voor in je agenda</string>
+	<key>native.interactive.title.calendarReminder</key>
+	<string>%@ stelt een herinnering voor</string>
+	<key>native.interactive.title.contact</key>
+	<string>%@ vraagt je om een contact te delen</string>
 	<key>native.interactive.title.diff</key>
 	<string>%@ vraagt je wijzigingen in een bestand te beoordelen</string>
 	<key>native.interactive.title.draft</key>
@@ -912,6 +1038,8 @@
 	<string>%@ vraagt je om een bestand</string>
 	<key>native.interactive.title.form</key>
 	<string>%@ vraagt je een formulier in te vullen</string>
+	<key>native.interactive.title.location</key>
+	<string>%@ vraagt om je locatie</string>
 	<key>native.interactive.tryAgain</key>
 	<string>Opnieuw proberen</string>
 	<key>native.kanban.boardGone</key>

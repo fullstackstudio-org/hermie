@@ -7305,6 +7305,510 @@
         }
       }
     },
+    "native.interactive.calendar.addEvent" : {
+      "comment" : "Button that adds the event to the calendar.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Kalender hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add to calendar"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toevoegen aan agenda"
+          }
+        }
+      }
+    },
+    "native.interactive.calendar.addReminder" : {
+      "comment" : "Button that adds the reminder.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erinnerung hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add reminder"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Herinnering toevoegen"
+          }
+        }
+      }
+    },
+    "native.interactive.calendar.alert" : {
+      "comment" : "Label of the alert of an event or reminder.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hinweis"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alert"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Melding"
+          }
+        }
+      }
+    },
+    "native.interactive.calendar.alertAtStart" : {
+      "comment" : "Says the alert goes off at the start time.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Zeitpunkt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "At the time"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Op het tijdstip zelf"
+          }
+        }
+      }
+    },
+    "native.interactive.calendar.alertBefore" : {
+      "comment" : "Says how long before the start the alert goes off. The argument is a duration such as 30 minutes.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ vorher"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ before"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ervoor"
+          }
+        }
+      }
+    },
+    "native.interactive.calendar.allDay" : {
+      "comment" : "Says an event lasts all day.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ganztägig"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All day"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De hele dag"
+          }
+        }
+      }
+    },
+    "native.interactive.calendar.failed" : {
+      "comment" : "Said when the entry could not be saved.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es konnte nicht gespeichert werden. Versuche es erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It could not be saved. Try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het kon niet worden bewaard. Probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "native.interactive.calendar.kindEvent" : {
+      "comment" : "Says the item is an event.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termin"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Event"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afspraak"
+          }
+        }
+      }
+    },
+    "native.interactive.calendar.kindReminder" : {
+      "comment" : "Says the item is a reminder.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erinnerung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reminder"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Herinnering"
+          }
+        }
+      }
+    },
+    "native.interactive.calendar.link" : {
+      "comment" : "Label of the web address of an event. It is only shown, never opened.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link (nur angezeigt, nie geöffnet)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link (shown, never opened)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link (alleen getoond, nooit geopend)"
+          }
+        }
+      }
+    },
+    "native.interactive.calendar.noTimeEvent" : {
+      "comment" : "Said when an event has no time: it will start at the next full hour.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Zeit angegeben: Es beginnt zur nächsten vollen Stunde."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No time given: it will start at the next full hour."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen tijd opgegeven: het begint op het eerstvolgende hele uur."
+          }
+        }
+      }
+    },
+    "native.interactive.calendar.noTimeReminder" : {
+      "comment" : "Said when a reminder has no time.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Zeit angegeben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No time given."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen tijd opgegeven."
+          }
+        }
+      }
+    },
+    "native.interactive.calendar.notSaved" : {
+      "comment" : "Said when the person closed the calendar sheet without saving and a skip is not offered.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es wurde nicht gespeichert. Füge es erneut hinzu oder entscheide dich, nichts zu teilen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It was not saved. Add it again, or choose not to share."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het is niet bewaard. Voeg het opnieuw toe, of kies ervoor het niet te delen."
+          }
+        }
+      }
+    },
+    "native.interactive.calendar.noteDirectEvent" : {
+      "comment" : "Said under the Add button on the Mac: Add saves the event after the system's permission question.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Hinzufügen“ speichert dies in deinem Standardkalender. Das System fragt zuerst, ob Hermie Termine hinzufügen darf (nur Schreibzugriff: Hermie kann deinen Kalender nicht lesen)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add saves this to your default calendar. The system asks first whether Hermie may add events (write only: Hermie cannot read your calendar)."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toevoegen bewaart dit in je standaardagenda. Het systeem vraagt eerst of Hermie afspraken mag toevoegen (alleen schrijven: Hermie kan je agenda niet lezen)."
+          }
+        }
+      }
+    },
+    "native.interactive.calendar.noteEditor" : {
+      "comment" : "Said under the Add button on iPhone and iPad: the system's calendar sheet opens next.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es wird nichts hinzugefügt, bis du es im Kalender-Dialog des Systems speicherst, der sich danach öffnet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing is added until you save it in the system’s calendar sheet that opens next."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er wordt niets toegevoegd tot je het opslaat in het agenda-scherm van het systeem dat daarna opent."
+          }
+        }
+      }
+    },
+    "native.interactive.calendar.noteReminder" : {
+      "comment" : "Said under the Add button for a reminder: Add saves it after the system's permission question.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Hinzufügen“ speichert dies in deiner Standardliste in Erinnerungen. Das System fragt zuerst, ob Hermie Erinnerungen verwenden darf."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add saves this to your default Reminders list. The system asks first whether Hermie may use your Reminders."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toevoegen bewaart dit in je standaardlijst in Herinneringen. Het systeem vraagt eerst of Hermie Herinneringen mag gebruiken."
+          }
+        }
+      }
+    },
+    "native.interactive.calendar.notes" : {
+      "comment" : "Label of the notes of an event or reminder.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notizen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notities"
+          }
+        }
+      }
+    },
+    "native.interactive.calendar.saving" : {
+      "comment" : "Shown while the entry is being saved.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird gespeichert …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saving…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bewaren…"
+          }
+        }
+      }
+    },
+    "native.interactive.calendar.when" : {
+      "comment" : "Label of the time of an event or reminder.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wann"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wanneer"
+          }
+        }
+      }
+    },
+    "native.interactive.calendar.where" : {
+      "comment" : "Label of the place of an event.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wo"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Where"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waar"
+          }
+        }
+      }
+    },
+    "native.interactive.card.addedToCalendar" : {
+      "comment" : "How a calendar request ended: the person saved the entry.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Kalender hinzugefügt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Added to calendar"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toegevoegd aan agenda"
+          }
+        }
+      }
+    },
     "native.interactive.card.answered" : {
       "comment" : "On the chat's card: the request was answered.",
       "extractionState" : "manual",
@@ -7397,6 +7901,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Goedgekeurd met wijzigingen"
+          }
+        }
+      }
+    },
+    "native.interactive.card.calendar" : {
+      "comment" : "Kind of request shown on its card: a calendar entry.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kalender"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calendar"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agenda"
+          }
+        }
+      }
+    },
+    "native.interactive.card.contact" : {
+      "comment" : "Kind of request shown on its card: a contact.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontakt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contact"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contact"
           }
         }
       }
@@ -7569,6 +8121,30 @@
         }
       }
     },
+    "native.interactive.card.location" : {
+      "comment" : "Kind of request shown on its card: a location.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standort"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locatie"
+          }
+        }
+      }
+    },
     "native.interactive.card.open" : {
       "comment" : "On the chat's card: the request waits for the person's answer.",
       "extractionState" : "manual",
@@ -7641,6 +8217,102 @@
         }
       }
     },
+    "native.interactive.card.sharedApproximate" : {
+      "comment" : "How a location request ended: the person shared an approximate location.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ungefähren Standort geteilt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shared approximate location"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Globale locatie gedeeld"
+          }
+        }
+      }
+    },
+    "native.interactive.card.sharedContact" : {
+      "comment" : "How a contact request ended. The argument is the kinds of field that were shared, such as name, phone numbers.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontakt geteilt: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shared contact: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contact gedeeld: %@"
+          }
+        }
+      }
+    },
+    "native.interactive.card.sharedContactBare" : {
+      "comment" : "How a contact request ended, without saying which fields.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontakt geteilt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shared a contact"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contact gedeeld"
+          }
+        }
+      }
+    },
+    "native.interactive.card.sharedPrecise" : {
+      "comment" : "How a location request ended: the person shared a precise location.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Genauen Standort geteilt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shared precise location"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exacte locatie gedeeld"
+          }
+        }
+      }
+    },
     "native.interactive.card.skipped" : {
       "comment" : "On the chat's card: the request was skipped.",
       "extractionState" : "manual",
@@ -7709,6 +8381,390 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sluiten"
+          }
+        }
+      }
+    },
+    "native.interactive.contact.choose" : {
+      "comment" : "Button that opens the system's contact picker.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontakt auswählen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a contact"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kies een contact"
+          }
+        }
+      }
+    },
+    "native.interactive.contact.chooseAnother" : {
+      "comment" : "Button that opens the system's contact picker again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anderen Kontakt auswählen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose another contact"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kies een ander contact"
+          }
+        }
+      }
+    },
+    "native.interactive.contact.chosen" : {
+      "comment" : "The contact that was chosen. The argument is its name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausgewählt: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chosen: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gekozen: %@"
+          }
+        }
+      }
+    },
+    "native.interactive.contact.field.birthday" : {
+      "comment" : "A contact field: the birthday.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geburtstag"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Birthday"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verjaardag"
+          }
+        }
+      }
+    },
+    "native.interactive.contact.field.emails" : {
+      "comment" : "A contact field: email addresses.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E-Mail-Adressen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email addresses"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E-mailadressen"
+          }
+        }
+      }
+    },
+    "native.interactive.contact.field.name" : {
+      "comment" : "A contact field: the name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naam"
+          }
+        }
+      }
+    },
+    "native.interactive.contact.field.organization" : {
+      "comment" : "A contact field: the organisation.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organisation"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organization"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organisatie"
+          }
+        }
+      }
+    },
+    "native.interactive.contact.field.phones" : {
+      "comment" : "A contact field: phone numbers.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Telefonnummern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Phone numbers"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Telefoonnummers"
+          }
+        }
+      }
+    },
+    "native.interactive.contact.field.postal" : {
+      "comment" : "A contact field: postal addresses.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adressen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Addresses"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adressen"
+          }
+        }
+      }
+    },
+    "native.interactive.contact.fieldsHeading" : {
+      "comment" : "Heading above the boxes that say what to share of the contact.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was du teilst"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What to share"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wat je deelt"
+          }
+        }
+      }
+    },
+    "native.interactive.contact.notOnContact" : {
+      "comment" : "Said under a field the chosen contact has nothing for.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht bei diesem Kontakt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not on this contact"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niet bij dit contact"
+          }
+        }
+      }
+    },
+    "native.interactive.contact.nothingTicked" : {
+      "comment" : "Said when no field of the contact is ticked.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle mindestens ein Feld zum Teilen aus."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tick at least one field to share."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vink minstens één veld aan om te delen."
+          }
+        }
+      }
+    },
+    "native.interactive.contact.pickerNote" : {
+      "comment" : "Said on the contact sheet before a contact is chosen.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du wählst einen Kontakt in der Auswahl des Systems. Hermie sieht keine anderen Kontakte und fragt nicht nach Zugriff auf dein Adressbuch."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You pick one contact in the system’s own picker. Hermie sees no other contact and does not ask for access to your address book."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je kiest één contact in de eigen kiezer van het systeem. Hermie ziet geen andere contacten en vraagt geen toegang tot je adresboek."
+          }
+        }
+      }
+    },
+    "native.interactive.contact.previewHeading" : {
+      "comment" : "Heading above exactly what would be sent of the contact.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das wird gesendet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will be sent"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit wordt verstuurd"
+          }
+        }
+      }
+    },
+    "native.interactive.contact.share" : {
+      "comment" : "Button that shares the ticked fields of the contact.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teilen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delen"
+          }
+        }
+      }
+    },
+    "native.interactive.contact.unnamed" : {
+      "comment" : "Name shown for a chosen contact that has none.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontakt ohne Namen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contact without a name"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contact zonder naam"
           }
         }
       }
@@ -10401,6 +11457,342 @@
         }
       }
     },
+    "native.interactive.location.approximate" : {
+      "comment" : "What is shared when the person shares an approximate location.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein ungefährer Standort"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your approximate location"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je globale locatie"
+          }
+        }
+      }
+    },
+    "native.interactive.location.approximateDetail" : {
+      "comment" : "Explains an approximate location.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ungefähr das Gebiet, in dem du dich befindest, auf einen Kilometer oder mehr genau."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Roughly the area you are in, about a kilometre or more."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ongeveer het gebied waar je bent, op een kilometer of meer nauwkeurig."
+          }
+        }
+      }
+    },
+    "native.interactive.location.heading" : {
+      "comment" : "Heading above what a location request would share.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was geteilt wird"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What will be shared"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wat er gedeeld wordt"
+          }
+        }
+      }
+    },
+    "native.interactive.location.locating" : {
+      "comment" : "Shown while the device finds its location.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standort wird ermittelt …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finding your location…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je locatie bepalen…"
+          }
+        }
+      }
+    },
+    "native.interactive.location.lowerNote" : {
+      "comment" : "Said when the bot asked for a precise location: the person may share less.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du kannst weniger teilen als gefragt, nie mehr."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can share less than was asked, never more."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je mag minder delen dan gevraagd, nooit meer."
+          }
+        }
+      }
+    },
+    "native.interactive.location.oneFix" : {
+      "comment" : "Said on the location sheet: one reading, no tracking.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine Messung, jetzt. Hermie verfolgt dich nicht weiter."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One reading, now. Hermie does not keep tracking you."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eén meting, nu. Hermie blijft je niet volgen."
+          }
+        }
+      }
+    },
+    "native.interactive.location.optionApproximate" : {
+      "comment" : "Choice: share an approximate location.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ungefähr"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approximate"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Globaal"
+          }
+        }
+      }
+    },
+    "native.interactive.location.optionPrecise" : {
+      "comment" : "Choice: share a precise location.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Genau"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Precise"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exact"
+          }
+        }
+      }
+    },
+    "native.interactive.location.permissionNote" : {
+      "comment" : "Said on the location sheet: the system's permission question comes after the person shares.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das System fragt erst nach der Erlaubnis, nachdem du dich zum Teilen entschieden hast."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The system asks for permission only after you choose to share."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het systeem vraagt pas om toestemming nadat je ervoor kiest te delen."
+          }
+        }
+      }
+    },
+    "native.interactive.location.precise" : {
+      "comment" : "What is shared when the person shares a precise location.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein genauer Standort"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your precise location"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je exacte locatie"
+          }
+        }
+      }
+    },
+    "native.interactive.location.preciseDetail" : {
+      "comment" : "Explains a precise location.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Position so genau, wie dieses Gerät sie bestimmen kann."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your position as exactly as this device can tell."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je positie zo nauwkeurig als dit apparaat die kan bepalen."
+          }
+        }
+      }
+    },
+    "native.interactive.location.precisionLabel" : {
+      "comment" : "Label of the choice between sharing a precise or an approximate location.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Genauigkeit"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Precision"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nauwkeurigheid"
+          }
+        }
+      }
+    },
+    "native.interactive.location.share" : {
+      "comment" : "Button that shares the location (and then lets the system ask for permission).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standort teilen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share location"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locatie delen"
+          }
+        }
+      }
+    },
+    "native.interactive.location.shareHint" : {
+      "comment" : "VoiceOver hint of the Share location button.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das System fragt danach möglicherweise nach der Erlaubnis."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The system may ask for permission next."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het systeem vraagt hierna mogelijk om toestemming."
+          }
+        }
+      }
+    },
     "native.interactive.notice.answeredElsewhere" : {
       "comment" : "A request ended because another device answered it.",
       "extractionState" : "manual",
@@ -10449,6 +11841,30 @@
         }
       }
     },
+    "native.interactive.notice.locationUnavailable" : {
+      "comment" : "Notice on the chat: the device could not find its location, and the bot was told. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie konnte deinen Standort nicht ermitteln und hat das %@ mitgeteilt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie could not find your location and told %@ so."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie kon je locatie niet bepalen en heeft dat aan %@ laten weten."
+          }
+        }
+      }
+    },
     "native.interactive.notice.notAllowed" : {
       "comment" : "The gateway does not let this device answer a request.",
       "extractionState" : "manual",
@@ -10469,6 +11885,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dit apparaat mag dit verzoek niet beantwoorden. Een ander apparaat moet dat doen."
+          }
+        }
+      }
+    },
+    "native.interactive.notice.permissionDenied" : {
+      "comment" : "Notice on the chat: this device does not allow what a bot asked for, and the bot was told. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie darf das auf diesem Gerät nicht, deshalb hat Hermie %@ mitgeteilt, dass es nicht geht. Du kannst das in den Einstellungen deines Geräts ändern."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie is not allowed to do that on this device, so it told %@ it could not. You can change this in your device’s settings."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie mag dat niet op dit apparaat, dus Hermie heeft %@ laten weten dat het niet kan. Je kunt dit wijzigen in de instellingen van je apparaat."
           }
         }
       }
@@ -10833,6 +12273,78 @@
         }
       }
     },
+    "native.interactive.title.calendarEvent" : {
+      "comment" : "Title of the sheet for an event a bot suggests adding to the calendar. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ schlägt einen Termin für deinen Kalender vor"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ suggests an event for your calendar"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ stelt een afspraak voor in je agenda"
+          }
+        }
+      }
+    },
+    "native.interactive.title.calendarReminder" : {
+      "comment" : "Title of the sheet for a reminder a bot suggests adding. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ schlägt eine Erinnerung vor"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ suggests a reminder"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ stelt een herinnering voor"
+          }
+        }
+      }
+    },
+    "native.interactive.title.contact" : {
+      "comment" : "Title of the sheet for a contact a bot asks for. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ bittet dich, einen Kontakt zu teilen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ asks you to share a contact"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ vraagt je om een contact te delen"
+          }
+        }
+      }
+    },
     "native.interactive.title.diff" : {
       "comment" : "Title of the sheet for changes to a file a bot asks the person to review. The argument is the bot's name.",
       "extractionState" : "manual",
@@ -10925,6 +12437,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ vraagt je een formulier in te vullen"
+          }
+        }
+      }
+    },
+    "native.interactive.title.location" : {
+      "comment" : "Title of the sheet for a location a bot asks for. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ bittet um deinen Standort"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ asks for your location"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ vraagt om je locatie"
           }
         }
       }

@@ -610,6 +610,48 @@
 	<string>Hermie konnte diese Anfrage nicht lesen. Vielleicht stammt sie von einer neueren Version.</string>
 	<key>native.intents.withdrawn</key>
 	<string>Die Nachricht wurde in Hermie aus der Warteschlange genommen, bevor sie rausging, deshalb wurde nichts gesendet.</string>
+	<key>native.interactive.calendar.addEvent</key>
+	<string>Zum Kalender hinzufügen</string>
+	<key>native.interactive.calendar.addReminder</key>
+	<string>Erinnerung hinzufügen</string>
+	<key>native.interactive.calendar.alert</key>
+	<string>Hinweis</string>
+	<key>native.interactive.calendar.alertAtStart</key>
+	<string>Zum Zeitpunkt</string>
+	<key>native.interactive.calendar.alertBefore</key>
+	<string>%@ vorher</string>
+	<key>native.interactive.calendar.allDay</key>
+	<string>Ganztägig</string>
+	<key>native.interactive.calendar.failed</key>
+	<string>Es konnte nicht gespeichert werden. Versuche es erneut.</string>
+	<key>native.interactive.calendar.kindEvent</key>
+	<string>Termin</string>
+	<key>native.interactive.calendar.kindReminder</key>
+	<string>Erinnerung</string>
+	<key>native.interactive.calendar.link</key>
+	<string>Link (nur angezeigt, nie geöffnet)</string>
+	<key>native.interactive.calendar.noTimeEvent</key>
+	<string>Keine Zeit angegeben: Es beginnt zur nächsten vollen Stunde.</string>
+	<key>native.interactive.calendar.noTimeReminder</key>
+	<string>Keine Zeit angegeben.</string>
+	<key>native.interactive.calendar.notSaved</key>
+	<string>Es wurde nicht gespeichert. Füge es erneut hinzu oder entscheide dich, nichts zu teilen.</string>
+	<key>native.interactive.calendar.noteDirectEvent</key>
+	<string>„Hinzufügen“ speichert dies in deinem Standardkalender. Das System fragt zuerst, ob Hermie Termine hinzufügen darf (nur Schreibzugriff: Hermie kann deinen Kalender nicht lesen).</string>
+	<key>native.interactive.calendar.noteEditor</key>
+	<string>Es wird nichts hinzugefügt, bis du es im Kalender-Dialog des Systems speicherst, der sich danach öffnet.</string>
+	<key>native.interactive.calendar.noteReminder</key>
+	<string>„Hinzufügen“ speichert dies in deiner Standardliste in Erinnerungen. Das System fragt zuerst, ob Hermie Erinnerungen verwenden darf.</string>
+	<key>native.interactive.calendar.notes</key>
+	<string>Notizen</string>
+	<key>native.interactive.calendar.saving</key>
+	<string>Wird gespeichert …</string>
+	<key>native.interactive.calendar.when</key>
+	<string>Wann</string>
+	<key>native.interactive.calendar.where</key>
+	<string>Wo</string>
+	<key>native.interactive.card.addedToCalendar</key>
+	<string>Zum Kalender hinzugefügt</string>
 	<key>native.interactive.card.answered</key>
 	<string>Beantwortet</string>
 	<key>native.interactive.card.answeredElsewhere</key>
@@ -618,6 +660,10 @@
 	<string>Genehmigt</string>
 	<key>native.interactive.card.approvedEdited</key>
 	<string>Mit Änderungen genehmigt</string>
+	<key>native.interactive.card.calendar</key>
+	<string>Kalender</string>
+	<key>native.interactive.card.contact</key>
+	<string>Kontakt</string>
 	<key>native.interactive.card.diff</key>
 	<string>Prüfung von Änderungen</string>
 	<key>native.interactive.card.diffApproved</key>
@@ -632,18 +678,60 @@
 	<string>Dateien gesendet: %lld</string>
 	<key>native.interactive.card.form</key>
 	<string>Formular</string>
+	<key>native.interactive.card.location</key>
+	<string>Standort</string>
 	<key>native.interactive.card.open</key>
 	<string>Wartet auf deine Antwort</string>
 	<key>native.interactive.card.openAction</key>
 	<string>Öffnen</string>
 	<key>native.interactive.card.rejected</key>
 	<string>Abgelehnt</string>
+	<key>native.interactive.card.sharedApproximate</key>
+	<string>Ungefähren Standort geteilt</string>
+	<key>native.interactive.card.sharedContact</key>
+	<string>Kontakt geteilt: %@</string>
+	<key>native.interactive.card.sharedContactBare</key>
+	<string>Kontakt geteilt</string>
+	<key>native.interactive.card.sharedPrecise</key>
+	<string>Genauen Standort geteilt</string>
 	<key>native.interactive.card.skipped</key>
 	<string>Übersprungen</string>
 	<key>native.interactive.card.timedOut</key>
 	<string>Abgelaufen</string>
 	<key>native.interactive.close</key>
 	<string>Schließen</string>
+	<key>native.interactive.contact.choose</key>
+	<string>Kontakt auswählen</string>
+	<key>native.interactive.contact.chooseAnother</key>
+	<string>Anderen Kontakt auswählen</string>
+	<key>native.interactive.contact.chosen</key>
+	<string>Ausgewählt: %@</string>
+	<key>native.interactive.contact.field.birthday</key>
+	<string>Geburtstag</string>
+	<key>native.interactive.contact.field.emails</key>
+	<string>E-Mail-Adressen</string>
+	<key>native.interactive.contact.field.name</key>
+	<string>Name</string>
+	<key>native.interactive.contact.field.organization</key>
+	<string>Organisation</string>
+	<key>native.interactive.contact.field.phones</key>
+	<string>Telefonnummern</string>
+	<key>native.interactive.contact.field.postal</key>
+	<string>Adressen</string>
+	<key>native.interactive.contact.fieldsHeading</key>
+	<string>Was du teilst</string>
+	<key>native.interactive.contact.notOnContact</key>
+	<string>Nicht bei diesem Kontakt</string>
+	<key>native.interactive.contact.nothingTicked</key>
+	<string>Wähle mindestens ein Feld zum Teilen aus.</string>
+	<key>native.interactive.contact.pickerNote</key>
+	<string>Du wählst einen Kontakt in der Auswahl des Systems. Hermie sieht keine anderen Kontakte und fragt nicht nach Zugriff auf dein Adressbuch.</string>
+	<key>native.interactive.contact.previewHeading</key>
+	<string>Das wird gesendet</string>
+	<key>native.interactive.contact.share</key>
+	<string>Teilen</string>
+	<key>native.interactive.contact.unnamed</key>
+	<string>Kontakt ohne Namen</string>
 	<key>native.interactive.decline</key>
 	<string>Nicht teilen</string>
 	<key>native.interactive.declineHint</key>
@@ -868,12 +956,44 @@
 	<string>%@, ganze Beträge</string>
 	<key>native.interactive.later</key>
 	<string>Später</string>
+	<key>native.interactive.location.approximate</key>
+	<string>Dein ungefährer Standort</string>
+	<key>native.interactive.location.approximateDetail</key>
+	<string>Ungefähr das Gebiet, in dem du dich befindest, auf einen Kilometer oder mehr genau.</string>
+	<key>native.interactive.location.heading</key>
+	<string>Was geteilt wird</string>
+	<key>native.interactive.location.locating</key>
+	<string>Standort wird ermittelt …</string>
+	<key>native.interactive.location.lowerNote</key>
+	<string>Du kannst weniger teilen als gefragt, nie mehr.</string>
+	<key>native.interactive.location.oneFix</key>
+	<string>Eine Messung, jetzt. Hermie verfolgt dich nicht weiter.</string>
+	<key>native.interactive.location.optionApproximate</key>
+	<string>Ungefähr</string>
+	<key>native.interactive.location.optionPrecise</key>
+	<string>Genau</string>
+	<key>native.interactive.location.permissionNote</key>
+	<string>Das System fragt erst nach der Erlaubnis, nachdem du dich zum Teilen entschieden hast.</string>
+	<key>native.interactive.location.precise</key>
+	<string>Dein genauer Standort</string>
+	<key>native.interactive.location.preciseDetail</key>
+	<string>Deine Position so genau, wie dieses Gerät sie bestimmen kann.</string>
+	<key>native.interactive.location.precisionLabel</key>
+	<string>Genauigkeit</string>
+	<key>native.interactive.location.share</key>
+	<string>Standort teilen</string>
+	<key>native.interactive.location.shareHint</key>
+	<string>Das System fragt danach möglicherweise nach der Erlaubnis.</string>
 	<key>native.interactive.notice.answeredElsewhere</key>
 	<string>Das wurde auf einem anderen Gerät beantwortet. Von hier wurde nichts gesendet.</string>
 	<key>native.interactive.notice.cannotShow</key>
 	<string>Hermie konnte eine Anfrage von %@ nicht anzeigen und hat das gemeldet.</string>
+	<key>native.interactive.notice.locationUnavailable</key>
+	<string>Hermie konnte deinen Standort nicht ermitteln und hat das %@ mitgeteilt.</string>
 	<key>native.interactive.notice.notAllowed</key>
 	<string>Dieses Gerät darf diese Anfrage nicht beantworten. Ein anderes Gerät muss das tun.</string>
+	<key>native.interactive.notice.permissionDenied</key>
+	<string>Hermie darf das auf diesem Gerät nicht, deshalb hat Hermie %@ mitgeteilt, dass es nicht geht. Du kannst das in den Einstellungen deines Geräts ändern.</string>
 	<key>native.interactive.onBehalfOf</key>
 	<string>Im Auftrag von %@</string>
 	<key>native.interactive.refusal.badShape</key>
@@ -904,6 +1024,12 @@
 	<string>Senden</string>
 	<key>native.interactive.skip</key>
 	<string>Überspringen</string>
+	<key>native.interactive.title.calendarEvent</key>
+	<string>%@ schlägt einen Termin für deinen Kalender vor</string>
+	<key>native.interactive.title.calendarReminder</key>
+	<string>%@ schlägt eine Erinnerung vor</string>
+	<key>native.interactive.title.contact</key>
+	<string>%@ bittet dich, einen Kontakt zu teilen</string>
 	<key>native.interactive.title.diff</key>
 	<string>%@ bittet dich, Änderungen an einer Datei zu prüfen</string>
 	<key>native.interactive.title.draft</key>
@@ -912,6 +1038,8 @@
 	<string>%@ bittet dich um eine Datei</string>
 	<key>native.interactive.title.form</key>
 	<string>%@ bittet dich, ein Formular auszufüllen</string>
+	<key>native.interactive.title.location</key>
+	<string>%@ bittet um deinen Standort</string>
 	<key>native.interactive.tryAgain</key>
 	<string>Erneut versuchen</string>
 	<key>native.kanban.boardGone</key>
