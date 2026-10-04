@@ -5,6 +5,7 @@
  * refusal is the one the real handler gives.
  */
 import { afterEach, describe, expect, it } from 'vitest'
+import { WebSocket } from 'ws'
 
 import { type FakeGateway, startFakeGateway } from './server'
 
@@ -19,6 +20,46 @@ const start = async (options: Parameters<typeof startFakeGateway>[0] = { port: 0
   gateway = await startFakeGateway({ port: 0, ...options })
 
   return gateway
+}
+
+interface Frame {
+  id?: string
+  result?: Record<string, unknown>
+  error?: { code?: number; message?: string }
+}
+
+/** A socket to the gateway and a `call` that answers the frame its id names. */
+const connect = async (
+  live: FakeGateway
+): Promise<{ call: (method: string, params?: Record<string, unknown>) => Promise<Frame>; close: () => void }> => {
+  const socket = new WebSocket(live.wsUrl, ['hermes-gateway-v1'])
+
+  await new Promise<void>((resolve, reject) => {
+    socket.once('open', () => resolve())
+    socket.once('error', reject)
+  })
+
+  let id = 0
+
+  const call = (method: string, params: Record<string, unknown> = {}): Promise<Frame> =>
+    new Promise(resolve => {
+      const frameId = `rpc-${(id += 1)}`
+      const onMessage = (data: unknown) => {
+        for (const line of String(data).split('\n').filter(Boolean)) {
+          const frame = JSON.parse(line) as Frame
+
+          if (frame.id === frameId) {
+            socket.off('message', onMessage)
+            resolve(frame)
+          }
+        }
+      }
+
+      socket.on('message', onMessage)
+      socket.send(JSON.stringify({ jsonrpc: '2.0', id: frameId, method, params }))
+    })
+
+  return { call, close: () => socket.close() }
 }
 
 const route = '/api/plugins/hermie/memory'
@@ -64,5 +105,145 @@ describe('memory.edit — a gateway where memory can be read and not written', (
 
     expect(response.status).toBe(200)
     expect(((await response.json()) as { success: boolean }).success).toBe(true)
+  })
+})
+
+describe('mcp.catalog and mcp.servers.add / set_api_key / remove', () => {
+  const servers = async (call: Awaited<ReturnType<typeof connect>>['call']): Promise<Record<string, unknown>[]> =>
+    ((await call('mcp.servers.list')).result as { servers: Record<string, unknown>[] }).servers
+
+  it('lists the curated presets with what is installed and what each needs', async () => {
+    const live = await start()
+    const { call, close } = await connect(live)
+
+    const catalog = ((await call('mcp.catalog')).result as { servers: Record<string, unknown>[] }).servers
+
+    expect(catalog.map(entry => entry.name)).toEqual(['github', 'fetch', 'linear'])
+    expect(catalog[0]).toMatchObject({
+      installed: false,
+      enabled: false,
+      requires: ['GITHUB_TOKEN'],
+      transport: 'stdio'
+    })
+
+    close()
+  })
+
+  it('adds a server from a preset and shows it as installed', async () => {
+    const live = await start()
+    const { call, close } = await connect(live)
+
+    const added = (await call('mcp.servers.add', { name: 'github', preset: 'github' })).result as {
+      ok: boolean
+      server: Record<string, unknown>
+    }
+
+    expect(added.ok).toBe(true)
+    expect(added.server).toMatchObject({ name: 'github', transport: 'stdio', command: 'npx', env: ['GITHUB_TOKEN'] })
+    expect((await servers(call)).map(row => row.name)).toContain('github')
+
+    const catalog = ((await call('mcp.catalog')).result as { servers: Record<string, unknown>[] }).servers
+
+    expect(catalog.find(entry => entry.name === 'github')).toMatchObject({ installed: true, enabled: true })
+
+    close()
+  })
+
+  it('adds a custom http server, with its bearer token kept out of every answer', async () => {
+    const live = await start()
+    const { call, close } = await connect(live)
+
+    const frame = await call('mcp.servers.add', {
+      name: 'notes',
+      config: { url: 'https://notes.example.test/mcp' },
+      bearer_token: 'sekret-token'
+    })
+
+    expect(JSON.stringify(frame)).not.toContain('sekret-token')
+    expect(frame.result?.server).toMatchObject({ name: 'notes', transport: 'http', auth: 'bearer' })
+    expect(live.state.mcpSecrets.get('notes')?.value).toBe('sekret-token')
+    expect(JSON.stringify(await servers(call))).not.toContain('sekret-token')
+
+    close()
+  })
+
+  it('refuses a name that is already configured with 4090', async () => {
+    const live = await start()
+    const { call, close } = await connect(live)
+
+    const frame = await call('mcp.servers.add', { name: 'files', config: { command: 'npx' } })
+
+    expect(frame.error).toMatchObject({ code: 4090, message: "server 'files' already exists" })
+
+    close()
+  })
+
+  it('refuses a config with neither url nor command, an unknown preset and a shell pipeline', async () => {
+    const live = await start()
+    const { call, close } = await connect(live)
+
+    expect((await call('mcp.servers.add', { name: 'x', config: {} })).error?.code).toBe(4063)
+    expect((await call('mcp.servers.add', { name: 'x', preset: 'nope' })).error?.code).toBe(4063)
+    expect(
+      (await call('mcp.servers.add', { name: 'x', config: { command: 'sh', args: ['-c', 'a; b'] } })).error?.code
+    ).toBe(4001)
+
+    close()
+  })
+
+  it('probes a freshly added server, and one whose command is missing fails to connect', async () => {
+    const live = await start()
+    const { call, close } = await connect(live)
+
+    await call('mcp.servers.add', { name: 'ok', config: { command: 'npx' } })
+    await call('mcp.servers.add', { name: 'gone', config: { command: 'missing-server' } })
+
+    expect((await call('mcp.servers.test', { name: 'ok' })).result).toMatchObject({ ok: true })
+    expect((await call('mcp.servers.test', { name: 'gone' })).result).toMatchObject({
+      ok: false,
+      error: 'spawn missing-server ENOENT'
+    })
+
+    close()
+  })
+
+  it('writes an api key to the env and keeps only the reference on the server', async () => {
+    const live = await start()
+    const { call, close } = await connect(live)
+
+    const stdio = await call('mcp.servers.set_api_key', { name: 'weather', value: 'abc123' })
+
+    expect(stdio.result).toMatchObject({ ok: true, name: 'weather', env_var: 'MCP_WEATHER_API_KEY' })
+    expect(JSON.stringify(stdio)).not.toContain('abc123')
+    expect(live.state.mcpSecrets.get('weather')).toEqual({ envVar: 'MCP_WEATHER_API_KEY', value: 'abc123' })
+
+    const http = await call('mcp.servers.set_api_key', { name: 'calendar', value: 'Bearer tok', env_var: 'CAL_KEY' })
+
+    expect(http.result).toMatchObject({ env_var: 'CAL_KEY', server: { auth: 'bearer' } })
+    expect(live.state.mcpSecrets.get('calendar')?.value).toBe('tok')
+
+    close()
+  })
+
+  it('refuses a blank key with 4063 and an unknown server with 4064', async () => {
+    const live = await start()
+    const { call, close } = await connect(live)
+
+    expect((await call('mcp.servers.set_api_key', { name: 'weather', value: '  ' })).error?.code).toBe(4063)
+    expect((await call('mcp.servers.set_api_key', { name: 'weather', value: 'Bearer' })).error?.code).toBe(4063)
+    expect((await call('mcp.servers.set_api_key', { name: 'ghost', value: 'x' })).error?.code).toBe(4064)
+
+    close()
+  })
+
+  it('removes a server, and a second remove is 4064', async () => {
+    const live = await start()
+    const { call, close } = await connect(live)
+
+    expect((await call('mcp.servers.remove', { name: 'weather' })).result).toEqual({ ok: true, removed: true })
+    expect((await servers(call)).map(row => row.name)).not.toContain('weather')
+    expect((await call('mcp.servers.remove', { name: 'weather' })).error?.code).toBe(4064)
+
+    close()
   })
 })

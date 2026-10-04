@@ -100,6 +100,8 @@
 	<string>Bot</string>
 	<key>native.capability.noGateway</key>
 	<string>Verbinde dich mit einem Gateway, um das zu nutzen.</string>
+	<key>native.capability.save</key>
+	<string>Sichern</string>
 	<key>native.chat.attachment.failed</key>
 	<string>„%@“ konnte nicht vom Gateway geladen werden.</string>
 	<key>native.chat.attachment.unavailable</key>
@@ -1004,6 +1006,68 @@
 	<string>MCP auf %@</string>
 	<key>native.mcp.title</key>
 	<string>MCP</string>
+	<key>native.mcpServers.add</key>
+	<string>Server hinzufügen…</string>
+	<key>native.mcpServers.addTitle</key>
+	<string>Server hinzufügen</string>
+	<key>native.mcpServers.added</key>
+	<string>%@ wurde hinzugefügt.</string>
+	<key>native.mcpServers.arguments</key>
+	<string>Argumente</string>
+	<key>native.mcpServers.argumentsHint</key>
+	<string>Durch Leerzeichen getrennt. Setze ein Argument mit Leerzeichen in Anführungszeichen. Der Befehl läuft auf dem Rechner des Gateways.</string>
+	<key>native.mcpServers.bearer</key>
+	<string>Bearer-Token (optional)</string>
+	<key>native.mcpServers.bearerHint</key>
+	<string>Ein Token wird an das Gateway gesendet und dort in der .env des Bots gespeichert. Hermie behält es nicht.</string>
+	<key>native.mcpServers.catalogueHeader</key>
+	<string>AUS DEM KATALOG</string>
+	<key>native.mcpServers.command</key>
+	<string>Befehl</string>
+	<key>native.mcpServers.commandMissing</key>
+	<string>Gib den Befehl ein, der den Server startet.</string>
+	<key>native.mcpServers.customHeader</key>
+	<string>EIGENER SERVER</string>
+	<key>native.mcpServers.keyField</key>
+	<string>API-Schlüssel</string>
+	<key>native.mcpServers.keyHint</key>
+	<string>Das Gateway speichert den Schlüssel in der .env dieses Bots. Hermie behält ihn nicht.</string>
+	<key>native.mcpServers.keySaved</key>
+	<string>Der API-Schlüssel für %@ wurde gespeichert.</string>
+	<key>native.mcpServers.keyTitle</key>
+	<string>API-Schlüssel festlegen</string>
+	<key>native.mcpServers.keyVariable</key>
+	<string>Variable</string>
+	<key>native.mcpServers.kind</key>
+	<string>Art</string>
+	<key>native.mcpServers.kindHTTP</key>
+	<string>Webadresse</string>
+	<key>native.mcpServers.kindStdio</key>
+	<string>Befehl</string>
+	<key>native.mcpServers.linkRefused</key>
+	<string>Das Gateway hat einen Anmeldelink gesendet, den Hermie nicht öffnet.</string>
+	<key>native.mcpServers.name</key>
+	<string>Name</string>
+	<key>native.mcpServers.nameHasSpaces</key>
+	<string>Ein Name darf keine Leerzeichen enthalten.</string>
+	<key>native.mcpServers.nameMissing</key>
+	<string>Gib dem Server einen Namen.</string>
+	<key>native.mcpServers.needs</key>
+	<string>Benötigt %@</string>
+	<key>native.mcpServers.openBotSettings</key>
+	<string>In den Einstellungen von %@ ein- oder ausschalten</string>
+	<key>native.mcpServers.removeMessage</key>
+	<string>Er wird aus der Konfiguration dieses Bots entfernt. Bereits laufende Chats behalten ihn, bis die Server neu geladen werden.</string>
+	<key>native.mcpServers.removeTitle</key>
+	<string>%@ entfernen?</string>
+	<key>native.mcpServers.removed</key>
+	<string>%@ wurde entfernt.</string>
+	<key>native.mcpServers.setKey</key>
+	<string>API-Schlüssel festlegen…</string>
+	<key>native.mcpServers.url</key>
+	<string>Webadresse</string>
+	<key>native.mcpServers.urlInvalid</key>
+	<string>Gib eine Webadresse ein, die mit https:// beginnt.</string>
 	<key>native.media.more</key>
 	<string>%lld weitere Bilder</string>
 	<key>native.media.position</key>

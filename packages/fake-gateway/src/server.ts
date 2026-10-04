@@ -909,6 +909,48 @@ const FAKE_SKILL_HUB: { name: string; description: string; source: string; trust
   { name: 'changelog-video', description: 'Turn a changelog into a video.', source: 'hub', trust: 'community' }
 ]
 
+/**
+ * The curated MCP presets `mcp.catalog` lists (`hermes_cli/mcp_catalog.py`): the name, what it is for,
+ * the env keys it needs and how it talks. `installed` and `enabled` are derived from the profile's
+ * own servers, never stored here.
+ */
+const FAKE_MCP_CATALOG: {
+  name: string
+  description: string
+  requires: string[]
+  transport: 'http' | 'stdio'
+  command?: string
+  args?: string[]
+  url?: string
+}[] = [
+  {
+    name: 'github',
+    description: 'Issues, pull requests and repositories.',
+    requires: ['GITHUB_TOKEN'],
+    transport: 'stdio',
+    command: 'npx',
+    args: ['-y', '@modelcontextprotocol/server-github']
+  },
+  {
+    name: 'fetch',
+    description: 'Fetch a web page as text.',
+    requires: [],
+    transport: 'stdio',
+    command: 'uvx',
+    args: ['mcp-server-fetch']
+  },
+  {
+    name: 'linear',
+    description: 'Linear issues and projects.',
+    requires: [],
+    transport: 'http',
+    url: 'https://mcp.linear.example.test/mcp'
+  }
+]
+
+/** The env var a server's API key is written under unless the caller names one. */
+const mcpKeyName = (server: string): string => `MCP_${server.toUpperCase().replace(/[^A-Z0-9]/gu, '_')}_API_KEY`
+
 export interface FakeGatewayState {
   auth: FakeAuthMode
   token: string
@@ -1013,6 +1055,11 @@ export interface FakeGatewayState {
   mcpReloads: number
   /** OAuth flows opened by `mcp.servers.oauth.start`, by flow id. */
   mcpOauthFlows: Map<string, FakeOauthFlow>
+  /**
+   * What `mcp.servers.set_api_key` and an `add` with a `bearer_token` wrote to a profile's `.env`,
+   * by server name. The gateway never sends a value back, so this is how a test sees one arrive.
+   */
+  mcpSecrets: Map<string, { envVar: string; value: string }>
   /** Skill names installed from the hub over the socket, newest last. */
   skillsInstalled: string[]
   /**
@@ -3076,6 +3123,7 @@ function initialState(options: FakeGatewayOptions): FakeGatewayState {
     mcpReloadConfirm: true,
     mcpReloads: 0,
     mcpOauthFlows: new Map<string, FakeOauthFlow>(),
+    mcpSecrets: new Map<string, { envVar: string; value: string }>(),
     skillsInstalled: [],
     connectors: [
       { connector: 'gmail', connected: true, enabled: true, connectionStatus: 'active', statusReason: null },
@@ -4620,6 +4668,9 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         interactiveRequests: interactive.list(),
         // Every `connection.respond` the strict contract accepted, as it was sent.
         connectionResponses: state.connectionResponses,
+        // What an MCP server's API key or bearer token was written as, by server: the one place a
+        // secret is visible, because the gateway never sends one back.
+        mcpSecrets: Object.fromEntries(state.mcpSecrets),
         // What `GET /api/files/images/{name}` was asked for (name, profile) and answered (status).
         attachedImageRequests: state.attachedImageRequests,
         // Stored ids of the sessions with a turn still streaming: how a client
@@ -8371,6 +8422,153 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         state.mcpOauthFlows.delete(flowId)
 
         return { ok: true, status: 'cancelled' }
+      }
+
+      /**
+       * `mcp.catalog` — curated presets with this profile's installed / enabled state and the env
+       * keys each needs (`methods_tools.py`).
+       */
+      case 'mcp.catalog':
+        return {
+          servers: FAKE_MCP_CATALOG.map(entry => {
+            const configured = state.mcpServers.find(server => server.name === entry.name)
+
+            return {
+              name: entry.name,
+              description: entry.description,
+              connector_slug: null,
+              installed: configured !== undefined,
+              enabled: configured?.enabled ?? false,
+              requires: entry.requires,
+              transport: entry.transport
+            }
+          })
+        }
+
+      /**
+       * `mcp.servers.add` — a server from a catalogue `preset` and/or an explicit `config`
+       * (`url` or `command`, `args`, `env`, `headers`, `auth`). A name already configured is 4090;
+       * a config with neither `url` nor `command` (and no preset to fill them) is 4063; a
+       * `bearer_token` goes to the profile's `.env` and only a header template persists, so no
+       * answer ever carries it.
+       */
+      case 'mcp.servers.add': {
+        const name = String(params.name ?? '').trim()
+        const preset = typeof params.preset === 'string' && params.preset ? params.preset : null
+        const given =
+          params.config && typeof params.config === 'object' ? (params.config as Record<string, unknown>) : {}
+        const config: Record<string, unknown> = { ...given }
+
+        if (!name) {
+          throw new RpcFault(4063, 'name is required')
+        }
+
+        if (state.mcpServers.some(server => server.name === name)) {
+          throw new RpcFault(4090, `server '${name}' already exists`)
+        }
+
+        if (preset && !config.url && !config.command) {
+          const entry = FAKE_MCP_CATALOG.find(candidate => candidate.name === preset)
+
+          if (!entry) {
+            throw new RpcFault(4063, `Unknown MCP catalog entry or preset: ${preset}`)
+          }
+
+          if (entry.url) {
+            config.url = entry.url
+          }
+
+          if (entry.command) {
+            config.command = entry.command
+            config.args = entry.args ?? []
+          }
+
+          config.env = Object.fromEntries(entry.requires.map(key => [key, `\${${key}}`]))
+        }
+
+        if (!config.url && !config.command) {
+          throw new RpcFault(4063, "config must specify a 'url' (http) or 'command' (stdio), or a valid 'preset'")
+        }
+
+        const spelled = `${String(config.command ?? '')} ${Array.isArray(config.args) ? config.args.join(' ') : ''}`
+
+        // The gateway's own screen for a command that is plainly not a server: a shell pipeline.
+        if (/[;&|`]/u.test(spelled)) {
+          throw new RpcFault(4001, `server '${name}' rejected: suspicious command/args configuration`)
+        }
+
+        const bearer = typeof params.bearer_token === 'string' && params.bearer_token ? params.bearer_token : null
+        const missing = typeof config.command === 'string' && config.command.startsWith('missing-')
+        const server: FakeMcpServer = {
+          name,
+          transport: config.url ? 'http' : 'stdio',
+          ...(typeof config.url === 'string' ? { url: config.url } : {}),
+          ...(typeof config.command === 'string' ? { command: config.command } : {}),
+          args: Array.isArray(config.args) ? config.args.map(String) : [],
+          env: config.env && typeof config.env === 'object' ? Object.keys(config.env as Record<string, unknown>) : [],
+          auth: bearer ? 'bearer' : config.auth === 'oauth' ? 'oauth' : null,
+          oauthTokensPresent: false,
+          enabled: true,
+          tools: missing ? null : [{ name: 'echo', description: 'Echo the input back.' }],
+          ...(missing ? { probeError: `spawn ${String(config.command)} ENOENT` } : {})
+        }
+
+        if (bearer) {
+          state.mcpSecrets.set(name, { envVar: mcpKeyName(name), value: bearer })
+        }
+
+        state.mcpServers.push(server)
+
+        return { ok: true, name, server: summariseMcpServer(server) }
+      }
+
+      /**
+       * `mcp.servers.set_api_key` — the secret goes to the profile's `.env` under `env_var`
+       * (default `MCP_<NAME>_API_KEY`); the server keeps only a `${ENV}` reference, an http one as
+       * its Bearer header, a stdio one as an `env` entry. A blank value (or a bare `Bearer`) is 4063.
+       */
+      case 'mcp.servers.set_api_key': {
+        const name = String(params.name ?? '')
+        const server = state.mcpServers.find(entry => entry.name === name)
+
+        if (!server) {
+          throw new RpcFault(4064, `server '${name}' not found`)
+        }
+
+        const value = String(params.value ?? '')
+          .replace(/^bearer\s+/iu, '')
+          .trim()
+
+        if (!value || value.toLowerCase() === 'bearer') {
+          throw new RpcFault(4063, 'value is not a valid credential')
+        }
+
+        const envVar = typeof params.env_var === 'string' && params.env_var ? params.env_var : mcpKeyName(name)
+
+        state.mcpSecrets.set(name, { envVar, value })
+
+        if (server.url) {
+          server.auth = 'bearer'
+        } else if (!server.env.includes(envVar)) {
+          server.env.push(envVar)
+        }
+
+        return { ok: true, name, env_var: envVar, server: summariseMcpServer(server) }
+      }
+
+      /** `mcp.servers.remove` — out of the profile's config; an unknown name is 4064. */
+      case 'mcp.servers.remove': {
+        const name = String(params.name ?? '')
+        const at = state.mcpServers.findIndex(entry => entry.name === name)
+
+        if (at === -1) {
+          throw new RpcFault(4064, `server '${name}' not found`)
+        }
+
+        state.mcpServers.splice(at, 1)
+        state.mcpSecrets.delete(name)
+
+        return { ok: true, removed: true }
       }
 
       case 'session.list': {

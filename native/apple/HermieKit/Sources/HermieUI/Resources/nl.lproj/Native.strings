@@ -100,6 +100,8 @@
 	<string>Bot</string>
 	<key>native.capability.noGateway</key>
 	<string>Maak verbinding met een gateway om dit te gebruiken.</string>
+	<key>native.capability.save</key>
+	<string>Bewaar</string>
 	<key>native.chat.attachment.failed</key>
 	<string>“%@” kon niet van de gateway worden opgehaald.</string>
 	<key>native.chat.attachment.unavailable</key>
@@ -1004,6 +1006,68 @@
 	<string>MCP op %@</string>
 	<key>native.mcp.title</key>
 	<string>MCP</string>
+	<key>native.mcpServers.add</key>
+	<string>Server toevoegen…</string>
+	<key>native.mcpServers.addTitle</key>
+	<string>Server toevoegen</string>
+	<key>native.mcpServers.added</key>
+	<string>%@ is toegevoegd.</string>
+	<key>native.mcpServers.arguments</key>
+	<string>Argumenten</string>
+	<key>native.mcpServers.argumentsHint</key>
+	<string>Gescheiden door spaties. Zet aanhalingstekens om een argument met spaties erin. De opdracht draait op de machine van de gateway.</string>
+	<key>native.mcpServers.bearer</key>
+	<string>Bearer-token (optioneel)</string>
+	<key>native.mcpServers.bearerHint</key>
+	<string>Een token gaat naar de gateway en wordt daar in de .env van de bot bewaard. Hermie bewaart het niet.</string>
+	<key>native.mcpServers.catalogueHeader</key>
+	<string>UIT DE CATALOGUS</string>
+	<key>native.mcpServers.command</key>
+	<string>Opdracht</string>
+	<key>native.mcpServers.commandMissing</key>
+	<string>Vul de opdracht in die de server start.</string>
+	<key>native.mcpServers.customHeader</key>
+	<string>EEN EIGEN SERVER</string>
+	<key>native.mcpServers.keyField</key>
+	<string>API-sleutel</string>
+	<key>native.mcpServers.keyHint</key>
+	<string>De gateway bewaart de sleutel in de .env van deze bot. Hermie bewaart hem niet.</string>
+	<key>native.mcpServers.keySaved</key>
+	<string>De API-sleutel voor %@ is bewaard.</string>
+	<key>native.mcpServers.keyTitle</key>
+	<string>API-sleutel instellen</string>
+	<key>native.mcpServers.keyVariable</key>
+	<string>Variabele</string>
+	<key>native.mcpServers.kind</key>
+	<string>Soort</string>
+	<key>native.mcpServers.kindHTTP</key>
+	<string>Webadres</string>
+	<key>native.mcpServers.kindStdio</key>
+	<string>Opdracht</string>
+	<key>native.mcpServers.linkRefused</key>
+	<string>De gateway stuurde een inloglink die Hermie niet opent.</string>
+	<key>native.mcpServers.name</key>
+	<string>Naam</string>
+	<key>native.mcpServers.nameHasSpaces</key>
+	<string>Een naam mag geen spaties bevatten.</string>
+	<key>native.mcpServers.nameMissing</key>
+	<string>Geef de server een naam.</string>
+	<key>native.mcpServers.needs</key>
+	<string>Heeft %@ nodig</string>
+	<key>native.mcpServers.openBotSettings</key>
+	<string>Zet hem aan of uit in de instellingen van %@</string>
+	<key>native.mcpServers.removeMessage</key>
+	<string>De server wordt uit de configuratie van deze bot gehaald. Gesprekken die al lopen houden hem tot de servers worden herladen.</string>
+	<key>native.mcpServers.removeTitle</key>
+	<string>%@ verwijderen?</string>
+	<key>native.mcpServers.removed</key>
+	<string>%@ is verwijderd.</string>
+	<key>native.mcpServers.setKey</key>
+	<string>API-sleutel instellen…</string>
+	<key>native.mcpServers.url</key>
+	<string>Webadres</string>
+	<key>native.mcpServers.urlInvalid</key>
+	<string>Vul een webadres in dat met https:// begint.</string>
 	<key>native.media.more</key>
 	<string>%lld meer afbeeldingen</string>
 	<key>native.media.position</key>

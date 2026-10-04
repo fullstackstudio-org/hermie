@@ -1135,6 +1135,30 @@
         }
       }
     },
+    "native.capability.save" : {
+      "comment" : "A capability page: the button that saves what was typed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sichern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bewaar"
+          }
+        }
+      }
+    },
     "native.chat.attachment.failed" : {
       "comment" : "Above a chat, after a file the gateway serves could not be fetched to open it. The argument is the file's name.",
       "extractionState" : "manual",
@@ -12023,6 +12047,750 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "MCP"
+          }
+        }
+      }
+    },
+    "native.mcpServers.add" : {
+      "comment" : "MCP servers page: the button that opens the add sheet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server hinzufügen…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add server…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server toevoegen…"
+          }
+        }
+      }
+    },
+    "native.mcpServers.addTitle" : {
+      "comment" : "MCP servers page: the title of the add sheet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add server"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server toevoegen"
+          }
+        }
+      }
+    },
+    "native.mcpServers.added" : {
+      "comment" : "MCP servers page: a server was added. The argument is its name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ wurde hinzugefügt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Added %@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is toegevoegd."
+          }
+        }
+      }
+    },
+    "native.mcpServers.arguments" : {
+      "comment" : "MCP servers page, add sheet: the command's arguments.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Argumente"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arguments"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Argumenten"
+          }
+        }
+      }
+    },
+    "native.mcpServers.argumentsHint" : {
+      "comment" : "MCP servers page, add sheet: under the command fields.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Durch Leerzeichen getrennt. Setze ein Argument mit Leerzeichen in Anführungszeichen. Der Befehl läuft auf dem Rechner des Gateways."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Separated by spaces. Put quotes around an argument that has spaces in it. The command runs on the gateway’s machine."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gescheiden door spaties. Zet aanhalingstekens om een argument met spaties erin. De opdracht draait op de machine van de gateway."
+          }
+        }
+      }
+    },
+    "native.mcpServers.bearer" : {
+      "comment" : "MCP servers page, add sheet: an optional token for a web server.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bearer-Token (optional)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bearer token (optional)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bearer-token (optioneel)"
+          }
+        }
+      }
+    },
+    "native.mcpServers.bearerHint" : {
+      "comment" : "MCP servers page, add sheet: under the web address fields.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Token wird an das Gateway gesendet und dort in der .env des Bots gespeichert. Hermie behält es nicht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A token is sent to the gateway and stored in the bot’s .env there. Hermie does not keep it."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een token gaat naar de gateway en wordt daar in de .env van de bot bewaard. Hermie bewaart het niet."
+          }
+        }
+      }
+    },
+    "native.mcpServers.catalogueHeader" : {
+      "comment" : "MCP servers page, add sheet: the header over the gateway's curated servers.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AUS DEM KATALOG"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FROM THE CATALOGUE"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UIT DE CATALOGUS"
+          }
+        }
+      }
+    },
+    "native.mcpServers.command" : {
+      "comment" : "MCP servers page, add sheet: the command that starts the server.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Befehl"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opdracht"
+          }
+        }
+      }
+    },
+    "native.mcpServers.commandMissing" : {
+      "comment" : "MCP servers page, add sheet: a problem with the command.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib den Befehl ein, der den Server startet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter the command that starts the server."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vul de opdracht in die de server start."
+          }
+        }
+      }
+    },
+    "native.mcpServers.customHeader" : {
+      "comment" : "MCP servers page, add sheet: the header over the form for a server the person describes.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EIGENER SERVER"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "YOUR OWN SERVER"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EEN EIGEN SERVER"
+          }
+        }
+      }
+    },
+    "native.mcpServers.keyField" : {
+      "comment" : "MCP servers page, API key sheet: the secure field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API-Schlüssel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API key"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API-sleutel"
+          }
+        }
+      }
+    },
+    "native.mcpServers.keyHint" : {
+      "comment" : "MCP servers page, API key sheet: where the key goes.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Gateway speichert den Schlüssel in der .env dieses Bots. Hermie behält ihn nicht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The gateway stores the key in this bot’s .env. Hermie does not keep it."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De gateway bewaart de sleutel in de .env van deze bot. Hermie bewaart hem niet."
+          }
+        }
+      }
+    },
+    "native.mcpServers.keySaved" : {
+      "comment" : "MCP servers page: an API key was saved. The argument is the server's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der API-Schlüssel für %@ wurde gespeichert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved the API key for %@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De API-sleutel voor %@ is bewaard."
+          }
+        }
+      }
+    },
+    "native.mcpServers.keyTitle" : {
+      "comment" : "MCP servers page: the title of the API key sheet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API-Schlüssel festlegen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set API key"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API-sleutel instellen"
+          }
+        }
+      }
+    },
+    "native.mcpServers.keyVariable" : {
+      "comment" : "MCP servers page, API key sheet: which environment variable the key is stored under.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Variable"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Variable"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Variabele"
+          }
+        }
+      }
+    },
+    "native.mcpServers.kind" : {
+      "comment" : "MCP servers page, add sheet: the label of the choice between a web address and a command.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Art"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kind"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Soort"
+          }
+        }
+      }
+    },
+    "native.mcpServers.kindHTTP" : {
+      "comment" : "MCP servers page, add sheet: a server reached at a web address.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Webadresse"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web address"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Webadres"
+          }
+        }
+      }
+    },
+    "native.mcpServers.kindStdio" : {
+      "comment" : "MCP servers page, add sheet: a server started as a command on the gateway's machine.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Befehl"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opdracht"
+          }
+        }
+      }
+    },
+    "native.mcpServers.linkRefused" : {
+      "comment" : "MCP servers page: the gateway's sign-in link is not an https link, or the system would not open it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Gateway hat einen Anmeldelink gesendet, den Hermie nicht öffnet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The gateway sent a sign-in link that Hermie will not open."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De gateway stuurde een inloglink die Hermie niet opent."
+          }
+        }
+      }
+    },
+    "native.mcpServers.name" : {
+      "comment" : "MCP servers page, add sheet: the server's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naam"
+          }
+        }
+      }
+    },
+    "native.mcpServers.nameHasSpaces" : {
+      "comment" : "MCP servers page, add sheet: a problem with the name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Name darf keine Leerzeichen enthalten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A name cannot have spaces in it."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een naam mag geen spaties bevatten."
+          }
+        }
+      }
+    },
+    "native.mcpServers.nameMissing" : {
+      "comment" : "MCP servers page, add sheet: a problem with the name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib dem Server einen Namen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Give the server a name."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geef de server een naam."
+          }
+        }
+      }
+    },
+    "native.mcpServers.needs" : {
+      "comment" : "MCP servers page, add sheet: the environment keys a catalogue server needs. The argument lists them.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benötigt %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heeft %@ nodig"
+          }
+        }
+      }
+    },
+    "native.mcpServers.openBotSettings" : {
+      "comment" : "MCP servers page, a server's page: the link to the bot's own settings, where servers are switched on and off. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In den Einstellungen von %@ ein- oder ausschalten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch it on or off in %@’s settings"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zet hem aan of uit in de instellingen van %@"
+          }
+        }
+      }
+    },
+    "native.mcpServers.removeMessage" : {
+      "comment" : "MCP servers page: what removing a server does.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er wird aus der Konfiguration dieses Bots entfernt. Bereits laufende Chats behalten ihn, bis die Server neu geladen werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It is taken out of this bot’s configuration. Chats that are already running keep it until the servers are reloaded."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De server wordt uit de configuratie van deze bot gehaald. Gesprekken die al lopen houden hem tot de servers worden herladen."
+          }
+        }
+      }
+    },
+    "native.mcpServers.removeTitle" : {
+      "comment" : "MCP servers page: the question before a server is removed. The argument is its name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ entfernen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove %@?"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ verwijderen?"
+          }
+        }
+      }
+    },
+    "native.mcpServers.removed" : {
+      "comment" : "MCP servers page: a server was removed. The argument is its name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ wurde entfernt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Removed %@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is verwijderd."
+          }
+        }
+      }
+    },
+    "native.mcpServers.setKey" : {
+      "comment" : "MCP servers page, a server's page: the button that opens the API key sheet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API-Schlüssel festlegen…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set API key…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API-sleutel instellen…"
+          }
+        }
+      }
+    },
+    "native.mcpServers.url" : {
+      "comment" : "MCP servers page, add sheet: the server's web address.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Webadresse"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web address"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Webadres"
+          }
+        }
+      }
+    },
+    "native.mcpServers.urlInvalid" : {
+      "comment" : "MCP servers page, add sheet: a problem with the web address.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib eine Webadresse ein, die mit https:// beginnt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a web address that starts with https://."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vul een webadres in dat met https:// begint."
           }
         }
       }

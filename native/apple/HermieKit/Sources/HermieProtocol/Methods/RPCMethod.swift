@@ -319,6 +319,34 @@ public enum RPC {
     public typealias Result = JSONValue
   }
 
+  /// The curated presets, with this profile's installed and enabled state.
+  public enum McpCatalog: RPCMethod {
+    public static let name = "mcp.catalog"
+    public typealias Params = JSONValue
+    public typealias Result = JSONValue
+  }
+
+  /// `{profile?, name, preset?, config?, bearer_token?}`.
+  public enum McpServersAdd: RPCMethod {
+    public static let name = "mcp.servers.add"
+    public typealias Params = JSONValue
+    public typealias Result = JSONValue
+  }
+
+  /// `{profile?, name}`.
+  public enum McpServersRemove: RPCMethod {
+    public static let name = "mcp.servers.remove"
+    public typealias Params = JSONValue
+    public typealias Result = JSONValue
+  }
+
+  /// `{profile?, name, value, env_var?}`: the secret goes to the profile's `.env`.
+  public enum McpServersSetApiKey: RPCMethod {
+    public static let name = "mcp.servers.set_api_key"
+    public typealias Params = JSONValue
+    public typealias Result = JSONValue
+  }
+
   public enum McpServersTest: RPCMethod {
     public static let name = "mcp.servers.test"
     public typealias Params = JSONValue
@@ -410,7 +438,8 @@ public enum RPC {
     CommandDispatch.name, ConfigGet.name, ConfigSet.name, ModelOptions.name,
     AgentsList.name, DelegationStatus.name, SubagentList.name, SubagentTail.name,
     SubagentSteer.name, SubagentInterrupt.name, SkillsManage.name, McpServersList.name,
-    McpServersStatus.name, McpServersTest.name, McpServersOauthStart.name, McpServersOauthPoll.name,
+    McpServersStatus.name, McpCatalog.name, McpServersAdd.name, McpServersRemove.name,
+    McpServersSetApiKey.name, McpServersTest.name, McpServersOauthStart.name, McpServersOauthPoll.name,
     McpServersOauthCancel.name, ReloadMcp.name, ConnectorsList.name, ConnectorsConnect.name,
     ConnectorsOperationStatus.name, ConnectionRespond.name, ConnectorsOperationWake.name, CronManage.name
   ]

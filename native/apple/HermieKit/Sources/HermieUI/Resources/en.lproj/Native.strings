@@ -100,6 +100,8 @@
 	<string>Bot</string>
 	<key>native.capability.noGateway</key>
 	<string>Connect to a gateway to use this.</string>
+	<key>native.capability.save</key>
+	<string>Save</string>
 	<key>native.chat.attachment.failed</key>
 	<string>“%@” could not be fetched from the gateway.</string>
 	<key>native.chat.attachment.unavailable</key>
@@ -1004,6 +1006,68 @@
 	<string>MCP on %@</string>
 	<key>native.mcp.title</key>
 	<string>MCP</string>
+	<key>native.mcpServers.add</key>
+	<string>Add server…</string>
+	<key>native.mcpServers.addTitle</key>
+	<string>Add server</string>
+	<key>native.mcpServers.added</key>
+	<string>Added %@.</string>
+	<key>native.mcpServers.arguments</key>
+	<string>Arguments</string>
+	<key>native.mcpServers.argumentsHint</key>
+	<string>Separated by spaces. Put quotes around an argument that has spaces in it. The command runs on the gateway’s machine.</string>
+	<key>native.mcpServers.bearer</key>
+	<string>Bearer token (optional)</string>
+	<key>native.mcpServers.bearerHint</key>
+	<string>A token is sent to the gateway and stored in the bot’s .env there. Hermie does not keep it.</string>
+	<key>native.mcpServers.catalogueHeader</key>
+	<string>FROM THE CATALOGUE</string>
+	<key>native.mcpServers.command</key>
+	<string>Command</string>
+	<key>native.mcpServers.commandMissing</key>
+	<string>Enter the command that starts the server.</string>
+	<key>native.mcpServers.customHeader</key>
+	<string>YOUR OWN SERVER</string>
+	<key>native.mcpServers.keyField</key>
+	<string>API key</string>
+	<key>native.mcpServers.keyHint</key>
+	<string>The gateway stores the key in this bot’s .env. Hermie does not keep it.</string>
+	<key>native.mcpServers.keySaved</key>
+	<string>Saved the API key for %@.</string>
+	<key>native.mcpServers.keyTitle</key>
+	<string>Set API key</string>
+	<key>native.mcpServers.keyVariable</key>
+	<string>Variable</string>
+	<key>native.mcpServers.kind</key>
+	<string>Kind</string>
+	<key>native.mcpServers.kindHTTP</key>
+	<string>Web address</string>
+	<key>native.mcpServers.kindStdio</key>
+	<string>Command</string>
+	<key>native.mcpServers.linkRefused</key>
+	<string>The gateway sent a sign-in link that Hermie will not open.</string>
+	<key>native.mcpServers.name</key>
+	<string>Name</string>
+	<key>native.mcpServers.nameHasSpaces</key>
+	<string>A name cannot have spaces in it.</string>
+	<key>native.mcpServers.nameMissing</key>
+	<string>Give the server a name.</string>
+	<key>native.mcpServers.needs</key>
+	<string>Needs %@</string>
+	<key>native.mcpServers.openBotSettings</key>
+	<string>Switch it on or off in %@’s settings</string>
+	<key>native.mcpServers.removeMessage</key>
+	<string>It is taken out of this bot’s configuration. Chats that are already running keep it until the servers are reloaded.</string>
+	<key>native.mcpServers.removeTitle</key>
+	<string>Remove %@?</string>
+	<key>native.mcpServers.removed</key>
+	<string>Removed %@.</string>
+	<key>native.mcpServers.setKey</key>
+	<string>Set API key…</string>
+	<key>native.mcpServers.url</key>
+	<string>Web address</string>
+	<key>native.mcpServers.urlInvalid</key>
+	<string>Enter a web address that starts with https://.</string>
 	<key>native.media.more</key>
 	<string>%lld more pictures</string>
 	<key>native.media.position</key>
