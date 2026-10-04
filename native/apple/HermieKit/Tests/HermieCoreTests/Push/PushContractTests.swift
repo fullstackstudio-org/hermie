@@ -216,11 +216,14 @@ struct PushContractTests {
     #expect(Self.object(category["when"])["type"] == "request")
   }
 
-  @Test("the three phase-1 interactive requests have buttonless, textless, id-required rows")
+  @Test("the interactive requests have buttonless, textless, id-required rows")
   func interactiveRows() throws {
     let methods = Self.array(Self.object(try Self.contract()["requests"])["methods"])
 
-    for name in ["input.form", "input.file", "review.draft"] {
+    for name in [
+      "input.form", "input.file", "review.draft", "review.diff", "input.signature", "device.location", "device.contact",
+      "device.calendar", "device.scan",
+    ] {
       let rows = methods.filter { $0["method"]?.stringValue == name }
       #expect(rows.count == 1, "one row for \(name)")
       #expect(rows.first?["requestId"] == "required", "requestId of \(name)")

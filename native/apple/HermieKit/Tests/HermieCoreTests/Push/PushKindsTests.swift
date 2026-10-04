@@ -53,7 +53,10 @@ struct PushKindsTests {
 
   @Test("the interactive requests: a request kind with a required request id, no actions, no preview, not a secure input")
   func interactiveMethods() {
-    for name in ["input.form", "input.file", "review.draft"] {
+    for name in [
+      "input.form", "input.file", "review.draft", "review.diff", "input.signature", "device.location", "device.contact",
+      "device.calendar", "device.scan",
+    ] {
       guard let method = PushRequestMethod(rawValue: name) else {
         Issue.record("a method this build does not know: \(name)")
         continue
@@ -463,7 +466,10 @@ struct PushKindsControllerTests {
     rig.controller.respond = { _ in answers += 1 }
     await rig.controller.setGateways([G.one])
 
-    for method in ["input.form", "input.file", "review.draft"] {
+    for method in [
+      "input.form", "input.file", "review.draft", "review.diff", "input.signature", "device.location", "device.contact",
+      "device.calendar", "device.scan",
+    ] {
       opened.removeAll()
 
       let payload = Self.request(method)

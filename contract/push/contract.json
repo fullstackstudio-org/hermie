@@ -43,7 +43,13 @@
         "confirm",
         "input.form",
         "input.file",
-        "review.draft"
+        "review.draft",
+        "review.diff",
+        "input.signature",
+        "device.location",
+        "device.contact",
+        "device.calendar",
+        "device.scan"
       ]
     }
   },
@@ -113,6 +119,42 @@
       },
       {
         "method": "review.draft",
+        "requestId": "required",
+        "actions": false,
+        "preview": false
+      },
+      {
+        "method": "review.diff",
+        "requestId": "required",
+        "actions": false,
+        "preview": false
+      },
+      {
+        "method": "input.signature",
+        "requestId": "required",
+        "actions": false,
+        "preview": false
+      },
+      {
+        "method": "device.location",
+        "requestId": "required",
+        "actions": false,
+        "preview": false
+      },
+      {
+        "method": "device.contact",
+        "requestId": "required",
+        "actions": false,
+        "preview": false
+      },
+      {
+        "method": "device.calendar",
+        "requestId": "required",
+        "actions": false,
+        "preview": false
+      },
+      {
+        "method": "device.scan",
         "requestId": "required",
         "actions": false,
         "preview": false
@@ -249,6 +291,30 @@
           {
             "type": "request",
             "method": "review.draft"
+          },
+          {
+            "type": "request",
+            "method": "review.diff"
+          },
+          {
+            "type": "request",
+            "method": "input.signature"
+          },
+          {
+            "type": "request",
+            "method": "device.location"
+          },
+          {
+            "type": "request",
+            "method": "device.contact"
+          },
+          {
+            "type": "request",
+            "method": "device.calendar"
+          },
+          {
+            "type": "request",
+            "method": "device.scan"
           }
         ]
       },
@@ -268,7 +334,13 @@
           "confirm",
           "input.form",
           "input.file",
-          "review.draft"
+          "review.draft",
+          "review.diff",
+          "input.signature",
+          "device.location",
+          "device.contact",
+          "device.calendar",
+          "device.scan"
         ]
       },
       {
@@ -616,6 +688,136 @@
         },
         "title": "scout",
         "body": "Has a draft to review"
+      },
+      {
+        "name": "review_diff",
+        "data": {
+          "v": 1,
+          "type": "request",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "request:26972d39faad04dbf1c65b13980f4ecb",
+          "sessionId": "8a1b2c3d",
+          "sessionKey": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "method": "review.diff",
+          "requestId": "srq-0123456789ab"
+        },
+        "title": "scout",
+        "body": "Has changes to review"
+      },
+      {
+        "name": "input_signature",
+        "data": {
+          "v": 1,
+          "type": "request",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "request:6bca1ba7e692cc113a5a4158d270883f",
+          "sessionId": "8a1b2c3d",
+          "sessionKey": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "method": "input.signature",
+          "requestId": "srq-0123456789ab"
+        },
+        "title": "scout",
+        "body": "Needs your signature"
+      },
+      {
+        "name": "device_location",
+        "data": {
+          "v": 1,
+          "type": "request",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "request:e7233682f891b71dd660c053c22ff647",
+          "sessionId": "8a1b2c3d",
+          "sessionKey": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "method": "device.location",
+          "requestId": "srq-0123456789ab"
+        },
+        "title": "scout",
+        "body": "Needs your location"
+      },
+      {
+        "name": "device_contact",
+        "data": {
+          "v": 1,
+          "type": "request",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "request:d54dbeebfa23a0d0c94261ca92430ea3",
+          "sessionId": "8a1b2c3d",
+          "sessionKey": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "method": "device.contact",
+          "requestId": "srq-0123456789ab"
+        },
+        "title": "scout",
+        "body": "Needs a contact"
+      },
+      {
+        "name": "device_calendar",
+        "data": {
+          "v": 1,
+          "type": "request",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "request:fb5e5d99f04b9f3fe2a29f63bf61134b",
+          "sessionId": "8a1b2c3d",
+          "sessionKey": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "method": "device.calendar",
+          "requestId": "srq-0123456789ab"
+        },
+        "title": "scout",
+        "body": "Has an event for your calendar"
+      },
+      {
+        "name": "device_scan",
+        "data": {
+          "v": 1,
+          "type": "request",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "request:ce2540286b09d56f9fc690797a1163fc",
+          "sessionId": "8a1b2c3d",
+          "sessionKey": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "method": "device.scan",
+          "requestId": "srq-0123456789ab"
+        },
+        "title": "scout",
+        "body": "Needs a scan"
+      },
+      {
+        "name": "clear_device_location_timeout",
+        "data": {
+          "v": 1,
+          "type": "request",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "clear:49516cc2bcf31b0f72607c4fc4d4df5b",
+          "sessionId": "8a1b2c3d",
+          "sessionKey": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "method": "device.location",
+          "clear": true,
+          "reason": "timeout",
+          "replaces": "request:e7233682f891b71dd660c053c22ff647",
+          "requestId": "srq-0123456789ab"
+        },
+        "title": "scout",
+        "body": "Request closed",
+        "silent": true
       },
       {
         "name": "clear_approval_answered",

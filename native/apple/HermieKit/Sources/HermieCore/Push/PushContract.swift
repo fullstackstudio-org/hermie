@@ -169,8 +169,8 @@ public struct PushCategoryDescriptor: Sendable, Equatable {
  name for the server request. Only an approval is ever posted with the Allow and Deny actions; every
  other kind has no answer a button could send (a clarify), has to be typed (the secure inputs) or is
  the person's own act (a confirmation, possibly on a locked screen). The interactive requests
- (`input.form`, `input.file`, `review.draft`) are buttonless too and carry no text: a tap opens the
- chat and the request sheet.
+ (`input.form`, `input.file`, `review.draft`, `review.diff`, `input.signature` and the `device.*`
+ requests) are buttonless too and carry no text: a tap opens the chat and the request sheet.
  */
 public enum PushRequestMethod: String, Sendable, CaseIterable {
   case approval
@@ -188,6 +188,19 @@ public enum PushRequestMethod: String, Sendable, CaseIterable {
   case inputFile = "input.file"
   /// An agent's draft for the person to review and edit (`review.draft`); same shape as a form.
   case reviewDraft = "review.draft"
+  /// An agent's changes to a file, to approve hunk by hunk (`review.diff`); same shape as a form.
+  case reviewDiff = "review.diff"
+  /// A statement for the person to sign on a pad (`input.signature`); same shape as a form.
+  case inputSignature = "input.signature"
+  /// The device's location, approximate or precise (`device.location`); same shape as a form.
+  case deviceLocation = "device.location"
+  /// One of the person's contacts, reduced to the fields asked for (`device.contact`); same shape as a form.
+  case deviceContact = "device.contact"
+  /// One calendar event or reminder, saved by the person in the system sheet (`device.calendar`);
+  /// same shape as a form.
+  case deviceCalendar = "device.calendar"
+  /// One code read with the camera (`device.scan`); same shape as a form.
+  case deviceScan = "device.scan"
 
   /// Whether the sender always names the request id or only when it has it. An approval is
   /// `whenKnown` too: the approval hook of a gateway may carry no request id, and such an approval is
@@ -216,7 +229,9 @@ public enum PushRequestMethod: String, Sendable, CaseIterable {
   public var isSecureInput: Bool {
     switch self {
     case .secret, .sudo, .vaultUnlockPrompt, .vaultCode, .vaultSaveLogin: true
-    case .approval, .clarify, .confirm, .inputForm, .inputFile, .reviewDraft: false
+    case .approval, .clarify, .confirm, .inputForm, .inputFile, .reviewDraft, .reviewDiff, .inputSignature,
+      .deviceLocation, .deviceContact, .deviceCalendar, .deviceScan:
+      false
     }
   }
 
