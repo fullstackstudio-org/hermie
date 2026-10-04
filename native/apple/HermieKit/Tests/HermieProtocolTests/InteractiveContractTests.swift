@@ -64,6 +64,15 @@ import Testing
           #expect(try canonical(Self.copy(params)) == canonical(params), "\(place) loses keys when typed")
           #expect(!params.offersSkip, "\(place): there is no skip")
           #expect(params.hunks?.count == raw["params"]?["hunks"]?.arrayValue?.count, "\(place)")
+        case .deviceLocation(let params):
+          #expect(try canonical(DeviceRequestsContractTests.copy(params)) == canonical(params), "\(place) loses keys when typed")
+          #expect(params.offersSkip == (raw["params"]?["optional"]?.boolValue ?? true))
+        case .deviceContact(let params):
+          #expect(try canonical(DeviceRequestsContractTests.copy(params)) == canonical(params), "\(place) loses keys when typed")
+          #expect(params.offersSkip == (raw["params"]?["optional"]?.boolValue ?? true))
+        case .deviceCalendar(let params):
+          #expect(try canonical(DeviceRequestsContractTests.copy(params)) == canonical(params), "\(place) loses keys when typed")
+          #expect(params.offersSkip == (raw["params"]?["optional"]?.boolValue ?? true))
         default:
           Issue.record("\(place): typed as \(body.method)")
         }
@@ -74,11 +83,14 @@ import Testing
         case .inputFile(let p): Self.expectEnvelope(p, envelope, place)
         case .reviewDraft(let p): Self.expectEnvelope(p, envelope, place)
         case .reviewDiff(let p): Self.expectEnvelope(p, envelope, place)
+        case .deviceLocation(let p): Self.expectEnvelope(p, envelope, place)
+        case .deviceContact(let p): Self.expectEnvelope(p, envelope, place)
+        case .deviceCalendar(let p): Self.expectEnvelope(p, envelope, place)
         default: break
         }
       }
     }
-    #expect(count == 16)
+    #expect(count == 25)
   }
 
   static func expectEnvelope<P: InteractiveRequestParams>(_ params: P, _ raw: JSONValue?, _ place: String) {
@@ -170,7 +182,7 @@ import Testing
         }
       }
     }
-    #expect(count == 56)
+    #expect(count == 88)
   }
 
   // MARK: Answers
@@ -477,14 +489,17 @@ import Testing
     #expect(throws: DecodingError.self) { try JSONDecoder().decode(FormField.self, from: Data("[1]".utf8)) }
   }
 
-  @Test("methods nobody handles are still unknown, and the four interactive ones are declared")
+  @Test("methods nobody handles are still unknown, and the interactive ones are declared")
   func methodsAndUnknowns() {
     for method in ["input.other", "review.other", "input", "tour", ""] {
       let request = ServerRequest(id: "a", method: method, params: ["session_id": "s"])
       #expect(request.body == .unknown(method: method, params: ["session_id": "s"]), "\(method)")
       #expect(!request.body.isInteractive)
     }
-    #expect(ServerRequestBody.Method.interactive == ["input.form", "input.file", "review.draft", "review.diff"])
+    #expect(
+      ServerRequestBody.Method.interactive == [
+        "input.form", "input.file", "review.draft", "review.diff", "device.location", "device.contact", "device.calendar"
+      ])
     #expect(Set(ServerRequestBody.Method.interactive).isSubset(of: Set(ServerRequestBody.Method.all)))
     #expect(ServerRequestBody.Method.all == ServerRequestBody.Method.all.sorted())
     #expect(ServerRequestBody.Method.all.count == Set(ServerRequestBody.Method.all).count)

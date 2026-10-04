@@ -194,6 +194,9 @@ public enum ServerRequestBody: Sendable, Hashable {
   case inputFile(InputFileParams)
   case reviewDraft(ReviewDraftParams)
   case reviewDiff(ReviewDiffParams)
+  case deviceLocation(DeviceLocationParams)
+  case deviceContact(DeviceContactParams)
+  case deviceCalendar(DeviceCalendarParams)
   case unknown(method: String, params: JSONObject)
 
   public enum Method {
@@ -209,14 +212,20 @@ public enum ServerRequestBody: Sendable, Hashable {
     public static let inputFile = "input.file"
     public static let reviewDraft = "review.draft"
     public static let reviewDiff = "review.diff"
+    public static let deviceLocation = "device.location"
+    public static let deviceContact = "device.contact"
+    public static let deviceCalendar = "device.calendar"
     /// The interactive requests (`contract/requests/`), in the order a connection advertises them in
     /// `client.capabilities`' `requests`.
-    public static let interactive = [inputForm, inputFile, reviewDraft, reviewDiff]
+    public static let interactive = [
+      inputForm, inputFile, reviewDraft, reviewDiff,
+      deviceLocation, deviceContact, deviceCalendar
+    ]
     /// Every server request the backend declares (`SERVER_REQUEST_METHODS`).
     public static let all = [
-      "approval", "clarify", "confirm", "input.file", "input.form", "preview.act", "preview.read", "review.diff",
-      "review.draft", "secret", "sudo", "terminal.read", "tour", "vault.code", "vault.save_login", "vault.unlock_prompt",
-      "window.read"
+      "approval", "clarify", "confirm", "device.calendar", "device.contact", "device.location", "input.file",
+      "input.form", "preview.act", "preview.read", "review.diff", "review.draft", "secret", "sudo", "terminal.read",
+      "tour", "vault.code", "vault.save_login", "vault.unlock_prompt", "window.read"
     ]
     /// The one-string prompts, answered with `ValueResult` (`''` skips).
     public static let secureInput: Set<String> = [secret, sudo, vaultUnlock, vaultCode, vaultSaveLogin]
@@ -236,6 +245,9 @@ public enum ServerRequestBody: Sendable, Hashable {
     case Method.inputFile: self = .inputFile(InputFileParams(json: params))
     case Method.reviewDraft: self = .reviewDraft(ReviewDraftParams(json: params))
     case Method.reviewDiff: self = .reviewDiff(ReviewDiffParams(json: params))
+    case Method.deviceLocation: self = .deviceLocation(DeviceLocationParams(json: params))
+    case Method.deviceContact: self = .deviceContact(DeviceContactParams(json: params))
+    case Method.deviceCalendar: self = .deviceCalendar(DeviceCalendarParams(json: params))
     default: self = .unknown(method: method, params: params)
     }
   }
@@ -254,6 +266,9 @@ public enum ServerRequestBody: Sendable, Hashable {
     case .inputFile: Method.inputFile
     case .reviewDraft: Method.reviewDraft
     case .reviewDiff: Method.reviewDiff
+    case .deviceLocation: Method.deviceLocation
+    case .deviceContact: Method.deviceContact
+    case .deviceCalendar: Method.deviceCalendar
     case .unknown(let method, _): method
     }
   }
@@ -272,6 +287,9 @@ public enum ServerRequestBody: Sendable, Hashable {
     case .inputFile(let params): params.json
     case .reviewDraft(let params): params.json
     case .reviewDiff(let params): params.json
+    case .deviceLocation(let params): params.json
+    case .deviceContact(let params): params.json
+    case .deviceCalendar(let params): params.json
     case .unknown(_, let params): params
     }
   }
@@ -281,6 +299,7 @@ public enum ServerRequestBody: Sendable, Hashable {
     switch self {
     case .secret, .sudo, .vaultUnlock, .vaultCode, .vaultSaveLogin: true
     case .approval, .clarify, .confirm, .inputForm, .inputFile, .reviewDraft, .reviewDiff, .unknown: false
+    case .deviceLocation, .deviceContact, .deviceCalendar: false
     }
   }
 
@@ -288,6 +307,7 @@ public enum ServerRequestBody: Sendable, Hashable {
   public var isInteractive: Bool {
     switch self {
     case .inputForm, .inputFile, .reviewDraft, .reviewDiff: true
+    case .deviceLocation, .deviceContact, .deviceCalendar: true
     case .approval, .clarify, .secret, .sudo, .vaultUnlock, .vaultCode, .vaultSaveLogin, .confirm, .unknown: false
     }
   }

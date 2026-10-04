@@ -59,6 +59,8 @@ public enum SecurePromptKind: Sendable, Equatable {
       self = .vaultSaveLogin(site: site.isEmpty ? origin : site, origin: origin)
     case .approval, .clarify, .confirm, .inputForm, .inputFile, .reviewDraft, .reviewDiff, .unknown:
       return nil
+    case .deviceLocation, .deviceContact, .deviceCalendar:
+      return nil
     }
   }
 }

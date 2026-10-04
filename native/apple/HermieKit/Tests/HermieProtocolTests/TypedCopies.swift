@@ -484,6 +484,7 @@ enum TypedCopy {
           })
       // Typed copies of the interactive requests live in InteractiveContractTests.
       case .inputForm, .inputFile, .reviewDraft, .reviewDiff, .unknown: request.body
+      case .deviceLocation, .deviceContact, .deviceCalendar: request.body
       }
     return ServerRequest(id: request.id ?? "", body)
   }

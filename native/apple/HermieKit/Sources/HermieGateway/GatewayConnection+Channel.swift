@@ -477,6 +477,8 @@ extension GatewayConnection {
       // Only a socket that advertised the method (and had it accepted) has someone to answer it;
       // a stray one is answered like any method nobody handles.
       supported = requestsAdvertised.contains(method)
+    case .deviceLocation, .deviceContact, .deviceCalendar:
+      supported = requestsAdvertised.contains(method)
     case .unknown:
       supported = false
     }
