@@ -5208,6 +5208,1830 @@
         }
       }
     },
+    "native.deviceRequests.card.kindScan" : {
+      "comment" : "Kind label of the card of a code scan.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code-Scan"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code scan"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codescan"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.card.kindSignature" : {
+      "comment" : "Kind label of the card of a signature.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unterschrift"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signature"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Handtekening"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.card.scanBarcode" : {
+      "comment" : "Card line after a barcode was scanned and sent.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Barcode gescannt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scanned a barcode"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streepjescode gescand"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.card.scanCode" : {
+      "comment" : "Card line after another kind of code was scanned and sent.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code gescannt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scanned a code"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code gescand"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.card.scanQR" : {
+      "comment" : "Card line after a QR code was scanned and sent.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "QR-Code gescannt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scanned a QR code"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "QR-code gescand"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.card.signed" : {
+      "comment" : "Card line after a statement was signed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unterschrieben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signed"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ondertekend"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.card.voiceNote" : {
+      "comment" : "Card line after a voice note was sent.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprachnachricht gesendet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voice note sent"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spraakbericht verstuurd"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.openSettings" : {
+      "comment" : "Button that opens the system Settings, where a refused permission can be allowed again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einstellungen öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Settings"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Instellingen"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.aim" : {
+      "comment" : "Instruction shown with the camera view.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Richte die Kamera auf den Code."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Point the camera at the code."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Richt de camera op de code."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.anyCode" : {
+      "comment" : "Said when the request names no kind of code: any code will do.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "jeder Code"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "any code"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "elke code"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.cameraLabel" : {
+      "comment" : "VoiceOver label of the live camera view of the scanner.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kameraansicht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera view"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camerabeeld"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.cannot" : {
+      "comment" : "Button that tells the bot this device cannot scan.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ich kann nicht scannen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I can't scan"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ik kan niet scannen"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.cannotHint" : {
+      "comment" : "VoiceOver hint of the button that tells the bot this device cannot scan.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teilt dem Bot mit, dass dieses Gerät den Code nicht scannen kann."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tells the bot that this device cannot scan the code."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laat de bot weten dat dit apparaat de code niet kan scannen."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.cleaned" : {
+      "comment" : "Said when hidden or control characters were taken out of the text of a scanned code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versteckte Zeichen und Steuerzeichen wurden aus diesem Text entfernt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hidden or control characters were removed from this text."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verborgen tekens en stuurtekens zijn uit deze tekst gehaald."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.denied" : {
+      "comment" : "Said when the person refused the camera.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie hat keinen Zugriff auf die Kamera. Du kannst ihn in den Einstellungen erlauben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie does not have access to the camera. You can allow it in Settings."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie heeft geen toegang tot de camera. Je kunt dat toestaan in Instellingen."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.empty" : {
+      "comment" : "Said when nothing readable is left of a scanned code once cleaned.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Von diesem Code bleibt nichts Lesbares übrig, deshalb kann er nicht gesendet werden. Scanne einen anderen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing readable is left in this code, so it cannot be sent. Scan another one."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er blijft niets leesbaars over van deze code, dus hij kan niet worden verstuurd. Scan een andere."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.found" : {
+      "comment" : "Heading shown when a code was read; also announced by VoiceOver.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code gefunden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code found"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code gevonden"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.intro" : {
+      "comment" : "Says what the Scan button does, before the camera is touched.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Kamera schaltet sich erst ein, wenn du auf Scannen tippst. Hermie zeigt dir, was der Code sagt, bevor etwas gesendet wird."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The camera turns on only when you press Scan. Hermie shows you what the code says before anything is sent."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De camera gaat pas aan als je op Scan drukt. Hermie laat je zien wat de code zegt voordat er iets wordt verstuurd."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.kind" : {
+      "comment" : "The kind of code that was read. The argument is a name such as \"QR code\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gelesen als: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read as: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gelezen als: %@"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.looking" : {
+      "comment" : "The kinds of code the request asks for. The argument is a list such as \"QR code, Aztec code\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesucht: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Looking for: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoekt naar: %@"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.noCamera" : {
+      "comment" : "Said when there is no camera, or the scanner could not start.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gerät hat keine Kamera, die einen Code lesen kann."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This device has no camera that can read a code."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit apparaat heeft geen camera die een code kan lezen."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.rescan" : {
+      "comment" : "Button that goes back to the camera to read another code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut scannen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan again"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opnieuw scannen"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.restricted" : {
+      "comment" : "Said when a restriction (a profile, screen time) forbids the camera.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Kamera ist für dieses Gerät durch eine Einschränkung deaktiviert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The camera is switched off for this device by a restriction."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De camera is voor dit apparaat uitgezet door een beperking."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.start" : {
+      "comment" : "Button that turns the camera on to look for a code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scannen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.symbology.aztec" : {
+      "comment" : "Name of a kind of code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aztec-Code"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aztec code"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aztec-code"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.symbology.code128" : {
+      "comment" : "Name of a kind of code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code-128-Barcode"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code 128 barcode"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code 128-streepjescode"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.symbology.datamatrix" : {
+      "comment" : "Name of a kind of code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data-Matrix-Code"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data Matrix code"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data Matrix-code"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.symbology.ean13" : {
+      "comment" : "Name of a kind of code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EAN-13-Barcode"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EAN-13 barcode"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EAN-13-streepjescode"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.symbology.ean8" : {
+      "comment" : "Name of a kind of code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EAN-8-Barcode"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EAN-8 barcode"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EAN-8-streepjescode"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.symbology.pdf417" : {
+      "comment" : "Name of a kind of code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF417-Code"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF417 code"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF417-code"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.symbology.qr" : {
+      "comment" : "Name of a kind of code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "QR-Code"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "QR code"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "QR-code"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.title" : {
+      "comment" : "Title of the sheet for a code a bot asks to be scanned. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ bittet dich, einen Code zu scannen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ asks you to scan a code"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ vraagt je een code te scannen"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.tooLong" : {
+      "comment" : "Said when a scanned code holds more text than a request can carry.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Code enthält mehr Text, als gesendet werden kann. Scanne einen anderen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This code holds more text than can be sent. Scan another one."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze code bevat meer tekst dan verstuurd kan worden. Scan een andere."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.untrusted" : {
+      "comment" : "Warning under the text of a scanned code: it is not from Hermie or the bot, and is never opened.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Text stammt aus dem Code, nicht von Hermie oder deinem Bot. Er wird nicht geöffnet oder aufgerufen. Prüfe ihn, bevor du ihn sendest."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This text comes from the code, not from Hermie or your bot. It is not opened or followed. Check it before you send it."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze tekst komt uit de code, niet van Hermie of je bot. Hij wordt niet geopend of gevolgd. Controleer hem voordat je hem verstuurt."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.scan.valueLabel" : {
+      "comment" : "Label above the text a scanned code holds.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was der Code sagt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What the code says"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wat de code zegt"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.signature.clear" : {
+      "comment" : "Button that wipes the signature pad.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Löschen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wissen"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.signature.empty" : {
+      "comment" : "Shown under the pad while nothing is drawn.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeichne deine Unterschrift in das Feld oben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Draw your signature in the box above."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teken je handtekening in het vak hierboven."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.signature.failedFiles" : {
+      "comment" : "Said when the pictures of the signature could not be made.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Unterschrift konnte nicht vorbereitet werden. Versuche es erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your signature could not be prepared. Try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je handtekening kon niet worden klaargemaakt. Probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.signature.note" : {
+      "comment" : "Says what goes out with a signature.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Unterschrift wird als PNG- und SVG-Bild gesendet, zusammen mit einem Fingerabdruck des Textes oben, damit sich belegen lässt, was du unterschrieben hast."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your signature goes as a PNG and an SVG picture, with a fingerprint of the statement above, so that what you signed can be proved."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je handtekening gaat mee als PNG- en SVG-afbeelding, met een vingerafdruk van de tekst hierboven, zodat te bewijzen is wat je hebt ondertekend."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.signature.padHint" : {
+      "comment" : "VoiceOver hint of the drawing area for the signature.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeichne deine Unterschrift mit dem Finger, einem Stift oder dem Zeiger."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Draw your signature with a finger, a pen or the pointer."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teken je handtekening met een vinger, een pen of de aanwijzer."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.signature.padLabel" : {
+      "comment" : "VoiceOver label of the drawing area for the signature.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unterschriftsfeld"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signature pad"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Handtekeningvlak"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.signature.placeholder" : {
+      "comment" : "Faint text on the empty signature pad.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hier unterschreiben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign here"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teken hier"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.signature.preparing" : {
+      "comment" : "Shown while the two pictures of the signature are made.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Unterschrift wird vorbereitet …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparing your signature…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je handtekening wordt klaargemaakt…"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.signature.sign" : {
+      "comment" : "Button that signs and sends the signature.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unterschreiben und senden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign and send"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ondertekenen en versturen"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.signature.signer" : {
+      "comment" : "The name shown with the statement. The argument is the signer's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unterschrift als %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signing as %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ondertekenen als %@"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.signature.statement" : {
+      "comment" : "Label above the statement the person signs, which is shown in full.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du unterschreibst"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are signing"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je ondertekent"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.signature.time" : {
+      "comment" : "Label of the date and time shown with the statement.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datum und Uhrzeit"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date and time"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datum en tijd"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.signature.title" : {
+      "comment" : "Title of the sheet for a statement a bot asks the person to sign. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ bittet dich um eine Unterschrift"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ asks you to sign"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ vraagt je te ondertekenen"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.signature.tooLarge" : {
+      "comment" : "Said when a signature file is larger than the request allows.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Unterschrift ist größer, als diese Anfrage erlaubt. Lösche sie und zeichne eine einfachere."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your signature is larger than this request allows. Clear it and draw a simpler one."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je handtekening is groter dan dit verzoek toestaat. Wis hem en teken een eenvoudigere."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.signature.undo" : {
+      "comment" : "Button that takes the last stroke of the signature back.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rückgängig"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Undo"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ongedaan maken"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.cannot" : {
+      "comment" : "Button that tells the bot this device cannot record.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ich kann nicht aufnehmen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I can't record"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ik kan niet opnemen"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.cannotHint" : {
+      "comment" : "VoiceOver hint of the button that tells the bot this device cannot record.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teilt dem Bot mit, dass dieses Gerät keine Sprachnachricht aufnehmen kann."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tells the bot that this device cannot record a voice note."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laat de bot weten dat dit apparaat geen spraakbericht kan opnemen."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.chooseFile" : {
+      "comment" : "Button that picks an existing recording from Files instead of recording.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stattdessen eine Aufnahme wählen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a recording instead"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kies in plaats daarvan een opname"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.denied" : {
+      "comment" : "Said when the person refused the microphone.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie hat keinen Zugriff auf das Mikrofon. Du kannst ihn in den Einstellungen erlauben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie does not have access to the microphone. You can allow it in Settings."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie heeft geen toegang tot de microfoon. Je kunt dat toestaan in Instellingen."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.intro" : {
+      "comment" : "Says what the Record button does, before the microphone is touched.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Mikrofon schaltet sich erst ein, wenn du auf Aufnehmen tippst. Du kannst die Aufnahme anhören, bevor etwas gesendet wird."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The microphone turns on only when you press Record. You can listen to the recording before anything is sent."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De microfoon gaat pas aan als je op Opnemen drukt. Je kunt de opname beluisteren voordat er iets wordt verstuurd."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.level" : {
+      "comment" : "VoiceOver label of the sound level meter.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lautstärke"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sound level"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geluidsniveau"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.noMicrophone" : {
+      "comment" : "Said when the device has no microphone.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gerät hat kein Mikrofon für Aufnahmen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This device has no microphone to record with."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit apparaat heeft geen microfoon om mee op te nemen."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.noteLength" : {
+      "comment" : "Label of the recording. The argument is its length, such as \"0:42\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprachnachricht, %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voice note, %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spraakbericht, %@"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.pause" : {
+      "comment" : "Button that pauses the playback.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pausieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pauzeer"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.pickedNote" : {
+      "comment" : "Says that a chosen recording is sent as it is and may carry details of its own.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine Aufnahme, die du wählst, wird unverändert gesendet. Sie kann eigene Angaben enthalten, etwa wann und wo sie entstanden ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A recording you choose is sent as it is. It may carry details of its own, such as when and where it was made."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een opname die je kiest wordt ongewijzigd verstuurd. Hij kan eigen gegevens bevatten, zoals wanneer en waar hij is gemaakt."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.play" : {
+      "comment" : "Button that plays the recording back.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abspielen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afspelen"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.record" : {
+      "comment" : "Button that starts recording.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufnehmen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opnemen"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.recordAgain" : {
+      "comment" : "Button that throws the recording away and records again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut aufnehmen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record again"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opnieuw opnemen"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.recordedNote" : {
+      "comment" : "Says that a recording made here carries no location.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Aufnahme wurde auf diesem Gerät gemacht und enthält keinen Standort."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This recording was made on this device and carries no location."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze opname is op dit apparaat gemaakt en bevat geen locatie."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.recording" : {
+      "comment" : "Shown while the microphone is recording.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufnahme läuft"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neemt op"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.recordingFailed" : {
+      "comment" : "Said when the recording was interrupted.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Aufnahme wurde unterbrochen. Versuche es erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The recording was interrupted. Try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De opname werd onderbroken. Probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.sendTranscript" : {
+      "comment" : "Switch that decides whether the transcript goes with the recording.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkript mitsenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send the transcript too"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stuur de transcriptie ook mee"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.stop" : {
+      "comment" : "Button that stops recording.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stopp"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.title" : {
+      "comment" : "Title of the sheet for a voice note a bot asks for. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ bittet dich um eine Sprachnachricht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ asks you for a voice note"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ vraagt je om een spraakbericht"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.tooShort" : {
+      "comment" : "Said when a recording was too short to keep.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das war zu kurz. Tippe auf Aufnehmen und versuche es erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That was too short to keep. Press Record and try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dat was te kort om te bewaren. Druk op Opnemen en probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.transcribing" : {
+      "comment" : "Shown while the transcript is made on the device.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf diesem Gerät wird ein Transkript erstellt …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Writing a transcript on this device…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er wordt op dit apparaat een transcriptie gemaakt…"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.transcriptEmpty" : {
+      "comment" : "Said when no words were recognised.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es wurden keine Wörter erkannt, deshalb wird kein Transkript mitgesendet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No words were recognised, so no transcript goes with it."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er zijn geen woorden herkend, dus er gaat geen transcriptie mee."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.transcriptLabel" : {
+      "comment" : "Label above the transcript of the recording.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkript"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcript"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcriptie"
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.transcriptNone" : {
+      "comment" : "Said when this device cannot make a transcript without sending the audio away.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Transkript: Dieses Gerät kann keines erstellen, ohne das Audio an einen Dienst zu senden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No transcript: this device cannot make one without sending the audio to a service."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen transcriptie: dit apparaat kan er geen maken zonder de audio naar een dienst te sturen."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.transcriptNote" : {
+      "comment" : "Says where the transcript was made and that it can be wrong.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf diesem Gerät erstellt. Es kann fehlerhaft sein; maßgeblich ist die Aufnahme."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Made on this device. It can be wrong; the recording is what counts."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gemaakt op dit apparaat. Het kan fout zijn; de opname is wat telt."
+          }
+        }
+      }
+    },
+    "native.deviceRequests.voice.unreadable" : {
+      "comment" : "Said when the recording could not be saved.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Aufnahme konnte nicht gespeichert werden. Versuche es erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The recording could not be saved. Try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De opname kon niet worden bewaard. Probeer het opnieuw."
+          }
+        }
+      }
+    },
     "native.gateways.removeFailed.notSynced" : {
       "extractionState" : "manual",
       "localizations" : {

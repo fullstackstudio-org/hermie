@@ -1,12 +1,6 @@
-/* The calendar permission prompt (write only): shown when the reader first adds an event a bot suggested. */
-"NSCalendarsWriteOnlyAccessUsageDescription" = "Hermie voegt een afspraak toe aan je agenda wanneer een bot er een voorstelt en jij ervoor kiest die toe te voegen. Hermie kan alleen afspraken toevoegen: je agenda kan Hermie niet lezen.";
 /* The camera permission prompt: shown when the reader first takes a photo, scans a document or reads a code, to attach to a message or to send when a bot asks for it. */
 "NSCameraUsageDescription" = "Hermie gebruikt de camera zodat je een foto kunt maken, een document kunt scannen of een code kunt lezen, om bij een bericht te voegen of te sturen wanneer een bot erom vraagt.";
-/* The location permission prompt: shown when the reader first shares their location because a bot asked. One reading, never tracking. */
-"NSLocationWhenInUseUsageDescription" = "Hermie gebruikt je locatie één keer, wanneer je ervoor kiest die te delen omdat een bot erom vraagt. De locatie wordt gestuurd naar de gateway waarop je bent ingelogd en wordt niet op dit apparaat bewaard.";
 /* The microphone permission prompt: shown when the reader first dictates a message or records a voice note. Dictation is recognised on the device and goes nowhere; a voice note is sent only on Send. */
 "NSMicrophoneUsageDescription" = "Hermie gebruikt de microfoon zodat je een bericht kunt dicteren of een spraakbericht kunt opnemen. Dicteren wordt op dit apparaat omgezet in tekst en nergens heen gestuurd; een spraakbericht gaat pas naar je gateway als je op Versturen drukt.";
-/* The reminders permission prompt: shown when the reader first adds a reminder a bot suggested. */
-"NSRemindersFullAccessUsageDescription" = "Hermie voegt een herinnering toe wanneer een bot er een voorstelt en jij ervoor kiest die toe te voegen. Hermie leest je andere herinneringen niet.";
 /* The speech recognition permission prompt: shown with the microphone's. Recognition runs on the device only, for dictation and for the transcript of a voice note. */
 "NSSpeechRecognitionUsageDescription" = "Hermie gebruikt spraakherkenning op het apparaat om wat je zegt om te zetten in de tekst van een bericht of in een transcriptie van een spraakbericht. Er wordt niets naar Apple of een andere dienst gestuurd.";

@@ -30,6 +30,9 @@
 	<true/>
 	<key>com.apple.security.device.audio-input</key>
 	<true/>
+	<!-- The camera: the code scanner, when a bot asks for a code. The system asks the person once, on Scan. -->
+	<key>com.apple.security.device.camera</key>
+	<true/>
 	<!--
 		Where the device is, once, when the person shares it for a device.location request; and
 		write-only calendar access and reminders for device.calendar. Contacts need nothing: the

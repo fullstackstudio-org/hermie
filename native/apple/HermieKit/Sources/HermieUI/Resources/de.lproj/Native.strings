@@ -428,6 +428,158 @@
 	<string>Wähle einen Bot aus der Liste.</string>
 	<key>native.detail.noChat.title</key>
 	<string>Kein Chat ausgewählt</string>
+	<key>native.deviceRequests.card.kindScan</key>
+	<string>Code-Scan</string>
+	<key>native.deviceRequests.card.kindSignature</key>
+	<string>Unterschrift</string>
+	<key>native.deviceRequests.card.scanBarcode</key>
+	<string>Barcode gescannt</string>
+	<key>native.deviceRequests.card.scanCode</key>
+	<string>Code gescannt</string>
+	<key>native.deviceRequests.card.scanQR</key>
+	<string>QR-Code gescannt</string>
+	<key>native.deviceRequests.card.signed</key>
+	<string>Unterschrieben</string>
+	<key>native.deviceRequests.card.voiceNote</key>
+	<string>Sprachnachricht gesendet</string>
+	<key>native.deviceRequests.openSettings</key>
+	<string>Einstellungen öffnen</string>
+	<key>native.deviceRequests.scan.aim</key>
+	<string>Richte die Kamera auf den Code.</string>
+	<key>native.deviceRequests.scan.anyCode</key>
+	<string>jeder Code</string>
+	<key>native.deviceRequests.scan.cameraLabel</key>
+	<string>Kameraansicht</string>
+	<key>native.deviceRequests.scan.cannot</key>
+	<string>Ich kann nicht scannen</string>
+	<key>native.deviceRequests.scan.cannotHint</key>
+	<string>Teilt dem Bot mit, dass dieses Gerät den Code nicht scannen kann.</string>
+	<key>native.deviceRequests.scan.cleaned</key>
+	<string>Versteckte Zeichen und Steuerzeichen wurden aus diesem Text entfernt.</string>
+	<key>native.deviceRequests.scan.denied</key>
+	<string>Hermie hat keinen Zugriff auf die Kamera. Du kannst ihn in den Einstellungen erlauben.</string>
+	<key>native.deviceRequests.scan.empty</key>
+	<string>Von diesem Code bleibt nichts Lesbares übrig, deshalb kann er nicht gesendet werden. Scanne einen anderen.</string>
+	<key>native.deviceRequests.scan.found</key>
+	<string>Code gefunden</string>
+	<key>native.deviceRequests.scan.intro</key>
+	<string>Die Kamera schaltet sich erst ein, wenn du auf Scannen tippst. Hermie zeigt dir, was der Code sagt, bevor etwas gesendet wird.</string>
+	<key>native.deviceRequests.scan.kind</key>
+	<string>Gelesen als: %@</string>
+	<key>native.deviceRequests.scan.looking</key>
+	<string>Gesucht: %@</string>
+	<key>native.deviceRequests.scan.noCamera</key>
+	<string>Dieses Gerät hat keine Kamera, die einen Code lesen kann.</string>
+	<key>native.deviceRequests.scan.rescan</key>
+	<string>Erneut scannen</string>
+	<key>native.deviceRequests.scan.restricted</key>
+	<string>Die Kamera ist für dieses Gerät durch eine Einschränkung deaktiviert.</string>
+	<key>native.deviceRequests.scan.start</key>
+	<string>Scannen</string>
+	<key>native.deviceRequests.scan.symbology.aztec</key>
+	<string>Aztec-Code</string>
+	<key>native.deviceRequests.scan.symbology.code128</key>
+	<string>Code-128-Barcode</string>
+	<key>native.deviceRequests.scan.symbology.datamatrix</key>
+	<string>Data-Matrix-Code</string>
+	<key>native.deviceRequests.scan.symbology.ean13</key>
+	<string>EAN-13-Barcode</string>
+	<key>native.deviceRequests.scan.symbology.ean8</key>
+	<string>EAN-8-Barcode</string>
+	<key>native.deviceRequests.scan.symbology.pdf417</key>
+	<string>PDF417-Code</string>
+	<key>native.deviceRequests.scan.symbology.qr</key>
+	<string>QR-Code</string>
+	<key>native.deviceRequests.scan.title</key>
+	<string>%@ bittet dich, einen Code zu scannen</string>
+	<key>native.deviceRequests.scan.tooLong</key>
+	<string>Dieser Code enthält mehr Text, als gesendet werden kann. Scanne einen anderen.</string>
+	<key>native.deviceRequests.scan.untrusted</key>
+	<string>Dieser Text stammt aus dem Code, nicht von Hermie oder deinem Bot. Er wird nicht geöffnet oder aufgerufen. Prüfe ihn, bevor du ihn sendest.</string>
+	<key>native.deviceRequests.scan.valueLabel</key>
+	<string>Was der Code sagt</string>
+	<key>native.deviceRequests.signature.clear</key>
+	<string>Löschen</string>
+	<key>native.deviceRequests.signature.empty</key>
+	<string>Zeichne deine Unterschrift in das Feld oben.</string>
+	<key>native.deviceRequests.signature.failedFiles</key>
+	<string>Deine Unterschrift konnte nicht vorbereitet werden. Versuche es erneut.</string>
+	<key>native.deviceRequests.signature.note</key>
+	<string>Deine Unterschrift wird als PNG- und SVG-Bild gesendet, zusammen mit einem Fingerabdruck des Textes oben, damit sich belegen lässt, was du unterschrieben hast.</string>
+	<key>native.deviceRequests.signature.padHint</key>
+	<string>Zeichne deine Unterschrift mit dem Finger, einem Stift oder dem Zeiger.</string>
+	<key>native.deviceRequests.signature.padLabel</key>
+	<string>Unterschriftsfeld</string>
+	<key>native.deviceRequests.signature.placeholder</key>
+	<string>Hier unterschreiben</string>
+	<key>native.deviceRequests.signature.preparing</key>
+	<string>Deine Unterschrift wird vorbereitet …</string>
+	<key>native.deviceRequests.signature.sign</key>
+	<string>Unterschreiben und senden</string>
+	<key>native.deviceRequests.signature.signer</key>
+	<string>Unterschrift als %@</string>
+	<key>native.deviceRequests.signature.statement</key>
+	<string>Du unterschreibst</string>
+	<key>native.deviceRequests.signature.time</key>
+	<string>Datum und Uhrzeit</string>
+	<key>native.deviceRequests.signature.title</key>
+	<string>%@ bittet dich um eine Unterschrift</string>
+	<key>native.deviceRequests.signature.tooLarge</key>
+	<string>Deine Unterschrift ist größer, als diese Anfrage erlaubt. Lösche sie und zeichne eine einfachere.</string>
+	<key>native.deviceRequests.signature.undo</key>
+	<string>Rückgängig</string>
+	<key>native.deviceRequests.voice.cannot</key>
+	<string>Ich kann nicht aufnehmen</string>
+	<key>native.deviceRequests.voice.cannotHint</key>
+	<string>Teilt dem Bot mit, dass dieses Gerät keine Sprachnachricht aufnehmen kann.</string>
+	<key>native.deviceRequests.voice.chooseFile</key>
+	<string>Stattdessen eine Aufnahme wählen</string>
+	<key>native.deviceRequests.voice.denied</key>
+	<string>Hermie hat keinen Zugriff auf das Mikrofon. Du kannst ihn in den Einstellungen erlauben.</string>
+	<key>native.deviceRequests.voice.intro</key>
+	<string>Das Mikrofon schaltet sich erst ein, wenn du auf Aufnehmen tippst. Du kannst die Aufnahme anhören, bevor etwas gesendet wird.</string>
+	<key>native.deviceRequests.voice.level</key>
+	<string>Lautstärke</string>
+	<key>native.deviceRequests.voice.noMicrophone</key>
+	<string>Dieses Gerät hat kein Mikrofon für Aufnahmen.</string>
+	<key>native.deviceRequests.voice.noteLength</key>
+	<string>Sprachnachricht, %@</string>
+	<key>native.deviceRequests.voice.pause</key>
+	<string>Pausieren</string>
+	<key>native.deviceRequests.voice.pickedNote</key>
+	<string>Eine Aufnahme, die du wählst, wird unverändert gesendet. Sie kann eigene Angaben enthalten, etwa wann und wo sie entstanden ist.</string>
+	<key>native.deviceRequests.voice.play</key>
+	<string>Abspielen</string>
+	<key>native.deviceRequests.voice.record</key>
+	<string>Aufnehmen</string>
+	<key>native.deviceRequests.voice.recordAgain</key>
+	<string>Erneut aufnehmen</string>
+	<key>native.deviceRequests.voice.recordedNote</key>
+	<string>Diese Aufnahme wurde auf diesem Gerät gemacht und enthält keinen Standort.</string>
+	<key>native.deviceRequests.voice.recording</key>
+	<string>Aufnahme läuft</string>
+	<key>native.deviceRequests.voice.recordingFailed</key>
+	<string>Die Aufnahme wurde unterbrochen. Versuche es erneut.</string>
+	<key>native.deviceRequests.voice.sendTranscript</key>
+	<string>Transkript mitsenden</string>
+	<key>native.deviceRequests.voice.stop</key>
+	<string>Stopp</string>
+	<key>native.deviceRequests.voice.title</key>
+	<string>%@ bittet dich um eine Sprachnachricht</string>
+	<key>native.deviceRequests.voice.tooShort</key>
+	<string>Das war zu kurz. Tippe auf Aufnehmen und versuche es erneut.</string>
+	<key>native.deviceRequests.voice.transcribing</key>
+	<string>Auf diesem Gerät wird ein Transkript erstellt …</string>
+	<key>native.deviceRequests.voice.transcriptEmpty</key>
+	<string>Es wurden keine Wörter erkannt, deshalb wird kein Transkript mitgesendet.</string>
+	<key>native.deviceRequests.voice.transcriptLabel</key>
+	<string>Transkript</string>
+	<key>native.deviceRequests.voice.transcriptNone</key>
+	<string>Kein Transkript: Dieses Gerät kann keines erstellen, ohne das Audio an einen Dienst zu senden.</string>
+	<key>native.deviceRequests.voice.transcriptNote</key>
+	<string>Auf diesem Gerät erstellt. Es kann fehlerhaft sein; maßgeblich ist die Aufnahme.</string>
+	<key>native.deviceRequests.voice.unreadable</key>
+	<string>Die Aufnahme konnte nicht gespeichert werden. Versuche es erneut.</string>
 	<key>native.gateways.removeFailed.notSynced</key>
 	<string>Dieses Gateway wird nicht mehr mit dem iCloud-Schlüsselbund synchronisiert und kann daher nur von diesem Gerät entfernt werden. Es wurde nichts entfernt.</string>
 	<key>native.gateways.removeFailed.other</key>

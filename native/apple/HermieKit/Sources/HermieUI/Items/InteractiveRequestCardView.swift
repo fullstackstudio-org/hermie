@@ -73,6 +73,8 @@ struct InteractiveRequestCardView: View {
     case "device.location": NativeStrings.Interactive.Card.location
     case "device.contact": NativeStrings.Interactive.Card.contact
     case "device.calendar": NativeStrings.Interactive.Card.calendar
+    case "input.signature": NativeStrings.DeviceRequests.Card.kindSignature
+    case "device.scan": NativeStrings.DeviceRequests.Card.kindScan
     default: nil
     }
   }
@@ -89,6 +91,8 @@ struct InteractiveRequestCardView: View {
     case "device.location": return "location"
     case "device.contact": return "person.crop.circle"
     case "device.calendar": return "calendar"
+    case "input.signature": return "signature"
+    case "device.scan": return "qrcode.viewfinder"
     default: return "list.bullet.rectangle"
     }
   }
@@ -144,6 +148,20 @@ struct InteractiveRequestCardView: View {
 
       if summary?.status == "skipped" {
         return Words.skipped
+      }
+
+      // A code that was scanned, a statement that was signed, a voice note: by the summary's kind alone, never a
+      // value (the engine's summary has nowhere to put one).
+      if let symbology = summary?.symbology {
+        return NativeStrings.DeviceRequests.Card.scanned(symbology)
+      }
+
+      if summary?.audio == true {
+        return NativeStrings.DeviceRequests.Card.voiceNote
+      }
+
+      if item.method == "input.signature", summary?.status == "answered" {
+        return NativeStrings.DeviceRequests.Card.signed
       }
 
       if let count = summary?.count {

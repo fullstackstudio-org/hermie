@@ -428,6 +428,158 @@
 	<string>Choose a bot from the list.</string>
 	<key>native.detail.noChat.title</key>
 	<string>No chat selected</string>
+	<key>native.deviceRequests.card.kindScan</key>
+	<string>Code scan</string>
+	<key>native.deviceRequests.card.kindSignature</key>
+	<string>Signature</string>
+	<key>native.deviceRequests.card.scanBarcode</key>
+	<string>Scanned a barcode</string>
+	<key>native.deviceRequests.card.scanCode</key>
+	<string>Scanned a code</string>
+	<key>native.deviceRequests.card.scanQR</key>
+	<string>Scanned a QR code</string>
+	<key>native.deviceRequests.card.signed</key>
+	<string>Signed</string>
+	<key>native.deviceRequests.card.voiceNote</key>
+	<string>Voice note sent</string>
+	<key>native.deviceRequests.openSettings</key>
+	<string>Open Settings</string>
+	<key>native.deviceRequests.scan.aim</key>
+	<string>Point the camera at the code.</string>
+	<key>native.deviceRequests.scan.anyCode</key>
+	<string>any code</string>
+	<key>native.deviceRequests.scan.cameraLabel</key>
+	<string>Camera view</string>
+	<key>native.deviceRequests.scan.cannot</key>
+	<string>I can't scan</string>
+	<key>native.deviceRequests.scan.cannotHint</key>
+	<string>Tells the bot that this device cannot scan the code.</string>
+	<key>native.deviceRequests.scan.cleaned</key>
+	<string>Hidden or control characters were removed from this text.</string>
+	<key>native.deviceRequests.scan.denied</key>
+	<string>Hermie does not have access to the camera. You can allow it in Settings.</string>
+	<key>native.deviceRequests.scan.empty</key>
+	<string>Nothing readable is left in this code, so it cannot be sent. Scan another one.</string>
+	<key>native.deviceRequests.scan.found</key>
+	<string>Code found</string>
+	<key>native.deviceRequests.scan.intro</key>
+	<string>The camera turns on only when you press Scan. Hermie shows you what the code says before anything is sent.</string>
+	<key>native.deviceRequests.scan.kind</key>
+	<string>Read as: %@</string>
+	<key>native.deviceRequests.scan.looking</key>
+	<string>Looking for: %@</string>
+	<key>native.deviceRequests.scan.noCamera</key>
+	<string>This device has no camera that can read a code.</string>
+	<key>native.deviceRequests.scan.rescan</key>
+	<string>Scan again</string>
+	<key>native.deviceRequests.scan.restricted</key>
+	<string>The camera is switched off for this device by a restriction.</string>
+	<key>native.deviceRequests.scan.start</key>
+	<string>Scan</string>
+	<key>native.deviceRequests.scan.symbology.aztec</key>
+	<string>Aztec code</string>
+	<key>native.deviceRequests.scan.symbology.code128</key>
+	<string>Code 128 barcode</string>
+	<key>native.deviceRequests.scan.symbology.datamatrix</key>
+	<string>Data Matrix code</string>
+	<key>native.deviceRequests.scan.symbology.ean13</key>
+	<string>EAN-13 barcode</string>
+	<key>native.deviceRequests.scan.symbology.ean8</key>
+	<string>EAN-8 barcode</string>
+	<key>native.deviceRequests.scan.symbology.pdf417</key>
+	<string>PDF417 code</string>
+	<key>native.deviceRequests.scan.symbology.qr</key>
+	<string>QR code</string>
+	<key>native.deviceRequests.scan.title</key>
+	<string>%@ asks you to scan a code</string>
+	<key>native.deviceRequests.scan.tooLong</key>
+	<string>This code holds more text than can be sent. Scan another one.</string>
+	<key>native.deviceRequests.scan.untrusted</key>
+	<string>This text comes from the code, not from Hermie or your bot. It is not opened or followed. Check it before you send it.</string>
+	<key>native.deviceRequests.scan.valueLabel</key>
+	<string>What the code says</string>
+	<key>native.deviceRequests.signature.clear</key>
+	<string>Clear</string>
+	<key>native.deviceRequests.signature.empty</key>
+	<string>Draw your signature in the box above.</string>
+	<key>native.deviceRequests.signature.failedFiles</key>
+	<string>Your signature could not be prepared. Try again.</string>
+	<key>native.deviceRequests.signature.note</key>
+	<string>Your signature goes as a PNG and an SVG picture, with a fingerprint of the statement above, so that what you signed can be proved.</string>
+	<key>native.deviceRequests.signature.padHint</key>
+	<string>Draw your signature with a finger, a pen or the pointer.</string>
+	<key>native.deviceRequests.signature.padLabel</key>
+	<string>Signature pad</string>
+	<key>native.deviceRequests.signature.placeholder</key>
+	<string>Sign here</string>
+	<key>native.deviceRequests.signature.preparing</key>
+	<string>Preparing your signature…</string>
+	<key>native.deviceRequests.signature.sign</key>
+	<string>Sign and send</string>
+	<key>native.deviceRequests.signature.signer</key>
+	<string>Signing as %@</string>
+	<key>native.deviceRequests.signature.statement</key>
+	<string>You are signing</string>
+	<key>native.deviceRequests.signature.time</key>
+	<string>Date and time</string>
+	<key>native.deviceRequests.signature.title</key>
+	<string>%@ asks you to sign</string>
+	<key>native.deviceRequests.signature.tooLarge</key>
+	<string>Your signature is larger than this request allows. Clear it and draw a simpler one.</string>
+	<key>native.deviceRequests.signature.undo</key>
+	<string>Undo</string>
+	<key>native.deviceRequests.voice.cannot</key>
+	<string>I can't record</string>
+	<key>native.deviceRequests.voice.cannotHint</key>
+	<string>Tells the bot that this device cannot record a voice note.</string>
+	<key>native.deviceRequests.voice.chooseFile</key>
+	<string>Choose a recording instead</string>
+	<key>native.deviceRequests.voice.denied</key>
+	<string>Hermie does not have access to the microphone. You can allow it in Settings.</string>
+	<key>native.deviceRequests.voice.intro</key>
+	<string>The microphone turns on only when you press Record. You can listen to the recording before anything is sent.</string>
+	<key>native.deviceRequests.voice.level</key>
+	<string>Sound level</string>
+	<key>native.deviceRequests.voice.noMicrophone</key>
+	<string>This device has no microphone to record with.</string>
+	<key>native.deviceRequests.voice.noteLength</key>
+	<string>Voice note, %@</string>
+	<key>native.deviceRequests.voice.pause</key>
+	<string>Pause</string>
+	<key>native.deviceRequests.voice.pickedNote</key>
+	<string>A recording you choose is sent as it is. It may carry details of its own, such as when and where it was made.</string>
+	<key>native.deviceRequests.voice.play</key>
+	<string>Play</string>
+	<key>native.deviceRequests.voice.record</key>
+	<string>Record</string>
+	<key>native.deviceRequests.voice.recordAgain</key>
+	<string>Record again</string>
+	<key>native.deviceRequests.voice.recordedNote</key>
+	<string>This recording was made on this device and carries no location.</string>
+	<key>native.deviceRequests.voice.recording</key>
+	<string>Recording</string>
+	<key>native.deviceRequests.voice.recordingFailed</key>
+	<string>The recording was interrupted. Try again.</string>
+	<key>native.deviceRequests.voice.sendTranscript</key>
+	<string>Send the transcript too</string>
+	<key>native.deviceRequests.voice.stop</key>
+	<string>Stop</string>
+	<key>native.deviceRequests.voice.title</key>
+	<string>%@ asks you for a voice note</string>
+	<key>native.deviceRequests.voice.tooShort</key>
+	<string>That was too short to keep. Press Record and try again.</string>
+	<key>native.deviceRequests.voice.transcribing</key>
+	<string>Writing a transcript on this device…</string>
+	<key>native.deviceRequests.voice.transcriptEmpty</key>
+	<string>No words were recognised, so no transcript goes with it.</string>
+	<key>native.deviceRequests.voice.transcriptLabel</key>
+	<string>Transcript</string>
+	<key>native.deviceRequests.voice.transcriptNone</key>
+	<string>No transcript: this device cannot make one without sending the audio to a service.</string>
+	<key>native.deviceRequests.voice.transcriptNote</key>
+	<string>Made on this device. It can be wrong; the recording is what counts.</string>
+	<key>native.deviceRequests.voice.unreadable</key>
+	<string>The recording could not be saved. Try again.</string>
 	<key>native.gateways.removeFailed.notSynced</key>
 	<string>This gateway is no longer synced with iCloud Keychain, so it can only be removed from this device. Nothing was removed.</string>
 	<key>native.gateways.removeFailed.other</key>

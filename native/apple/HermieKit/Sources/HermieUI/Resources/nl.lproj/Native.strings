@@ -428,6 +428,158 @@
 	<string>Kies een bot uit de lijst.</string>
 	<key>native.detail.noChat.title</key>
 	<string>Geen chat gekozen</string>
+	<key>native.deviceRequests.card.kindScan</key>
+	<string>Codescan</string>
+	<key>native.deviceRequests.card.kindSignature</key>
+	<string>Handtekening</string>
+	<key>native.deviceRequests.card.scanBarcode</key>
+	<string>Streepjescode gescand</string>
+	<key>native.deviceRequests.card.scanCode</key>
+	<string>Code gescand</string>
+	<key>native.deviceRequests.card.scanQR</key>
+	<string>QR-code gescand</string>
+	<key>native.deviceRequests.card.signed</key>
+	<string>Ondertekend</string>
+	<key>native.deviceRequests.card.voiceNote</key>
+	<string>Spraakbericht verstuurd</string>
+	<key>native.deviceRequests.openSettings</key>
+	<string>Open Instellingen</string>
+	<key>native.deviceRequests.scan.aim</key>
+	<string>Richt de camera op de code.</string>
+	<key>native.deviceRequests.scan.anyCode</key>
+	<string>elke code</string>
+	<key>native.deviceRequests.scan.cameraLabel</key>
+	<string>Camerabeeld</string>
+	<key>native.deviceRequests.scan.cannot</key>
+	<string>Ik kan niet scannen</string>
+	<key>native.deviceRequests.scan.cannotHint</key>
+	<string>Laat de bot weten dat dit apparaat de code niet kan scannen.</string>
+	<key>native.deviceRequests.scan.cleaned</key>
+	<string>Verborgen tekens en stuurtekens zijn uit deze tekst gehaald.</string>
+	<key>native.deviceRequests.scan.denied</key>
+	<string>Hermie heeft geen toegang tot de camera. Je kunt dat toestaan in Instellingen.</string>
+	<key>native.deviceRequests.scan.empty</key>
+	<string>Er blijft niets leesbaars over van deze code, dus hij kan niet worden verstuurd. Scan een andere.</string>
+	<key>native.deviceRequests.scan.found</key>
+	<string>Code gevonden</string>
+	<key>native.deviceRequests.scan.intro</key>
+	<string>De camera gaat pas aan als je op Scan drukt. Hermie laat je zien wat de code zegt voordat er iets wordt verstuurd.</string>
+	<key>native.deviceRequests.scan.kind</key>
+	<string>Gelezen als: %@</string>
+	<key>native.deviceRequests.scan.looking</key>
+	<string>Zoekt naar: %@</string>
+	<key>native.deviceRequests.scan.noCamera</key>
+	<string>Dit apparaat heeft geen camera die een code kan lezen.</string>
+	<key>native.deviceRequests.scan.rescan</key>
+	<string>Opnieuw scannen</string>
+	<key>native.deviceRequests.scan.restricted</key>
+	<string>De camera is voor dit apparaat uitgezet door een beperking.</string>
+	<key>native.deviceRequests.scan.start</key>
+	<string>Scan</string>
+	<key>native.deviceRequests.scan.symbology.aztec</key>
+	<string>Aztec-code</string>
+	<key>native.deviceRequests.scan.symbology.code128</key>
+	<string>Code 128-streepjescode</string>
+	<key>native.deviceRequests.scan.symbology.datamatrix</key>
+	<string>Data Matrix-code</string>
+	<key>native.deviceRequests.scan.symbology.ean13</key>
+	<string>EAN-13-streepjescode</string>
+	<key>native.deviceRequests.scan.symbology.ean8</key>
+	<string>EAN-8-streepjescode</string>
+	<key>native.deviceRequests.scan.symbology.pdf417</key>
+	<string>PDF417-code</string>
+	<key>native.deviceRequests.scan.symbology.qr</key>
+	<string>QR-code</string>
+	<key>native.deviceRequests.scan.title</key>
+	<string>%@ vraagt je een code te scannen</string>
+	<key>native.deviceRequests.scan.tooLong</key>
+	<string>Deze code bevat meer tekst dan verstuurd kan worden. Scan een andere.</string>
+	<key>native.deviceRequests.scan.untrusted</key>
+	<string>Deze tekst komt uit de code, niet van Hermie of je bot. Hij wordt niet geopend of gevolgd. Controleer hem voordat je hem verstuurt.</string>
+	<key>native.deviceRequests.scan.valueLabel</key>
+	<string>Wat de code zegt</string>
+	<key>native.deviceRequests.signature.clear</key>
+	<string>Wissen</string>
+	<key>native.deviceRequests.signature.empty</key>
+	<string>Teken je handtekening in het vak hierboven.</string>
+	<key>native.deviceRequests.signature.failedFiles</key>
+	<string>Je handtekening kon niet worden klaargemaakt. Probeer het opnieuw.</string>
+	<key>native.deviceRequests.signature.note</key>
+	<string>Je handtekening gaat mee als PNG- en SVG-afbeelding, met een vingerafdruk van de tekst hierboven, zodat te bewijzen is wat je hebt ondertekend.</string>
+	<key>native.deviceRequests.signature.padHint</key>
+	<string>Teken je handtekening met een vinger, een pen of de aanwijzer.</string>
+	<key>native.deviceRequests.signature.padLabel</key>
+	<string>Handtekeningvlak</string>
+	<key>native.deviceRequests.signature.placeholder</key>
+	<string>Teken hier</string>
+	<key>native.deviceRequests.signature.preparing</key>
+	<string>Je handtekening wordt klaargemaakt…</string>
+	<key>native.deviceRequests.signature.sign</key>
+	<string>Ondertekenen en versturen</string>
+	<key>native.deviceRequests.signature.signer</key>
+	<string>Ondertekenen als %@</string>
+	<key>native.deviceRequests.signature.statement</key>
+	<string>Je ondertekent</string>
+	<key>native.deviceRequests.signature.time</key>
+	<string>Datum en tijd</string>
+	<key>native.deviceRequests.signature.title</key>
+	<string>%@ vraagt je te ondertekenen</string>
+	<key>native.deviceRequests.signature.tooLarge</key>
+	<string>Je handtekening is groter dan dit verzoek toestaat. Wis hem en teken een eenvoudigere.</string>
+	<key>native.deviceRequests.signature.undo</key>
+	<string>Ongedaan maken</string>
+	<key>native.deviceRequests.voice.cannot</key>
+	<string>Ik kan niet opnemen</string>
+	<key>native.deviceRequests.voice.cannotHint</key>
+	<string>Laat de bot weten dat dit apparaat geen spraakbericht kan opnemen.</string>
+	<key>native.deviceRequests.voice.chooseFile</key>
+	<string>Kies in plaats daarvan een opname</string>
+	<key>native.deviceRequests.voice.denied</key>
+	<string>Hermie heeft geen toegang tot de microfoon. Je kunt dat toestaan in Instellingen.</string>
+	<key>native.deviceRequests.voice.intro</key>
+	<string>De microfoon gaat pas aan als je op Opnemen drukt. Je kunt de opname beluisteren voordat er iets wordt verstuurd.</string>
+	<key>native.deviceRequests.voice.level</key>
+	<string>Geluidsniveau</string>
+	<key>native.deviceRequests.voice.noMicrophone</key>
+	<string>Dit apparaat heeft geen microfoon om mee op te nemen.</string>
+	<key>native.deviceRequests.voice.noteLength</key>
+	<string>Spraakbericht, %@</string>
+	<key>native.deviceRequests.voice.pause</key>
+	<string>Pauzeer</string>
+	<key>native.deviceRequests.voice.pickedNote</key>
+	<string>Een opname die je kiest wordt ongewijzigd verstuurd. Hij kan eigen gegevens bevatten, zoals wanneer en waar hij is gemaakt.</string>
+	<key>native.deviceRequests.voice.play</key>
+	<string>Afspelen</string>
+	<key>native.deviceRequests.voice.record</key>
+	<string>Opnemen</string>
+	<key>native.deviceRequests.voice.recordAgain</key>
+	<string>Opnieuw opnemen</string>
+	<key>native.deviceRequests.voice.recordedNote</key>
+	<string>Deze opname is op dit apparaat gemaakt en bevat geen locatie.</string>
+	<key>native.deviceRequests.voice.recording</key>
+	<string>Neemt op</string>
+	<key>native.deviceRequests.voice.recordingFailed</key>
+	<string>De opname werd onderbroken. Probeer het opnieuw.</string>
+	<key>native.deviceRequests.voice.sendTranscript</key>
+	<string>Stuur de transcriptie ook mee</string>
+	<key>native.deviceRequests.voice.stop</key>
+	<string>Stop</string>
+	<key>native.deviceRequests.voice.title</key>
+	<string>%@ vraagt je om een spraakbericht</string>
+	<key>native.deviceRequests.voice.tooShort</key>
+	<string>Dat was te kort om te bewaren. Druk op Opnemen en probeer het opnieuw.</string>
+	<key>native.deviceRequests.voice.transcribing</key>
+	<string>Er wordt op dit apparaat een transcriptie gemaakt…</string>
+	<key>native.deviceRequests.voice.transcriptEmpty</key>
+	<string>Er zijn geen woorden herkend, dus er gaat geen transcriptie mee.</string>
+	<key>native.deviceRequests.voice.transcriptLabel</key>
+	<string>Transcriptie</string>
+	<key>native.deviceRequests.voice.transcriptNone</key>
+	<string>Geen transcriptie: dit apparaat kan er geen maken zonder de audio naar een dienst te sturen.</string>
+	<key>native.deviceRequests.voice.transcriptNote</key>
+	<string>Gemaakt op dit apparaat. Het kan fout zijn; de opname is wat telt.</string>
+	<key>native.deviceRequests.voice.unreadable</key>
+	<string>De opname kon niet worden bewaard. Probeer het opnieuw.</string>
 	<key>native.gateways.removeFailed.notSynced</key>
 	<string>Deze gateway wordt niet meer gesynchroniseerd met de iCloud-sleutelhanger en kan daarom alleen van dit apparaat worden verwijderd. Er is niets verwijderd.</string>
 	<key>native.gateways.removeFailed.other</key>

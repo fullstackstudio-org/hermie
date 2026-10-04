@@ -3,7 +3,7 @@ import HermieProtocol
 import SwiftUI
 
 extension View {
-  /// Answer the chat's interactive requests (`input.form`, `input.file`, `review.draft`, `review.diff`): the sheet
+  /// Answer the chat's interactive requests (`input.form`, `input.file`, `review.draft`, `review.diff`, `input.signature`, `device.scan`): the sheet
   /// for the oldest open one, raised as it arrives (never over the app lock, and never while
   /// `blocked`, which is another sheet of the chat being up), and the chat's notice when one
   /// ended without the person's answer or could not be shown. Putting the sheet away with Later,
@@ -122,8 +122,14 @@ struct InteractiveSheetView: View {
           // A view of its own per request: what was typed never carries over to the next one.
           .id(prompt.id)
       case .file(let params):
-        FileSheetView(model: model, prompt: prompt, params: params)
-          .id(prompt.id)
+        // A request for a recording made here has its own sheet; every other file request is the file sheet.
+        if params.asksForRecording {
+          VoiceSheetView(model: model, prompt: prompt, params: params)
+            .id(prompt.id)
+        } else {
+          FileSheetView(model: model, prompt: prompt, params: params)
+            .id(prompt.id)
+        }
       case .draft(let params):
         DraftSheetView(model: model, prompt: prompt, params: params)
           .id(prompt.id)
@@ -138,6 +144,12 @@ struct InteractiveSheetView: View {
           .id(prompt.id)
       case .calendar(let request):
         CalendarSheetView(model: model, prompt: prompt, request: request)
+          .id(prompt.id)
+      case .signature(let request):
+        SignatureSheetView(model: model, prompt: prompt, request: request)
+          .id(prompt.id)
+      case .scan(let request):
+        ScanSheetView(model: model, prompt: prompt, request: request)
           .id(prompt.id)
       }
     }
