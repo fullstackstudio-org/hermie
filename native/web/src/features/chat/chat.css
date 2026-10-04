@@ -48,12 +48,20 @@
   overflow-wrap: anywhere;
 }
 
-/* The way to the bot's other conversations, at the end of the line. */
+/* The ways on from the chat (its profile, its other conversations), at the end of the line. */
+.hm-chat-header__links {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0 16px;
+  margin-inline-start: auto;
+}
+
 .hm-chat-header__link {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  margin-inline-start: auto;
   color: var(--hm-link);
   white-space: nowrap;
 }

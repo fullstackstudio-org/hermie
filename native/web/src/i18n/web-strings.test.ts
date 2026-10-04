@@ -44,7 +44,19 @@ const SAME_AS_ENGLISH: Readonly<Record<string, readonly Locale[]>> = {
   'sheets.chatSettings.reasoning.max': ['nl', 'de'],
   'sheets.chatSettings.reasoning.ultra': ['nl', 'de'],
   // `{action}: {name}` is the same two placeholders and a colon in every language.
-  'cron.actionFor': ['nl', 'de']
+  'cron.actionFor': ['nl', 'de'],
+  // "Name" is the German word too; "Toolsets" and "Skills" are loan words in Dutch and German.
+  'sheets.botProfile.nameHeading': ['de'],
+  'sheets.botProfile.toolsetsHeading': ['nl', 'de'],
+  'sheets.botProfile.skillsHeading': ['nl', 'de'],
+  // "Gateway", "Provider" and the dash are the same in all three; "Model" and "Session" in two.
+  'sheets.botProfile.gatewayVersion': ['nl', 'de'],
+  'sheets.botProfile.provider': ['nl', 'de'],
+  'sheets.botProfile.unknown': ['nl', 'de'],
+  'sheets.botProfile.model': ['nl'],
+  'sheets.botProfile.session': ['de'],
+  // "{count} tools" is Dutch too.
+  'sheets.botProfile.toolCount': ['nl']
 }
 
 type Source = Record<string, unknown>

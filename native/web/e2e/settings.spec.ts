@@ -298,7 +298,7 @@ test.describe('Chat list', () => {
     await app.open('#/settings/chat-list')
     await expect(page.getByRole('list', { name: 'Chats and folders' })).toBeVisible()
 
-    await page.getByRole('button', { name: 'Actions for Writer' }).click()
+    await page.getByRole('main').getByRole('button', { name: 'Actions for Writer' }).click()
 
     const panel = page.getByRole('group', { name: 'Actions for Writer' })
 
@@ -323,7 +323,7 @@ test.describe('Chat list', () => {
     ).toHaveAttribute('data-accent', 'teal')
 
     // And back out of the archive.
-    await page.getByRole('button', { name: 'Actions for Writer' }).click()
+    await page.getByRole('main').getByRole('button', { name: 'Actions for Writer' }).click()
     await page.getByRole('button', { name: 'Unarchive Writer' }).click()
     await expect(page.getByRole('heading', { level: 3, name: /^Archived/u })).toHaveCount(0)
     expect(await drawn(page)).toContain('writer')
@@ -337,7 +337,7 @@ test.describe('Chat list', () => {
     await page.keyboard.press('Enter')
     await expect(page.getByRole('status').filter({ hasText: 'Folder Reading created.' })).toBeVisible()
 
-    await page.getByRole('button', { name: 'Actions for Writer' }).click()
+    await page.getByRole('main').getByRole('button', { name: 'Actions for Writer' }).click()
     await page
       .getByRole('group', { name: 'Actions for Writer' })
       .getByRole('combobox', { name: 'Move to folder' })
@@ -539,7 +539,7 @@ test.describe('accessibility', () => {
 
       await goTo(page, '#/settings/chat-list')
       await expect(page.getByRole('list', { name: 'Chats and folders' })).toBeVisible()
-      await page.getByRole('button', { name: 'Actions for Writer' }).click()
+      await page.getByRole('main').getByRole('button', { name: 'Actions for Writer' }).click()
       await page.getByRole('combobox', { name: 'Colour' }).selectOption({ label: 'Lime' })
       expect(await seriousViolations(page, `settings-chat-list-${scheme}`)).toEqual([])
 
@@ -554,7 +554,7 @@ test.describe('accessibility', () => {
     await page.setViewportSize({ width: 320, height: 700 })
     await app.open('#/settings/chat-list')
     await expect(page.getByRole('list', { name: 'Chats and folders' })).toBeVisible()
-    await page.getByRole('button', { name: 'Actions for Writer' }).click()
+    await page.getByRole('main').getByRole('button', { name: 'Actions for Writer' }).click()
 
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)

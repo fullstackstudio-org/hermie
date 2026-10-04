@@ -32,6 +32,7 @@ import { useLocale } from '../../i18n/use-locale'
 import { type Bot, botsStore } from '../../state/bots'
 import { type ChatsState, chatsStore } from '../../state/chats'
 import type { AccentName } from '../../state/folders'
+import { layoutStore } from '../../state/layout'
 import { Icon } from '../../ui/icons'
 import { Avatar, PresenceBead, UnreadBadge, VisuallyHidden } from '../../ui/primitives'
 import { botLabel } from './bot-label'
@@ -40,6 +41,7 @@ import { formatListTime } from './list-time'
 import { presenceOf } from './presence'
 import { rowPreview } from './preview'
 import './bots.css'
+import './row-more.css'
 
 export interface BotRowProps {
   bot: Bot
@@ -97,6 +99,8 @@ export const BotRow = memo(function BotRow({
   // (its state, its stamp) change with the language, nothing in its props does.
   useLocale()
 
+  // What the reader calls this bot beats what the bot calls itself (Edit profile, Settings).
+  const given = useStore(layoutStore, state => state.labels[bot.name])
   const lastSeen = useStore(botsStore, state => state.lastSeen[bot.name] ?? 0)
   const running = useStore(botsStore, state => state.running[bot.name] === true)
   const live = useStore(
@@ -126,7 +130,7 @@ export const BotRow = memo(function BotRow({
   const systemLine = offlineSince === undefined && live.previewSystem && Boolean(live.previewText)
   const stamp = formatListTime(offlineSince ?? lastActive)
   // The bot's own words: cleaned and bounded, and isolated where it stands in a line of its own.
-  const name = botLabel(bot.displayName, bot.name)
+  const name = botLabel(given || bot.displayName, bot.name)
 
   return (
     <li className="hm-row-item">
@@ -183,6 +187,16 @@ export const BotRow = memo(function BotRow({
           </span>
         ) : null}
       </a>
+
+      {/* Its menu is the list's (`RowMenuLayer`, a chunk of its own, which listens for it): out of the tab order, reached by Right from the row. */}
+      <button
+        type="button"
+        className="hm-row__more"
+        tabIndex={-1}
+        aria-haspopup="menu"
+        aria-expanded="false"
+        aria-label={strings.app.layout.rowActions({ name })}
+      />
     </li>
   )
 })

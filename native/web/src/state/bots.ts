@@ -318,10 +318,18 @@ export function createBotsStore(): StoreApi<BotsState> {
         }
       }
 
+      // A picture the roster says is gone (taken away here or on another device) stops being drawn.
+      const avatars = get().avatars
+      const removed = placed.some(bot => !bot.hasAvatar && bot.name in avatars)
+      const kept = removed
+        ? Object.fromEntries(Object.entries(avatars).filter(([name]) => byName[name]?.hasAvatar !== false))
+        : avatars
+
       set({
         bots: placed,
         byName,
         canonicalPins: keptPins,
+        ...(removed ? { avatars: kept } : {}),
         ...(options.fromCache ? {} : { refreshedAt: Date.now(), error: null })
       })
     },

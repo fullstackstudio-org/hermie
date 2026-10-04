@@ -101,6 +101,41 @@ describe('projecting a profile row', () => {
   })
 })
 
+describe('a picture the roster says is gone', () => {
+  it('stops being drawn, and one it still has is kept', () => {
+    const store = createBotsStore()
+
+    store
+      .getState()
+      .setBots([
+        botFromProfileRow({ name: 'writer', path: '/p', has_avatar: true }),
+        botFromProfileRow({ name: 'ops', path: '/p', has_avatar: true })
+      ])
+    store.getState().setAvatar('writer', 0, 'data:image/png;base64,AAAA')
+    store.getState().setAvatar('ops', 0, 'data:image/png;base64,BBBB')
+
+    // The picture was taken away here or on another device.
+    store
+      .getState()
+      .setBots([
+        botFromProfileRow({ name: 'writer', path: '/p', has_avatar: false }),
+        botFromProfileRow({ name: 'ops', path: '/p', has_avatar: true })
+      ])
+
+    expect(store.getState().avatars).toEqual({ ops: 'data:image/png;base64,BBBB' })
+  })
+
+  it('is left alone by a roster that does not mention the bot', () => {
+    const store = createBotsStore()
+
+    store.getState().setBots([botFromProfileRow({ name: 'writer', path: '/p', has_avatar: true })])
+    store.getState().setAvatar('writer', 0, 'data:image/png;base64,AAAA')
+    store.getState().setBots([botFromProfileRow({ name: 'ops', path: '/p' })])
+
+    expect(store.getState().avatars.writer).toBe('data:image/png;base64,AAAA')
+  })
+})
+
 describe('unread', () => {
   it('is set while the chat moved after the user last looked at it', () => {
     store.getState().setBots([botFromProfileRow(PROFILE_ROW)])

@@ -45,6 +45,12 @@ export interface LayoutProps {
   footer: ReactNode
   /** The main pane's heading. */
   heading: string
+  /**
+   * What a click on the heading does, when it is a way in (a chat's bot name opens the bot's profile). It is for
+   * a pointer only, so it is not a control: the keyboard and a screen reader have a link of their own in the
+   * chat's header, and a second link named like the heading would be told apart from the row's by nothing.
+   */
+  headingAction?: { onActivate: () => void; title: string }
   /** The main pane's body. */
   children: ReactNode
 }
@@ -68,7 +74,15 @@ function focusFirst(candidates: readonly (HTMLElement | null)[]): void {
   }
 }
 
-export function Layout({ route, status, sidebar, footer, heading, children }: LayoutProps): ReactElement {
+export function Layout({
+  route,
+  status,
+  sidebar,
+  footer,
+  heading,
+  headingAction,
+  children
+}: LayoutProps): ReactElement {
   useLocale()
 
   const mainHeading = useRef<HTMLHeadingElement>(null)
@@ -117,7 +131,23 @@ export function Layout({ route, status, sidebar, footer, heading, children }: La
             <Icon name="chevronLeft" size={20} />
             {webStrings.shell.backToChats}
           </a>
-          <h1 className="hm-main__title" ref={mainHeading} tabIndex={-1}>
+          <h1
+            className="hm-main__title"
+            ref={mainHeading}
+            tabIndex={-1}
+            {...(headingAction
+              ? {
+                  title: headingAction.title,
+                  'data-action': 'true',
+                  onClick: () => {
+                    // Selecting the name to copy it is not asking for the profile.
+                    if (mainHeading.current?.ownerDocument.defaultView?.getSelection()?.isCollapsed !== false) {
+                      headingAction.onActivate()
+                    }
+                  }
+                }
+              : {})}
+          >
             {/* A bot's name is the heading on its chat: isolated, so its own direction cannot reorder the line. */}
             <bdi>{heading}</bdi>
           </h1>

@@ -83,6 +83,414 @@ export const SHEET_STRINGS_SOURCE = {
       de: 'Kein anderes Modell passt.'
     }
   },
+  rowMenu: {
+    markRead: {
+      en: 'Mark as read',
+      nl: 'Markeren als gelezen',
+      de: 'Als gelesen markieren'
+    },
+    pin: {
+      en: 'Pin',
+      nl: 'Vastzetten',
+      de: 'Anheften'
+    },
+    unpin: {
+      en: 'Unpin',
+      nl: 'Losmaken',
+      de: 'Lösen'
+    },
+    unmute: {
+      en: 'Unmute',
+      nl: 'Niet meer dempen',
+      de: 'Stummschaltung aufheben'
+    },
+    editProfile: {
+      en: 'Edit profile',
+      nl: 'Profiel bewerken',
+      de: 'Profil bearbeiten'
+    },
+    /** In the row menu's Mute, Colour and Move to folder lists: the way back to the first list. */
+    back: {
+      en: 'Back',
+      nl: 'Terug',
+      de: 'Zurück'
+    },
+    /** Said politely once Mark as read has been chosen. */
+    markedRead: {
+      en: ({ name }: { name: string }) => `${name} marked as read.`,
+      nl: ({ name }: { name: string }) => `${name} is als gelezen gemarkeerd.`,
+      de: ({ name }: { name: string }) => `${name} als gelesen markiert.`
+    },
+    pinned: {
+      en: ({ name }: { name: string }) => `${name} pinned.`,
+      nl: ({ name }: { name: string }) => `${name} is vastgezet.`,
+      de: ({ name }: { name: string }) => `${name} angepinnt.`
+    },
+    unpinned: {
+      en: ({ name }: { name: string }) => `${name} unpinned.`,
+      nl: ({ name }: { name: string }) => `${name} is niet meer vastgezet.`,
+      de: ({ name }: { name: string }) => `${name} ist nicht mehr angepinnt.`
+    },
+    /** `duration` is the menu's own words for it ("For 1 hour"). */
+    muted: {
+      en: ({ name, duration }: { name: string; duration: string }) => `${name} muted. ${duration}.`,
+      nl: ({ name, duration }: { name: string; duration: string }) => `${name} is gedempt. ${duration}.`,
+      de: ({ name, duration }: { name: string; duration: string }) => `${name} stummgeschaltet. ${duration}.`
+    },
+    unmuted: {
+      en: ({ name }: { name: string }) => `${name} unmuted.`,
+      nl: ({ name }: { name: string }) => `${name} is niet meer gedempt.`,
+      de: ({ name }: { name: string }) => `${name} ist nicht mehr stummgeschaltet.`
+    },
+    coloured: {
+      en: ({ name, colour }: { name: string; colour: string }) => `Colour of ${name} set to ${colour}.`,
+      nl: ({ name, colour }: { name: string; colour: string }) => `Kleur van ${name} is nu ${colour}.`,
+      de: ({ name, colour }: { name: string; colour: string }) => `Farbe von ${name} ist jetzt ${colour}.`
+    }
+  },
+  botProfile: {
+    descriptionPlaceholder: {
+      en: 'What this bot is for',
+      nl: 'Waar deze bot voor is',
+      de: 'Wofür dieser Bot da ist'
+    },
+    gatewayVersion: {
+      en: 'Gateway',
+      nl: 'Gateway',
+      de: 'Gateway'
+    },
+    model: {
+      en: 'Model',
+      nl: 'Model',
+      de: 'Modell'
+    },
+    photoChange: {
+      en: 'Choose a photo',
+      nl: 'Kies een foto',
+      de: 'Foto auswählen'
+    },
+    photoFailed: {
+      en: 'That photo could not be uploaded.',
+      nl: 'Die foto kon niet worden geüpload.',
+      de: 'Dieses Foto konnte nicht hochgeladen werden.'
+    },
+    photoHint: {
+      en: 'Shown on the chat list, the header and every message this bot sends.',
+      nl: 'Te zien in de chatlijst, in de koptekst en bij elk bericht dat deze bot stuurt.',
+      de: 'Zu sehen in der Chatliste, im Header und bei jeder Nachricht, die dieser Bot sendet.'
+    },
+    photoRemove: {
+      en: 'Remove photo',
+      nl: 'Foto verwijderen',
+      de: 'Foto entfernen'
+    },
+    photoReplace: {
+      en: 'Change photo',
+      nl: 'Foto wijzigen',
+      de: 'Foto ändern'
+    },
+    provider: {
+      en: 'Provider',
+      nl: 'Provider',
+      de: 'Provider'
+    },
+    save: {
+      en: 'Save',
+      nl: 'Opslaan',
+      de: 'Speichern'
+    },
+    saveFailed: {
+      en: 'The gateway would not save that.',
+      nl: 'De gateway wilde dat niet opslaan.',
+      de: 'Das Gateway wollte das nicht speichern.'
+    },
+    saving: {
+      en: 'Saving…',
+      nl: 'Opslaan…',
+      de: 'Speichere…'
+    },
+    session: {
+      en: 'Session',
+      nl: 'Sessie',
+      de: 'Session'
+    },
+    profileLink: {
+      en: 'Profile',
+      nl: 'Profiel',
+      de: 'Profil'
+    },
+    unknown: {
+      en: '—',
+      nl: '—',
+      de: '—'
+    },
+    colourOf: {
+      en: ({ name }: { name: string }) => `Colour for ${name}`,
+      nl: ({ name }: { name: string }) => `Kleur voor ${name}`,
+      de: ({ name }: { name: string }) => `Farbe für ${name}`
+    },
+    displayLabel: {
+      en: 'Display name',
+      nl: 'Weergavenaam',
+      de: 'Anzeigename'
+    },
+    displayHint: {
+      en: 'What Hermie calls this bot in your list. The gateway keeps the profile’s own name.',
+      nl: 'Hoe deze bot in jouw lijst heet. De gateway houdt de eigen naam van het profiel.',
+      de: 'Wie dieser Bot in deiner Liste heißt. Das Gateway behält den eigenen Namen des Profils.'
+    },
+    clearHint: {
+      en: 'Leave it empty to fall back to the name the gateway reports.',
+      nl: 'Laat het leeg om terug te vallen op de naam die de gateway doorgeeft.',
+      de: 'Leer lassen, um auf den Namen zurückzufallen, den das Gateway meldet.'
+    },
+    profileLabel: {
+      en: 'Profile name',
+      nl: 'Profielnaam',
+      de: 'Profilname'
+    },
+    profileHint: {
+      en: 'The name the rest of the app addresses this bot by.',
+      nl: 'De naam waarmee de rest van de app deze bot aanspreekt.',
+      de: 'Der Name, unter dem der Rest der App diesen Bot anspricht.'
+    },
+    missing: {
+      en: ({ name }: { name: string }) => `The gateway has no profile called ${name}.`,
+      nl: ({ name }: { name: string }) => `De gateway heeft geen profiel dat ${name} heet.`,
+      de: ({ name }: { name: string }) => `Das Gateway kennt kein Profil namens ${name}.`
+    },
+    readFailed: {
+      en: ({ reason }: { reason: string }) => `Could not read the configuration: ${reason}`,
+      nl: ({ reason }: { reason: string }) => `Kon de configuratie niet lezen: ${reason}`,
+      de: ({ reason }: { reason: string }) => `Die Konfiguration konnte nicht gelesen werden: ${reason}`
+    },
+    loading: {
+      en: 'Reading this bot’s configuration…',
+      nl: 'De configuratie van deze bot lezen…',
+      de: 'Konfiguration dieses Bots wird gelesen…'
+    },
+    refused: {
+      en: ({ reason }: { reason: string }) => `The gateway refused the change: ${reason}`,
+      nl: ({ reason }: { reason: string }) => `De gateway weigerde de wijziging: ${reason}`,
+      de: ({ reason }: { reason: string }) => `Das Gateway hat die Änderung abgelehnt: ${reason}`
+    },
+    capabilitiesHeading: {
+      en: 'Capabilities',
+      nl: 'Mogelijkheden',
+      de: 'Fähigkeiten'
+    },
+    toolCount: {
+      en: ({ count }: { count: number }) => (count === 1 ? `1 tool` : `${count} tools`),
+      nl: ({ count }: { count: number }) => (count === 1 ? `1 tool` : `${count} tools`),
+      de: ({ count }: { count: number }) => (count === 1 ? `1 Tool` : `${count} Tools`)
+    },
+    toolsetsPinned: {
+      en: 'Pinned for this bot.',
+      nl: 'Vastgezet voor deze bot.',
+      de: 'Für diesen Bot fixiert.'
+    },
+    toolsetsUnpinned: {
+      en: 'This bot follows the gateway’s defaults. Changing a switch pins the whole list.',
+      nl: 'Deze bot volgt de standaard van de gateway. Eén schakelaar omzetten zet de hele lijst vast.',
+      de: 'Dieser Bot folgt den Vorgaben des Gateways. Ein Schalter, den du umlegst, fixiert die ganze Liste.'
+    },
+    skillsEmpty: {
+      en: 'No skills installed for this bot.',
+      nl: 'Geen skills geïnstalleerd voor deze bot.',
+      de: 'Für diesen Bot sind keine Skills installiert.'
+    },
+    skillsFooter: {
+      en: 'Skills are folders of instructions the bot can open when it needs them.',
+      nl: 'Skills zijn mappen met instructies die de bot kan openen wanneer hij ze nodig heeft.',
+      de: 'Skills sind Ordner mit Anweisungen, die der Bot öffnen kann, wenn er sie braucht.'
+    },
+    mcpEmpty: {
+      en: 'No MCP servers configured on this gateway.',
+      nl: 'Geen MCP-servers ingesteld op deze gateway.',
+      de: 'Auf diesem Gateway sind keine MCP-Server konfiguriert.'
+    },
+    mcpFooter: {
+      en: 'Switching a server on here makes its tools available to this bot.',
+      nl: 'Een server hier aanzetten maakt zijn tools beschikbaar voor deze bot.',
+      de: 'Einen Server hier einzuschalten macht seine Tools für diesen Bot verfügbar.'
+    },
+    reloadTitle: {
+      en: 'Apply to running chats?',
+      nl: 'Toepassen op lopende chats?',
+      de: 'Auf laufende Chats anwenden?'
+    },
+    reloadBody: {
+      en: 'MCP servers reload for every live chat. The next message in each one re-sends its full input.',
+      nl: 'MCP-servers herladen voor elke lopende chat. Het volgende bericht in elke chat stuurt zijn volledige invoer opnieuw.',
+      de: 'MCP-Server werden für jeden laufenden Chat neu geladen. Die nächste Nachricht in jedem Chat sendet ihre gesamte Eingabe erneut.'
+    },
+    reloadNow: {
+      en: 'Reload now',
+      nl: 'Nu herladen',
+      de: 'Neu laden'
+    },
+    reloadAlways: {
+      en: 'Reload, and stop asking',
+      nl: 'Herladen, en niet meer vragen',
+      de: 'Neu laden, nicht fragen'
+    },
+    reloadAlwaysHint: {
+      en: 'Stops the gateway asking again — in the CLI and the desktop app too.',
+      nl: 'Zorgt dat de gateway het niet meer vraagt — ook niet in de CLI en de desktopapp.',
+      de: 'Das Gateway fragt dann nicht mehr — auch nicht in der CLI und der Desktop-App.'
+    },
+    reloadLater: {
+      en: 'Not now',
+      nl: 'Nu niet',
+      de: 'Später'
+    },
+    reloadDone: {
+      en: 'MCP servers reloaded.',
+      nl: 'MCP-servers zijn herladen.',
+      de: 'MCP-Server neu geladen.'
+    },
+    /** At the top of the profile page: the way back to the chat. */
+    backToChat: {
+      en: 'Back to chat',
+      nl: 'Terug naar chat',
+      de: 'Zurück zum Chat'
+    },
+    /** Section headings. */
+    photoHeading: {
+      en: 'Photo',
+      nl: 'Foto',
+      de: 'Foto'
+    },
+    nameHeading: {
+      en: 'Name',
+      nl: 'Naam',
+      de: 'Name'
+    },
+    descriptionHeading: {
+      en: 'Description',
+      nl: 'Beschrijving',
+      de: 'Beschreibung'
+    },
+    colourHeading: {
+      en: 'Colour',
+      nl: 'Kleur',
+      de: 'Farbe'
+    },
+    toolsetsHeading: {
+      en: 'Toolsets',
+      nl: 'Toolsets',
+      de: 'Toolsets'
+    },
+    skillsHeading: {
+      en: 'Skills',
+      nl: 'Skills',
+      de: 'Skills'
+    },
+    mcpHeading: {
+      en: 'MCP servers',
+      nl: 'MCP-servers',
+      de: 'MCP-Server'
+    },
+    aboutHeading: {
+      en: 'About this bot',
+      nl: 'Over deze bot',
+      de: 'Über diesen Bot'
+    },
+    /** Under the colours: where it shows on this client. */
+    colourHint: {
+      en: 'Shown as a stripe on this chat’s row, and kept with your other devices.',
+      nl: 'Zichtbaar als streep op de rij van deze chat, en bewaard voor je andere apparaten.',
+      de: 'Wird als Streifen an der Zeile dieses Chats gezeigt und mit deinen anderen Geräten abgeglichen.'
+    },
+    /** The picture could not be taken: not an image, or too large to send. */
+    photoNotImage: {
+      en: 'That file is not a picture.',
+      nl: 'Dat bestand is geen afbeelding.',
+      de: 'Diese Datei ist kein Bild.'
+    },
+    photoTooLarge: {
+      en: 'That picture is too large to send.',
+      nl: 'Die afbeelding is te groot om te versturen.',
+      de: 'Das Bild ist zu groß zum Senden.'
+    },
+    photoUploading: {
+      en: 'Saving the photo…',
+      nl: 'De foto wordt opgeslagen…',
+      de: 'Das Foto wird gespeichert…'
+    },
+    photoChanged: {
+      en: 'Photo changed.',
+      nl: 'Foto gewijzigd.',
+      de: 'Foto geändert.'
+    },
+    photoRemoved: {
+      en: 'Photo removed.',
+      nl: 'Foto verwijderd.',
+      de: 'Foto entfernt.'
+    },
+    revert: {
+      en: 'Revert',
+      nl: 'Terugzetten',
+      de: 'Zurücksetzen'
+    },
+    descriptionSaved: {
+      en: 'Description saved.',
+      nl: 'Beschrijving opgeslagen.',
+      de: 'Beschreibung gespeichert.'
+    },
+    /** The reader's own name for the bot was cleared or changed. */
+    nameSaved: {
+      en: 'Name saved.',
+      nl: 'Naam opgeslagen.',
+      de: 'Name gespeichert.'
+    },
+    /** The toolsets list, when the bot has none of its own: what a switch will do. */
+    useDefaults: {
+      en: 'Use the gateway’s defaults',
+      nl: 'Standaardinstellingen van de gateway gebruiken',
+      de: 'Standardeinstellungen des Gateways verwenden'
+    },
+    /** A switch that would leave no toolset on: nothing was sent. */
+    lastToolset: {
+      en: 'One toolset has to stay on: the gateway reads an empty list as its defaults. Use the gateway’s defaults to follow them instead.',
+      nl: 'Eén toolset moet aan blijven: de gateway leest een lege lijst als zijn standaardinstellingen. Gebruik de standaardinstellingen van de gateway om die te volgen.',
+      de: 'Ein Toolset muss eingeschaltet bleiben: Das Gateway liest eine leere Liste als seine Standardeinstellungen. Verwende stattdessen die Standardeinstellungen des Gateways.'
+    },
+    /** The Skills toolset is off: the skills below do nothing for the bot's own tools. */
+    skillsToolsetOff: {
+      en: 'The Skills toolset is off, so this bot gets no skill tools whatever the switches below say.',
+      nl: 'De toolset Skills staat uit, dus deze bot krijgt geen skill-tools, wat de schakelaars hieronder ook zeggen.',
+      de: 'Das Toolset Skills ist ausgeschaltet, dieser Bot bekommt also keine Skill-Tools, was die Schalter unten auch sagen.'
+    },
+    /** The reader's own words for why the form cannot be changed. */
+    readOnly: {
+      en: 'This gateway account may look at this bot and not change it. Name and colour are yours and still work.',
+      nl: 'Dit gatewayaccount mag deze bot bekijken en niet wijzigen. Naam en kleur zijn van jou en werken nog.',
+      de: 'Dieses Gateway-Konto darf diesen Bot ansehen, aber nicht ändern. Name und Farbe gehören dir und funktionieren weiter.'
+    },
+    offline: {
+      en: 'Not connected, so what the gateway keeps for this bot cannot be changed right now.',
+      nl: 'Geen verbinding, dus wat de gateway van deze bot bewaart kan nu niet worden gewijzigd.',
+      de: 'Nicht verbunden, deshalb lässt sich im Moment nicht ändern, was das Gateway zu diesem Bot speichert.'
+    },
+    unsupported: {
+      en: 'This gateway does not offer profile editing, so only the name and colour can be changed here.',
+      nl: 'Deze gateway biedt geen profielbewerking, dus hier kunnen alleen naam en kleur worden gewijzigd.',
+      de: 'Dieses Gateway bietet keine Profilbearbeitung, deshalb lassen sich hier nur Name und Farbe ändern.'
+    },
+    /** A write the gateway answered without applying. */
+    notApplied: {
+      en: 'The gateway did not apply that change.',
+      nl: 'De gateway heeft die wijziging niet toegepast.',
+      de: 'Das Gateway hat diese Änderung nicht übernommen.'
+    },
+    /** A write that never reached the gateway. */
+    notSent: {
+      en: 'There was no connection, so nothing was changed.',
+      nl: 'Er was geen verbinding, dus er is niets gewijzigd.',
+      de: 'Es gab keine Verbindung, deshalb wurde nichts geändert.'
+    }
+  },
   requests: {
     /** A clarify question left unanswered on purpose: the bot is told "no answer". */
     skip: {

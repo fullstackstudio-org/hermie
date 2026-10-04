@@ -387,7 +387,11 @@ async function startApp(page: Page, ready: Ready): Promise<void> {
         controller: session.chats.controller,
         gatewayBaseUrl: basePath.baseUrl,
         drafts: createDraftStore(store),
-        sessionSearch: session.client.http
+        sessionSearch: session.client.http,
+        profiles: {
+          gateway: session.client.gateway,
+          refreshRoster: () => session.client.bots.refresh()
+        }
       }}
       passkeys={session.passkeys}
       mcp={session.mcp}

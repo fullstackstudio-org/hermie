@@ -58,7 +58,7 @@ test.describe('The sidebar and the arrangement', () => {
 
     const before = await rows(page)
 
-    await page.getByRole('button', { name: 'Actions for Writer' }).click()
+    await page.getByRole('main').getByRole('button', { name: 'Actions for Writer' }).click()
     await page
       .getByRole('group', { name: 'Actions for Writer' })
       .getByRole('button', { name: 'Archive Writer' })
@@ -85,7 +85,7 @@ test.describe('The sidebar and the arrangement', () => {
     await expect(archive).toHaveAttribute('aria-expanded', 'false')
 
     // And out again.
-    await page.getByRole('button', { name: 'Actions for Writer' }).click()
+    await page.getByRole('main').getByRole('button', { name: 'Actions for Writer' }).click()
     await page.getByRole('button', { name: 'Unarchive Writer' }).click()
     await expect(sidebar(page).getByRole('button', { name: /^Archived/u })).toHaveCount(0)
     await expect.poll(() => rows(page)).toContain('writer')
@@ -100,7 +100,7 @@ test.describe('The sidebar and the arrangement', () => {
     await page.getByRole('textbox', { name: 'Folder name' }).fill('Reading')
     await page.keyboard.press('Enter')
     await expect(page.getByRole('status').filter({ hasText: 'Folder Reading created.' })).toBeVisible()
-    await page.getByRole('button', { name: 'Actions for Writer' }).click()
+    await page.getByRole('main').getByRole('button', { name: 'Actions for Writer' }).click()
     await page
       .getByRole('group', { name: 'Actions for Writer' })
       .getByRole('combobox', { name: 'Move to folder' })
@@ -132,7 +132,7 @@ test.describe('The sidebar and the arrangement', () => {
 
     await page.getByRole('textbox', { name: 'Folder name' }).fill('Reading')
     await page.keyboard.press('Enter')
-    await page.getByRole('button', { name: 'Actions for Writer' }).click()
+    await page.getByRole('main').getByRole('button', { name: 'Actions for Writer' }).click()
     await page
       .getByRole('group', { name: 'Actions for Writer' })
       .getByRole('combobox', { name: 'Move to folder' })
@@ -162,7 +162,7 @@ test.describe('The sidebar and the arrangement', () => {
   test('puts a chat’s colour on its row and marks a muted one', async ({ app, page }) => {
     await openSettings(app, page)
 
-    await page.getByRole('button', { name: 'Actions for Writer' }).click()
+    await page.getByRole('main').getByRole('button', { name: 'Actions for Writer' }).click()
 
     const panel = page.getByRole('group', { name: 'Actions for Writer' })
 
@@ -187,14 +187,14 @@ test.describe('The sidebar and the arrangement', () => {
 
     await page.getByRole('textbox', { name: 'Folder name' }).fill('Reading')
     await page.keyboard.press('Enter')
-    await page.getByRole('button', { name: 'Actions for Writer' }).click()
+    await page.getByRole('main').getByRole('button', { name: 'Actions for Writer' }).click()
 
     const panel = page.getByRole('group', { name: 'Actions for Writer' })
 
     await panel.getByRole('combobox', { name: 'Move to folder' }).selectOption({ label: 'Reading' })
     await panel.getByRole('combobox', { name: 'Colour' }).selectOption({ label: 'Violet' })
     await panel.getByRole('combobox', { name: 'Mute' }).selectOption({ label: 'Until I turn it back on' })
-    await page.getByRole('button', { name: 'Actions for Researcher' }).click()
+    await page.getByRole('main').getByRole('button', { name: 'Actions for Researcher' }).click()
     await page.getByRole('button', { name: 'Archive Researcher' }).click()
 
     const archive = sidebar(page).getByRole('button', { name: 'Archived (1)' })

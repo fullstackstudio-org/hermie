@@ -11,7 +11,8 @@
  * It reads the stores itself with selectors that return primitives, so a streamed
  * token re-renders the transcript and not this line.
  *
- * At its end, the way to the bot's other conversations (`#/chat/<bot>/conversations`,
+ * At its end, the way to the bot's profile (`#/chat/<bot>/profile`, `features/profile`: its photo, name,
+ * description, colour and capabilities) and to its other conversations (`#/chat/<bot>/conversations`,
  * `features/sessions`): its past ones, its branches and a new one.
  */
 import { hasOpenRequest, turnActivity, type TurnActivity } from '@hermie/transcript'
@@ -20,14 +21,16 @@ import { useStore } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
 
 import { strings } from '../../generated/strings'
+import { sheetStrings } from '../../i18n/sheet-strings'
 import { useLocale } from '../../i18n/use-locale'
 import { botsStore } from '../../state/bots'
 import { chatsStore } from '../../state/chats'
 import { connectionStore } from '../../state/connection'
+import { layoutStore } from '../../state/layout'
 import { Avatar, PresenceBead } from '../../ui/primitives'
 import { botLabel } from '../bots/bot-label'
 import { presenceOf } from '../bots/presence'
-import { conversationsHref } from '../shell/router'
+import { conversationsHref, profileHref } from '../shell/router'
 import { shortToolName } from './items/tool-text'
 
 export interface ChatHeaderProps {
@@ -77,6 +80,7 @@ export function ChatHeader({ bot, chatKey }: ChatHeaderProps): ReactElement {
 
   const record = useStore(botsStore, state => state.byName[bot])
   const avatar = useStore(botsStore, state => state.avatars[bot])
+  const given = useStore(layoutStore, state => state.labels[bot])
   const running = useStore(botsStore, state => state.running[bot] === true)
   const status = useStore(connectionStore, state => state.status)
   const live = useStore(
@@ -110,13 +114,18 @@ export function ChatHeader({ bot, chatKey }: ChatHeaderProps): ReactElement {
   return (
     <p className="hm-chat-header">
       <span className="hm-chat-header__avatar" aria-hidden="true">
-        <Avatar name={botLabel(record?.displayName, bot)} uri={avatar} />
+        <Avatar name={botLabel(given || record?.displayName, bot)} uri={avatar} />
       </span>
       <PresenceBead state={presence.state} size="inline" />
       <span className="hm-chat-header__status">{subtitleOf(ready, status, activity)}</span>
-      <a className="hm-chat-header__link" href={conversationsHref(bot)}>
-        {strings.chat.sessions.conversations}
-      </a>
+      <span className="hm-chat-header__links">
+        <a className="hm-chat-header__link" href={profileHref(bot)}>
+          {sheetStrings.botProfile.profileLink}
+        </a>
+        <a className="hm-chat-header__link" href={conversationsHref(bot)}>
+          {strings.chat.sessions.conversations}
+        </a>
+      </span>
     </p>
   )
 }

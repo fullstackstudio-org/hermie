@@ -89,6 +89,7 @@ import { botsStore } from '../../state/bots'
 import { chatViewFor, chatViewStore, DEFAULT_CHAT_VIEW } from '../../state/chat-view'
 import { chatsStore } from '../../state/chats'
 import { connectionStore } from '../../state/connection'
+import { layoutStore } from '../../state/layout'
 import { requestsStore } from '../../state/requests'
 import { Button } from '../../ui/primitives'
 import { botLabel } from '../bots/bot-label'
@@ -209,7 +210,8 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
   const ready = useStore(connectionStore, state => state.status === 'ready')
   const ownAuthorId = useOwnAuthorId()
   const visible = usePageVisible()
-  const displayName = botLabel(record?.displayName, bot)
+  const given = useStore(layoutStore, state => state.labels[bot])
+  const displayName = botLabel(given || record?.displayName, bot)
 
   const { key, viewer, error, retry } = useOpenChat({ runtime, record, bot, session, ready })
   const { yolo, error: yoloError, dismissError: dismissYoloError } = useYolo(bot, runtime, viewer)

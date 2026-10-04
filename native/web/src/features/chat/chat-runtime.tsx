@@ -16,6 +16,7 @@ import { createContext, useContext } from 'react'
 
 import type { SessionSearchHttp } from '@hermie/gateway-client'
 
+import type { BotProfilesRuntime } from '../../core/bot-profile/runtime'
 import type { ChatController } from '../../core/chat-controller'
 import type { PeoplePictures } from '../../core/people-pictures'
 import type { DraftStore } from './drafts'
@@ -90,6 +91,11 @@ export interface ChatSessionRuntime {
    * a gallery) draws everybody as an initial.
    */
   pictures?: PeoplePictures
+  /**
+   * What the bot profile page reads and writes through (`features/profile`). Absent (a test of the screen,
+   * a gallery) leaves the profile page with nothing but the name and colour, which are the reader's own.
+   */
+  profiles?: BotProfilesRuntime
 }
 
 export const ChatRuntimeContext = createContext<ChatSessionRuntime | null>(null)

@@ -6,6 +6,7 @@
  * #/chat/<bot>                a bot's chat
  * #/chat/<bot>/s/<session>    one of its conversations
  * #/chat/<bot>/conversations  the list of its conversations (W-22)
+ * #/chat/<bot>/profile        the bot's profile: photo, name, description, colour, capabilities
  * #/settings                  settings
  * #/settings/<section>        one section of it
  * #/crons                     the crons list (HERM-259)
@@ -34,6 +35,7 @@ export type Route =
   | { name: 'home' }
   | { name: 'chat'; bot: string; session?: string }
   | { name: 'conversations'; bot: string }
+  | { name: 'profile'; bot: string }
   | { name: 'settings'; section?: string }
   /** The crons list, a new cron (`view: 'new'`), one cron, its editor, or one of its runs. A job id and a run id are gateway ids. */
   | { name: 'crons'; job?: string; view?: 'new' | 'edit' | 'run'; run?: string }
@@ -94,6 +96,10 @@ export function parseRoute(hash: string): Route | null {
 
       if (parts.length === 4 && parts[3] === 'conversations') {
         return { name: 'conversations', bot }
+      }
+
+      if (parts.length === 4 && parts[3] === 'profile') {
+        return { name: 'profile', bot }
       }
 
       const session = segment(parts[4])
@@ -159,6 +165,8 @@ export function formatRoute(route: Route): string {
         : `#/chat/${encodeURIComponent(route.bot)}/s/${encodeURIComponent(route.session)}`
     case 'conversations':
       return `#/chat/${encodeURIComponent(route.bot)}/conversations`
+    case 'profile':
+      return `#/chat/${encodeURIComponent(route.bot)}/profile`
     case 'settings':
       return route.section === undefined ? '#/settings' : `#/settings/${route.section}`
     case 'crons': {
@@ -201,6 +209,9 @@ export const activityHref = (): string => formatRoute({ name: 'activity' })
 
 /** The fragment of the list of a bot's conversations. */
 export const conversationsHref = (bot: string): string => formatRoute({ name: 'conversations', bot })
+
+/** The fragment of a bot's profile page. */
+export const profileHref = (bot: string): string => formatRoute({ name: 'profile', bot })
 
 /**
  * The route the address names. An unknown one reads as home at once and is

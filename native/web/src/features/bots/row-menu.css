@@ -1,0 +1,85 @@
+/* A chat row's menu (`RowMenu.tsx`): its own chunk, so its own styles; the button that opens it is `row-more.css`. */
+
+.hm-row-menu {
+  position: fixed;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  min-width: 13rem;
+  max-width: min(22rem, calc(100vw - 16px));
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-bg);
+  box-shadow: 0 8px 24px color-mix(in srgb, #000000 18%, transparent);
+  color: var(--hm-text);
+}
+
+.hm-row-menu .hm-row-menu__item {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.9375rem;
+  text-align: start;
+  cursor: pointer;
+}
+
+.hm-row-menu .hm-row-menu__item:hover,
+.hm-row-menu .hm-row-menu__item:focus {
+  background: var(--hm-selected);
+}
+
+/* The lines are `tabindex="-1"` (the arrows move between them), which the theme draws no ring for; this one does. */
+.hm-row-menu .hm-row-menu__item:focus-visible {
+  outline: var(--hm-focus-width) solid var(--hm-focus);
+  outline-offset: -2px;
+}
+
+.hm-row-menu .hm-row-menu__item[aria-disabled='true'] {
+  color: var(--hm-text-muted);
+  cursor: default;
+}
+
+.hm-row-menu .hm-row-menu__item[aria-disabled='true']:hover {
+  background: transparent;
+}
+
+.hm-row-menu__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Under a Back line, the list it leads into. */
+.hm-row-menu .hm-row-menu__item[data-kind='back'] {
+  border-bottom: 1px solid var(--hm-line);
+  border-radius: 6px 6px 0 0;
+  margin-bottom: 4px;
+  color: var(--hm-text-muted);
+}
+
+.hm-row-menu__caption {
+  padding: 6px 12px;
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+}
+
+.hm-row-menu__check {
+  flex: none;
+  width: 1em;
+  text-align: center;
+}
+
+.hm-row-menu__check::before {
+  content: '\2713';
+}

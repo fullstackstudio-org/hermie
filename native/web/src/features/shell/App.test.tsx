@@ -9,6 +9,7 @@ import { setLanguageChoice } from '../../i18n/locale'
 import { createHashRouter, type HashRouter } from '../../platform/hash-router'
 import { botsStore } from '../../state/bots'
 import { connectionStore } from '../../state/connection'
+import { layoutStore } from '../../state/layout'
 import { pluginStore } from '../../state/plugin'
 import { aBot, resetShellStores, seedRoster } from '../../test-support/shell-stores'
 import { App, type AppProps } from './App'
@@ -118,6 +119,35 @@ describe('the routes', () => {
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Dr. Researcher')
     expect(document.title).toBe('Dr. Researcher · Hermie')
     expect(screen.getByRole('link', { name: /Dr\. Researcher/ }).getAttribute('aria-current')).toBe('page')
+  })
+
+  it('heads a chat with the name the reader gave the bot, over the bot’s own', () => {
+    layoutStore.getState().setLabel('researcher', 'The Scribe')
+    router.navigate('#/chat/researcher')
+    renderApp()
+
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('The Scribe')
+    expect(document.title).toBe('The Scribe · Hermie')
+  })
+
+  it('opens the bot’s profile from a click on the chat’s heading', () => {
+    router.navigate('#/chat/writer')
+    renderApp()
+
+    const heading = screen.getByRole('heading', { level: 1 })
+
+    expect(heading.getAttribute('title')).toBe("Edit Writer's profile")
+    fireEvent.click(heading)
+    expect(router.current()).toBe('#/chat/writer/profile')
+  })
+
+  it('heads the profile route with what it is', () => {
+    router.navigate('#/chat/writer/profile')
+    renderApp()
+
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe("Edit Writer's profile")
+    expect(document.title).toBe("Edit Writer's profile · Hermie")
+    expect(pane()).toBe('detail')
   })
 
   it('cleans, bounds and isolates the bot’s name in the heading and the tab: it is the bot’s own words', () => {

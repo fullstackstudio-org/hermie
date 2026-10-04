@@ -15,6 +15,7 @@
  * | `#/chat/<bot>`                | the bot's name       | the chat (`ChatScreen`)          |
  * | `#/chat/<bot>/s/<session>`    | the bot's name       | that conversation (`ChatScreen`) |
  * | `#/chat/<bot>/conversations`  | Conversations        | the bot's conversations (`ConversationsPage`) |
+ * | `#/chat/<bot>/profile`        | Edit <bot>'s profile | the bot's profile (`ProfilePage`)    |
  * | `#/settings`                  | Settings             | the home of Settings (`SettingsHost`)  |
  * | `#/settings/<section>`        | Settings             | that section, under a way back (`SettingsHost`): account, gateway, passkeys, mcp, chats, chat-list, appearance, about |
  * | `#/settings/<anything else>`  | Settings             | the home; the address is rewritten to `#/settings` |
@@ -50,6 +51,7 @@ import { webStrings } from '../../i18n/web-strings'
 import { type HashRouter, pageHashRouter } from '../../platform/hash-router'
 import { setPageTitle } from '../../platform/page-title'
 import { botsStore } from '../../state/bots'
+import { layoutStore } from '../../state/layout'
 import { pluginStore } from '../../state/plugin'
 import { botLabel } from '../bots/bot-label'
 import { ChatList } from '../bots/ChatList'
@@ -68,7 +70,7 @@ import { type SecureInputActions, SecureInputRuntimeContext } from '../requests/
 import { type SessionSignalsActions, SessionSignalsRuntimeContext } from '../notices/signals-runtime'
 import { ConnectionLine } from './ConnectionLine'
 import { Layout } from './Layout'
-import { formatRoute, type Route, useRoute } from './router'
+import { formatRoute, profileHref, type Route, useRoute } from './router'
 import { SidebarFooter } from './SidebarFooter'
 
 /**
@@ -84,6 +86,9 @@ const SettingsHost = lazy(() => loadSettingsHost().then(module => ({ default: mo
  * as soon as it has drawn once, so an open chat rarely waits for it.
  */
 const ChatScreen = lazy(() => loadChatScreen().then(module => ({ default: module.ChatScreen })))
+
+/** So is a bot's profile page, fetched when `#/chat/<bot>/profile` is opened or its menu line is pointed at. */
+const ProfilePage = lazy(() => import('../profile/ProfilePage').then(module => ({ default: module.ProfilePage })))
 
 /** So is a bot's Conversations page, fetched when `#/chat/<bot>/conversations` is opened. */
 const ConversationsPage = lazy(() =>
@@ -137,7 +142,7 @@ export interface AppProps {
 
 /** The bot a route is on, if it is on one. */
 const botOf = (route: Route): string | undefined =>
-  route.name === 'chat' || route.name === 'conversations' ? route.bot : undefined
+  route.name === 'chat' || route.name === 'conversations' || route.name === 'profile' ? route.bot : undefined
 
 export function App({
   user,
@@ -167,22 +172,26 @@ export function App({
   const botName = useStore(botsStore, state =>
     bot === undefined ? undefined : (state.byName[bot]?.displayName ?? bot)
   )
+  // What the reader calls the bot beats what the bot calls itself (`state/layout.ts`, set on its profile page).
+  const given = useStore(layoutStore, state => (bot === undefined ? undefined : state.labels[bot]))
   const switchedOff = useStore(pluginStore, state => webClientSwitchedOff(state.advert))
 
   const appName = strings.app.app.name
   const heading =
     route.name === 'chat'
       ? // The bot's own words: cleaned and bounded like a request's, and isolated where the heading draws it.
-        botLabel(botName, route.bot) || appName
+        botLabel(given || botName, route.bot) || appName
       : route.name === 'conversations'
         ? strings.chat.sessions.conversations
-        : route.name === 'settings'
-          ? strings.app.settings.title
-          : route.name === 'crons'
-            ? strings.app.tabs.routines
-            : route.name === 'activity'
-              ? strings.app.activity.title
-              : appName
+        : route.name === 'profile'
+          ? strings.app.botProfile.open({ name: botLabel(given || botName, route.bot) || appName })
+          : route.name === 'settings'
+            ? strings.app.settings.title
+            : route.name === 'crons'
+              ? strings.app.tabs.routines
+              : route.name === 'activity'
+                ? strings.app.activity.title
+                : appName
 
   // Once the frame has been drawn, fetch the chat screen's chunk if no route has asked for it yet.
   useEffect(() => {
@@ -215,8 +224,16 @@ export function App({
                     <Layout
                       route={route}
                       heading={heading}
+                      {...(route.name === 'chat'
+                        ? {
+                            headingAction: {
+                              onActivate: () => router.navigate(profileHref(route.bot)),
+                              title: strings.app.botProfile.open({ name: heading })
+                            }
+                          }
+                        : {})}
                       status={<ConnectionLine onSignIn={onSignIn} gated={gated} />}
-                      sidebar={<ChatList selectedBot={bot} />}
+                      sidebar={<ChatList selectedBot={bot} router={router} />}
                       footer={
                         <SidebarFooter
                           user={user}
@@ -235,6 +252,10 @@ export function App({
                             router={router}
                             {...(route.session ? { session: route.session } : {})}
                           />
+                        </Suspense>
+                      ) : route.name === 'profile' ? (
+                        <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
+                          <ProfilePage key={formatRoute(route)} bot={route.bot} />
                         </Suspense>
                       ) : route.name === 'conversations' ? (
                         <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>

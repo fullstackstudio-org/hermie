@@ -6,6 +6,7 @@ import { setLanguageChoice } from '../../i18n/locale'
 import { botsStore } from '../../state/bots'
 import { chatsStore } from '../../state/chats'
 import { connectionStore } from '../../state/connection'
+import { layoutStore } from '../../state/layout'
 import { assistantItem, chatWith, toolItem, userItem } from '../../test-support/chat-fixtures'
 import { aBot, resetShellStores, seedRoster } from '../../test-support/shell-stores'
 import { ChatHeader } from './ChatHeader'
@@ -88,6 +89,22 @@ describe('the line under the bot’s name', () => {
       expect(state(), status).toBe(words)
       expect(bead(), status).toBe('offline')
     }
+  })
+
+  it('leads to the bot’s profile and its conversations, at the end of the line', () => {
+    render(<ChatHeader bot="researcher" chatKey="researcher" />)
+
+    expect(screen.getByRole('link', { name: 'Profile' }).getAttribute('href')).toBe('#/chat/researcher/profile')
+    expect(screen.getByRole('link', { name: 'Conversations' }).getAttribute('href')).toBe(
+      '#/chat/researcher/conversations'
+    )
+  })
+
+  it('draws the avatar from the name the reader gave the bot, over the bot’s own', () => {
+    layoutStore.getState().setLabel('researcher', 'Quill')
+    render(<ChatHeader bot="researcher" chatKey="researcher" />)
+
+    expect(document.querySelector('.hm-avatar')?.textContent).toBe('Q')
   })
 
   it('draws the avatar’s letter from the cleaned name: an invisible or direction-changing first character is not one', () => {

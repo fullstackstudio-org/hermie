@@ -8,6 +8,7 @@ import {
   cronRunHref,
   conversationHref,
   conversationsHref,
+  profileHref,
   formatRoute,
   HOME,
   parseRoute,
@@ -25,6 +26,8 @@ describe('parseRoute', () => {
     ['#/chat/researcher/s/20260101_abc', { name: 'chat', bot: 'researcher', session: '20260101_abc' }],
     ['#/chat/researcher/conversations', { name: 'conversations', bot: 'researcher' }],
     ['#/chat/researcher/conversations/', { name: 'conversations', bot: 'researcher' }],
+    ['#/chat/researcher/profile', { name: 'profile', bot: 'researcher' }],
+    ['#/chat/researcher/profile/', { name: 'profile', bot: 'researcher' }],
     ['#/settings', { name: 'settings' }],
     ['#/settings/', { name: 'settings' }],
     ['#/settings/notifications', { name: 'settings', section: 'notifications' }],
@@ -57,6 +60,7 @@ describe('parseRoute', () => {
     '#/chat/a/x/b',
     '#/chat/a/conversation',
     '#/chat/a/conversations/x',
+    '#/chat/a/profile/x',
     '#/chat//conversations',
     '#/chat/%E0%A4%A',
     '#/settings/Not-Lower',
@@ -91,6 +95,7 @@ describe('formatRoute', () => {
     { name: 'chat', bot: 'résumé bot' },
     { name: 'chat', bot: 'a/b?c#d', session: 'x y/z' },
     { name: 'conversations', bot: 'a/b?c#d' },
+    { name: 'profile', bot: 'a/b?c#d' },
     { name: 'settings' },
     { name: 'settings', section: 'notifications' },
     { name: 'crons' },
@@ -114,6 +119,7 @@ describe('formatRoute', () => {
     expect(conversationsHref('a/b')).toBe('#/chat/a%2Fb/conversations')
     expect(cronHref('a/b')).toBe('#/crons/a%2Fb')
     expect(cronRunHref('a', 'b c')).toBe('#/crons/a/runs/b%20c')
+    expect(profileHref('a/b')).toBe('#/chat/a%2Fb/profile')
   })
 })
 

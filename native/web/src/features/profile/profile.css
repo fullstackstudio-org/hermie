@@ -1,0 +1,140 @@
+/*
+ * A bot's profile page (`ProfilePage.tsx`). Colours, radii and gutters are the theme's (`ui/theme.css`); the
+ * controls are the Settings pages' (`features/settings`), which this page borrows. The policy forbids inline
+ * styles, so every variation is a class or a data attribute.
+ */
+
+.hm-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 40rem;
+  padding-bottom: 24px;
+}
+
+.hm-profile__back {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  min-height: 44px;
+  margin: 0 -8px;
+  padding: 0 8px;
+  color: var(--hm-tint-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.hm-profile__back:hover {
+  text-decoration: underline;
+}
+
+.hm-profile__note {
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+  color: var(--hm-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.hm-profile__section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hm-line);
+}
+
+.hm-profile__heading {
+  margin: 0;
+  font-size: 1.0625rem;
+}
+
+.hm-profile__subheading {
+  margin: 8px 0 0;
+  font-size: 0.9375rem;
+}
+
+.hm-profile__hint {
+  margin: 0;
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.hm-profile__failure {
+  margin: 0;
+  color: var(--hm-danger-text);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.hm-profile__dismiss {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.hm-profile__photo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.hm-profile__avatar .hm-avatar {
+  --hm-avatar: 96px;
+
+  font-size: 2.5rem;
+}
+
+.hm-profile__photo-actions,
+.hm-profile__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hm-profile__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hm-profile__field input,
+.hm-profile__field textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-bg);
+  color: var(--hm-text);
+  font: inherit;
+}
+
+.hm-profile__field textarea {
+  resize: vertical;
+}
+
+.hm-profile__field textarea[readonly] {
+  background: var(--hm-surface);
+}
+
+/* The gateway's question about reloading MCP servers: a box of its own among the switches. */
+.hm-profile__prompt {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+}

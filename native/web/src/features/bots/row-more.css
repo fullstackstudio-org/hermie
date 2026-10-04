@@ -1,0 +1,67 @@
+/*
+ * The button on a chat row that opens its menu (`BotRow.tsx`; the menu is `RowMenu.tsx` and `row-menu.css`).
+ *
+ * The button is a sibling of the row's link, not inside it (a link cannot hold a button), laid over the end
+ * of the row. It is there for a pointer on hover and for the keyboard on focus, and always where there is
+ * no hover to find it (a touch screen), where the row then leaves room for it.
+ */
+
+.hm-row-item {
+  position: relative;
+}
+
+.hm-row__more {
+  appearance: none;
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-end: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  transform: translateY(-50%);
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius-pill);
+  background: var(--hm-bg);
+  color: var(--hm-text-muted);
+  cursor: pointer;
+  opacity: 0;
+}
+
+/* Drawn by the stylesheet, so it is never in a selection of the list; the button's name is its label. */
+.hm-row__more::before {
+  content: '\22ef';
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.hm-row-item:hover .hm-row__more,
+.hm-row-item:focus-within .hm-row__more,
+.hm-row__more[aria-expanded='true'] {
+  opacity: 1;
+}
+
+.hm-row__more:hover,
+.hm-row__more[aria-expanded='true'] {
+  background: var(--hm-surface-hover);
+  color: var(--hm-text);
+}
+
+.hm-row__more:focus-visible {
+  outline: var(--hm-focus-width) solid var(--hm-focus);
+  outline-offset: 1px;
+}
+
+/* No hover to find it with: always there, and the row leaves it room. */
+@media (hover: none) {
+  .hm-row__more {
+    opacity: 1;
+  }
+
+  .hm-row-item .hm-row {
+    padding-inline-end: 52px;
+  }
+}

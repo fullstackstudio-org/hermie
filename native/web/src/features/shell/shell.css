@@ -177,6 +177,15 @@
   overflow-wrap: anywhere;
 }
 
+/* A heading that is a way in for a pointer (a chat's bot name opens its profile) says so on hover. */
+.hm-main__title[data-action='true'] {
+  cursor: pointer;
+}
+
+.hm-main__title[data-action='true']:hover {
+  text-decoration: underline;
+}
+
 .hm-main__body {
   margin: 0;
   color: var(--hm-text-muted);

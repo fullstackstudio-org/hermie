@@ -30,12 +30,23 @@
  * a pause in typing (`MessageHits`): a hit opens that chat at the words. Escape
  * empties the field.
  */
-import { type KeyboardEvent, type ReactElement, type ReactNode, useId, useMemo, useRef, useState } from 'react'
+import {
+  type KeyboardEvent,
+  lazy,
+  type ReactElement,
+  type ReactNode,
+  Suspense,
+  useId,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 import { useStore } from 'zustand'
 
 import { strings } from '../../generated/strings'
 import { useLocale } from '../../i18n/use-locale'
 import { webStrings } from '../../i18n/web-strings'
+import type { HashRouter } from '../../platform/hash-router'
 import { type Bot, botsStore } from '../../state/bots'
 import { connectionStore } from '../../state/connection'
 import { layoutStore } from '../../state/layout'
@@ -54,9 +65,21 @@ import './list-arrangement.css'
 export interface ChatListProps {
   /** The bot whose chat is the open route, if any. */
   selectedBot: string | undefined
+  /** The page's address (Edit profile goes there), unless a test hands in its own. */
+  router?: HashRouter
 }
 
-export function ChatList({ selectedBot }: ChatListProps): ReactElement {
+/**
+ * The row menus' layer is a chunk of its own, fetched as soon as the list has drawn: it listens for the right click,
+ * the context-menu key and the buttons on the rows, and holds the menu, so none of that is in the first load.
+ */
+const loadRowMenuLayer = () => import('./RowMenuLayer')
+const RowMenuLayer = lazy(() => loadRowMenuLayer().then(module => ({ default: module.RowMenuLayer })))
+
+// Asked for when this module is, in parallel with the first draw, so the buttons work by the time anyone reaches for one.
+void loadRowMenuLayer().catch(() => undefined)
+
+export function ChatList({ selectedBot, router }: ChatListProps): ReactElement {
   useLocale()
 
   const bots = useStore(botsStore, state => state.bots)
@@ -104,6 +127,7 @@ export function ChatList({ selectedBot }: ChatListProps): ReactElement {
   )
 
   const listRef = useRef<HTMLDivElement>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
   // The row a Tab lands on: wherever focus last was, else the open chat, else the first.
   const [focused, setFocused] = useState<string | null>(null)
   const tabbableBot =
@@ -168,7 +192,7 @@ export function ChatList({ selectedBot }: ChatListProps): ReactElement {
   const loading = bots.length === 0 && !read && !error
 
   return (
-    <div className="hm-chat-list">
+    <div className="hm-chat-list" ref={rootRef}>
       {bots.length > 0 ? (
         <div className="hm-search" role="search">
           <input
@@ -258,6 +282,12 @@ export function ChatList({ selectedBot }: ChatListProps): ReactElement {
       ) : null}
 
       {narrowed ? <MessageHits query={query} /> : null}
+
+      {bots.length > 0 ? (
+        <Suspense fallback={null}>
+          <RowMenuLayer container={rootRef} {...(router ? { router } : {})} />
+        </Suspense>
+      ) : null}
 
       {presence === 'absent' ? (
         <p className="hm-note hm-note--plugin">

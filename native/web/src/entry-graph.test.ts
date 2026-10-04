@@ -56,7 +56,14 @@ const ON_DEMAND = [
   'core/push/sync.ts',
   'core/push/row.ts',
   'platform/web-push.ts',
-  'state/push.ts'
+  'state/push.ts',
+  // A chat row's menu and a bot's profile page are chunks of their own, with the model and the picture code they use.
+  'features/bots/RowMenuLayer.tsx',
+  'features/bots/RowMenu.tsx',
+  'features/bots/row-menu.ts',
+  'features/profile/ProfilePage.tsx',
+  'core/bot-profile/model.ts',
+  'core/bot-profile/avatar.ts'
 ].map(path => join(here, path))
 
 /** The file a relative specifier names, or undefined for a package, a stylesheet or an asset. */
