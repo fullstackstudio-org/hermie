@@ -11477,6 +11477,52 @@
         }
       }
     },
+    "native.search.failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nachrichten konnten nicht durchsucht werden. Prüfe die Verbindung und versuche es erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Messages could not be searched. Check the connection and try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Berichten konden niet worden doorzocht. Controleer de verbinding en probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "native.search.found" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%@“ in diesem Chat gefunden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Found “%@” in this chat."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” gevonden in deze chat."
+          }
+        }
+      }
+    },
     "native.secureInput.close" : {
       "comment" : "Button that closes the sheet after the request ended.",
       "extractionState" : "manual",

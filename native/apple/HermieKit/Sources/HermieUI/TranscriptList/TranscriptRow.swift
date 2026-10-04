@@ -78,6 +78,9 @@ public struct TranscriptRow: Identifiable, Equatable, Sendable {
   /// Where the row's bubble sits in its group, for a message drawn as one
   /// (a person's turn, the bot's reply); `nil` for every other row.
   public var bubble: BubbleLayout?
+  /// The row a search hit was followed to, marked for a moment (`ChatFeed`). Compared, so setting or
+  /// clearing it redraws this row and no other.
+  public var flash = false
   let stamp: Stamp
 
   public init(
@@ -100,7 +103,26 @@ public struct TranscriptRow: Identifiable, Equatable, Sendable {
   /// is a function of the item's text, so it is left out too.
   public static func == (lhs: TranscriptRow, rhs: TranscriptRow) -> Bool {
     lhs.stamp == rhs.stamp && lhs.opensAuthorRun == rhs.opensAuthorRun && lhs.bubble == rhs.bubble
-      && lhs.id == rhs.id
+      && lhs.id == rhs.id && lhs.flash == rhs.flash
+  }
+
+  /// The transcript items this row draws, oldest first: one, or the members of a roll-up or a group.
+  public var items: [VisibleItem] {
+    switch content {
+    case .item(let visible): [visible]
+    case .botDmRollup(let members), .toolGroup(let members): members
+    case .typingIndicator: []
+    }
+  }
+
+  /// This row draws the transcript item with `itemID`: it is that item's own row, or a roll-up or a group
+  /// that holds it.
+  public func holds(itemID: String) -> Bool {
+    switch content {
+    case .item(let visible): visible.item.id == itemID
+    case .botDmRollup(let members), .toolGroup(let members): members.contains { $0.item.id == itemID }
+    case .typingIndicator: false
+    }
   }
 
   /// The single item, when this row is one.

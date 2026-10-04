@@ -414,6 +414,7 @@
         guard let self else { return }
         if !loaded && !items.isEmpty && collectionView.bounds.width > 0 { load() }
       }
+      state.rowsLaidOut = false
       state.geometry = { [weak self] in self?.geometry ?? "list gone" }
     }
 
@@ -542,6 +543,7 @@
         if !insideLayout { collectionView.layoutIfNeeded() }
       }
       updateEdges()
+      state.rowsLaidOut = true
       announceLayoutChange()
     }
 

@@ -18,11 +18,27 @@ struct SessionChatList: View {
   @State private var collapse = ChatFolderCollapse()
   /// The folder name the alert is asking for.
   @State private var naming: FolderNaming?
+  /// What the bots' messages say about the words in the field, over this session's gateway.
+  @State private var messages: MessageSearchModel
   @Environment(AppRouter.self) private var router: AppRouter?
   @Environment(\.chatListHostsSectionPicker) private var hostsSectionPicker
   #if os(iOS)
     @Environment(\.horizontalSizeClass) private var sizeClass
   #endif
+
+  /// The model is bound to the session's link: a list over another session is another view (the screen
+  /// gives each its own identity).
+  init(
+    session: GatewaySession, selection: Binding<ChatRef?>, query: String, signIn: @escaping () -> Void,
+    focusedFolderId: Binding<String?> = .constant(nil)
+  ) {
+    self.session = session
+    self.selection = selection
+    self.query = query
+    self.signIn = signIn
+    self.focusedFolderId = focusedFolderId
+    _messages = State(initialValue: session.messageSearch())
+  }
 
   var body: some View {
     ScrollViewReader { proxy in
@@ -38,6 +54,8 @@ struct SessionChatList: View {
     let rows = ChatListRows(session: session, query: query)
     var actions = ChatRowActions(session: session, openSettings: openSettings)
     actions.askNewFolder = { naming = .new(chat: $0) }
+    let search = MessageSearchRequest(session: session, query: query, ready: ready)
+    let status = search.status(of: messages)
 
     return List(selection: selection) {
       if hostsSectionPicker, router != nil {
@@ -49,11 +67,24 @@ struct SessionChatList: View {
       }
 
       archive(rows, ready: ready, actions: actions)
+
+      messageHits(status, rows: rows, ready: ready)
+    }
+    .overlay { overlay(list: list, rows: rows, messages: status) }
+    // Searched once the field has been still, and again when what is searched changes; a task that
+    // is replaced is a query that is superseded.
+    .task(id: search.key) {
+      await messages.run(query: search.query, bots: search.bots, ready: ready)
+    }
+    .onChange(of: status) { _, status in
+      // Said aloud for what a reader cannot see change: no hit at all, or no search at all.
+      if status == .none || status == .failed {
+        AccessibilityNotification.Announcement(status.text).post()
+      }
     }
     .folderNameAlert($naming) { request, name in
       commit(request, name: name)
     }
-    .overlay { overlay(list: list, rows: rows) }
     .muteDialog($muting, actions: actions)
     #if os(iOS)
       .toolbar {
@@ -341,10 +372,67 @@ struct SessionChatList: View {
     }
   }
 
-  @ViewBuilder private func overlay(list: ChatListModel, rows: ChatListRows) -> some View {
+  /// Under the chats: the chats whose messages hold the words. Only the best match per chat comes back,
+  /// so each row is a bot, and tapping it opens that chat at the newest message with the words in it.
+  /// What the section says while it works, or when nothing matched, is its last row. Not drawn at all
+  /// when no chat matched by name either and the search found nothing: the whole list then says so
+  /// (`overlay`).
+  @ViewBuilder private func messageHits(_ status: MessageSearchStatus, rows: ChatListRows, ready: Bool) -> some View {
+    let namesMatched = !rows.shown.isEmpty || !rows.archived.isEmpty
+    let spoken = status == .none || status == .failed
+
+    if rows.searching, status != .idle, namesMatched || !spoken {
+      Section {
+        if status == .hits {
+          ForEach(messages.matches) { match in
+            if let row = session.chatList.rows[match.bot] {
+              MessageHitRow(
+                match: match,
+                row: row,
+                name: session.chatName(match.bot),
+                gatewayReady: ready,
+                accent: session.arrangement.accent(match.bot)
+              ) {
+                openHit(match)
+              }
+            }
+          }
+        }
+
+        MessageSearchStatusRow(status: status)
+          .listRowSeparator(.hidden)
+          .listRowBackground(Color.clear)
+          .selectionDisabled()
+      } header: {
+        Text(Strings.App.Bots.messagesHeader)
+      }
+    }
+  }
+
+  /// Open the chat of a hit, at the message: the router takes the words to the chat screen, which finds
+  /// the row (and pages back for it) once it is open. A list shown without a router just selects it.
+  private func openHit(_ match: MessageMatch) {
+    let chat = ChatRef(gatewayId: session.gatewayID, bot: match.bot)
+
+    if let router {
+      router.openChat(chat, finding: query)
+    } else {
+      selection.wrappedValue = chat
+    }
+  }
+
+  @ViewBuilder private func overlay(list: ChatListModel, rows: ChatListRows, messages status: MessageSearchStatus)
+    -> some View
+  {
     if rows.shown.isEmpty, rows.archived.isEmpty {
       if rows.searching, !list.names.isEmpty {
-        EmptyState(Strings.App.Common.search, systemImage: "magnifyingglass", message: Text(Strings.App.Bots.noMatches(query: query)))
+        // The messages section speaks for a search that is still out or found chats; the list only
+        // says "nothing" when the messages did not find any either.
+        if status == .failed {
+          EmptyState(Strings.App.Common.search, systemImage: "exclamationmark.triangle", message: Text(NativeStrings.Search.failed))
+        } else if status != .searching, status != .hits {
+          EmptyState(Strings.App.Common.search, systemImage: "magnifyingglass", message: Text(Strings.App.Bots.noMatches(query: query)))
+        }
       } else if let error = list.rosterError, list.refreshed || !list.loading {
         EmptyState(Strings.App.Tabs.chats, systemImage: "exclamationmark.triangle", message: Text(Strings.App.Bots.failed(message: error))) {
           Button(Strings.App.Common.retry) {

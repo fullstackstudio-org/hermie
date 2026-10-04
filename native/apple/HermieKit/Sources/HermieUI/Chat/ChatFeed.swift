@@ -3,6 +3,7 @@ import HermieCore
 import HermieGateway
 import HermieTranscript
 import Observation
+import SwiftUI
 
 /**
  What one chat screen runs on: the chat's model from the session, its rows, and the rules for
@@ -28,6 +29,14 @@ import Observation
  The reader's own send takes the transcript to the bottom and keeps it following the new bubble
  and the reply (`TranscriptListState.followOwnSend`), from wherever they had scrolled. A message
  that arrives from elsewhere does not move a reader who scrolled up: the jump pill counts it.
+
+ # Find
+
+ A chat opened from a message search hit is asked to show the row the words are in
+ (`find(_:settle:)`): a `ChatFindWalk` looks at the chat's items after every rebuild of the rows,
+ scrolls the list to the row that holds the newest match and marks it for a moment, and pages back
+ through older history when the words are not in what is loaded. When they are not in the chat's
+ visible text at all, a notice says so.
 
  # Read marks
 
@@ -62,6 +71,9 @@ final class ChatFeed: ChatScreenFeed {
   private(set) var activity = TurnActivity.idle
   private(set) var canLoadOlder = false
   private(set) var loadingOlder = false
+  /// What the chat says about the last search it was opened from, when the words were not found; it goes
+  /// by itself (`ChatFindNotice`).
+  private(set) var findNotice: String?
   /// Why the last open failed, for the banner over the transcript.
   private(set) var openError: String?
   /// What kind of failure that was, without its words (`ChatResolver.category`), for diagnostics.
@@ -82,6 +94,20 @@ final class ChatFeed: ChatScreenFeed {
   @ObservationIgnored private var readyEpoch = 0
   @ObservationIgnored private var failedEpoch = -1
   @ObservationIgnored private var historyExhausted = false
+  /// The rows as the pipeline built them; `rows` is these with the found row marked, while one is.
+  @ObservationIgnored private var builtRows = TranscriptListItems<TranscriptRow>()
+  /// Moves with every rebuild of the rows: what a find that was waiting on a page looks at.
+  @ObservationIgnored private var rowsRevision = 0
+  @ObservationIgnored private var findWalk: ChatFindWalk?
+  @ObservationIgnored private var findRequestID: Int?
+  /// Tells whoever asked that the request is dealt with.
+  @ObservationIgnored private var findSettle: (@MainActor (Int) -> Void)?
+  /// The item whose row is marked, and the timers that take the mark and the notice away.
+  @ObservationIgnored private var flashID: String?
+  @ObservationIgnored private var flashTask: Task<Void, Never>?
+  @ObservationIgnored private var findRetryTask: Task<Void, Never>?
+  @ObservationIgnored private var findRetries = 0
+  @ObservationIgnored private var noticeTask: Task<Void, Never>?
   /// The typing row's debounce, and what it was last told: see `TypingIndicatorGate`.
   @ObservationIgnored private var typingGate = TypingIndicatorGate()
   @ObservationIgnored private var typingWanted = false
@@ -182,6 +208,9 @@ final class ChatFeed: ChatScreenFeed {
     markTask?.cancel()
     typingTask?.cancel()
     typingTask = nil
+    abandonFind()
+    flashTask?.cancel()
+    noticeTask?.cancel()
     listState.onNearTop = nil
     composer.onSubmit = nil
     // Leaving the chat: every upload stops and what was staged goes with it.
@@ -274,7 +303,9 @@ final class ChatFeed: ChatScreenFeed {
         return
       }
 
-      rows = output.rows
+      builtRows = output.rows
+      rowsRevision += 1
+      rows = flashed(output.rows)
 
       if !listState.isAtBottom, output.arrived > 0 {
         newCount += output.arrived
@@ -283,6 +314,9 @@ final class ChatFeed: ChatScreenFeed {
       if !loaded {
         loaded = true
       }
+
+      // After the rows are in: the row a search hit is about may have arrived with them.
+      findWalk?.step()
     } while rebuild
   }
 
@@ -394,6 +428,190 @@ final class ChatFeed: ChatScreenFeed {
         historyExhausted = true
       }
     }
+  }
+
+  // MARK: Find
+
+  /// How long the found row stays marked, and how long the notice for words that were not found stays
+  /// up; the tests set their own.
+  @ObservationIgnored var flashDuration: Duration = .seconds(2.5)
+  @ObservationIgnored var noticeDuration: Duration = .seconds(8)
+  /// How often a find that is waiting for the list to lay out its first rows looks again.
+  @ObservationIgnored var findRetryInterval: Duration = .milliseconds(100)
+  /// Where the found row lands in the viewport: a little below the top, so the row above it shows.
+  static let findAnchor = UnitPoint(x: 0.5, y: 0.3)
+
+  /// Show the newest row that holds `request`'s words. A request this feed has taken already, or one
+  /// for another chat, is ignored; a newer one replaces a walk still under way.
+  ///
+  /// - Parameter settle: called once, with the request's id, when the request is dealt with (the row
+  ///   shown, or the words not found) or the screen goes before that.
+  func find(_ request: ChatFindRequest, settle: @escaping @MainActor (Int) -> Void) {
+    guard !stopped, request.chat == chat, request.id != findRequestID else {
+      return
+    }
+
+    abandonFind()
+    clearFindNotice()
+    findRetries = 0
+    findRequestID = request.id
+    findSettle = settle
+
+    let walk = ChatFindWalk(
+      query: request.query,
+      hooks: .chat(
+        model,
+        reveal: { [weak self] id in self?.revealRow(holding: id) ?? false },
+        revision: { [weak self] in self?.rowsRevision ?? 0 },
+        // What the rows draw, so that whatever is found has a row to scroll to.
+        items: { [weak self] in self?.rows.flatMap(\.items) ?? [] },
+        loadOlder: { [weak self] in await self?.loadOlderForFind() ?? .unavailable }
+      ),
+      onSettled: { [weak self] outcome in self?.findSettled(outcome, request: request) }
+    )
+    findWalk = walk
+    walk.step()
+  }
+
+  /// Scroll to the row that draws the item and mark it. False when the list has no such row yet, or has
+  /// not laid out its rows yet: a scroll it is asked for before that is dropped, and nothing else may
+  /// come to ask again in a chat nobody is writing in, so the walk looks again by itself.
+  private func revealRow(holding itemID: String) -> Bool {
+    guard let row = rows.first(where: { $0.holds(itemID: itemID) }) else {
+      return false
+    }
+
+    guard listState.rowsLaidOut else {
+      retryFindSoon()
+      return false
+    }
+
+    // Unanimated: the row may be hundreds of rows away, among heights that are still estimates.
+    listState.scroll(to: row.id, anchor: Self.findAnchor, animated: false)
+    flash(itemID)
+    return true
+  }
+
+  /// Look again at the rows in a moment: the list is not showing them yet. Bounded, so a chat on a
+  /// window nobody sees does not poll for ever; the rebuilds that follow look again as well.
+  private func retryFindSoon() {
+    guard findRetryTask == nil, findRetries < 100 else {
+      return
+    }
+
+    findRetries += 1
+    let interval = findRetryInterval
+    findRetryTask = Task { [weak self] in
+      try? await Task.sleep(for: interval)
+
+      guard !Task.isCancelled, let self else { return }
+
+      self.findRetryTask = nil
+      self.findWalk?.step()
+    }
+  }
+
+  /// One page for the walk. The same indicator and the same end of history as the reader's own scroll.
+  private func loadOlderForFind() async -> OlderHistory {
+    loadingOlder = true
+    let result = await model.loadOlder()
+    loadingOlder = false
+
+    if result != .grew {
+      historyExhausted = true
+    }
+
+    return result
+  }
+
+  private func findSettled(_ outcome: ChatFindWalk.Outcome, request: ChatFindRequest) {
+    findWalk = nil
+
+    switch outcome {
+    case .found:
+      announce(NativeStrings.Search.found(query: request.query))
+    case .notFound:
+      // Said where it can be read, and announced: scrolling to nowhere without an explanation is how a
+      // working search reads as a broken one.
+      let words = Strings.App.Chat.findExhausted(query: request.query)
+      findNotice = words
+      announce(words)
+
+      noticeTask?.cancel()
+      let duration = noticeDuration
+      noticeTask = Task { [weak self] in
+        try? await Task.sleep(for: duration)
+
+        guard !Task.isCancelled else { return }
+        self?.clearFindNotice()
+      }
+    }
+
+    settleRequest()
+  }
+
+  private func clearFindNotice() {
+    noticeTask?.cancel()
+    noticeTask = nil
+
+    if findNotice != nil {
+      findNotice = nil
+    }
+  }
+
+  /// The screen goes, or another request replaces the walk: no outcome is reported, the request is let go.
+  private func abandonFind() {
+    findWalk?.cancel()
+    findWalk = nil
+    findRetryTask?.cancel()
+    findRetryTask = nil
+    settleRequest()
+  }
+
+  private func settleRequest() {
+    if let id = findRequestID, let settle = findSettle {
+      findSettle = nil
+      settle(id)
+    }
+  }
+
+  private func announce(_ text: String) {
+    AccessibilityNotification.Announcement(text).post()
+  }
+
+  // MARK: The marked row
+
+  /// Mark the row that draws `itemID`, and take the mark away after `flashDuration`.
+  private func flash(_ itemID: String) {
+    flashID = itemID
+    rows = flashed(builtRows)
+
+    flashTask?.cancel()
+    let duration = flashDuration
+    flashTask = Task { [weak self] in
+      try? await Task.sleep(for: duration)
+
+      guard !Task.isCancelled, let self, !self.stopped else { return }
+
+      self.flashID = nil
+      self.rows = self.builtRows
+    }
+  }
+
+  /// `rows` with the marked row, while there is one: only that row's value differs, so only it redraws.
+  private func flashed(_ rows: TranscriptListItems<TranscriptRow>) -> TranscriptListItems<TranscriptRow> {
+    guard let flashID, rows.contains(where: { $0.holds(itemID: flashID) }) else {
+      return rows
+    }
+
+    return TranscriptListItems(
+      rows.elements.map { row in
+        guard row.holds(itemID: flashID) else { return row }
+
+        var marked = row
+        marked.flash = true
+        return marked
+      })
   }
 
   // MARK: Read marks

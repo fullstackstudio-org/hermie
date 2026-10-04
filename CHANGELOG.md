@@ -57,6 +57,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   what was typed is gone), except while the form is sending or uploading. A push notification
   says that an agent has a form, a file request or a draft for you, and carries none of its text (`docs/web.md`,
   `docs/native.md`, `contract/requests`).
+- **The native Apple apps search what the bots have said.** The chat list's search field now finds messages
+  as well as names: under the chats whose names match, a Messages section shows the chats whose messages hold
+  the words, with the gateway's snippet and what matched in bold. Tapping one opens that chat scrolled to the
+  newest message with the words in it, marked for a moment, paging back through older history when it is not
+  loaded yet; when the words are not in the chat's visible text (the gateway also indexes tool arguments), the
+  chat says so. Like the web client, it asks the gateway once per bot after the field has been still, shows
+  only the best match per chat, and says that a search could not run instead of saying nothing matched.
 - **The MCP page in Settings and the agent label.** Settings has an MCP page with the gateway's endpoint and the
   clients connected to it, and a client can be revoked. A turn an agent sent on the person's behalf is drawn as
   `<name> via <client>` under its bubble, in the native apps and the web client.

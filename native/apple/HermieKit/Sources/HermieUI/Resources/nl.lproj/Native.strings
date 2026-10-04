@@ -974,6 +974,10 @@
 	<string>Opnieuw proberen</string>
 	<key>native.requests.sending</key>
 	<string>Je antwoord wordt verstuurd…</string>
+	<key>native.search.failed</key>
+	<string>Berichten konden niet worden doorzocht. Controleer de verbinding en probeer het opnieuw.</string>
+	<key>native.search.found</key>
+	<string>“%@” gevonden in deze chat.</string>
 	<key>native.secureInput.close</key>
 	<string>Sluiten</string>
 	<key>native.secureInput.earlierAnswerLost</key>

@@ -30,6 +30,12 @@ public final class TranscriptListState {
   /// top, to load older history. Prepending rows keeps the reader's place.
   @ObservationIgnored public var onNearTop: (@MainActor () -> Void)?
 
+  /// The list has laid its rows out, so a scroll to a row it is asked for will be carried out. The
+  /// collection view on iPhone and iPad loads its first rows only once it is in a window with a width,
+  /// and drops a command for a row it does not have yet: it says so here (false until then), and a
+  /// screen that wants a row scrolled to waits for it. The other lists are ready as they are made.
+  @ObservationIgnored public internal(set) var rowsLaidOut = true
+
   /// The id of the row at the top of the viewport, as the list last reported
   /// it. Not observed: read it when you need it.
   @ObservationIgnored public internal(set) var topVisibleID: AnyHashable?

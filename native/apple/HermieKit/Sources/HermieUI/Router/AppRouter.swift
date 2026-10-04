@@ -39,6 +39,10 @@ public final class AppRouter {
   public var pendingIntents: [String] = []
   /// Bumped by the Find command; the search task watches it.
   public private(set) var findRequests = 0
+  /// A search hit that was followed: the words the chat it opened is to find. The chat screen takes it
+  /// and settles it (`settleFind`); see `openChat(_:finding:)`.
+  public private(set) var chatFind: ChatFindRequest?
+  private var lastFindID = 0
 
   /// Links waiting for the gateway list.
   public private(set) var pendingLinks: [DeepLink] = []
@@ -134,13 +138,44 @@ public final class AppRouter {
       detailPath = []
     }
 
+    // A search hit's words belong to the chat the hit named: another chat that opens first drops them,
+    // so they are not found in it when that chat is opened later.
+    if chatFind?.chat != chat {
+      chatFind = nil
+    }
+
     selectedChat = chat
     section = .chats
+  }
+
+  /// Open the chat of a message search hit and ask it to show the newest row holding `words`. The
+  /// request is left for that chat's screen, which may not exist yet (it is made when the chat opens)
+  /// or may be on screen already (a hit for the chat that is open changes no selection).
+  public func openChat(_ chat: ChatRef, finding words: String) {
+    openChat(chat)
+
+    let query = words.trimmingCharacters(in: .whitespacesAndNewlines)
+
+    guard !query.isEmpty else {
+      chatFind = nil
+      return
+    }
+
+    lastFindID += 1
+    chatFind = ChatFindRequest(id: lastFindID, chat: chat, query: query)
+  }
+
+  /// The chat dealt with a request (found the row, or said it could not). A newer one is left alone.
+  public func settleFind(_ id: Int) {
+    if chatFind?.id == id {
+      chatFind = nil
+    }
   }
 
   public func closeChat() {
     selectedChat = nil
     detailPath = []
+    chatFind = nil
   }
 
   /// The selection as a list binding writes it: nil closes, anything else opens.

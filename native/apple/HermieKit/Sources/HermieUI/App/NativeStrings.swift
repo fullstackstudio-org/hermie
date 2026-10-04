@@ -93,6 +93,20 @@ enum NativeStrings {
     }
   }
 
+  enum Search {
+    /// Found “{query}” in this chat. (announced when a chat opened from a search hit has scrolled to the row)
+    static func found(query: String) -> String {
+      String(
+        localized: "native.search.found", defaultValue: "Found “\(query)” in this chat.", table: "Native",
+        bundle: .module)
+    }
+    /// Messages could not be searched. Check the connection and try again. (under the chat list's messages
+    /// section, when every bot's search failed)
+    static var failed: String {
+      String(localized: "native.search.failed", table: "Native", bundle: .module)
+    }
+  }
+
   enum Commands {
     /// Add Gateway…
     static var addGateway: String { String(localized: "native.commands.addGateway", table: "Native", bundle: .module) }

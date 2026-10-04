@@ -13,6 +13,22 @@ public struct ChatRef: Codable, Hashable, Sendable {
   }
 }
 
+/// "Open this chat at the words I searched for": the one thing a message search hit hands the chat
+/// screen besides the route. Each request has its own id, so the same words asked twice in one chat
+/// are looked for twice.
+public struct ChatFindRequest: Hashable, Sendable {
+  public var id: Int
+  public var chat: ChatRef
+  /// The words, as typed (trimmed).
+  public var query: String
+
+  public init(id: Int, chat: ChatRef, query: String) {
+    self.id = id
+    self.chat = chat
+    self.query = query
+  }
+}
+
 /// What the sidebar lists. The Expo app's tabs, minus Settings, which is a sheet or its own window.
 public enum SidebarSection: String, Codable, Hashable, Sendable, CaseIterable {
   case chats

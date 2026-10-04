@@ -46,9 +46,12 @@ public struct ChatListScreen: View {
       switch live.phase {
       case .live:
         if let session = live.session {
+          // Its own identity per session: the messages search is bound to the session's link.
           SessionChatList(
             session: session, selection: context.selection, query: query, signIn: { signIn(gateway.id) },
-            focusedFolderId: context.focusedFolderId)
+            focusedFolderId: context.focusedFolderId
+          )
+          .id(ObjectIdentifier(session))
         } else {
           loading
         }

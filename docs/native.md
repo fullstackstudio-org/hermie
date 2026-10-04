@@ -1109,6 +1109,24 @@ and `chat` seams. Both read the session from `LiveGateway` in the environment.
   Settings…; it has no toolbar switcher. iPhone and iPad keep the toolbar's switcher and Switch
   Gateway (⌃⌘G). The archive is a row at the bottom that opens a sheet on iPhone and iPad, and a
   header with a disclosure arrow in the Mac's sidebar; while searching, archived matches are a section of their own.
+- **Message search** (`MessageSearchModel`, `FindInChat`, `ChatFindWalk` in `HermieCore/Search`; the web
+  client's `features/search`). The search field filters chats by name at once and, behind a 300 ms
+  pause, asks the gateway for messages: `GET /api/sessions/search` is scoped to one profile, so it is one
+  request per bot (four at a time, 8 s each, a failed bot costs only its own row), answers at most one hit
+  per conversation, and names no message. A hit that is not the bot's own Bot Chat is dropped (a cron run
+  or a CLI session in the same profile would open the wrong conversation). The model is driven by the
+  list's `.task(id:)`, so a changed field cancels the requests of the old one and nothing it answers is
+  painted; when every bot's search fails the section says the search could not run rather than "no
+  message matches". The snippet is the gateway's text with `>>>`/`<<<` around what its index matched,
+  shown as characters only (`MessageSnippet`: tidied, control and format characters made spaces, an
+  attributed string built run by run, no Markdown, no links). The pure parts replay
+  `contract/gateway/vectors/session-search.json` (`SessionSearchVectorTests`). Tapping a hit calls
+  `AppRouter.openChat(_:finding:)`; the chat's feed takes the request (`ChatFeed.find`) and the walk looks
+  for the newest row whose visible text holds every word (FTS5's rules, as the web's `find-in-chat.ts`),
+  scrolls to it, marks it for 2.5 s (`TranscriptRow.flash`) and announces it. A miss against a chat that
+  is still arriving waits; a miss against a live chat loads one older page at a time over REST, at most 200,
+  and then says the words are not in the visible text (the index also holds tool arguments, which no row
+  shows).
 - **A new message in an archived chat** leaves it archived, as the Expo app does: archiving is how
   a chat stops asking for attention. The archive's entry carries no unread mark; inside the
   archive a row shows its own unread state.

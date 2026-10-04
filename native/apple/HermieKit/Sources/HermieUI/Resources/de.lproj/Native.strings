@@ -974,6 +974,10 @@
 	<string>Erneut versuchen</string>
 	<key>native.requests.sending</key>
 	<string>Deine Antwort wird gesendet…</string>
+	<key>native.search.failed</key>
+	<string>Nachrichten konnten nicht durchsucht werden. Prüfe die Verbindung und versuche es erneut.</string>
+	<key>native.search.found</key>
+	<string>„%@“ in diesem Chat gefunden.</string>
 	<key>native.secureInput.close</key>
 	<string>Schließen</string>
 	<key>native.secureInput.earlierAnswerLost</key>

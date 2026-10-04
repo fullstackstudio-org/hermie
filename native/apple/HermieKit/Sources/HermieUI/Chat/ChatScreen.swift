@@ -230,6 +230,7 @@ struct ChatSessionView<Composer: View>: View {
         return next
       }
       ChatLifecycleLog.note("screen #\(owner.screen) appeared: \(chat.bot), feed f\(owner.feed?.tag ?? 0)")
+      takeFind(router?.chatFind)
     }
     .onDisappear {
       owner.disappeared()
@@ -241,6 +242,10 @@ struct ChatSessionView<Composer: View>: View {
     .onChange(of: covered) { _, covered in
       owner.feed?.coverChanged(covered: covered)
     }
+    // A search hit followed to this chat: before the screen exists (taken on appear) or while it is open.
+    .onChange(of: router?.chatFind) { _, request in
+      takeFind(request)
+    }
     .onKeyPress(.escape) {
       // Back to the list where the chat was pushed over it (iPhone, a narrow iPad window).
       #if os(iOS)
@@ -251,6 +256,17 @@ struct ChatSessionView<Composer: View>: View {
       #endif
       return .ignored
     }
+  }
+
+  /// A message search hit asked this chat to show the row its words are in; the feed looks for it and
+  /// tells the router when it is done.
+  private func takeFind(_ request: ChatFindRequest?) {
+    guard let request, request.chat == chat, let feed = owner.feed else {
+      return
+    }
+
+    let router = self.router
+    feed.find(request) { id in router?.settleFind(id) }
   }
 
   /// The text the title's long press copies.
@@ -275,6 +291,7 @@ struct ChatTranscript: View {
     TranscriptList(feed.rows, state: feed.listState, spacing: Self.rowSpacing) { row in
       TranscriptItemView(row: row, gaps: .chat)
         .padding(.horizontal, Self.margin)
+        .modifier(FoundRowMark(active: row.flash))
     } overlay: { state in
       JumpToLatestPill(state: state, newCount: feed.newCount)
     }
@@ -283,7 +300,10 @@ struct ChatTranscript: View {
       ChatEmptyOverlay(feed: feed)
     }
     .overlay(alignment: .top) {
-      OlderHistoryIndicator(feed: feed)
+      VStack(spacing: 0) {
+        OlderHistoryIndicator(feed: feed)
+        ChatFindNotice(feed: feed)
+      }
     }
   }
 }
