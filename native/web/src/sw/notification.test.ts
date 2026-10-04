@@ -203,6 +203,25 @@ describe('a click', () => {
     expect(inScope('https://gw.example.test/dashboard-plugins/other/app/index.html', SCOPE)).toBe(false)
   })
 
+  it('carries in that address only what places the click, nothing a notification says', () => {
+    const data = {
+      v: 1,
+      type: 'security',
+      bot: 'scout',
+      at: 1_790_000_000,
+      eventId: 'security:9f779c872059e5c075c089b67cce2ff7',
+      change: 'added',
+      preview: 'The passkey “Pocket” was added',
+      sessionKind: 'canonical'
+    }
+    const url = new URL(launchUrlOf(SCOPE, { actionIdentifier: 'default', data }))
+
+    expect(JSON.parse(url.searchParams.get(PUSH_LAUNCH_PARAM) ?? '')).toEqual({
+      actionIdentifier: 'default',
+      data: { type: 'security', bot: 'scout', sessionKind: 'canonical' }
+    })
+  })
+
   it('opens the client with the click in its address when no window is open', () => {
     const url = new URL(launchUrlOf(SCOPE, { actionIdentifier: 'default', data: { bot: 'scout' } }))
 

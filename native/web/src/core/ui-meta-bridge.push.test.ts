@@ -57,11 +57,12 @@ function page(gateway: ReturnType<typeof holdingGateway>): Page {
 }
 
 /** This page's push store as the controller leaves it after the launch check. */
-function registered(one: Page, phase: 'checking' | 'settled' = 'settled'): string {
+function registered(one: Page, phase: 'checking' | 'settled' = 'settled', clears = true): string {
   const push = one.push.getState()
 
   push.hydrate(one.disk)
   push.setGatewayKey('bf796761db84e312')
+  push.setClears(clears)
   push.setEnabled(true)
   push.setAddress(ADDRESS, NOW)
   push.setPhase(phase)
@@ -121,12 +122,28 @@ describe('the push map', () => {
         address: ADDRESS,
         types: one.push.getState().types,
         preview: false,
-        updatedAt: NOW
+        updatedAt: NOW,
+        clears: true
       })
     )
     expect(push.registrations[id]).toMatchObject({ applicationServerKey: KEY, clears: true, requestMethods: true })
     // The phone's heartbeat in the shape the plugin says it reads.
     expect(push.seen.iphone).toEqual({ bot: '', at: NOW - 10 })
+  })
+
+  it('asks for no clearing push from a browser that is not Chromium-based', async () => {
+    const gateway = gatewayWithPhone()
+    const one = page(gateway)
+
+    await one.watching
+    await one.bridge.reconcile()
+
+    const id = registered(one, 'settled', false)
+
+    await settled()
+
+    expect(pushOf(gateway).registrations[id]).not.toHaveProperty('clears')
+    expect(pushOf(gateway).registrations[id]).toMatchObject({ applicationServerKey: KEY, requestMethods: true })
   })
 
   it('puts the row back after a take of a copy that lacks it', async () => {

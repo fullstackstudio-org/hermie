@@ -73,7 +73,8 @@ class FakeBrowser implements PushBrowser {
     pushManager: true,
     notification: true,
     ios: false,
-    standalone: false
+    standalone: false,
+    chromium: true
   }
   granted: PushPermission = 'default'
   /** What the prompt answers. */
@@ -250,6 +251,37 @@ describe('turning it on', () => {
     expect(store.getState().subscribedKey).toBe(KEY)
     // Every type on, for a reader who has just turned it on.
     expect(Object.values(store.getState().types).every(Boolean)).toBe(true)
+  })
+
+  it('subscribes afresh when the browser already holds a subscription, even one made with the same key', async () => {
+    // Somebody else's, signed in on this browser before, or one whose row the plugin retired.
+    const browser = new FakeBrowser()
+    const old = browser.holds(KEY)
+    const { store, sync } = setup({ browser })
+
+    sync.start()
+    await settle()
+    await sync.enable()
+
+    expect(old.unsubscribe).toHaveBeenCalledTimes(1)
+    expect(browser.subscribed).toEqual([KEY])
+    expect(store.getState().address?.endpoint).toBe('https://push.example.test/2')
+  })
+
+  it('asks for clearing pushes in a Chromium-based browser only', async () => {
+    const chromium = setup()
+
+    chromium.sync.start()
+    expect(chromium.store.getState().clears).toBe(true)
+
+    const other = new FakeBrowser()
+
+    other.env = { ...other.env, chromium: false }
+
+    const safari = setup({ browser: other })
+
+    safari.sync.start()
+    expect(safari.store.getState().clears).toBe(false)
   })
 
   it('stays off when the browser refuses', async () => {
@@ -487,25 +519,59 @@ describe('turning it off, registering again, and signing out', () => {
     expect(store.getState().address?.endpoint).toBe('https://push.example.test/2')
   })
 
-  it('takes the row out, waits for the write, and only then unsubscribes', async () => {
+  it('takes the row out of the write it sends, and lets the subscription go whatever becomes of that write', async () => {
     const { held, store, sync } = await on()
-    const order: string[] = []
+    const seen: string[] = []
 
-    held.unsubscribe.mockImplementation(async () => {
-      order.push('unsubscribe')
-
-      return true
-    })
-
-    await sync.signOut(async () => {
-      order.push(
+    // A write that never lands: the gateway stopped answering.
+    void sync.signOut(() => {
+      seen.push(
         `flush enabled=${store.getState().enabled} address=${store.getState().address === null ? 'none' : 'set'}`
       )
-    })
 
-    expect(order).toEqual(['flush enabled=false address=none', 'unsubscribe'])
+      return new Promise<void>(() => {})
+    })
+    await settle()
+
+    expect(seen).toEqual(['flush enabled=false address=none'])
+    expect(held.unsubscribe).toHaveBeenCalledTimes(1)
     // The installation id stays: signing back in writes the same row, not a second one.
     expect(store.getState().installationId).toMatch(/^i[0-9a-f]{16}$/u)
+  })
+
+  it('lets a subscription go on sign-out even where the switch was off', async () => {
+    const browser = new FakeBrowser()
+    const held = browser.holds(KEY)
+    const { sync } = setup({ browser })
+
+    sync.start()
+    await sync.signOut(async () => {})
+
+    expect(held.unsubscribe).toHaveBeenCalledTimes(1)
+  })
+
+  it('runs on, off and Register again one after the other, never overlapping', async () => {
+    const browser = new FakeBrowser()
+
+    browser.granted = 'granted'
+
+    const { store, sync } = setup({ browser })
+    const busy: boolean[] = []
+
+    store.subscribe(state => busy.push(state.busy))
+    sync.start()
+    await settle()
+
+    const on = sync.enable()
+    const off = sync.disable()
+
+    await Promise.all([on, off])
+
+    // The subscription made by the first is let go by the second, never left behind by a race.
+    expect(browser.subscribed).toEqual([KEY])
+    expect(browser.current).toBeNull()
+    expect(store.getState()).toMatchObject({ enabled: false, address: null, busy: false })
+    expect(busy).toContain(true)
   })
 })
 

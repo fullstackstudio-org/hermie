@@ -245,11 +245,37 @@ export function inScope(url: string, scope: string): boolean {
   return path === scope || path === `${scope}index.html`
 }
 
+/**
+ * The fields of `data` the page reads to place a click (`pushTapOf` in
+ * `core/push/actions.ts`), and the only ones a cold start carries in its address:
+ * the address ends up in the browser's history, so nothing else of a notification
+ * (a preview, an event id) is put there.
+ */
+export const LAUNCH_FIELDS: readonly string[] = [
+  'bot',
+  'type',
+  'method',
+  'requestId',
+  'request',
+  'sessionId',
+  'session',
+  'sessionKey',
+  'sessionKind',
+  'clear'
+]
+
 /** The page a click opens when no window of the client is open: the client, carrying the click. */
 export function launchUrlOf(scope: string, response: PushResponseMessage): string {
   const url = new URL('index.html', scope)
+  const data: JsonObject = {}
 
-  url.searchParams.set(PUSH_LAUNCH_PARAM, JSON.stringify(response))
+  for (const field of LAUNCH_FIELDS) {
+    if (response.data[field] !== undefined) {
+      data[field] = response.data[field]
+    }
+  }
+
+  url.searchParams.set(PUSH_LAUNCH_PARAM, JSON.stringify({ actionIdentifier: response.actionIdentifier, data }))
 
   return url.href
 }

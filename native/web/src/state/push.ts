@@ -104,6 +104,8 @@ export interface PushState {
    * only holds back notifications for a device that gets them, so with none it is not written.
    */
   othersRegistered: boolean
+  /** Whether this browser asks for clearing pushes: a Chromium-based one only (`core/push/row.ts`). */
+  clears: boolean
   /** The browser's subscription, read on this launch; `null` until then and while there is none. */
   address: WebPushAddress | null
   /** The key the subscription was made with, remembered for a browser that does not report it. */
@@ -122,6 +124,7 @@ export interface PushState {
   /** Read this browser's choices and installation id (minting one the first time). */
   hydrate: (storage: WebKeyValueStore) => void
   setGatewayKey: (key: string) => void
+  setClears: (clears: boolean) => void
   setEnabled: (enabled: boolean) => void
   setType: (type: PushType, on: boolean) => void
   setPreview: (preview: boolean) => void
@@ -197,6 +200,7 @@ export function createPushStore(): StoreApi<PushState> {
       preview: false,
       perBot: {},
       othersRegistered: false,
+      clears: false,
       address: null,
       subscribedKey: '',
       updatedAt: 0,
@@ -241,6 +245,10 @@ export function createPushStore(): StoreApi<PushState> {
 
       setGatewayKey(gatewayKey) {
         set({ gatewayKey })
+      },
+
+      setClears(clears) {
+        set({ clears })
       },
 
       setEnabled(enabled) {
@@ -339,6 +347,7 @@ export function createPushStore(): StoreApi<PushState> {
           preview: false,
           perBot: {},
           othersRegistered: false,
+          clears: false,
           address: null,
           subscribedKey: '',
           updatedAt: 0,

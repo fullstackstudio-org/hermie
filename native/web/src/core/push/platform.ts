@@ -58,6 +58,11 @@ export interface PushEnvironment {
   ios: boolean
   /** Opened as an installed web app rather than in a browser tab. */
   standalone: boolean
+  /**
+   * A Chromium-based browser (Chrome, Edge, Brave, Opera). The only engine whose handling of a
+   * clearing push (`data` alone, nothing shown) has been checked; see `core/push/row.ts`.
+   */
+  chromium: boolean
 }
 
 /** Why notifications cannot be offered here; each is its own sentence in Settings. */
@@ -162,7 +167,7 @@ export interface PushBrowser {
   worker(): Promise<PushWorker>
   /** The worker that is already registered, without registering one; `null` when there is none. */
   existingWorker(): Promise<PushWorker | null>
-  /** Every message the worker posts to this page. Returns its teardown. */
+  /** Every message this client's own worker (`./sw.js`) posts to this page; a message from any other source is dropped. Returns its teardown. */
   onMessage(listener: (data: unknown) => void): () => void
 }
 
@@ -173,6 +178,8 @@ export interface PushWindow {
   matchMedia?: (query: string) => MediaQueryList
   Notification?: typeof Notification
   PushManager?: unknown
+  ServiceWorker?: typeof ServiceWorker
+  document?: Pick<Document, 'baseURI'>
   trustedTypes?: {
     createPolicy(
       name: string,
@@ -187,6 +194,8 @@ export function environmentOf(page: PushWindow): PushEnvironment {
   const nav = page.navigator
   const agent = nav.userAgent ?? ''
   const ios = /\b(iPhone|iPad|iPod)\b/u.test(agent) || (/\bMacintosh\b/u.test(agent) && nav.maxTouchPoints > 1)
+  // Chrome on iOS says `CriOS` and runs WebKit; every Chromium elsewhere says `Chrome/`.
+  const chromium = /\b(Chrome|Chromium)\//u.test(agent) && !/\bCriOS\//u.test(agent)
   const standalone = nav.standalone === true || Boolean(page.matchMedia?.('(display-mode: standalone)').matches)
 
   return {
@@ -195,6 +204,7 @@ export function environmentOf(page: PushWindow): PushEnvironment {
     pushManager: typeof page.PushManager !== 'undefined',
     notification: typeof page.Notification !== 'undefined',
     ios,
-    standalone
+    standalone,
+    chromium
   }
 }

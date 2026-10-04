@@ -4,9 +4,9 @@
  *
  *  1. **On.** From a gesture in Settings: the permission is asked first (before
  *     anything else is awaited, so the browser still counts the gesture), then
- *     the worker is registered, the browser subscribed with the advert's key
- *     (`subscriptionStep`), and the address and a fresh `updatedAt` put in the
- *     store. The bridge writes the row (`core/ui-meta-bridge.ts`); nothing here
+ *     the worker is registered, the browser subscribed afresh with the advert's
+ *     key (a subscription it already held is let go first), and the address and
+ *     a fresh `updatedAt` put in the store. The bridge writes the row (`core/ui-meta-bridge.ts`); nothing here
  *     talks to the gateway about a registration.
  *  2. **True on every launch.** Once the advert is read: a subscription made with
  *     another key is dropped and made again with the advert's, and the row is
@@ -18,12 +18,15 @@
  *     off, because a switch that says on while nothing can arrive is the one
  *     thing a settings screen must not say.
  *  3. **Off, and sign-out.** The switch off takes the row out of the next write
- *     and unsubscribes. A sign-out does the same, waiting for the write to land
- *     before the connection goes (`signOut`).
+ *     and unsubscribes. A sign-out does the same, sending the write while the
+ *     connection is still there and letting the subscription go at the same time,
+ *     whatever becomes of the write (`signOut`). On, off, Register again and the
+ *     launch check run one after the other (`serial`), never overlapping.
  *  4. **Clicks** (`actions.ts`): the conversation the notification names comes
  *     to the front; an Allow or a Deny answers only when `approval.pending`,
  *     asked just now, still lists that request in that session with that choice,
- *     and only when the worker posted it to an open window: the click a cold
+ *     and only when this client's worker posted it to an open window (the seam
+ *     takes a message only from the worker at `./sw.js`): the click a cold
  *     start carries in its address opens and never answers (see `start`). One
  *     click at a time, so a double click cannot answer twice.
  *
@@ -111,6 +114,9 @@ export class PushSync implements PushController {
   private checkedKey: string | null = null
   private checking: Promise<void> | null = null
   private handling: Promise<void> = Promise.resolve()
+  /** The changes of the subscription, one after the other (`serial`). */
+  private queue: Promise<void> = Promise.resolve()
+  private pending = 0
 
   constructor(options: PushSyncOptions) {
     this.browser = options.browser
@@ -133,6 +139,7 @@ export class PushSync implements PushController {
 
     this.running = true
     this.store.getState().bindController(this)
+    this.store.getState().setClears(this.browser.environment().chromium)
     this.teardown.push(
       this.browser.onMessage(message => {
         const response = responseOfMessage(message)
@@ -149,7 +156,8 @@ export class PushSync implements PushController {
         Opened, never answered. The address a cold start carries can be written by anyone who can make
         this browser follow a link, not only by the worker, so an Allow or a Deny in it is read as a
         plain click: the conversation opens with the request on screen, and the reader answers it there.
-        Only a click the worker posts to an open window (same origin, `onMessage`) may answer.
+        Only a click this client's own worker posts to an open window (`onMessage`, which takes a
+        message only from the worker at `./sw.js`) may answer.
       */
       this.onResponse({ ...launch, actionIdentifier: 'default' })
     }
@@ -201,24 +209,31 @@ export class PushSync implements PushController {
 
     this.store.getState().setFailure(null)
 
-    // Asked before anything is awaited: the browser only shows the prompt inside the gesture.
-    const permission = await this.browser.requestPermission()
+    // Asked now, inside the gesture (the browser only shows the prompt there), and answered in turn.
+    const asking = this.browser.requestPermission()
 
-    if (permission !== 'granted') {
-      // Refused, or dismissed: the switch follows the browser. Settings says which.
-      this.store.getState().setEnabled(false)
+    await this.serial(async () => {
+      if ((await asking) !== 'granted') {
+        // Refused, or dismissed: the switch follows the browser. Settings says which.
+        this.store.getState().setEnabled(false)
 
-      return
-    }
+        return
+      }
 
-    this.store.getState().setEnabled(true)
-    await this.busy(() => this.subscribe(support.publicKey, false))
-    this.checkedKey = canonicalKey(support.publicKey)
+      this.store.getState().setEnabled(true)
+      this.checkedKey = canonicalKey(support.publicKey)
+      // Always a fresh subscription: one the browser already holds may be another person's on this
+      // browser, or one whose row the plugin has retired.
+      await this.subscribe(support.publicKey, true)
+    })
   }
 
   async disable(): Promise<void> {
-    this.store.getState().setEnabled(false)
-    await this.busy(() => this.unsubscribe())
+    // In turn, so an "on" pressed just before is carried out and then undone, never the other way round.
+    await this.serial(async () => {
+      this.store.getState().setEnabled(false)
+      await this.unsubscribe()
+    })
   }
 
   async reregister(): Promise<void> {
@@ -228,28 +243,20 @@ export class PushSync implements PushController {
       return
     }
 
-    await this.busy(() => this.subscribe(support.publicKey, true))
     this.checkedKey = canonicalKey(support.publicKey)
+    await this.serial(() => this.subscribe(support.publicKey, true))
   }
 
   /**
    * Sign-out: the row leaves the section (`flush` sends the write and waits for
-   * it, while the connection is still there), then the subscription goes.
+   * it, while the connection is still there) and, at the same time and whatever
+   * becomes of that write, the browser lets the subscription go. A row whose
+   * endpoint is gone is retired by the plugin on its next send (404/410); a
+   * subscription left behind would go on receiving.
    */
   async signOut(flush: () => Promise<void>): Promise<void> {
-    const had = this.store.getState().enabled
-
     this.store.getState().retire()
-
-    try {
-      await flush()
-    } catch {
-      // The row stays until another write or the plugin's own retirement on a 404/410.
-    }
-
-    if (had) {
-      await this.unsubscribe()
-    }
+    await Promise.allSettled([(async () => flush())(), this.unsubscribe()])
   }
 
   /** Ask the plugin for a test notification to this browser (`push.test`). */
@@ -335,7 +342,7 @@ export class PushSync implements PushController {
         return
       }
 
-      await this.busy(() => this.subscribe(support.publicKey, false))
+      await this.serial(() => this.subscribe(support.publicKey, false))
     } finally {
       this.store.getState().setPhase('settled')
     }
@@ -343,16 +350,31 @@ export class PushSync implements PushController {
 
   // MARK: - The subscription
 
-  private async busy(work: () => Promise<void>): Promise<void> {
+  /**
+   * Run one change of the subscription after the ones before it: turning it on, off, registering again
+   * and the launch check never overlap, so two of them cannot leave the browser with a subscription the
+   * row does not name. `busy` is true while any is queued or running.
+   */
+  private serial(work: () => Promise<void>): Promise<void> {
+    this.pending += 1
     this.store.getState().setBusy(true)
 
-    try {
-      await work()
-    } catch (error) {
-      this.store.getState().setFailure(failureOf(error))
-    } finally {
-      this.store.getState().setBusy(false)
-    }
+    const run = this.queue
+      .then(work)
+      .catch((error: unknown) => {
+        this.store.getState().setFailure(failureOf(error))
+      })
+      .finally(() => {
+        this.pending -= 1
+
+        if (this.pending === 0) {
+          this.store.getState().setBusy(false)
+        }
+      })
+
+    this.queue = run
+
+    return run
   }
 
   /** Subscribe with `publicKey` (again when `force`, or when the one held was made with another key), and stamp the row. */

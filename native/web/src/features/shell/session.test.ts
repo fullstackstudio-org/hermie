@@ -233,6 +233,52 @@ describe('startSession', () => {
     })
   })
 
+  describe('signing out of Web Push', () => {
+    it('lets the subscription go at once, and waits for the row no longer than the limit', async () => {
+      vi.useFakeTimers()
+
+      try {
+        const unsubscribePush = vi.fn(async () => {})
+        // A row write that never lands (a gateway that stopped answering).
+        const signOut = vi.fn(() => new Promise<void>(() => {}))
+        const loadPush = async () => ({ startPush: () => ({ sync: {} as never, signOut, stop: vi.fn() }) })
+        const session = startSession({ ...options(), loadPush, unsubscribePush } as never)
+
+        await session.push
+
+        let done = false
+        const retiring = session.retirePush().then(() => {
+          done = true
+        })
+
+        await vi.advanceTimersByTimeAsync(0)
+        expect(unsubscribePush).toHaveBeenCalledTimes(1)
+        expect(signOut).toHaveBeenCalledTimes(1)
+        expect(done).toBe(false)
+
+        await vi.advanceTimersByTimeAsync(3_000)
+        await retiring
+        expect(done).toBe(true)
+        session.stop()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('lets the subscription go even when Web Push could not be loaded', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const unsubscribePush = vi.fn(async () => {})
+      const loadPush = () => Promise.reject(new Error('chunk gone'))
+      const session = startSession({ ...options(), loadPush, unsubscribePush } as never)
+
+      expect(await session.push).toBeNull()
+      await session.retirePush()
+      expect(unsubscribePush).toHaveBeenCalledTimes(1)
+      session.stop()
+      warn.mockRestore()
+    })
+  })
+
   it('does not start the ui_meta bridge for a session that stopped before its chunk loaded', async () => {
     const session = startSession(options())
 

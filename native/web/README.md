@@ -1418,39 +1418,50 @@ It is offered only in a secure context, in a browser with service workers, `Push
 iPhone or iPad: a web app added to the Home Screen), on a gateway whose advert claims `push.webpush` and
 `push.webpush.key` with `webPush.publicKey`. Otherwise Settings › Notifications says which of these is missing.
 
-| File                                             | What it does                                                                                                                                                              |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/sw/sw.ts`, `worker.ts`                      | the service worker, built to `dist/sw.js` (a second entry, a plain script that imports nothing): `push` and `notificationclick`, no `fetch` handler                       |
-| `src/sw/notification.ts`                         | a payload as a notification: the plugin's title and body exactly, `data` kept whole, one tag per conversation, Allow and Deny on an approval only, a clearing push closes |
-| `core/push/platform.ts`                          | what has to be true (`pushSupport`), and the browser seam's shape                                                                                                         |
-| `platform/web-push.ts`                           | the seam: registers `./sw.js` (scope: the app directory) through the one Trusted Types policy, the permission, the subscription, the worker's messages                    |
-| `platform/push-launch.ts`, `core/push/launch.ts` | the click a cold start carries (`?hermiePush=`), read once and removed from the address; the only part in the first load                                                  |
-| `core/push/row.ts`                               | the row (`pushRowFor` plus `applicationServerKey`, `clears: true`, `requestMethods: true`), the key rule (`subscriptionStep`), the push map a write carries               |
-| `core/push/sync.ts`                              | `PushSync`: on, off, Register again, the launch check, sign-out, the test notification (`push.test`), clicks                                                              |
-| `core/push/actions.ts`                           | what a click may do: open the conversation; Allow or Deny only for an approval `approval.pending` still lists in that session, with `once` or `deny`                      |
-| `core/push/seen.ts`                              | the heartbeat (`{bot, at}` once a minute while a chat is on screen and a device of the person gets notifications) and closing notifications that are dealt with           |
-| `core/push/clock.ts`                             | the gateway's clock from the `Date` header of `/api/status`, for `updatedAt` and the heartbeat                                                                            |
-| `state/push.ts`                                  | the switch, the types, the preview and the key under the person; the installation id per browser; the per-chat overrides from the gateway                                 |
-| `features/push/push-runtime.ts`                  | the controller wired to the router, the chats and the request queue; a chunk loaded once the session has started                                                          |
-| `features/settings/Notifications.tsx`            | `#/settings/notifications`; the per-chat types are in the chat's options                                                                                                  |
+| File                                             | What it does                                                                                                                                                                 |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/sw/sw.ts`, `worker.ts`                      | the service worker, built to `dist/sw.js` (a second entry, a plain script that imports nothing): `push` and `notificationclick`, no `fetch` handler                          |
+| `src/sw/notification.ts`                         | a payload as a notification: the plugin's title and body exactly, `data` kept whole, one tag per conversation, Allow and Deny on an approval only, a clearing push closes    |
+| `core/push/platform.ts`                          | what has to be true (`pushSupport`), and the browser seam's shape                                                                                                            |
+| `platform/web-push.ts`                           | the seam: registers `./sw.js` (scope: the app directory) through the one Trusted Types policy, the permission, the subscription, the worker's messages                       |
+| `platform/push-launch.ts`, `core/push/launch.ts` | the click a cold start carries (`?hermiePush=`), read once and removed from the address; the only part in the first load                                                     |
+| `core/push/row.ts`                               | the row (`pushRowFor` plus `applicationServerKey`, `requestMethods: true`, `clears: true` in Chromium only), the key rule (`subscriptionStep`), the push map a write carries |
+| `core/push/sync.ts`                              | `PushSync`: on, off, Register again, the launch check, sign-out, the test notification (`push.test`), clicks                                                                 |
+| `core/push/actions.ts`                           | what a click may do: open the conversation; Allow or Deny only for an approval `approval.pending` still lists in that session, with `once` or `deny`                         |
+| `core/push/seen.ts`                              | the heartbeat (`{bot, at}` once a minute while a chat is on screen and a device of the person gets notifications) and closing notifications that are dealt with              |
+| `core/push/clock.ts`                             | the gateway's clock from the `Date` header of `/api/status`, for `updatedAt` and the heartbeat                                                                               |
+| `state/push.ts`                                  | the switch, the types, the preview and the key under the person; the installation id per browser; the per-chat overrides from the gateway                                    |
+| `features/push/push-runtime.ts`                  | the controller wired to the router, the chats and the request queue; a chunk loaded once the session has started                                                             |
+| `features/settings/Notifications.tsx`            | `#/settings/notifications`; the per-chat types are in the chat's options                                                                                                     |
 
 **The key.** The browser is subscribed with the advert's key, and the row names it (`applicationServerKey`, base64url
-without padding). On every launch, once the advert is read, a subscription made with another key (or one whose key
+without padding). Turning it on always makes a fresh subscription (one the browser already holds may be another person's
+on this browser, or retired by the plugin). On, off, Register again and the launch check run one after the other. On every launch, once the advert is read, a subscription made with another key (or one whose key
 cannot be told and was not remembered) is unsubscribed and made again, and the row is written again with a fresh
 `updatedAt`, which is also what lifts a row the plugin retired after a 403 or a 404/410. The same happens when the
 advert's key changes while the page is open, when the page comes back into view more than six hours after the last
 write, and on "Register again". `updatedAt` and the heartbeat are on the gateway's clock when its `Date` header gives
-one; if it does not, the page's own clock is used, and a page whose clock is behind the gateway's may write a row the
-plugin still holds retired until it is written again.
+one (the heartbeat starts only once that has been asked); if it does not, the page's own clock is used, and a page whose
+clock is behind the gateway's may write a row the plugin still holds retired until it is written again. This browser's
+heartbeat always replaces the gateway's copy of it, so a stamp written ahead does not outlive the page.
 
 **The row** is written by the `ui_meta` bridge into the person's app section, beside every other device's row and
 heartbeat as the gateway holds them; until this page has checked its own subscription, the row the gateway holds for it
-is carried as it is. Switching off, and signing out, take it out (a sign-out sends that write and waits for it, at most
-three seconds, before the connection goes) and unsubscribe.
+is carried as it is. Switching off takes it out and unsubscribes. Signing out sends the write that takes it out while the
+connection is still there and, at the same time and whatever becomes of that write, unsubscribes the browser (without
+Web Push's chunk too, when it is still loading or failed to load); it waits at most three seconds for both.
+
+**Clearing pushes** (`clears: true`) are asked for by a Chromium-based browser only. A clearing push is `{data}` with
+nothing to show; the worker closes the notification it withdraws, and Chromium may show its own "updated in the
+background" notice. Safari and Firefox are left without the field (so the plugin sends them none, and a withdrawn
+request's notification stays until it is clicked or the page closes it) until they are checked by hand.
 
 **Clicks.** The worker posts a click to an open window of the client (never to another page of the gateway's origin)
-or opens `index.html?hermiePush=<click>`. The conversation the notification names opens (`push-destination.ts`). An
-Allow or a Deny answers only when it was posted by the worker, the notification is an approval of the bot's own chat,
+or opens `index.html?hermiePush=<click>`, which carries only the fields that place the click. The page takes a
+message only from a `ServiceWorker` whose `scriptURL` is its own `./sw.js`: another worker of the origin, or a script
+dispatching a look-alike, is ignored. A click posted to a window whose Web Push chunk has not loaded yet is dropped
+there (the window is only focused). The conversation the notification names opens (`push-destination.ts`). An
+Allow or a Deny answers only when it was posted by the client's worker, the notification is an approval of the bot's own chat,
 the chat is attached to its session, and `approval.pending`, asked then, lists the same request id in that session with
 `once` (or `deny`) on offer. A click carried in the address only opens: anyone who can make the browser follow a link
 can write that address.

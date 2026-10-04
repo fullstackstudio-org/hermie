@@ -113,7 +113,16 @@ export function startPush(options: StartPushOptions): PushRuntime {
 
   store.getState().hydrate(options.storage)
   store.getState().setGatewayKey(gatewayKeyOf(options.baseUrl))
-  void clock.measure()
+  /*
+    The heartbeat is stamped on the gateway's clock, so it waits for the measurement: a stamp from a
+    page clock that is ahead would keep a chat counted as read on the gateway for as long as it is
+    ahead (`core/push/clock.ts`). Never rejects; with no measurement the page's clock is used.
+  */
+  let measured = false
+  let stopped = false
+  const measuring = clock.measure().then(() => {
+    measured = true
+  })
 
   /** Every id the page knows the bot's own chat by: the roster's and the chat's, stored and resolved. */
   const canonicalIds = (bot: string): string[] => {
@@ -211,7 +220,7 @@ export function startPush(options: StartPushOptions): PushRuntime {
   const beatFor = (): void => {
     const notifier = options.plugin.getState().advert !== null
     const push = store.getState()
-    const wanted = notifier && (push.enabled || push.othersRegistered)
+    const wanted = measured && notifier && (push.enabled || push.othersRegistered)
 
     heartbeat.setOpenChat(wanted && screen && !screen.conversation ? screen.bot : null)
   }
@@ -238,8 +247,14 @@ export function startPush(options: StartPushOptions): PushRuntime {
 
   const stopRoute = router.subscribe(follow)
 
-  follow(router.current())
+  // Hidden first when the page is: a tab restored in the background sends no beat.
   heartbeat.setVisible(visibility.current() === 'visible')
+  follow(router.current())
+  void measuring.then(() => {
+    if (!stopped) {
+      beatFor()
+    }
+  })
 
   const stopVisibility = visibility.subscribe(state => {
     heartbeat.setVisible(state === 'visible')
@@ -270,8 +285,6 @@ export function startPush(options: StartPushOptions): PushRuntime {
       sync.onVisible()
     }
   }, REFRESH_CHECK_MS)
-
-  let stopped = false
 
   return {
     sync,

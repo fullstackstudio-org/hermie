@@ -74,7 +74,7 @@ import type { ConnectUiMetaOptions, connectUiMeta, UiMetaRuntime } from '../../c
 import type { ChatCache } from '../../platform/chat-cache'
 import type { WebKeyValueStore } from '../../platform/key-value-store'
 import { createPasskeyPins } from '../../platform/passkey-pins'
-import { takePageLaunchResponse } from '../../platform/push-launch'
+import { takePageLaunchResponse, unsubscribePageWorker } from '../../platform/push-launch'
 import type { PushRuntime, StartPushOptions, startPush } from '../push/push-runtime'
 import { createSocketFactoryWithOutbox, ErrorDataOutbox, ReplayGapTap } from '../../platform/socket'
 import { type VisibilityWatcher, visibilityWatcher } from '../../platform/visibility'
@@ -129,6 +129,8 @@ export interface StartSessionOptions {
   push?: Partial<Omit<StartPushOptions, 'baseUrl' | 'storage' | 'chats' | 'bots' | 'plugin' | 'headers'>>
   /** How Web Push's chunk is loaded; the dynamic import unless a test hands in its own. */
   loadPush?: () => Promise<{ startPush: typeof startPush }>
+  /** How a sign-out lets the browser's subscription go without the chunk; the page's own unless a test hands in its own. */
+  unsubscribePush?: () => Promise<void>
 }
 
 /** The wait before a failed `ui_meta` chunk is asked for once more. */
@@ -153,8 +155,9 @@ export interface Session {
   readonly push: Promise<PushRuntime | null>
   /**
    * For a sign-out, before `stop`: take this browser's push row out of the person's section (the write is
-   * sent and waited for while the connection is still there) and unsubscribe. Waits at most
-   * `PUSH_RETIRE_TIMEOUT_MS`; never rejects.
+   * sent while the connection is still there) and, at the same time and whatever becomes of that write,
+   * unsubscribe the browser (without Web Push's chunk too). Waits at most `PUSH_RETIRE_TIMEOUT_MS`; never
+   * rejects.
    */
   retirePush(): Promise<void>
   /** Stop the poll, the `ui_meta` bridge, Web Push, the models beside the engine, the passkeys and the chats, then the client, in that order. Idempotent. */
@@ -429,8 +432,14 @@ export function startSession(options: StartSessionOptions): Session {
       return null
     })
 
+  /*
+    Two things at once, each whatever becomes of the other: the browser lets its subscription go (directly,
+    so it happens even while Web Push's chunk is loading or when it failed to load), and the row leaves the
+    person's section through the bridge while the connection is still there.
+  */
   const retirePush = async (): Promise<void> => {
-    const work = (async () => {
+    const unsubscribe = (options.unsubscribePush ?? unsubscribePageWorker)().catch(() => undefined)
+    const row = (async () => {
       const runtime = await push
 
       if (!runtime) {
@@ -440,10 +449,10 @@ export function startSession(options: StartSessionOptions): Session {
       const bridge = (await uiMeta)?.bridge
 
       await runtime.signOut(() => bridge?.flush() ?? Promise.resolve())
-    })()
+    })().catch(() => undefined)
 
     await Promise.race([
-      work.catch(() => undefined),
+      Promise.all([unsubscribe, row]),
       new Promise<void>(resolve => setTimeout(resolve, PUSH_RETIRE_TIMEOUT_MS))
     ])
   }

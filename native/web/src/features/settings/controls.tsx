@@ -104,7 +104,8 @@ export function Checkbox({
   checked,
   onChange,
   hint,
-  disabled = false
+  disabled = false,
+  busy = false
 }: {
   label: string
   checked: boolean
@@ -112,6 +113,8 @@ export function Checkbox({
   hint?: string
   /** Not offered right now; the page says why. */
   disabled?: boolean
+  /** What it set is being carried out (not disabled: that would drop the focus). */
+  busy?: boolean
 }): ReactElement {
   const hintId = useId()
 
@@ -122,6 +125,7 @@ export function Checkbox({
           type="checkbox"
           checked={checked}
           disabled={disabled}
+          {...(busy ? { 'aria-busy': true } : {})}
           onChange={event => onChange(event.currentTarget.checked)}
           {...(hint ? { 'aria-describedby': hintId } : {})}
         />

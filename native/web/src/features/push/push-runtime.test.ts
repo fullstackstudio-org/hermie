@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { ChatRuntime } from '../../core/chat-controller'
 import { PUSH_ACTION_ALLOW, PUSH_MESSAGE_SOURCE } from '../../core/push/actions'
+import type { GatewayClock } from '../../core/push/clock'
 import type { PushBrowser, PushWorker, ShownNotificationHandle } from '../../core/push/platform'
 import { createHashRouter } from '../../platform/hash-router'
 import { createKeyValueStore } from '../../platform/key-value-store'
@@ -24,8 +25,8 @@ const settle = async (): Promise<void> => {
   }
 }
 
-function fakeVisibility(): VisibilityWatcher & { set(next: Visibility): void } {
-  let now: Visibility = 'visible'
+function fakeVisibility(initial: Visibility = 'visible'): VisibilityWatcher & { set(next: Visibility): void } {
+  let now: Visibility = initial
   const listeners = new Set<(next: Visibility) => void>()
 
   return {
@@ -61,7 +62,8 @@ function fakeBrowser(shown: ShownNotificationHandle[]) {
       pushManager: true,
       notification: true,
       ios: false,
-      standalone: false
+      standalone: false,
+      chromium: true
     }),
     permission: () => 'default',
     requestPermission: async () => 'denied',
@@ -92,9 +94,11 @@ afterEach(() => {
   }
 })
 
-function setup(options: { shown?: ShownNotificationHandle[]; advert?: boolean } = {}) {
+function setup(
+  options: { shown?: ShownNotificationHandle[]; advert?: boolean; clock?: GatewayClock; hidden?: boolean } = {}
+) {
   const router = createHashRouter(null)
-  const visibility = fakeVisibility()
+  const visibility = fakeVisibility(options.hidden ? 'hidden' : 'visible')
   const chats = createChatsStore()
   const bots = createBotsStore()
   const plugin = createPluginStore()
@@ -133,7 +137,7 @@ function setup(options: { shown?: ShownNotificationHandle[]; advert?: boolean } 
     router,
     visibility,
     requests,
-    clock: { now: () => 1_790_000_000_000, measure: async () => undefined, offset: 0 }
+    clock: options.clock ?? { now: () => 1_790_000_000_000, measure: async () => undefined, offset: 0 }
   })
 
   runtimes.push(runtime)
@@ -197,6 +201,7 @@ describe('the heartbeat', () => {
   it('beats while a bot’s chat is the route and the page is visible, once a device of the person is registered', async () => {
     const { router, visibility, store } = setup()
 
+    await settle()
     router.navigate('#/chat/scout')
     // Nobody gets notifications: nothing to hold back, nothing written.
     expect(store.getState().seen).toBeNull()
@@ -211,15 +216,56 @@ describe('the heartbeat', () => {
     expect(store.getState().seen?.bot).toBe('marker')
   })
 
-  it('does not beat for a conversation in the viewer, nor on a gateway without a notifier', () => {
+  it('waits for the gateway’s clock before the first beat, and stamps it with that clock', async () => {
+    let offset = 0
+    let measured: () => void = () => undefined
+    const clock: GatewayClock = {
+      now: () => 1_790_000_000_000 + offset,
+      measure: () =>
+        new Promise<void>(resolve => {
+          measured = () => {
+            offset = -600_000
+            resolve()
+          }
+        }),
+      get offset() {
+        return offset
+      }
+    }
+    const { router, store } = setup({ clock })
+
+    store.getState().applyRemote({}, true)
+    router.navigate('#/chat/scout')
+    await settle()
+    // The page's clock may be ten minutes ahead: nothing is stamped with it.
+    expect(store.getState().seen).toBeNull()
+
+    measured()
+    await settle()
+    expect(store.getState().seen).toEqual({ bot: 'scout', at: 1_790_000_000 - 600 })
+  })
+
+  it('does not beat in a tab that is restored in the background', async () => {
+    const { router, store } = setup({ hidden: true })
+
+    store.getState().applyRemote({}, true)
+    router.navigate('#/chat/scout')
+    await settle()
+
+    expect(store.getState().seen).toBeNull()
+  })
+
+  it('does not beat for a conversation in the viewer, nor on a gateway without a notifier', async () => {
     const viewer = setup()
 
+    await settle()
     viewer.store.getState().applyRemote({}, true)
     viewer.router.navigate('#/chat/scout/s/branch-1')
     expect(viewer.store.getState().seen).toBeNull()
 
     const bare = setup({ advert: false })
 
+    await settle()
     bare.store.getState().applyRemote({}, true)
     bare.router.navigate('#/chat/scout')
     expect(bare.store.getState().seen).toBeNull()

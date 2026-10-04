@@ -199,7 +199,7 @@ test('a subscription made with another key is replaced with the advert’s on th
   ])
 })
 
-test('signing out takes the row off the gateway first, then lets the subscription go', async ({
+test('signing out takes the row off the gateway and lets the subscription go', async ({
   app,
   diagnostics,
   gateway,
@@ -298,29 +298,51 @@ test('the worker shows a push as the contract says, and a clearing push takes it
   await expect.poll(shown).toEqual([])
 })
 
+/** Turn notifications on from Settings and wait until the page is controlled by the client's worker. */
+async function turnOn(page: Page): Promise<void> {
+  await page.getByRole('checkbox', { name: 'Notify this browser' }).click()
+  await expect(page.getByText('On. This browser is registered with the gateway.')).toBeVisible()
+  await expect
+    .poll(() => page.evaluate(() => navigator.serviceWorker.controller?.scriptURL ?? ''))
+    .toMatch(/\/sw\.js$/u)
+}
+
+/**
+ * A click as the worker posts it: a message whose source is the client's own worker. Real clicks on a
+ * notification cannot be driven from here; the message is what the worker sends for one. With
+ * `fromWorker: false` it is the same message dispatched by a script of the page, with no source.
+ */
+async function post(page: Page, response: unknown, fromWorker = true): Promise<void> {
+  await page.evaluate(
+    ([message, worker]) =>
+      navigator.serviceWorker.dispatchEvent(
+        new MessageEvent('message', {
+          data: { source: 'hermie-push', response: message },
+          ...(worker && navigator.serviceWorker.controller ? { source: navigator.serviceWorker.controller } : {})
+        })
+      ),
+    [response, fromWorker] as const
+  )
+}
+
 test('a click on a notification opens the conversation it names, from the worker or from a cold start', async ({
   app,
   gateway,
   page
 }) => {
-  // Once the page offers the switch, Web Push has loaded and is listening.
   await app.open('#/settings/notifications')
-  await expect(page.getByRole('checkbox', { name: 'Notify this browser' })).toBeEnabled()
+  await turnOn(page)
+
+  // A look-alike dispatched by a script of the page is not the worker: nothing happens.
+  await post(page, { actionIdentifier: 'default', data: { bot: 'writer', type: 'message' } }, false)
+  await page.waitForTimeout(300)
+  await expect(page).toHaveURL(/#\/settings\/notifications$/u)
 
   // An open window: the worker posts the click to it.
-  await page.evaluate(() =>
-    navigator.serviceWorker.dispatchEvent(
-      new MessageEvent('message', {
-        data: {
-          source: 'hermie-push',
-          response: {
-            actionIdentifier: 'default',
-            data: { bot: 'researcher', type: 'message', sessionKind: 'canonical' }
-          }
-        }
-      })
-    )
-  )
+  await post(page, {
+    actionIdentifier: 'default',
+    data: { bot: 'researcher', type: 'message', sessionKind: 'canonical' }
+  })
   await expect(page).toHaveURL(/#\/chat\/researcher$/u)
 
   // A cold start: the worker opens the client with the click in its address, read once and removed.
@@ -341,32 +363,19 @@ test('an Allow on a notification answers only a request the gateway still lists,
   gateway,
   page
 }) => {
-  await app.open()
+  await app.open('#/settings/notifications')
+  await turnOn(page)
+  await page.evaluate(() => {
+    location.hash = '#/chat/researcher'
+  })
   await app.ready()
 
   const before = (await gateway.answers()).length
   const allow = (requestId: string) =>
-    page.evaluate(
-      id =>
-        navigator.serviceWorker.dispatchEvent(
-          new MessageEvent('message', {
-            data: {
-              source: 'hermie-push',
-              response: {
-                actionIdentifier: 'hermie.request.allow',
-                data: {
-                  bot: 'researcher',
-                  type: 'request',
-                  method: 'approval',
-                  requestId: id,
-                  sessionKind: 'canonical'
-                }
-              }
-            }
-          })
-        ),
-      requestId
-    )
+    post(page, {
+      actionIdentifier: 'hermie.request.allow',
+      data: { bot: 'researcher', type: 'request', method: 'approval', requestId, sessionKind: 'canonical' }
+    })
 
   // A forged or stale one first: nothing the gateway lists, so nothing is answered.
   await allow('appr-nobody')

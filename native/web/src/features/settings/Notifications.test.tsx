@@ -26,7 +26,8 @@ const DESKTOP: PushEnvironment = {
   pushManager: true,
   notification: true,
   ios: false,
-  standalone: false
+  standalone: false,
+  chromium: true
 }
 
 const browserWith = (

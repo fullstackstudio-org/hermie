@@ -47,6 +47,7 @@ const own = (overrides: Partial<WebRegistrationInput> = {}): WebRegistrationInpu
   types: allTypes,
   preview: false,
   updatedAt: 1_790_000_000,
+  clears: true,
   ...overrides
 })
 
@@ -138,6 +139,11 @@ describe('the row', () => {
     })
   })
 
+  it('asks for clearing pushes only where the browser was found to handle them (Chromium)', () => {
+    expect(registrationRowOf(own({ clears: false }))).not.toHaveProperty('clears')
+    expect(registrationRowOf(own({ clears: false }))).toHaveProperty('requestMethods', true)
+  })
+
   it('names no gateway key when it has none', () => {
     expect(registrationRowOf(own({ gatewayKey: '' }))).not.toHaveProperty('gatewayKey')
   })
@@ -192,7 +198,20 @@ describe('the push map', () => {
     expect(map?.registrations).toEqual({ iphone: phone })
   })
 
-  it('writes this browser’s heartbeat, the newer of the two, in the shape the plugin reads', () => {
+  it('replaces the gateway’s copy of this browser’s heartbeat, even one stamped ahead', () => {
+    const ahead = { ...gateway, seen: { ...gateway.seen, [ID]: { bot: 'writer', at: 1_790_009_999 } } }
+
+    expect(
+      (
+        pushMapOf({ ...base, gateway: ahead, seen: { bot: 'scout', at: 1_790_000_050 } })?.seen as Record<
+          string,
+          unknown
+        >
+      )[ID]
+    ).toEqual({ bot: 'scout', at: 1_790_000_050 })
+  })
+
+  it('writes this browser’s heartbeat in the shape the plugin reads', () => {
     expect(
       (pushMapOf({ ...base, seen: { bot: 'writer', at: 1_790_000_050 } })?.seen as Record<string, unknown>)[ID]
     ).toEqual({

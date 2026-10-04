@@ -14,7 +14,8 @@ const desktop: PushEnvironment = {
   pushManager: true,
   notification: true,
   ios: false,
-  standalone: false
+  standalone: false,
+  chromium: true
 }
 
 const advert = (capabilities: string[], withKey = true): WebPluginAdvert =>

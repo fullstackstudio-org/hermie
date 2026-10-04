@@ -74,6 +74,22 @@ const withTimeout = <T>(work: Promise<T>, ms: number, message: string): Promise<
 
 type ScriptUrlPolicy = { createScriptURL(value: string): unknown }
 
+/**
+ * Whether a message's source is the service worker at `expected`: a `ServiceWorker` (where the page
+ * has the class) whose script is that address.
+ */
+export function isWorkerAt(source: unknown, expected: string, page: Pick<PushWindow, 'ServiceWorker'>): boolean {
+  if (!source || typeof source !== 'object') {
+    return false
+  }
+
+  if (page.ServiceWorker && !(source instanceof page.ServiceWorker)) {
+    return false
+  }
+
+  return (source as { scriptURL?: unknown }).scriptURL === expected
+}
+
 export function createPushBrowser(page: PushWindow): PushBrowser {
   let worker: Promise<PushWorker> | null = null
   let policy: ScriptUrlPolicy | null = null
@@ -166,7 +182,14 @@ export function createPushBrowser(page: PushWindow): PushBrowser {
         return () => undefined
       }
 
-      const handle = (event: MessageEvent): void => listener(event.data)
+      // This client's worker, and nothing else: another worker of the origin (another plugin's, the
+      // dashboard's) or a script of the page cannot post a click this page acts on.
+      const expected = new URL(SERVICE_WORKER_URL, page.document?.baseURI ?? '').href
+      const handle = (event: Pick<MessageEvent, 'data' | 'source'>): void => {
+        if (isWorkerAt(event.source, expected, page)) {
+          listener(event.data)
+        }
+      }
 
       workers.addEventListener('message', handle)
       workers.startMessages()

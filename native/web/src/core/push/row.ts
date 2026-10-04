@@ -10,8 +10,13 @@
  *    (the push service would refuse it with a 403 anyway) and tries a row that
  *    names none; a 403 retires the row until it is written again with a newer
  *    `updatedAt` (plugin P-3).
- *  - `clears: true`: this worker understands a clearing push (`data.clear`) and
- *    shows nothing for it (`src/sw/notification.ts`).
+ *  - `clears: true`, in a Chromium-based browser only: this worker understands a
+ *    clearing push (`data.clear`) and closes the notification it withdraws
+ *    (`src/sw/notification.ts`). A clearing push is `{data}` with nothing to show,
+ *    and how a browser treats a push that shows nothing under `userVisibleOnly`
+ *    has been checked in Chromium only (it may show its own "updated in the
+ *    background" notice). Safari and Firefox are left without the field, and so
+ *    without clearing pushes, until they are checked by hand on a gateway.
  *  - `requestMethods: true`: this worker reads a request's `method` and offers
  *    Allow and Deny for an approval only, so the plugin may send it the other
  *    request methods (`contract/push/contract.json`, `requests`).
@@ -174,9 +179,11 @@ export interface WebRegistrationInput {
   preview: boolean
   /** Unix seconds, on the gateway's clock where it is known (`clock.ts`). */
   updatedAt: number
+  /** Whether to ask for clearing pushes: a Chromium-based browser only (see the top of this file). */
+  clears: boolean
 }
 
-/** The row: `pushRowFor`'s, plus the three fields a browser row carries (see the top of this file). */
+/** The row: `pushRowFor`'s, plus the fields a browser row carries (see the top of this file). */
 export function registrationRowOf(input: WebRegistrationInput): Record<string, unknown> {
   const registration: PushRegistrationInput = {
     installationId: input.installationId,
@@ -193,7 +200,7 @@ export function registrationRowOf(input: WebRegistrationInput): Record<string, u
   return {
     ...row,
     ...(APPLICATION_SERVER_KEY.test(key) ? { applicationServerKey: key } : {}),
-    clears: true,
+    ...(input.clears ? { clears: true } : {}),
     requestMethods: true
   }
 }
@@ -239,10 +246,9 @@ export function pushMapOf(input: PushMapInput): Record<string, unknown> | undefi
   }
 
   const seen = pushSeenOf(section)
-  const ours = input.installationId ? seen[input.installationId] : undefined
-
-  // This browser is the only writer of its own heartbeat, so the newer of the two is its own.
-  if (input.installationId && input.seen && input.seen.at > (ours?.at ?? 0)) {
+  // This browser is the only writer of its own heartbeat, so what it holds replaces the gateway's copy
+  // outright: a copy stamped ahead (a clock that was wrong when it was written) must not outlive it.
+  if (input.installationId && input.seen) {
     seen[input.installationId] = input.seen
   }
 

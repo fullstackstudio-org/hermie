@@ -470,7 +470,8 @@ export function projectPush(
           address: push.address,
           types: push.types,
           preview: push.preview,
-          updatedAt: push.updatedAt
+          updatedAt: push.updatedAt,
+          clears: push.clears
         }
       : null
 

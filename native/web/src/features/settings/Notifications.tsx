@@ -134,11 +134,12 @@ export function Notifications({
         : words.status.checking
 
   const toggle = (on: boolean): void => {
-    setMessage(null)
-
-    if (!controller) {
+    // One change at a time: a press while the last one is being carried out does nothing.
+    if (!controller || push.busy) {
       return
     }
+
+    setMessage(null)
 
     void (on ? controller.enable() : controller.disable()).finally(() => setPermission(browser.permission()))
   }
@@ -176,6 +177,7 @@ export function Notifications({
         checked={push.enabled}
         disabled={!offered && !push.enabled}
         onChange={toggle}
+        busy={push.busy}
         hint={status}
       />
 
