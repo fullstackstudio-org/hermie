@@ -16,11 +16,13 @@ import { pluginStore } from '../../state/plugin'
 import { aSettingsRuntime } from '../../test-support/settings-runtime'
 import { aBot, resetShellStores, seedRoster } from '../../test-support/shell-stores'
 import { aMemoryPlugin } from '../../test-support/memory-plugin'
+import { aKanbanPlugin } from '../../test-support/kanban-plugin'
 import { aConnectorsGateway } from '../../test-support/connectors-gateway'
 import { anMcpServersGateway } from '../../test-support/mcp-servers-gateway'
 import { aSkillsGateway } from '../../test-support/skills-gateway'
 import type { ManageTransport } from './manage-runtime'
 import { Memory } from './Memory'
+import { Boards } from './Boards'
 import { Connectors } from './Connectors'
 import { McpServers } from './McpServers'
 import { Skills } from './Skills'
@@ -131,6 +133,25 @@ describe.each(['light', 'dark'] as const)('the management pages in the %s scheme
 
     expect(await violations()).toEqual([])
   })
+
+  it('has no violation on Boards, with a card open and the new card form open', async () => {
+    mount(aKanbanPlugin().transport, <Boards />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Open Write the release notes' }))
+    await screen.findAllByLabelText('Title')
+
+    const details = screen.getByText('New card').closest('details') as HTMLDetailsElement
+
+    details.open = true
+
+    expect(await violations()).toEqual([])
+  })
+
+  it('has no violation on Boards without the plugin', async () => {
+    mount(aKanbanPlugin({ absent: true }).transport, <Boards />)
+    await screen.findByText('This gateway has no Kanban plugin.')
+
+    expect(await violations()).toEqual([])
+  })
 })
 
 describe.each(['nl', 'de'] as const)('the management pages in %s', locale => {
@@ -172,6 +193,15 @@ describe.each(['nl', 'de'] as const)('the management pages in %s', locale => {
     await loadCatalogue(locale)
     act(() => setActiveLocale(locale))
     mount(aConnectorsGateway().transport, <Connectors />)
+    await screen.findAllByRole('listitem')
+
+    expect(await violations()).toEqual([])
+  })
+
+  it('has no violation on Boards', async () => {
+    await loadCatalogue(locale)
+    act(() => setActiveLocale(locale))
+    mount(aKanbanPlugin().transport, <Boards />)
     await screen.findAllByRole('listitem')
 
     expect(await violations()).toEqual([])

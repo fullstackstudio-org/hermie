@@ -54,6 +54,11 @@ const SAME_AS_ENGLISH: Readonly<Record<string, readonly Locale[]>> = {
   'manage.mcpServersPage.addName': ['de'],
   // `Status: {status}` is the same word in all three languages.
   'manage.connectorsPage.vendorStatus': ['nl', 'de'],
+  // `{name} ({count})` and `{author}, {date}` are the same placeholders and punctuation in every language.
+  'manage.boardsPage.columnHeading': ['nl', 'de'],
+  'manage.boardsPage.commentBy': ['nl', 'de'],
+  // "Board" is the German word too.
+  'manage.boardsPage.board': ['de'],
   // "Name" is the German word too; "Toolsets" and "Skills" are loan words in Dutch and German.
   'sheets.botProfile.nameHeading': ['de'],
   'sheets.botProfile.toolsetsHeading': ['nl', 'de'],
@@ -169,7 +174,11 @@ const SAMPLE = {
   // The MCP servers page: a server's transport, the env keys it needs, how it signs in.
   transport: MARKER,
   keys: MARKER,
-  auth: MARKER
+  auth: MARKER,
+  // The Boards page: a column's heading, a card's line, a comment's author.
+  assignee: MARKER,
+  priority: MARKER,
+  author: MARKER
 }
 
 describe('the web-only strings', () => {

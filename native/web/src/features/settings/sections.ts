@@ -24,6 +24,7 @@ export const SETTINGS_SECTIONS = [
   'skills',
   'mcp-servers',
   'connectors',
+  'boards',
   'chats',
   'notifications',
   'chat-list',
@@ -63,6 +64,8 @@ export function sectionTitle(section: SettingsSection): string {
       return strings.mcp.settings.row
     case 'connectors':
       return strings.connectors.settings.row
+    case 'boards':
+      return strings.kanban.settings.row
     case 'chats':
       return strings.app.settings.categories.chats
     case 'notifications':
@@ -98,6 +101,8 @@ export function sectionBlurb(section: SettingsSection): string {
       return strings.mcp.settings.hint
     case 'connectors':
       return strings.connectors.settings.hint
+    case 'boards':
+      return strings.kanban.settings.hint
     case 'chats':
       return blurb.chats
     case 'notifications':
@@ -126,6 +131,7 @@ export const SECTION_LOADERS = {
   skills: () => import('./Skills'),
   'mcp-servers': () => import('./McpServers'),
   connectors: () => import('./Connectors'),
+  boards: () => import('./Boards'),
   chats: () => import('./Chats'),
   notifications: () => import('./Notifications'),
   'chat-list': () => import('./Arrangement'),

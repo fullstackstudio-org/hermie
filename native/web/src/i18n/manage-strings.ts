@@ -306,6 +306,122 @@ export const MANAGE_STRINGS_SOURCE = {
       de: ({ status }: { status: string }) => `Status: ${status}`
     }
   },
+  boardsPage: {
+    /** The label of the board picker. */
+    board: {
+      en: 'Board',
+      nl: 'Bord',
+      de: 'Board'
+    },
+    /** A column's heading: its name and how many cards are in it. */
+    columnHeading: {
+      en: ({ name, count }: { name: string; count: number }) => `${name} (${count})`,
+      nl: ({ name, count }: { name: string; count: number }) => `${name} (${count})`,
+      de: ({ name, count }: { name: string; count: number }) => `${name} (${count})`
+    },
+    /** The names of one card's controls, so that several cards are told apart. */
+    openCard: {
+      en: ({ title }: { title: string }) => `Open ${title}`,
+      nl: ({ title }: { title: string }) => `${title} openen`,
+      de: ({ title }: { title: string }) => `${title} öffnen`
+    },
+    closeCard: {
+      en: ({ title }: { title: string }) => `Close ${title}`,
+      nl: ({ title }: { title: string }) => `${title} sluiten`,
+      de: ({ title }: { title: string }) => `${title} schließen`
+    },
+    open: {
+      en: 'Open',
+      nl: 'Openen',
+      de: 'Öffnen'
+    },
+    close: {
+      en: 'Close',
+      nl: 'Sluiten',
+      de: 'Schließen'
+    },
+    moveCard: {
+      en: ({ title }: { title: string }) => `Move ${title} to…`,
+      nl: ({ title }: { title: string }) => `${title} verplaatsen naar…`,
+      de: ({ title }: { title: string }) => `${title} verschieben nach…`
+    },
+    archiveName: {
+      en: ({ title }: { title: string }) => `Archive ${title}`,
+      nl: ({ title }: { title: string }) => `${title} archiveren`,
+      de: ({ title }: { title: string }) => `${title} archivieren`
+    },
+    archiveQuestion: {
+      en: ({ title }: { title: string }) => `Archive ${title}?`,
+      nl: ({ title }: { title: string }) => `${title} archiveren?`,
+      de: ({ title }: { title: string }) => `${title} archivieren?`
+    },
+    archiveFailed: {
+      en: ({ message }: { message: string }) => `Could not archive it: ${message}`,
+      nl: ({ message }: { message: string }) => `Archiveren lukte niet: ${message}`,
+      de: ({ message }: { message: string }) => `Archivieren war nicht möglich: ${message}`
+    },
+    saveFailed: {
+      en: ({ message }: { message: string }) => `Could not save: ${message}`,
+      nl: ({ message }: { message: string }) => `Opslaan lukte niet: ${message}`,
+      de: ({ message }: { message: string }) => `Speichern war nicht möglich: ${message}`
+    },
+    createFailed: {
+      en: ({ message }: { message: string }) => `Could not make the card: ${message}`,
+      nl: ({ message }: { message: string }) => `De kaart maken lukte niet: ${message}`,
+      de: ({ message }: { message: string }) => `Die Karte konnte nicht erstellt werden: ${message}`
+    },
+    created: {
+      en: ({ title }: { title: string }) => `${title} was made.`,
+      nl: ({ title }: { title: string }) => `${title} is gemaakt.`,
+      de: ({ title }: { title: string }) => `${title} wurde erstellt.`
+    },
+    commentFailed: {
+      en: ({ message }: { message: string }) => `Could not post the comment: ${message}`,
+      nl: ({ message }: { message: string }) => `De reactie plaatsen lukte niet: ${message}`,
+      de: ({ message }: { message: string }) => `Der Kommentar konnte nicht gesendet werden: ${message}`
+    },
+    /** A comment's author and when it was written. */
+    commentBy: {
+      en: ({ author, date }: { author: string; date: string }) => `${author}, ${date}`,
+      nl: ({ author, date }: { author: string; date: string }) => `${author}, ${date}`,
+      de: ({ author, date }: { author: string; date: string }) => `${author}, ${date}`
+    },
+    commentLabel: {
+      en: ({ title }: { title: string }) => `Comment on ${title}`,
+      nl: ({ title }: { title: string }) => `Reageer op ${title}`,
+      de: ({ title }: { title: string }) => `Kommentar zu ${title}`
+    },
+    priorityHint: {
+      en: 'Higher comes first in its column.',
+      nl: 'Hoger komt eerst in zijn kolom.',
+      de: 'Höher steht in seiner Spalte weiter oben.'
+    },
+    priorityInvalid: {
+      en: 'Priority is a whole number.',
+      nl: 'Prioriteit is een geheel getal.',
+      de: 'Die Priorität ist eine ganze Zahl.'
+    },
+    noAssignee: {
+      en: 'Nobody',
+      nl: 'Niemand',
+      de: 'Niemand'
+    },
+    /** Said when the card was read again and is gone, or was archived elsewhere. */
+    cardGone: {
+      en: 'This card is no longer on the board.',
+      nl: 'Deze kaart staat niet meer op het bord.',
+      de: 'Diese Karte ist nicht mehr auf dem Board.'
+    },
+    /** A card's line under its title: who has it and how urgent. */
+    cardMeta: {
+      en: ({ assignee, priority }: { assignee: string; priority: number }) =>
+        assignee ? `${assignee} · priority ${priority}` : `Priority ${priority}`,
+      nl: ({ assignee, priority }: { assignee: string; priority: number }) =>
+        assignee ? `${assignee} · prioriteit ${priority}` : `Prioriteit ${priority}`,
+      de: ({ assignee, priority }: { assignee: string; priority: number }) =>
+        assignee ? `${assignee} · Priorität ${priority}` : `Priorität ${priority}`
+    }
+  },
   skillsPage: {
     /** The gateway files an installed skill under a category; these are the two it uses. */
     bundled: {
