@@ -120,8 +120,10 @@ public final class RequestsModel {
   /// the gateway names its bots.
   public var botName: String { SecurePrompt.displayText(bot, limit: SecurePrompt.nameLimit) }
 
-  /// The questions still waiting, oldest first.
-  public var openRequests: [TranscriptItem] { chat.openRequests }
+  /// The approvals and questions still waiting, oldest first. An interactive request
+  /// (`input.form`, `input.file`, `review.draft`) is on the chat's transcript as a card too, but
+  /// its sheet is `InteractiveModel`'s, not this one's.
+  public var openRequests: [TranscriptItem] { chat.openRequests.filter { $0.asRequest == nil } }
 
   /// The request the sheet shows, while it is still in the transcript.
   public var presentedRequest: TranscriptItem? {

@@ -204,8 +204,10 @@ extension GatewaySession {
       onSessionsChanged?()
     case .requestCancelReplayed(let id, let reason):
       secureInput.withdraw(id, reason: reason)
+      interactive.withdraw(id, reason: reason)
     case .openRequests(let runtimeID, let ids, let askedAt):
       secureInput.reconcile(session: runtimeID, open: ids, askedAt: askedAt)
+      interactive.reconcile(session: runtimeID, open: ids, askedAt: askedAt)
     }
   }
 

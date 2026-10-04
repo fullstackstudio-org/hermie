@@ -17,8 +17,18 @@ struct SessionHarness {
   let frames = ManualFrameScheduler()
   let session: GatewaySession
 
-  init(cache: (any ChatCaching)? = nil, keyValues: KeyValueStore? = nil, reachability: (any Reachability)? = nil) {
+  init(
+    cache: (any ChatCaching)? = nil,
+    keyValues: KeyValueStore? = nil,
+    reachability: (any Reachability)? = nil,
+    requests: [String]? = nil
+  ) {
     var options = GatewaySession.Options()
+
+    if let requests {
+      options.requests = requests
+    }
+
     options.store.clock = clock
     options.store.frames = frames
     options.store.now = { 1_790_000_000_000 }

@@ -42,6 +42,12 @@ public final class GatewaySession {
     /// reasoning; the owner's call, 2026-10-03).
     public var defaultVisibility = SyncedSettings.defaultChatView
     public var secureInput = SecureInputCenter.Options()
+    public var interactive = InteractiveRequestCenter.Options()
+    /// The interactive request methods this device shows, announced to the gateway in the second
+    /// `client.capabilities` call and the only ones `InteractiveRequestCenter` takes in
+    /// (`InteractiveCapabilities.deviceMethods()`: computed once, when the options are made).
+    /// `nil` or empty: none is announced, and every interactive request is answered `-32601`.
+    public var requests: [String]? = InteractiveCapabilities.deviceMethods()
     /// Passkeys and the `confirm` level `passkey` (`PasskeyModel`). `nil`: the connection announces
     /// no `confirm` level and answers every `confirm` request `-32601`, as before.
     public var passkey: PasskeySetup?
@@ -61,6 +67,9 @@ public final class GatewaySession {
   /// The one-string prompts (`secret`, `sudo`, `vault.*`): a consumer of the
   /// server requests of its own, so a typed secret never reaches the store.
   @ObservationIgnored public let secureInput: SecureInputCenter
+  /// The interactive requests (`input.form`, `input.file`, `review.draft`): a consumer of the
+  /// server requests of its own, so a value typed into a sheet never reaches the store.
+  @ObservationIgnored public let interactive: InteractiveRequestCenter
   /// The pictures of the people in the group chat and the reader's own, as the gateway serves them.
   @ObservationIgnored public let people: PeoplePictures
   /// The gateway's out-of-band notices (`notification.show` / `.clear`).
@@ -154,6 +163,7 @@ public final class GatewaySession {
     let source = options.passkey.map { _ in ConfirmCapabilitySource() }
     var connectionOptions = options.connection
     connectionOptions.confirm = source ?? connectionOptions.confirm
+    connectionOptions.requests = options.requests ?? connectionOptions.requests
     let link = try ConnectionLink(
       baseURL: record.address,
       extraHeaders: extraHeaders,
@@ -238,6 +248,16 @@ public final class GatewaySession {
       gatewayName: name ?? gatewayID,
       options: options.secureInput
     )
+    // The center takes in what the connection was told to advertise, and nothing else.
+    var interactiveOptions = options.interactive
+    interactiveOptions.methods = Set(options.requests ?? [])
+    self.interactive = InteractiveRequestCenter(
+      link: link,
+      store: store,
+      clock: options.store.clock,
+      gatewayName: name ?? gatewayID,
+      options: interactiveOptions
+    )
     (commands, commandSink) = AsyncStream.makeStream()
   }
 
@@ -264,6 +284,7 @@ public final class GatewaySession {
     await store.setContractSink { [weak self] number, error in self?.contractChecked(number, error) }
     await store.attach()
     secureInput.attach()
+    interactive.attach()
     await passkeys?.start()
     mcp?.start()
 
@@ -360,6 +381,8 @@ public final class GatewaySession {
 
     // Every prompt still open is answered `''` while the socket is still there.
     await secureInput.shutdown()
+    // Every interactive request still open is answered `4041 shutting_down` the same way.
+    await interactive.shutdown()
     await passkeys?.shutdown()
     mcp?.shutdown()
     await store.persistAll()
@@ -482,6 +505,7 @@ public final class GatewaySession {
     }
 
     secureInput.storeChanged()
+    interactive.storeChanged()
 
     if let frameTimings {
       let cpu = clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID) - cpuStart
@@ -505,6 +529,7 @@ public final class GatewaySession {
 
     let names = Set(snapshot.bots.map(\.name))
     secureInput.storeChanged()
+    interactive.storeChanged()
 
     for name in models.keys where !names.contains(name) {
       release(name)

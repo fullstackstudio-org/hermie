@@ -447,8 +447,12 @@ public actor TranscriptStore {
     guard inbound.method == "approval" || inbound.method == "clarify" else {
       // The one-string prompts never enter the transcript: `SecureInputCenter`,
       // a consumer of its own, answers them. So does `PasskeyModel` a `confirm`
-      // (the connection delivers one only when it announced `confirm`).
-      if inbound.body.isSecureInput || inbound.method == ServerRequestBody.Method.confirm {
+      // (the connection delivers one only when it announced `confirm`), and
+      // `InteractiveRequestCenter` the interactive requests (`input.form`, ...): it
+      // tells the chat's transcript that a question was asked, and how it ended.
+      if inbound.body.isSecureInput || inbound.method == ServerRequestBody.Method.confirm
+        || inbound.body.isInteractive
+      {
         return
       }
 

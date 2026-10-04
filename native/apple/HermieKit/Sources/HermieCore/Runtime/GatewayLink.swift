@@ -194,6 +194,17 @@ public struct InboundRequest: Sendable {
     await failHandler(JSONRPCError.methodNotFound, "no chat on this client holds the session for: \(method)")
   }
 
+  /// Answer the error `4041 cannot_show {reason}`: this client cannot show the request (the
+  /// interactive requests' decline, never a made-up skip). The gateway reports it to the agent as
+  /// unavailable. `false` when it did not go out.
+  public func cannotShow(reason: String) async -> Bool {
+    await fail(
+      code: JSONRPCError.cannotShowCode,
+      message: JSONRPCError.cannotShowMessage,
+      data: .object(["reason": .string(reason)])
+    )
+  }
+
   /// The typed reading.
   public var body: ServerRequestBody { request.body }
 }
