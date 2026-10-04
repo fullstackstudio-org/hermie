@@ -61,12 +61,7 @@ import { createMcpClient } from '../../core/mcp/client'
 import { McpModel } from '../../core/mcp/model'
 import { createPasskeyClient } from '../../core/passkey/client'
 import { PasskeyModel } from '../../core/passkey/model'
-import {
-  ADVERTISE_INTERACTIVE_REQUESTS,
-  ADVERTISE_INTERACTIVE_REQUESTS_KEY,
-  InteractiveModel,
-  interactiveAdvert
-} from '../../core/requests/interactive'
+import { ADVERTISE_INTERACTIVE_REQUESTS, InteractiveModel, interactiveAdvert } from '../../core/requests/interactive'
 import { ConnectionsModel, respondThrough } from '../../core/connections'
 import { NoticesModel } from '../../core/notices'
 import { SecureInputModel } from '../../core/requests/secure-input'
@@ -249,9 +244,7 @@ export function startSession(options: StartSessionOptions): Session {
       ),
     watchSessions: listener => chats.chats.subscribe(() => listener()),
     failWithData,
-    requests: interactiveAdvert(interactive, {
-      enabled: ADVERTISE_INTERACTIVE_REQUESTS || options.storage.getSync(ADVERTISE_INTERACTIVE_REQUESTS_KEY) === 'on'
-    })
+    requests: interactiveAdvert(interactive, { enabled: ADVERTISE_INTERACTIVE_REQUESTS })
   })
 
   passkeys.start()

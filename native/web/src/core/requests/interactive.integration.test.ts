@@ -154,8 +154,7 @@ async function openPage(): Promise<Page> {
     pins: createPasskeyPins({ store: createKeyValueStore({ namespace: '/', storage }), baseUrl: BASE, storage }),
     store: createPasskeysStore(),
     failWithData,
-    // The advert is off by default until the sheets exist (`ADVERTISE_INTERACTIVE_REQUESTS`): these tests turn it on.
-    requests: interactiveAdvert(model, { enabled: true })
+    requests: interactiveAdvert(model)
   })
 
   passkeys.start()

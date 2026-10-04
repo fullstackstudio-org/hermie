@@ -64,8 +64,8 @@
  *     the same refusal) never opens.
  *  7. **Advertising.** The page lists the methods it can show in the second
  *     `client.capabilities` call (`interactiveAdvert`, run by the passkey model, which owns the
- *     two calls: the second replaces what the first said), but only once the sheets exist
- *     (`ADVERTISE_INTERACTIVE_REQUESTS`). The gateway lists a request in `open_requests` only to a
+ *     two calls: the second replaces what the first said); `ADVERTISE_INTERACTIVE_REQUESTS` is the
+ *     switch. The gateway lists a request in `open_requests` only to a
  *     connection whose advert it accepted, and a reconnect's resume and replay run before the new
  *     socket's advert: so on a new socket the controller's `open_requests` say nothing about these
  *     requests until the advert is settled. Once it is accepted they are read again
@@ -157,17 +157,12 @@ export interface InteractiveEngine {
 }
 
 /**
- * Whether the page lists the interactive methods in its advert. OFF until the sheets for them exist (task W2 turns
- * this on): the stand-in can only Skip or Decline, and a gateway that knows this page can show a form would send it
- * here instead of answering the agent `no_capable_client`.
+ * Whether the page lists the interactive methods in its advert. On: the sheets for all three exist (`FormSheet`,
+ * `FileSheet`, `DraftSheet`), so the page can show what it advertises. It is the switch to turn the advert off again
+ * should a sheet ever be withdrawn: a page advertises only what it can really show, because a gateway that knows this
+ * page can show a form sends it here instead of answering the agent `no_capable_client`.
  */
-export const ADVERTISE_INTERACTIVE_REQUESTS = false
-
-/**
- * The device-local setting that turns the advert on before `ADVERTISE_INTERACTIVE_REQUESTS` does, for the end-to-end
- * tests and a developer trying the stand-in (`'on'`). It goes when the flag does.
- */
-export const ADVERTISE_INTERACTIVE_REQUESTS_KEY = 'device.dev.advertise-interactive-requests'
+export const ADVERTISE_INTERACTIVE_REQUESTS = true
 
 /**
  * What the advert of a socket came to: the gateway took methods of this page (`accepted`), it did not or none were
@@ -311,8 +306,11 @@ const str = (value: unknown): string => (typeof value === 'string' ? value : '')
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
-/** Lines compared the way the gateway compares them: whitespace at the end of each line does not count. */
-const trimmedLines = (text: string): string => text.replace(/[^\S\n]+$/gmu, '')
+/**
+ * Text compared the way the gateway compares it: whitespace at the end of each line does not count, nor does any at the
+ * end of the whole text (trailing blank lines included).
+ */
+const trimmedLines = (text: string): string => text.replace(/[^\S\n]+$/gmu, '').replace(/\s+$/u, '')
 
 export class InteractiveModel {
   readonly store: StoreApi<InteractiveState>

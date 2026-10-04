@@ -1030,9 +1030,8 @@ of the secure input model: what a person fills in, picks or edits never reaches 
   `capture: scan` is a preference the web ignores). The passkey model owns the two calls, because the second replaces
   what the first said, so it sends that call for the methods alone when the passkey level is not on offer, and reads
   the open requests of the held sessions again once the list is accepted: the gateway hid them from a connection that
-  had not advertised. Until the sheets exist (task P1-W2) the page advertises none of them
-  (`ADVERTISE_INTERACTIVE_REQUESTS`); the device-local setting `ADVERTISE_INTERACTIVE_REQUESTS_KEY` (`'on'`) turns the
-  advert on for the end-to-end tests. On a new socket the controller's resume and replay run before the advert, when
+  had not advertised. The page advertises what it can really show, and the three sheets exist, so the advert is on
+  (`ADVERTISE_INTERACTIVE_REQUESTS`, the switch that turns it off again). On a new socket the controller's resume and replay run before the advert, when
   the gateway still hides these requests: their `open_requests` are held until the passkey model says what the advert
   came to (`RequestsAdvert.settled`, once per socket: a re-advert after `forgetPin` does not move it), dropped when it
   was accepted (the lists read after it count), counted when refused, and dropped with every later list of that socket
@@ -1062,13 +1061,47 @@ of the secure input model: what a person fills in, picks or edits never reaches 
   `decision`, with `count` or `edited`), never a value: the `request` item of `@hermie/transcript`. A resume's
   snapshot hands it the same three keys, cleaned, for an interactive request (the controller drops its fields and a
   draft's text), and a request that ended here before a chat held its session is ended on that chat once it shows it.
-- Until the sheets exist (task P1-W2) `InteractiveSheet` stands in for all three: the bot's heading and words as plain
-  text, Skip when the request is optional, and Decline.
+- **The sheets** (`features/requests/`, one lazy chunk with the other request sheets, `RequestLayer` routes by method)
+  are drawn in the secure sheets' frame (`interactive-frame.tsx`): the heading and every label are the app's words, the
+  bot's heading and summary (and its detail, and the person it acts for) are plain text in a quoted box under a label
+  that says they are the bot's, the gateway's host, a countdown to `expires_at`, who receives the answer, a tap guard
+  (the fields and buttons are off for a moment), Escape and the scrim do nothing, and Offline, busy, failed and an
+  earlier answer that was lost are said. What is typed lives in the sheet's component state and in the one answer; no
+  store, cache, draft or log holds it. A refusal does not rebuild a sheet (the layer keys it by the request, not by its
+  version).
+  - **`FormSheet`** draws every field kind with the browser's own input (`FormFields.tsx`: `date`, `time`,
+    `datetime-local`, `number`, `select`, radio and checkbox groups, a switch, `textarea`; an amount is a text input
+    with its currency and decimals, a range two date inputs), with required marks and `aria-describedby` hints. The
+    page checks first, in the gateway's terms and order (`core/requests/form-values.ts`, held to
+    `contract/requests/examples.json` by `form-values.test.ts`): a datetime carries the offset of its zone at that
+    instant and the zone in brackets (the field's `tz`, else the device's), a time the clocks skip is the `offset`
+    problem, an amount is a decimal string with the currency's minor unit, a number a JSON number. A refusal
+    (`field:<id>:<problem>`) is worded by the same sentences (`form-problems.ts`) next to its field until that field is
+    changed. Skip only when the request is `optional`.
+  - **`FileSheet`** filters the picker by `accept` and holds the files to it, offers a camera button next to it on a
+    touch device when the bot prefers a photo or a recording (`capture`; never for `scan`), checks `max_bytes`,
+    `max_total_bytes` and `max_files` when a file is picked and again on the prepared files, before any upload, previews
+    pictures, and with `strip_metadata` re-encodes a JPEG or PNG on a canvas (`file-prepare.ts`; any other picture is
+    refused, never uploaded with its metadata). It uploads one file after another DIRECTLY into `upload.dir` as
+    `<16 hex>-<name>` (`flatUploadPath`, through the controller's `uploadFileTo`, the same route and credentials as an
+    attachment) with progress and a cancel, quotes each file's size and SHA-256 (`crypto.subtle`, a plain
+    implementation where the page is not a secure context: `core/requests/sha256.ts`), and answers with references. A
+    failed upload is said first: try again (what is already up is not uploaded twice) or give up, which is
+    `4041 upload_failed`.
+  - **`DraftSheet`** shows the text verbatim in a monospaced `white-space: pre` box (an editor when `editable`), apart
+    from the subject and the recipients, never rendered as Markdown and never a link. What the eye cannot see (zero-width
+    and direction characters, blank letters, a tab) is counted and shown by its code point in a preview, and Approve
+    waits until "Remove them" or an edit has taken them out, because the gateway refuses them. Approve, Approve with
+    changes (once the text differs from the original, which stays on screen for comparison) and Reject with an optional
+    comment of at most 1,000 characters; there is no Skip.
 
-`core/requests/interactive.test.ts`, `interactive-types.test.ts`, `features/requests/InteractiveSheet.test.tsx` and
-`state/requests.test.ts` cover it in jsdom; `core/requests/interactive.integration.test.ts` runs the model against the
-fake gateway, which validates every answer; `e2e/interactive-model.spec.ts` raises each method through
-`/__fake/request` against the built client.
+`core/requests/interactive.test.ts`, `interactive-types.test.ts`, `form-values.test.ts`, `sha256.test.ts`,
+`features/requests/FormSheet.test.tsx`, `FileSheet.test.tsx`, `DraftSheet.test.tsx`, `file-prepare.test.ts`,
+`interactive-sheets.axe.test.tsx` and `state/requests.test.ts` cover it in jsdom;
+`core/requests/interactive.integration.test.ts` runs the model against the fake gateway, which validates every answer;
+`e2e/interactive-model.spec.ts` raises each method through `/__fake/request` against the built client, and
+`e2e/requests-interactive.spec.ts` answers each through its sheet in a real browser (a refusal round trip, a file that
+lands in `upload.dir` with its SHA-256, axe with contrast).
 
 ### Session gaps
 

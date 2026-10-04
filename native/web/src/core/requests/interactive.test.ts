@@ -1380,16 +1380,12 @@ describe('advertising', () => {
     expect(showableMethods(['input.file'])).toEqual(['input.file'])
   })
 
-  it('advertises nothing by default until the sheets exist, and the methods once it is turned on', () => {
+  it('advertises the methods the sheets can show, and nothing when the switch is off', () => {
     const list = ['approval', 'input.form', 'input.file', 'review.draft']
 
-    expect(ADVERTISE_INTERACTIVE_REQUESTS).toBe(false)
-    expect(interactiveAdvert(model).methods(list)).toEqual([])
-    expect(interactiveAdvert(model, { enabled: true }).methods(list)).toEqual([
-      'input.form',
-      'input.file',
-      'review.draft'
-    ])
+    expect(ADVERTISE_INTERACTIVE_REQUESTS).toBe(true)
+    expect(interactiveAdvert(model, { enabled: false }).methods(list)).toEqual([])
+    expect(interactiveAdvert(model).methods(list)).toEqual(['input.form', 'input.file', 'review.draft'])
   })
 })
 
