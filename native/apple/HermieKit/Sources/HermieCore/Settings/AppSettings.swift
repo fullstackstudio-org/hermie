@@ -53,6 +53,10 @@ public final class AppSettings: SettingsStore {
 
   @ObservationIgnored private let keyValues: KeyValueStore?
   @ObservationIgnored private let store: SQLiteStore?
+  /// Milliseconds, for the ids of the themes the reader makes.
+  @ObservationIgnored private let clock: @Sendable () -> Double
+  /// Themes made in this launch, so two made in one millisecond still have two ids.
+  @ObservationIgnored private var themeCounter = 0
   /// The rest of the `hermie.appearance` blob (the Expo app keeps its own fields in it): written
   /// back as it was found.
   @ObservationIgnored private var appearanceRest: JSONObject = [:]
@@ -72,9 +76,13 @@ public final class AppSettings: SettingsStore {
   /// - Parameters:
   ///   - keyValues: where the choices are kept; nil keeps them in memory (tests, previews).
   ///   - store: the database "clear the cache" empties; nil has nothing to clear.
-  public init(keyValues: KeyValueStore? = nil, store: SQLiteStore? = nil) {
+  public init(
+    keyValues: KeyValueStore? = nil, store: SQLiteStore? = nil,
+    clock: @escaping @Sendable () -> Double = { Date().timeIntervalSince1970 * 1000 }
+  ) {
     self.keyValues = keyValues
     self.store = store
+    self.clock = clock
   }
 
   // MARK: Reading from the store
@@ -212,6 +220,46 @@ public final class AppSettings: SettingsStore {
 
   public func setThemeChoice(_ choice: ThemeChoice) {
     update { $0.themeChoice = choice }
+  }
+
+  // MARK: The reader's own themes
+
+  /// Start a theme of the reader's own from a preset (a copy of its two floors) and put it on, as the
+  /// Expo app does; answers its id. The edit is one change, so it is one write and one send.
+  @discardableResult
+  public func createUserTheme(base: String, name: String) -> String {
+    themeCounter += 1
+    let id = UserThemes.newID(now: clock(), counter: themeCounter)
+
+    update {
+      $0.userThemes = UserThemes.creating(base: base, name: name, id: id, in: $0.userThemes)
+      $0.themeChoice = .user(id: id)
+    }
+
+    return id
+  }
+
+  public func renameUserTheme(_ id: String, to name: String) {
+    update { $0.userThemes = UserThemes.renaming(id, to: name, in: $0.userThemes) }
+  }
+
+  /// Set one colour of one face of a theme, or, with nil, let it follow the preset again. The caller has
+  /// judged it (`UserThemes.judge`): a colour that fails is not stored by this.
+  public func setThemeColour(_ field: ThemeColourField, _ scheme: ThemeScheme, to colour: String?, on id: String) {
+    if let colour, UserThemes.judge(field, colour) != .ok {
+      return
+    }
+
+    update { $0.userThemes = UserThemes.setting(field, scheme, to: colour, on: id, in: $0.userThemes) }
+  }
+
+  /// Delete a theme. When it is the one on, the preset it was built on is, so the picker agrees with what
+  /// is on screen.
+  public func deleteUserTheme(_ id: String) {
+    update {
+      $0.themeChoice = UserThemes.choice(afterDeleting: id, current: $0.themeChoice, themes: $0.userThemes)
+      $0.userThemes = UserThemes.deleting(id, from: $0.userThemes)
+    }
   }
 
   private func update(_ change: (inout SyncedSettings) -> Void) {

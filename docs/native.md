@@ -2128,7 +2128,17 @@ reader changed.
   in that order, never a hidden handle) and the chat's title.
 - **Accent.** A preset maps to one tint (D19): Blue is the app's own accent, Graphite and Lime are the
   Expo app's bubble colours for them. A theme of the reader's own (made in the Expo app) is listed too,
-  and tints with the accent it chose per face. The native app has no editor for them.
+  and tints with the accent it chose per face.
+  They are made, edited and deleted in Settings › Appearance (`ThemeManagementSections`, `ThemeEditPage`; `UserThemes` and
+  `AppSettings.createUserTheme` and its siblings, which write the app section's `themes` and `themeChoice` as the Expo
+  app does, so a theme made here is on the reader's other devices and in the Expo app). A new theme starts as a copy
+  of a preset's two floors and is put on at once. The editor has the name and, for one face at a time (light or dark),
+  the accent's fill and the outgoing bubble, each a system colour picker or six hex digits; the bubble has to carry
+  white text (a ratio of 4.5, as `judgeThemeColour` measures) and one that cannot is refused with the ratio, and a
+  colour the theme does not set follows its preset and can be let go of again. The floor is carried as it is: the Apple
+  apps draw no theme floor, and the Expo app judges one against every ink it has, a table this build does not carry.
+  Deleting the theme that is on puts the preset it was built on. What is drawn of a theme is the tint, so a face's
+  bubble, else its fill, is the accent.
 - **Transcript cache.** The session's cache is wrapped in `GatedChatCache` over a `ChatCacheSwitch`:
   off, nothing is read from it or written to it. Switching it off also clears what is stored
   (`SQLiteStore.clearAllChatCaches`, every gateway's rosters and transcripts); "Clear Now" does the

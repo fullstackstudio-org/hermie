@@ -48,6 +48,9 @@ struct AppearanceSettingsPage: View {
         SettingsNote(NativeStrings.Appearance.tintFooter)
       }
 
+      // The themes the reader made: edit them, delete them, start another from a preset.
+      ThemeManagementSections(settings: settings)
+
       Section {
         Picker(
           Strings.App.Settings.chatTextSize,
