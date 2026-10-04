@@ -49,6 +49,9 @@ function fakeController(over: Partial<Record<keyof ChatScreenController, unknown
       return {}
     }),
     refreshOptions: vi.fn(async () => null),
+    // What the options read when they open; this suite is about YOLO, so there is nothing to offer.
+    modelOptions: vi.fn(async () => []),
+    refreshUsage: vi.fn(async () => null),
     ...over
   }
 

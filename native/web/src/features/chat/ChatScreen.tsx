@@ -117,6 +117,7 @@ import { useAttachmentTray } from './use-attachment-tray'
 import { useOpenChat } from './use-open-chat'
 import { useOwnAuthorId } from './use-own-author'
 import { usePageVisible } from './use-page-visible'
+import type { ExportFormat } from './chat-export'
 import { useYolo } from './use-yolo'
 import { YoloBadge } from './YoloBadge'
 import './chat.css'
@@ -278,6 +279,7 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
   const [viewing, setViewing] = useState<{ image: ViewedImage; opener: HTMLElement | null } | null>(null)
   const [menuNotice, setMenuNotice] = useState({ text: '', serial: 0 })
   const shownRef = useRef(shown)
+  const [exportFailed, setExportFailed] = useState(false)
   const keyRef = useRef(key)
   const menuLive = useRef({
     turnActive: false,
@@ -446,6 +448,29 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
       .catch((error: unknown) => setBranchFailure(webStrings.chat.menu.branchFailed({ message: messageOf(error) })))
   }
 
+  // The conversation as a file, from the rows on screen. The writer is fetched when it is first asked for.
+  const exportChat = useCallback(
+    (format: ExportFormat): void => {
+      setExportFailed(false)
+      void import('./chat-export')
+        .then(({ exportConversation }) =>
+          exportConversation({
+            items: shownRef.current,
+            botName: displayName,
+            groupChat,
+            ownAuthorId,
+            format,
+            now: new Date()
+          })
+        )
+        .catch(() => setExportFailed(true))
+    },
+    [displayName, groupChat, ownAuthorId]
+  )
+
+  // A failure belongs to the chat it happened in.
+  useEffect(() => setExportFailed(false), [key])
+
   // Messages that landed while the reader was further up: the button's count. The
   // delta is taken before the previous count is overwritten.
   const messageCount = useMemo(
@@ -579,7 +604,13 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
         <ChatHeader bot={bot} chatKey={key} />
         <div className="hm-chat__tools">
           <YoloBadge yolo={yolo} />
-          <ChatOptions bot={bot} yolo={viewer ? undefined : yolo} />
+          <ChatOptions
+            bot={bot}
+            yolo={viewer ? undefined : yolo}
+            runtime={runtime}
+            viewer={viewer}
+            exportChat={shown.length > 0 ? exportChat : undefined}
+          />
         </div>
       </div>
 
@@ -614,6 +645,14 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
         <div className="hm-chat__banner" data-tone="danger" role="alert">
           <p>{branchFailure}</p>
           <Button variant="quiet" onClick={() => setBranchFailure(null)}>
+            {strings.app.common.dismiss}
+          </Button>
+        </div>
+      ) : null}
+      {exportFailed ? (
+        <div className="hm-chat__banner" data-tone="danger" role="alert">
+          <p>{strings.chat.export.failed}</p>
+          <Button variant="quiet" onClick={() => setExportFailed(false)}>
             {strings.app.common.dismiss}
           </Button>
         </div>

@@ -37,7 +37,11 @@ const SAME_AS_ENGLISH: Readonly<Record<string, readonly Locale[]>> = {
   // "Later" is the Dutch word too.
   'sheets.interactive.later': ['nl'],
   // "YOLO" is the mode's name in every language.
-  'chat.yolo.badge': ['nl', 'de']
+  'chat.yolo.badge': ['nl', 'de'],
+  // "Minimal" is the German word too; "Max" and "Ultra" are the same word in all three.
+  'sheets.chatSettings.reasoning.minimal': ['de'],
+  'sheets.chatSettings.reasoning.max': ['nl', 'de'],
+  'sheets.chatSettings.reasoning.ultra': ['nl', 'de']
 }
 
 type Source = Record<string, unknown>

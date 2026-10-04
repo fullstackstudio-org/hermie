@@ -20,9 +20,14 @@
  * Once the reader changes anything, this chat has its own view, and the panel
  * says so and offers to follow the default again.
  *
- * Under that, one row talks to the gateway: YOLO mode, which skips this chat's
- * approval requests (`use-yolo.ts`). It asks before turning on; while it is on,
- * the header carries a mark that turns it off (`YoloBadge`).
+ * Under that, "This conversation" is what talks to the gateway about the chat's own
+ * session: YOLO mode, which skips its approval requests (`use-yolo.ts`; it asks
+ * before turning on, and while it is on the header carries a mark that turns it
+ * off, `YoloBadge`), then fast mode, the reasoning effort and the model, with how
+ * full the context window is (`use-session-options.ts`, `ConversationOptions`),
+ * then the conversation as a Markdown or plain-text download (`chat-export.ts`).
+ * The session's options are there only while the chat is attached to a live
+ * connection; the download is the page's own and needs only the rows on screen.
  *
  * The panel is a module of its own (`ChatOptionsPanel`), loaded the first time
  * the button is pointed at, focused or pressed: the button is on every chat's
@@ -32,6 +37,8 @@ import { lazy, type ReactElement, Suspense, useEffect, useId, useRef, useState }
 
 import { strings } from '../../generated/strings'
 import { useLocale } from '../../i18n/use-locale'
+import type { ExportFormat } from './chat-export'
+import type { ChatSessionRuntime } from './chat-runtime'
 import type { YoloControl } from './use-yolo'
 import './chat-options.css'
 
@@ -40,6 +47,12 @@ export interface ChatOptionsProps {
   bot: string
   /** YOLO mode of this chat (`use-yolo.ts`); absent where the chat cannot be switched, and the panel then has no such row. */
   yolo?: YoloControl
+  /** What the session's options (`use-session-options.ts`, read in the panel's own chunk) talk to the gateway through. */
+  runtime?: ChatSessionRuntime | null
+  /** A past conversation or a branch, read-only: it has no session of its own to switch. */
+  viewer?: boolean
+  /** Write the conversation to a file (`chat-export.ts`); absent where there is nothing on screen to write. */
+  exportChat?: (format: ExportFormat) => void
 }
 
 const loadPanel = () => import('./ChatOptionsPanel')
@@ -50,7 +63,7 @@ const preloadPanel = (): void => {
   void loadPanel().catch(() => undefined)
 }
 
-export function ChatOptions({ bot, yolo }: ChatOptionsProps): ReactElement {
+export function ChatOptions({ bot, yolo, runtime = null, viewer = false, exportChat }: ChatOptionsProps): ReactElement {
   useLocale()
 
   const panelId = useId()
@@ -126,7 +139,15 @@ export function ChatOptions({ bot, yolo }: ChatOptionsProps): ReactElement {
       {open ? (
         <div className="hm-chat-options__host" id={panelId}>
           <Suspense fallback={null}>
-            <ChatOptionsPanel bot={bot} name={`${panelId}-verbosity`} panelRef={panel} yolo={yolo} />
+            <ChatOptionsPanel
+              bot={bot}
+              name={`${panelId}-verbosity`}
+              panelRef={panel}
+              yolo={yolo}
+              runtime={runtime}
+              viewer={viewer}
+              exportChat={exportChat}
+            />
           </Suspense>
         </div>
       ) : null}

@@ -17,6 +17,10 @@ import { strings } from '../../generated/strings'
 import { useLocale } from '../../i18n/use-locale'
 import { webStrings } from '../../i18n/web-strings'
 import { chatViewFor, chatViewStore, hasChatViewOverride, VERBOSITIES } from '../../state/chat-view'
+import type { ExportFormat } from './chat-export'
+import { ExportOptions, SessionOptions } from './ConversationOptions'
+import type { ChatSessionRuntime } from './chat-runtime'
+import { useSessionOptions } from './use-session-options'
 import type { YoloControl } from './use-yolo'
 
 export interface ChatOptionsPanelProps {
@@ -27,6 +31,12 @@ export interface ChatOptionsPanelProps {
   panelRef: RefObject<HTMLDivElement | null>
   /** YOLO mode of this chat; absent where the chat has no session of its own to switch it on (a past conversation). */
   yolo?: YoloControl
+  /** What the session's options talk to the gateway through; absent in a render without a gateway. */
+  runtime?: ChatSessionRuntime | null
+  /** A past conversation or a branch: no session of its own, so no session options. */
+  viewer?: boolean
+  /** Write the conversation to a file; absent where there is nothing on screen to write. */
+  exportChat?: (format: ExportFormat) => void
 }
 
 /**
@@ -38,7 +48,6 @@ export interface ChatOptionsPanelProps {
  * withdraws it and nothing more (the panel stays open).
  */
 function YoloOption({ yolo }: { yolo: YoloControl }): ReactElement {
-  const headingId = useId()
   const hintId = useId()
   const questionId = useId()
   const [confirming, setConfirming] = useState(false)
@@ -59,11 +68,7 @@ function YoloOption({ yolo }: { yolo: YoloControl }): ReactElement {
   }
 
   return (
-    <div className="hm-chat-options__yolo" role="group" aria-labelledby={headingId}>
-      <p className="hm-chat-options__heading" id={headingId}>
-        {strings.chat.options.thisChatHeader}
-      </p>
-
+    <div className="hm-chat-options__option">
       <label className="hm-chat-options__choice">
         <input
           ref={box}
@@ -127,10 +132,19 @@ function YoloOption({ yolo }: { yolo: YoloControl }): ReactElement {
   )
 }
 
-export function ChatOptionsPanel({ bot, name, panelRef, yolo }: ChatOptionsPanelProps): ReactElement {
+export function ChatOptionsPanel({
+  bot,
+  name,
+  panelRef,
+  yolo,
+  runtime = null,
+  viewer = false,
+  exportChat
+}: ChatOptionsPanelProps): ReactElement {
   useLocale()
 
   const headingId = useId()
+  const conversationId = useId()
   const resetHintId = useId()
   const view = useStore(
     chatViewStore,
@@ -138,6 +152,21 @@ export function ChatOptionsPanel({ bot, name, panelRef, yolo }: ChatOptionsPanel
   )
   const overridden = useStore(chatViewStore, state => hasChatViewOverride(state, bot))
   const { setChatView, resetChatView } = chatViewStore.getState()
+  const {
+    options: session,
+    error: sessionError,
+    dismissError: dismissSessionError
+  } = useSessionOptions(bot, runtime, viewer)
+
+  // What is there to show: the switches that talk to the gateway only while the chat can be switched.
+  const yoloControl = yolo && (yolo.available || yolo.on) ? yolo : undefined
+  const sessionControl = session.available ? session : undefined
+  const prepare = sessionControl?.prepare
+
+  // What the options open on: the gateway's models and a fresh reading of the context window.
+  useEffect(() => {
+    prepare?.()
+  }, [prepare])
 
   return (
     <div ref={panelRef} className="hm-chat-options__panel" role="group" aria-labelledby={headingId}>
@@ -204,7 +233,24 @@ export function ChatOptionsPanel({ bot, name, panelRef, yolo }: ChatOptionsPanel
         </>
       ) : null}
 
-      {yolo && (yolo.available || yolo.on) ? <YoloOption yolo={yolo} /> : null}
+      {yoloControl || sessionControl || sessionError || exportChat ? (
+        <div className="hm-chat-options__conversation" role="group" aria-labelledby={conversationId}>
+          <p className="hm-chat-options__heading" id={conversationId}>
+            {strings.chat.options.thisChatHeader}
+          </p>
+          {yoloControl ? <YoloOption yolo={yoloControl} /> : null}
+          {sessionControl ? <SessionOptions session={sessionControl} /> : null}
+          {sessionError ? (
+            <div className="hm-chat-options__alert" role="alert">
+              <p>{sessionError}</p>
+              <button type="button" className="hm-chat-options__reset" onClick={dismissSessionError}>
+                {webStrings.chat.yolo.dismiss}
+              </button>
+            </div>
+          ) : null}
+          {exportChat ? <ExportOptions onExport={exportChat} /> : null}
+        </div>
+      ) : null}
     </div>
   )
 }

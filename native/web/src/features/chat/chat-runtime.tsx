@@ -62,6 +62,8 @@ export type ChatScreenController = Pick<
   | 'branchFrom'
   | 'setOption'
   | 'refreshOptions'
+  | 'modelOptions'
+  | 'refreshUsage'
 >
 
 export interface ChatSessionRuntime {

@@ -80,6 +80,9 @@
   box-shadow: 0 8px 24px color-mix(in srgb, #000000 18%, transparent);
   color: var(--hm-text);
   font-size: 0.9375rem;
+  /* Eight controls and a meter are taller than a short window: the panel scrolls rather than running off the page. */
+  max-height: calc(100dvh - 120px);
+  overflow-y: auto;
 }
 
 .hm-chat-options__panel[hidden] {
@@ -143,14 +146,91 @@
   cursor: pointer;
 }
 
-/* YOLO mode: its row in the panel, the question before turning it on, and the mark in the header. */
+/*
+ * This conversation: the options of the chat's own session. YOLO, fast, reasoning,
+ * the model, the context meter and the export are one group; each is an "option" of it.
+ */
 
-.hm-chat-options__yolo {
+.hm-chat-options__conversation {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--hm-line);
+}
+
+.hm-chat-options__option {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--hm-line);
+}
+
+.hm-chat-options__label {
+  margin: 0;
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+}
+
+/* A labelled select or search field: the label above, the control as wide as the panel. */
+.hm-chat-options__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hm-chat-options__field > span {
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+}
+
+.hm-chat-options__field select,
+.hm-chat-options__field input[type='search'] {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-bg);
+  color: var(--hm-text);
+  font: inherit;
+}
+
+/* The context window: the label and the numbers on one line, the meter under them. */
+.hm-chat-options__meter {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 8px;
+  align-items: baseline;
+}
+
+.hm-chat-options__meter meter {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 10px;
+}
+
+.hm-chat-options__meter-value {
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* YOLO mode: the question before turning it on, and the mark in the header. */
+
+.hm-chat-options__alert {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--hm-danger-text);
+  border-radius: var(--hm-radius);
+  color: var(--hm-danger-text);
+  overflow-wrap: anywhere;
+}
+
+.hm-chat-options__alert p {
+  margin: 0;
 }
 
 .hm-chat-options__confirm {

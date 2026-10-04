@@ -15,6 +15,74 @@ import { type Branch, localise, type Translated } from './web-strings'
 
 /** The strings, as written: every leaf in en, nl and de. */
 export const SHEET_STRINGS_SOURCE = {
+  /**
+   * The options of a chat's own session beyond YOLO: reasoning effort and the model
+   * (`features/chat/ConversationOptions`, in the options panel's chunk). Their names and hints, and the
+   * export's, come from the shared catalogue.
+   */
+  chatSettings: {
+    /** The reasoning efforts the gateway takes, in its own order. */
+    reasoning: {
+      none: {
+        en: 'Off',
+        nl: 'Uit',
+        de: 'Aus'
+      },
+      minimal: {
+        en: 'Minimal',
+        nl: 'Minimaal',
+        de: 'Minimal'
+      },
+      low: {
+        en: 'Low',
+        nl: 'Laag',
+        de: 'Niedrig'
+      },
+      medium: {
+        en: 'Medium',
+        nl: 'Gemiddeld',
+        de: 'Mittel'
+      },
+      high: {
+        en: 'High',
+        nl: 'Hoog',
+        de: 'Hoch'
+      },
+      xhigh: {
+        en: 'Extra high',
+        nl: 'Extra hoog',
+        de: 'Extra hoch'
+      },
+      max: {
+        en: 'Max',
+        nl: 'Max',
+        de: 'Max'
+      },
+      ultra: {
+        en: 'Ultra',
+        nl: 'Ultra',
+        de: 'Ultra'
+      }
+    },
+    /** The reasoning picker's line while the session has not reported an effort. */
+    reasoningUnset: {
+      en: 'Not reported',
+      nl: 'Niet opgegeven',
+      de: 'Nicht gemeldet'
+    },
+    /** Under the model picker while the gateway's inventory is on its way. */
+    modelsLoading: {
+      en: 'Loading models…',
+      nl: 'Modellen laden…',
+      de: 'Modelle werden geladen…'
+    },
+    /** The model search found nothing but the model the chat is on. */
+    modelsNoMatch: {
+      en: 'No other model matches.',
+      nl: 'Geen ander model komt overeen.',
+      de: 'Kein anderes Modell passt.'
+    }
+  },
   requests: {
     /** A clarify question left unanswered on purpose: the bot is told "no answer". */
     skip: {
