@@ -5,7 +5,7 @@
  * page is not opened in place of the app.
  */
 import { act, createEvent, fireEvent, render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { resetActiveLocale } from '../../i18n/active-locale'
 import { DropZone } from './DropZone'
@@ -30,8 +30,14 @@ function mount(enabled = true) {
 const report = new File(['a'], 'report.csv', { type: 'text/csv' })
 const shot = new File(['b'], 'shot.png', { type: 'image/png' })
 
+const target = (): HTMLElement | null => screen.queryByText('Drop file to attach')
+
 beforeEach(() => {
   resetActiveLocale()
+})
+
+afterEach(() => {
+  vi.useRealTimers()
 })
 
 describe('DropZone', () => {
@@ -140,5 +146,114 @@ describe('DropZone', () => {
 
     expect(onFiles).toHaveBeenNthCalledWith(1, [report])
     expect(onFiles).toHaveBeenNthCalledWith(2, [shot])
+  })
+
+  describe('the target always goes away', () => {
+    it('after a drop on the chat', () => {
+      const { zone } = mount()
+      const data = transfer([report])
+
+      fireEvent.dragEnter(zone, { dataTransfer: data })
+      fireEvent.drop(zone, { dataTransfer: data })
+
+      expect(target()).toBeNull()
+    })
+
+    it('after a drop on a child, with the counts of the children it crossed still open', () => {
+      const { zone } = mount()
+      const data = transfer([report])
+      const child = screen.getByText('composer')
+
+      fireEvent.dragEnter(zone, { dataTransfer: data })
+      fireEvent.dragEnter(child, { dataTransfer: data })
+      fireEvent.drop(child, { dataTransfer: data })
+
+      expect(target()).toBeNull()
+
+      // The next drag starts from nothing, not from the count the last one left.
+      fireEvent.dragEnter(zone, { dataTransfer: data })
+      fireEvent.dragLeave(zone, { dataTransfer: data })
+
+      expect(target()).toBeNull()
+    })
+
+    it('after a drop that a child consumes without letting it reach the chat', () => {
+      const { zone, onFiles } = mount()
+      const data = transfer([report])
+      const child = screen.getByText('composer')
+
+      child.addEventListener('drop', event => event.stopPropagation())
+      fireEvent.dragEnter(zone, { dataTransfer: data })
+      fireEvent.drop(child, { dataTransfer: data })
+
+      expect(target()).toBeNull()
+      expect(onFiles).not.toHaveBeenCalled()
+    })
+
+    it('after a drag that ends elsewhere (dragend)', () => {
+      const { zone } = mount()
+
+      fireEvent.dragEnter(zone, { dataTransfer: transfer([report]) })
+      fireEvent.dragEnd(document.body)
+
+      expect(target()).toBeNull()
+    })
+
+    it('after a drag that is cancelled or taken out of the window with no leave sent', () => {
+      vi.useFakeTimers()
+
+      const { zone } = mount()
+      const data = transfer([report])
+
+      fireEvent.dragEnter(zone, { dataTransfer: data })
+      fireEvent.dragEnter(screen.getByText('composer'), { dataTransfer: data })
+
+      // Dragging on keeps the target, still pointer or not.
+      act(() => {
+        vi.advanceTimersByTime(800)
+      })
+      fireEvent.dragOver(zone, { dataTransfer: data })
+      act(() => {
+        vi.advanceTimersByTime(800)
+      })
+
+      expect(target()).not.toBeNull()
+
+      // Nothing more from the page: the drag is over.
+      act(() => {
+        vi.advanceTimersByTime(400)
+      })
+
+      expect(target()).toBeNull()
+    })
+
+    it('after the chat stops taking attachments mid drag', () => {
+      const onFiles = vi.fn()
+      const view = render(
+        <DropZone enabled onFiles={onFiles}>
+          <p>chat</p>
+        </DropZone>
+      )
+
+      fireEvent.dragEnter(view.container.firstElementChild as HTMLElement, { dataTransfer: transfer([report]) })
+      expect(target()).not.toBeNull()
+
+      view.rerender(
+        <DropZone enabled={false} onFiles={onFiles}>
+          <p>chat</p>
+        </DropZone>
+      )
+
+      expect(target()).toBeNull()
+    })
+
+    it('after a drop of words it never showed for', () => {
+      const { zone } = mount()
+
+      fireEvent.dragEnter(zone, { dataTransfer: transfer([]) })
+      fireEvent.drop(zone, { dataTransfer: transfer([]) })
+
+      expect(target()).toBeNull()
+    })
   })
 })

@@ -2,6 +2,10 @@ import HermieCore
 import SwiftUI
 import UniformTypeIdentifiers
 
+#if os(macOS)
+  import AppKit
+#endif
+
 /// Which road a dragged item takes to become a staged file, decided from the type identifiers its
 /// provider offers and nothing else (so a test needs no pasteboard, only the identifiers).
 enum AttachmentDropRoute: Equatable, Sendable {
@@ -43,6 +47,79 @@ enum AttachmentDropGate {
 
     return blocked ? .blocked : .accept
   }
+}
+
+/// Whether a drag is over the chat, and what it is told: the single source of truth for the overlay.
+///
+/// SwiftUI's `DropDelegate` has no "the drag is over" callback: a drop, a refused drop, a drag that
+/// is cancelled with Esc or that another view takes over each end it in a different way, and none of
+/// them is promised an exit. So the overlay is never left to the next callback: every way a drag
+/// can end clears it here, and a drag that has ended is not brought back by an update that arrives
+/// late (`updated` does nothing until the next `entered`).
+struct AttachmentDropState: Equatable {
+  /// What the overlay shows; nil when it is hidden.
+  private(set) var hint: AttachmentDropHint?
+  /// A drag that was entered and has not ended.
+  private var dragging = false
+
+  /// A drag came over the chat.
+  mutating func entered(blocked: Bool) {
+    dragging = true
+    hint = blocked ? .blocked : .attach
+  }
+
+  /// The drag moved on over the chat (or a request took the composer meanwhile).
+  mutating func updated(blocked: Bool) {
+    guard dragging else {
+      return
+    }
+
+    hint = blocked ? .blocked : .attach
+  }
+
+  /// The drag left (or another view took it over, or it was cancelled).
+  mutating func exited() {
+    end()
+  }
+
+  /// The drag was dropped here, taken or refused.
+  mutating func dropped() {
+    end()
+  }
+
+  /// The drag is not going on any more, whatever was last heard of it (the safety net's reset).
+  mutating func lost() {
+    end()
+  }
+
+  /// One tick of the safety net: `live` is whether the system still has a drag going.
+  mutating func tick(dragIsLive live: Bool) {
+    if !live {
+      end()
+    }
+  }
+
+  private mutating func end() {
+    dragging = false
+    hint = nil
+  }
+}
+
+/// Whether the system still has a drag going, for the safety net that hides the overlay when no
+/// callback said the drag ended.
+enum AttachmentDropSession {
+  /// A drag lasts as long as the pointer's button is held, on the Mac whichever app it is dragged
+  /// from. Elsewhere there is nothing to ask, and the callbacks are all there is.
+  @MainActor static var isLive: Bool {
+    #if os(macOS)
+      NSEvent.pressedMouseButtons & 1 != 0
+    #else
+      true
+    #endif
+  }
+
+  /// How often the safety net looks.
+  static let pollInterval: Duration = .milliseconds(250)
 }
 
 /// What came of handing a drop to the tray.
@@ -245,7 +322,7 @@ extension AttachmentIntake {
 struct AttachmentDropDelegate: DropDelegate {
   let tray: AttachmentTray
   let isBlocked: @MainActor () -> Bool
-  @Binding var hint: AttachmentDropHint?
+  @Binding var state: AttachmentDropState
 
   private func verdict(_ info: DropInfo) -> AttachmentDropGate.Verdict {
     let providers = info.itemProviders(for: AttachmentIntake.dropTypes)
@@ -259,26 +336,24 @@ struct AttachmentDropDelegate: DropDelegate {
   }
 
   func dropEntered(info: DropInfo) {
-    hint = isBlocked() ? .blocked : .attach
+    state.entered(blocked: isBlocked())
   }
 
   func dropUpdated(info: DropInfo) -> DropProposal? {
     let blocked = isBlocked()
-    let next: AttachmentDropHint = blocked ? .blocked : .attach
 
-    if hint != next {
-      hint = next
-    }
+    state.updated(blocked: blocked)
 
     return DropProposal(operation: blocked ? .forbidden : .copy)
   }
 
   func dropExited(info: DropInfo) {
-    hint = nil
+    state.exited()
   }
 
   func performDrop(info: DropInfo) -> Bool {
-    hint = nil
+    // SwiftUI does not call `dropExited` after a drop: the overlay goes here, taken or refused.
+    state.dropped()
 
     guard verdict(info) == .accept else {
       return false
@@ -318,7 +393,6 @@ struct AttachmentDropOverlay: View {
         .padding(6)
         .allowsHitTesting(false)
         .accessibilityHidden(true)
-        .transition(.opacity)
     }
   }
 
@@ -337,18 +411,32 @@ struct AttachmentDropTarget: ViewModifier {
   let tray: AttachmentTray
   let isBlocked: @MainActor () -> Bool
 
-  @State private var hint: AttachmentDropHint?
+  @State private var state = AttachmentDropState()
 
   func body(content: Content) -> some View {
+    // No animation on the overlay: a drag ends inside the system's drag loop, and a fade that has to
+    // run there is one more way for it to stay.
     content
-      .overlay { AttachmentDropOverlay(hint: hint) }
-      .animation(.easeOut(duration: 0.12), value: hint)
-      .onDrop(of: AttachmentIntake.dropTypes, delegate: AttachmentDropDelegate(tray: tray, isBlocked: isBlocked, hint: $hint))
-      .onChange(of: hint) { _, hint in
+      .overlay { AttachmentDropOverlay(hint: state.hint) }
+      .onDrop(of: AttachmentIntake.dropTypes, delegate: AttachmentDropDelegate(tray: tray, isBlocked: isBlocked, state: $state))
+      .onChange(of: state.hint) { _, hint in
         if let hint {
           AccessibilityNotification.Announcement(AttachmentDropOverlay.text(for: hint)).post()
         }
       }
+      // The safety net: while the overlay is up, look whether the drag is still going, and hide the
+      // overlay when it is not, whatever the callbacks did or did not say.
+      .task(id: state.hint != nil) {
+        guard state.hint != nil else {
+          return
+        }
+
+        while !Task.isCancelled {
+          try? await Task.sleep(for: AttachmentDropSession.pollInterval)
+          state.tick(dragIsLive: AttachmentDropSession.isLive)
+        }
+      }
+      .onDisappear { state.lost() }
   }
 }
 

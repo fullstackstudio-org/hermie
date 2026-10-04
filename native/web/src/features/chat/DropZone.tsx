@@ -11,7 +11,12 @@
  *
  * `dragenter` and `dragleave` fire for every child the pointer crosses, so the
  * zone counts them rather than trusting the last one; a drop, a `dragend` or the
- * count reaching zero turns the target off.
+ * count reaching zero turns the target off. The count alone is not enough: a drop
+ * that a child consumes never reaches the zone, and a drag cancelled with Esc or
+ * taken out of the window may not send the leave that balances an enter (Safari).
+ * While the target is up the page is watched as well: a drop or `dragend` anywhere
+ * turns it off, and so does a drag that stops sending `dragover` (the browser keeps
+ * sending it while a drag is over the page, even when the pointer is still).
  *
  * While the zone is on screen, enabled or not, a file dropped anywhere else on the
  * page is ignored instead of being opened by the browser in place of the app
@@ -27,6 +32,9 @@ import { type DragEvent, type ReactElement, type ReactNode, useCallback, useEffe
 import { strings } from '../../generated/strings'
 import { useLocale } from '../../i18n/use-locale'
 import { dragCarriesFiles, filesOf, guardStrayFileDrops } from '../../platform/files'
+
+/** How long a target stays up without a `dragover` from the page before it is taken to be over. */
+const STALE_DRAG_MS = 1000
 
 export interface DropZoneProps {
   /** Files were dropped, in the order the drag carried them. */
@@ -56,6 +64,30 @@ export function DropZone({ onFiles, enabled, className, children }: DropZoneProp
     depth.current = 0
     setOver(false)
   }, [])
+
+  // The safety net: whatever the zone's own handlers did not hear, the page did.
+  useEffect(() => {
+    if (!over) {
+      return undefined
+    }
+
+    let timer = window.setTimeout(reset, STALE_DRAG_MS)
+    const rearm = (): void => {
+      window.clearTimeout(timer)
+      timer = window.setTimeout(reset, STALE_DRAG_MS)
+    }
+
+    window.addEventListener('dragover', rearm, true)
+    window.addEventListener('drop', reset, true)
+    window.addEventListener('dragend', reset, true)
+
+    return () => {
+      window.clearTimeout(timer)
+      window.removeEventListener('dragover', rearm, true)
+      window.removeEventListener('drop', reset, true)
+      window.removeEventListener('dragend', reset, true)
+    }
+  }, [over, reset])
 
   const onDragEnter = useCallback(
     (event: DragEvent<HTMLDivElement>) => {
