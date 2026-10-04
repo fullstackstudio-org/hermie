@@ -1,11 +1,11 @@
 /**
  * The files a bot shared with a reply, one kind at a time (`contract/outbox/`): a picture is a thumbnail that
- * opens the viewer (and several are a grid), a video and a sound are players that seek, a PDF opens in a tab of its
- * own, and any other file is a chip with its name, its size and a download. With the cookie session the address is
+ * opens the viewer (and several are a grid), a video and a sound are players that seek, a PDF is a card whose action
+ * is a download, and any other file is a chip with its name, its size and a download. With the cookie session the address is
  * the element's `src`; with the shared token the page fetches the bytes with the header and hands the element a
  * `blob:` URL. The name is the sender's text and never becomes markup.
  */
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -17,6 +17,7 @@ import { AssistantBubble } from './AssistantBubble'
 import { ItemContext } from './item-context'
 import { DETACHED_ITEM_HOST, type ItemHost, ItemHostContext } from './item-host'
 import { SharedFiles } from './SharedFiles'
+import { OUTBOX_OFFSCREEN_RELEASE_MS } from './use-outbox-source'
 
 const saveBlob = vi.hoisted(() => vi.fn())
 
@@ -59,22 +60,23 @@ function tokenFiles(fetchImpl: ReturnType<typeof fakeFetch>): OutboxFiles {
 }
 
 let blobCounter = 0
+/** The page's own `URL.createObjectURL` and `revokeObjectURL` (absent in jsdom), put back after each test. */
+const realUrl = { create: URL.createObjectURL, revoke: URL.revokeObjectURL }
 
 beforeEach(() => {
   blobCounter = 0
   saveBlob.mockReset()
-  vi.stubGlobal(
-    'URL',
-    Object.assign(URL, {
-      createObjectURL: vi.fn(() => `blob:http://gateway.test/${(blobCounter += 1)}`),
-      revokeObjectURL: vi.fn()
-    })
-  )
+  URL.createObjectURL = vi.fn(() => `blob:http://gateway.test/${(blobCounter += 1)}`)
+  URL.revokeObjectURL = vi.fn()
 })
 
 afterEach(() => {
+  // Unmount first: a row gives its blob back as it goes, through the `URL` this file replaced.
+  cleanup()
   resetActiveLocale()
   vi.unstubAllGlobals()
+  URL.createObjectURL = realUrl.create
+  URL.revokeObjectURL = realUrl.revoke
 })
 
 describe('a picture', () => {
@@ -248,15 +250,72 @@ describe('any other file', () => {
   })
 })
 
-describe('a PDF', () => {
-  const pdfBytes = () => new Response('%PDF-1.4\n%%EOF', { headers: { 'content-type': 'application/pdf' } })
+describe('with no gateway to ask (a cron run)', () => {
+  it('names every file and its size and offers nothing to press, whatever its kind', () => {
+    const open = vi.fn()
 
-  it('opens in a tab of its own, from the bytes the page fetched and checked', async () => {
+    vi.stubGlobal('open', open)
+    render(
+      <ItemContext.Provider
+        value={{ botName: 'Cron', gatewayBaseUrl: undefined, ownAuthorId: undefined, groupChat: false }}
+      >
+        <SharedFiles
+          files={[
+            sharedFile('image', 'a.png'),
+            sharedFile('video', 'b.mp4'),
+            sharedFile('audio', 'c.mp3'),
+            sharedFile('pdf', 'd.pdf'),
+            sharedFile('file', 'e.zip')
+          ]}
+        />
+      </ItemContext.Provider>
+    )
+
+    for (const name of ['a.png', 'b.mp4', 'c.mp3', 'd.pdf', 'e.zip']) {
+      expect(screen.getByText(name)).toBeTruthy()
+    }
+
+    expect(screen.queryByRole('link')).toBeNull()
+    expect(screen.queryByRole('button')).toBeNull()
+    expect(screen.queryByText('The file could not be loaded.')).toBeNull()
+  })
+})
+
+describe('a PDF', () => {
+  it('is a card with its name, its size and a download, never a page opened in this origin', () => {
+    const file = sharedFile('pdf', 'Q3 report.pdf', { size: 120_000 })
+    const open = vi.fn()
+
+    vi.stubGlobal('open', open)
+    render(
+      <Frame>
+        <SharedFiles files={[file]} />
+      </Frame>
+    )
+
+    const link = screen.getByRole('link', { name: 'Download Q3 report.pdf' })
+
+    // The cookie session: the address is the link, and the route answers it as an attachment.
+    expect(link.getAttribute('href')).toBe(`${ORIGIN}/${file.id}/Q3%20report.pdf?profile=researcher`)
+    expect(link.getAttribute('download')).toBe('Q3 report.pdf')
+    expect(screen.getByText('Q3 report.pdf')).toBeTruthy()
+    expect(screen.getByText('120 kB')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /open/iu })).toBeNull()
+
+    // jsdom cannot navigate; the click is only to see that nothing is opened.
+    link.addEventListener('click', event => event.preventDefault())
+    fireEvent.click(link)
+
+    expect(open).not.toHaveBeenCalled()
+  })
+
+  it('is saved from the bytes the page fetched, as opaque bytes, with the shared token', async () => {
     const file = sharedFile('pdf', 'Q3 report.pdf')
     const address = `${ORIGIN}/${file.id}/Q3%20report.pdf?profile=researcher`
-    const fetchImpl = fakeFetch({ [address]: pdfBytes })
-    const target = { opener: {} as unknown, location: { href: '' }, close: vi.fn() }
-    const open = vi.fn(() => target)
+    const fetchImpl = fakeFetch({
+      [address]: () => new Response(new Blob(['%PDF-1.4'], { type: 'application/pdf' }))
+    })
+    const open = vi.fn()
 
     vi.stubGlobal('open', open)
     render(
@@ -265,75 +324,57 @@ describe('a PDF', () => {
       </Frame>
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open Q3 report.pdf in a new tab' }))
+    expect(screen.queryByRole('link')).toBeNull()
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Download Q3 report.pdf' }))
+    })
+    await waitFor(() => expect(saveBlob).toHaveBeenCalledTimes(1))
 
-    await waitFor(() => expect(target.location.href).toMatch(/^blob:/u))
-    // The tab is opened in the press itself, and cut off from this page before anything is loaded in it.
-    expect(open).toHaveBeenCalledWith('', '_blank')
-    expect(target.opener).toBeNull()
+    const [blob, name] = saveBlob.mock.calls[0] as [Blob, string]
+
+    expect(name).toBe('Q3 report.pdf')
+    expect(blob.type).toBe('application/octet-stream')
     expect(fetchImpl).toHaveBeenCalledWith(
       address,
       expect.objectContaining({ headers: { 'x-hermes-session-token': 'tok' } })
     )
-    expect(target.close).not.toHaveBeenCalled()
-  })
-
-  it('does not hand a file that says it is a PDF and is not to the browser’s viewer', async () => {
-    const file = sharedFile('pdf', 'fake.pdf')
-    const address = `${ORIGIN}/${file.id}/fake.pdf?profile=researcher`
-    const target = { opener: {} as unknown, location: { href: '' }, close: vi.fn() }
-
-    vi.stubGlobal(
-      'open',
-      vi.fn(() => target)
-    )
-    render(
-      <Frame host={hostWith({ outbox: tokenFiles(fakeFetch({ [address]: () => new Response('<html>') })) })}>
-        <SharedFiles files={[file]} />
-      </Frame>
-    )
-
-    fireEvent.click(screen.getByRole('button', { name: 'Open fake.pdf in a new tab' }))
-
-    await screen.findByText('This file is not a PDF, so it was not opened.')
-    expect(target.location.href).toBe('')
-    expect(target.close).toHaveBeenCalled()
-  })
-
-  it('offers the download when the browser would not open a tab', async () => {
-    vi.stubGlobal(
-      'open',
-      vi.fn(() => null)
-    )
-    render(
-      <Frame host={hostWith({ outbox: tokenFiles(fakeFetch({})) })}>
-        <SharedFiles files={[sharedFile('pdf', 'a.pdf')]} />
-      </Frame>
-    )
-
-    fireEvent.click(screen.getByRole('button', { name: 'Open a.pdf in a new tab' }))
-
-    await screen.findByText('The browser blocked the new tab. Allow it, or download the file.')
-    expect(screen.getByRole('button', { name: 'Download a.pdf' })).toBeTruthy()
+    // No tab, no blob address of a PDF for a viewer to run in this page's origin.
+    expect(open).not.toHaveBeenCalled()
+    expect(URL.createObjectURL).not.toHaveBeenCalled()
   })
 
   it('says a PDF the gateway no longer has is gone', async () => {
-    const target = { opener: {} as unknown, location: { href: '' }, close: vi.fn() }
-
-    vi.stubGlobal(
-      'open',
-      vi.fn(() => target)
-    )
     render(
       <Frame host={hostWith({ outbox: tokenFiles(fakeFetch({})) })}>
         <SharedFiles files={[sharedFile('pdf', 'old.pdf')]} />
       </Frame>
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open old.pdf in a new tab' }))
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Download old.pdf' }))
+    })
 
     await screen.findByText('This file is no longer available.')
-    expect(target.close).toHaveBeenCalled()
+    expect(saveBlob).not.toHaveBeenCalled()
+  })
+
+  it('says a PDF too large to hold is too large to save, not that it should be downloaded', async () => {
+    const file = sharedFile('pdf', 'big.pdf')
+    const address = `${ORIGIN}/${file.id}/big.pdf?profile=researcher`
+    const fetchImpl = fakeFetch({
+      [address]: () => new Response('x', { headers: { 'content-length': String(300 * 1024 * 1024) } })
+    })
+
+    render(
+      <Frame host={hostWith({ outbox: tokenFiles(fetchImpl) })}>
+        <SharedFiles files={[file]} />
+      </Frame>
+    )
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Download big.pdf' }))
+    })
+
+    await screen.findByText('This file is too large to save from here.')
   })
 })
 
@@ -432,6 +473,133 @@ describe('with the shared token (an element cannot send the header)', () => {
     expect(screen.getByText('old.png')).toBeTruthy()
   })
 
+  /** The type of the blob the page made for the one file it fetched. */
+  const blobTypeFor = async (kind: 'image' | 'video' | 'audio', name: string, answered: string) => {
+    const file = sharedFile(kind, name, { size: 1000 })
+    const address = `${ORIGIN}/${file.id}/${encodeURIComponent(name)}?profile=researcher`
+    const fetchImpl = fakeFetch({ [address]: () => new Response('x', { headers: { 'content-type': answered } }) })
+    const { container } = render(
+      <Frame host={hostWith({ outbox: tokenFiles(fetchImpl) })}>
+        <SharedFiles files={[file]} />
+      </Frame>
+    )
+
+    if (kind !== 'image') {
+      fireEvent.click(screen.getByRole('button', { name: /^Load/u }))
+    }
+
+    await waitFor(() => expect(URL.createObjectURL).toHaveBeenCalledTimes(1))
+    expect(container.querySelector(kind === 'image' ? 'img' : kind)).toBeTruthy()
+
+    return (vi.mocked(URL.createObjectURL).mock.calls[0]?.[0] as Blob).type
+  }
+
+  it.each([
+    ['image', 'a.png', 'image/png', 'image/png'],
+    ['image', 'a.jpg', 'image/jpeg', 'image/jpeg'],
+    ['image', 'a.png', 'image/svg+xml', 'application/octet-stream'],
+    ['image', 'a.png', 'text/html', 'application/octet-stream'],
+    ['image', 'a.png', 'text/html; charset=utf-8', 'application/octet-stream'],
+    ['image', 'a.png', 'video/mp4', 'application/octet-stream'],
+    ['image', 'a.png', '', 'application/octet-stream'],
+    ['video', 'a.mp4', 'video/mp4', 'video/mp4'],
+    ['video', 'a.mp4', 'text/html', 'application/octet-stream'],
+    ['video', 'a.mp4', 'image/svg+xml', 'application/octet-stream'],
+    ['video', 'a.mp4', 'audio/mpeg', 'application/octet-stream'],
+    ['audio', 'a.mp3', 'audio/mpeg', 'audio/mpeg'],
+    ['audio', 'a.mp3', 'text/html', 'application/octet-stream'],
+    ['audio', 'a.mp3', 'image/svg+xml', 'application/octet-stream'],
+    ['audio', 'a.mp3', 'video/mp4', 'application/octet-stream']
+  ] as const)('makes the blob of a %s (%s) answered as %j typed %j', async (kind, name, answered, expected) => {
+    expect(await blobTypeFor(kind, name, answered)).toBe(expected)
+  })
+
+  describe('a picture that has been out of sight for a while', () => {
+    type Callback = (entries: { isIntersecting: boolean }[]) => void
+    const observers: { callback: Callback; disconnected: boolean }[] = []
+
+    beforeEach(() => {
+      observers.length = 0
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      vi.stubGlobal(
+        'IntersectionObserver',
+        class {
+          readonly record: { callback: Callback; disconnected: boolean }
+
+          constructor(callback: Callback) {
+            this.record = { callback, disconnected: false }
+            observers.push(this.record)
+          }
+
+          observe() {}
+
+          disconnect() {
+            this.record.disconnected = true
+          }
+        }
+      )
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    const report = (near: boolean) =>
+      act(() => {
+        const live = observers.filter(observer => !observer.disconnected).at(-1)
+
+        live?.callback([{ isIntersecting: near }])
+      })
+
+    it('gives its blob back, and fetches it again when the row comes near the screen', async () => {
+      const file = sharedFile('image', 'sunrise.png')
+      const address = `${ORIGIN}/${file.id}/sunrise.png?profile=researcher`
+      const fetchImpl = fakeFetch({
+        [address]: () => new Response('png', { headers: { 'content-type': 'image/png' } })
+      })
+
+      render(
+        <Frame host={hostWith({ outbox: tokenFiles(fetchImpl) })}>
+          <SharedFiles files={[file]} />
+        </Frame>
+      )
+
+      // Not asked for while it is far from the screen.
+      expect(fetchImpl).not.toHaveBeenCalled()
+      report(true)
+      await screen.findByRole('img', { name: 'sunrise.png' })
+      expect(fetchImpl).toHaveBeenCalledTimes(1)
+
+      // Out of sight, but not for long: nothing is given back yet.
+      report(false)
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(OUTBOX_OFFSCREEN_RELEASE_MS - 1000)
+      })
+      expect(URL.revokeObjectURL).not.toHaveBeenCalled()
+
+      // Back before the time is up: it is kept, and the wait starts over.
+      report(true)
+      report(false)
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(OUTBOX_OFFSCREEN_RELEASE_MS - 1000)
+      })
+      expect(URL.revokeObjectURL).not.toHaveBeenCalled()
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2000)
+      })
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:http://gateway.test/1')
+      expect(screen.queryByRole('img')).toBeNull()
+
+      // Near the screen again: it is asked for again, and drawn from a new blob.
+      report(true)
+      await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(2))
+      expect((await screen.findByRole('img', { name: 'sunrise.png' })).getAttribute('src')).toBe(
+        'blob:http://gateway.test/2'
+      )
+    })
+  })
+
   it('gives the blob back when the row goes', async () => {
     const file = sharedFile('image', 'sunrise.png')
     const address = `${ORIGIN}/${file.id}/sunrise.png?profile=researcher`
@@ -515,8 +683,6 @@ describe('in the reader’s language', () => {
 
     expect(screen.getByRole('list', { name: 'Bijlagen' })).toBeTruthy()
     expect(screen.getByRole('link', { name: 'a.zip downloaden' })).toBeTruthy()
-    expect(
-      within(screen.getByRole('list')).getByRole('button', { name: 'b.pdf openen in een nieuw tabblad' })
-    ).toBeTruthy()
+    expect(within(screen.getByRole('list')).getByRole('link', { name: 'b.pdf downloaden' })).toBeTruthy()
   })
 })

@@ -10,11 +10,3 @@
 export function openInNewTab(url: string, open: typeof window.open = (...args) => window.open(...args)): void {
   open(url, '_blank', 'noopener,noreferrer')
 }
-
-/**
- * A blank tab, opened in the press itself (the only moment a popup blocker lets one through) to be sent somewhere once
- * that is known: a PDF the page fetched (`core/chats/outbox-files.ts`). `null` when the browser refused.
- */
-export function openBlankTab(open: typeof window.open = (...args) => window.open(...args)): Window | null {
-  return open('', '_blank')
-}

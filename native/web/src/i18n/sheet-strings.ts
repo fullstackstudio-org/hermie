@@ -59,18 +59,6 @@ export const SHEET_STRINGS_SOURCE = {
     }
   },
   shared: {
-    /** On a PDF a bot shared: the button that opens it in a tab of its own. */
-    openPdf: {
-      en: 'Open PDF',
-      nl: 'PDF openen',
-      de: 'PDF öffnen'
-    },
-    /** The name of that button for assistive technology: which file. */
-    openPdfName: {
-      en: ({ name }: { name: string }) => `Open ${name} in a new tab`,
-      nl: ({ name }: { name: string }) => `${name} openen in een nieuw tabblad`,
-      de: ({ name }: { name: string }) => `${name} in einem neuen Tab öffnen`
-    },
     /** On a file a bot shared: the link or button that saves it. */
     download: {
       en: 'Download',
@@ -125,17 +113,11 @@ export const SHEET_STRINGS_SOURCE = {
       nl: 'Dit bestand is te groot om hier te tonen. Download het in plaats daarvan.',
       de: 'Diese Datei ist zu groß, um sie hier anzuzeigen. Lade sie stattdessen herunter.'
     },
-    /** Under a PDF's name when the browser would not open a tab. */
-    popupBlocked: {
-      en: 'The browser blocked the new tab. Allow it, or download the file.',
-      nl: 'De browser blokkeerde het nieuwe tabblad. Sta het toe, of download het bestand.',
-      de: 'Der Browser hat den neuen Tab blockiert. Erlaube ihn oder lade die Datei herunter.'
-    },
-    /** Under a PDF's name when the file turns out not to be one. */
-    notPdf: {
-      en: 'This file is not a PDF, so it was not opened.',
-      nl: 'Dit bestand is geen pdf, dus het is niet geopend.',
-      de: 'Diese Datei ist kein PDF und wurde deshalb nicht geöffnet.'
+    /** Under a file's name when the page cannot hold it to save it (a gateway with a shared token): it is bigger than the page will keep in memory. */
+    tooLargeToSave: {
+      en: 'This file is too large to save from here.',
+      nl: 'Dit bestand is te groot om hier op te slaan.',
+      de: 'Diese Datei ist zu groß, um sie hier zu speichern.'
     }
   },
   search: {

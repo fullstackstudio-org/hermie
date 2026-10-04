@@ -86,9 +86,19 @@ export interface ImageCardProps {
   reserve?: boolean
   /** Open the viewer; handed the card, so focus can go back to it. */
   onOpen?: (opener: HTMLElement) => void
+  /** The card's own element, for a caller that watches whether it is on screen (`SharedFiles`). */
+  rootRef?: (element: HTMLElement | null) => void
 }
 
-function ImageCardImpl({ src, name, layout = 'solo', onAccent = false, reserve = false, onOpen }: ImageCardProps) {
+function ImageCardImpl({
+  src,
+  name,
+  layout = 'solo',
+  onAccent = false,
+  reserve = false,
+  onOpen,
+  rootRef
+}: ImageCardProps) {
   const { gatewayBaseUrl } = useItemContext()
   const [broken, setBroken] = useState<string | null>(null)
   const allowed = gatewayImageSrc(src, gatewayBaseUrl)
@@ -112,7 +122,7 @@ function ImageCardImpl({ src, name, layout = 'solo', onAccent = false, reserve =
 
   if (!onOpen) {
     return (
-      <span className="hm-image" data-layout={layout} data-reserved={reserve} data-on-accent={onAccent}>
+      <span ref={rootRef} className="hm-image" data-layout={layout} data-reserved={reserve} data-on-accent={onAccent}>
         {picture}
       </span>
     )
@@ -120,6 +130,7 @@ function ImageCardImpl({ src, name, layout = 'solo', onAccent = false, reserve =
 
   return (
     <button
+      ref={rootRef}
       type="button"
       className="hm-image"
       data-layout={layout}

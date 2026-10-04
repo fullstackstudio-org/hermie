@@ -14,20 +14,21 @@
  *    answers). With the shared token there is no header to give an element, so the bytes are fetched with
  *    `fetch` and handed to the element as a `blob:` URL (`OutboxFiles.fetch`). Never `?token=`: an address that
  *    carried the token would be a leaked credential.
- *  - **A PDF is fetched either way** (`openPdf`). The route answers a browser that navigates to it (a new tab)
- *    with `attachment`, because a built-in PDF viewer does not run under the sandbox the route serves with; a
- *    `fetch` is answered `inline`, and the page shows the bytes it holds in a tab of its own, once they are
- *    known to be a PDF.
+ *  - **A PDF is a download, as `file` is.** The route answers a browser that navigates to a PDF with `attachment`
+ *    (a built-in PDF viewer does not run under the sandbox the route serves with, `contract/outbox` §4), and this
+ *    page does not make its own `blob:` of the bytes to get round that: a `blob:` takes the origin of the page that
+ *    made it, so a viewer opened on one would run outside the sandbox. A PDF is saved, and a native app shows it
+ *    in its own viewer.
  *
- * A file of kind `file` is never shown in this page's origin: it is a download (`<a download>` where the
+ * A file of kind `file` or `pdf` is never shown in this page's origin: it is a download (`<a download>` where the
  * address works on its own, `saveBlob` of a fetched blob otherwise), and the blob it is saved from is typed
- * `application/octet-stream`.
+ * `application/octet-stream`. What an element does show from a fetched blob is typed here, by its kind, not by
+ * what the gateway's answer said (`blobFor`): never `image/svg+xml` or `text/*`.
  */
 import type { OutboxAttachment } from '@hermie/transcript'
 import { redirectSeen } from '@hermie/gateway-client'
 
 import { resolveImage } from '../../markdown/links'
-import { openBlankTab } from '../../platform/open-link'
 
 /** Where the attachment's bytes are, or `null` when its url is not one this page may ask the gateway for. */
 export function outboxHref(
@@ -68,7 +69,7 @@ export interface OutboxFiles {
 export const OUTBOX_IMAGE_FETCH_MAX = 25 * 1024 * 1024
 /** What it fetches to play a video or a sound, in bytes (the whole file is held; it cannot seek by ranges). */
 export const OUTBOX_MEDIA_FETCH_MAX = 64 * 1024 * 1024
-/** What it fetches to open a PDF or save a file, in bytes. */
+/** What it fetches to save a file or a PDF, in bytes. */
 export const OUTBOX_FILE_FETCH_MAX = 200 * 1024 * 1024
 
 /** What the page knows about how it is signed in: enough to fetch a file (`createOutboxFiles`), and nothing to load. */
@@ -118,69 +119,90 @@ export function createOutboxFiles(options: OutboxFilesOptions): OutboxFiles {
       const announced = Number(response.headers?.get('content-length') ?? '')
 
       if (maxBytes !== undefined && Number.isFinite(announced) && announced > maxBytes) {
+        void response.body?.cancel().catch(() => undefined)
         throw new OutboxError('too-large', 'The file is too large to hold in the page.')
       }
 
-      try {
-        return await response.blob()
-      } catch (cause) {
-        throw new OutboxError('unreachable', cause instanceof Error ? cause.message : 'The file did not arrive.')
-      }
+      return readCapped(response, maxBytes)
     }
   }
 }
 
-/** How long a PDF's `blob:` address stays valid: a reload of the tab it opened in is still served. */
-const PDF_URL_LIFETIME_MS = 10 * 60_000
-
 /**
- * Show a PDF in a tab of its own, from the bytes this page fetched.
- *
- * The tab is opened first, in the press itself (a popup blocker lets only that through), and told where to go
- * once the bytes are in and are a PDF (`%PDF-`): a file that says it is one and is not is never given to the
- * browser's viewer. The new tab is cut off from this one (`opener` is cleared) before anything is loaded in it.
- * `'blocked'` means the browser would not open a tab: the caller offers the download.
+ * The body of an answer, held in memory no further than `maxBytes`: a gateway that sent no `Content-Length` (or a
+ * wrong one) is stopped as the bytes arrive, and the rest is never read.
  */
-export async function openPdf(
-  files: OutboxFiles,
-  href: string,
-  options: { maxBytes?: number; open?: typeof window.open; revoke?: (url: string) => void } = {}
-): Promise<'opened' | 'blocked' | 'not-a-pdf'> {
-  const target = openBlankTab(options.open)
-
-  if (!target) {
-    return 'blocked'
-  }
+async function readCapped(response: Response, maxBytes: number | undefined): Promise<Blob> {
+  const type = response.headers?.get('content-type') ?? ''
+  const reader = maxBytes === undefined ? undefined : response.body?.getReader()
 
   try {
-    target.opener = null
-  } catch {
-    // A browser that will not let it go still opens a tab the page cannot be reached through by name.
-  }
+    if (!reader || maxBytes === undefined) {
+      const whole = await response.blob()
 
-  try {
-    const bytes = await files.fetch(href, options.maxBytes === undefined ? {} : { maxBytes: options.maxBytes })
-    const head = await bytes.slice(0, 5).text()
+      if (maxBytes !== undefined && whole.size > maxBytes) {
+        throw new OutboxError('too-large', 'The file is too large to hold in the page.')
+      }
 
-    if (head !== '%PDF-') {
-      target.close()
-
-      return 'not-a-pdf'
+      return whole
     }
 
-    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }))
+    const chunks: Uint8Array[] = []
+    let total = 0
 
-    target.location.href = url
-    setTimeout(() => (options.revoke ?? (value => URL.revokeObjectURL(value)))(url), PDF_URL_LIFETIME_MS)
+    for (;;) {
+      const { done, value } = await reader.read()
 
-    return 'opened'
+      if (done) {
+        break
+      }
+
+      total += value.byteLength
+
+      if (total > maxBytes) {
+        void reader.cancel().catch(() => undefined)
+        throw new OutboxError('too-large', 'The file is too large to hold in the page.')
+      }
+
+      chunks.push(value)
+    }
+
+    return new Blob(chunks as BlobPart[], { type })
   } catch (cause) {
-    target.close()
-    throw cause
+    if (cause instanceof OutboxError) {
+      throw cause
+    }
+
+    throw new OutboxError('unreachable', cause instanceof Error ? cause.message : 'The file did not arrive.')
   }
 }
 
 /** A fetched file as something to save: whatever type it came with, it is bytes to keep, never a page. */
 export function asDownload(bytes: Blob): Blob {
   return new Blob([bytes], { type: 'application/octet-stream' })
+}
+
+const SAFE_IMAGE_TYPE = /^image\/(?:png|jpeg|gif|webp|avif|bmp)$/u
+const SAFE_VIDEO_TYPE = /^video\/[a-z0-9][a-z0-9.+-]*$/u
+const SAFE_AUDIO_TYPE = /^audio\/[a-z0-9][a-z0-9.+-]*$/u
+
+/**
+ * Fetched bytes as something an element may be given: the same bytes under a type chosen here. A picture is only
+ * a raster type a browser draws without running anything (not `image/svg+xml`, which is a document), a video is
+ * `video/*` and a sound `audio/*`; anything else, or a type that does not belong to the kind, is
+ * `application/octet-stream`, which an element refuses to play (it fails safely, and the file is still there to
+ * save). A `text/*` type is never kept.
+ */
+export function blobFor(kind: OutboxAttachment['kind'], bytes: Blob): Blob {
+  const type = (bytes.type.split(';')[0] ?? '').trim().toLowerCase()
+  const safe =
+    kind === 'image'
+      ? SAFE_IMAGE_TYPE.test(type)
+      : kind === 'video'
+        ? SAFE_VIDEO_TYPE.test(type)
+        : kind === 'audio'
+          ? SAFE_AUDIO_TYPE.test(type)
+          : false
+
+  return new Blob([bytes], { type: safe ? type : 'application/octet-stream' })
 }

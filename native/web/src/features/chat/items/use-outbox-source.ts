@@ -8,13 +8,21 @@
  * Fetching is the costly case, so it waits: for the element to be near the screen (`on: 'visible'`, a picture) or
  * for the reader to ask (`on: 'press'`, a video or a sound, which are held whole in memory), and a file bigger than
  * `maxBytes` is never fetched at all (`too-large`: the download is the way).
+ *
+ * The blob is typed here, by the kind of file (`blobFor`), never by what the answer said: a picture is only a
+ * raster type, a video `video/*`, a sound `audio/*`, and anything else is opaque bytes an element will not play.
+ * A picture's blob is also given back after its row has been out of sight for a while (`OFFSCREEN_RELEASE_MS`)
+ * and fetched again when the row comes near the screen: a chat of many pictures does not hold them all.
  */
 import type { OutboxAttachment } from '@hermie/transcript'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { type OutboxFailure, outboxHref } from '../../../core/chats/outbox-files'
+import { blobFor, type OutboxFailure, outboxHref } from '../../../core/chats/outbox-files'
 import { useItemContext } from './item-context'
 import { useItemHost } from './item-host'
+
+/** How long a picture's row stays out of sight before the page lets go of its bytes. */
+export const OUTBOX_OFFSCREEN_RELEASE_MS = 60_000
 
 export type OutboxSource =
   /** Not asked for yet: the element is not near the screen, or nobody pressed. */
@@ -55,12 +63,16 @@ export function useOutboxSource(file: OutboxAttachment, options: UseOutboxSource
     { state: 'loading' } | { state: 'ready'; src: string } | { state: 'failed'; reason: OutboxFailure } | null
   >(null)
   const observer = useRef<IntersectionObserver | null>(null)
+  const release = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const { on, maxBytes } = options
 
   const watch = useCallback(
     (element: HTMLElement | null) => {
       observer.current?.disconnect()
       observer.current = null
+      // A new element reports where it is as soon as it is watched; what the last one said no longer counts.
+      clearTimeout(release.current)
+      release.current = undefined
 
       if (!element || on !== 'visible' || direct) {
         return
@@ -72,11 +84,19 @@ export function useOutboxSource(file: OutboxAttachment, options: UseOutboxSource
         return
       }
 
+      // The observer stays on the element for as long as it is there: it asks for the bytes when the row comes
+      // near the screen and gives them back once it has been away for a while.
       const next = new IntersectionObserver(
         entries => {
-          if (entries.some(entry => entry.isIntersecting)) {
+          const near = entries.at(-1)?.isIntersecting ?? false
+
+          clearTimeout(release.current)
+          release.current = undefined
+
+          if (near) {
             setWanted(true)
-            next.disconnect()
+          } else {
+            release.current = setTimeout(() => setWanted(false), OUTBOX_OFFSCREEN_RELEASE_MS)
           }
         },
         { rootMargin: '300px' }
@@ -88,7 +108,13 @@ export function useOutboxSource(file: OutboxAttachment, options: UseOutboxSource
     [on, direct]
   )
 
-  useEffect(() => () => observer.current?.disconnect(), [])
+  useEffect(
+    () => () => {
+      observer.current?.disconnect()
+      clearTimeout(release.current)
+    },
+    []
+  )
 
   const load = useCallback(() => setWanted(true), [])
 
@@ -108,7 +134,7 @@ export function useOutboxSource(file: OutboxAttachment, options: UseOutboxSource
           return
         }
 
-        made = URL.createObjectURL(bytes)
+        made = URL.createObjectURL(blobFor(file.kind, bytes))
         setFetched({ state: 'ready', src: made })
       })
       .catch((cause: unknown) => {
@@ -132,7 +158,7 @@ export function useOutboxSource(file: OutboxAttachment, options: UseOutboxSource
 
       setFetched(null)
     }
-  }, [direct, wanted, href, tooLarge, outbox, maxBytes])
+  }, [direct, wanted, href, tooLarge, outbox, maxBytes, file.kind])
 
   let source: OutboxSource
 

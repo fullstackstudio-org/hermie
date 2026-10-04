@@ -1,12 +1,13 @@
 /**
  * How the page asks for the files a bot shared (`contract/outbox/`): the address (the attachment's own url, joined
  * onto the gateway's base, with the chat's profile), the fetch that carries the reader's credential where an
- * element cannot, and the PDF that is opened from bytes the page has checked.
+ * element cannot (held in memory no further than the cap, whether or not the gateway announced a size), and the
+ * type an element is given the bytes under.
  */
 import { describe, expect, it, vi } from 'vitest'
 
 import { sharedFile } from '../../test-support/outbox-fixtures'
-import { createOutboxFiles, OutboxError, openPdf, outboxHref } from './outbox-files'
+import { blobFor, createOutboxFiles, OutboxError, outboxHref } from './outbox-files'
 
 const BASE = 'https://gateway.test'
 const file = sharedFile('audio', 'tts_20261004_225730_989324.mp3')
@@ -122,6 +123,83 @@ describe('createOutboxFiles', () => {
     await expect(make(big).fetch(`${BASE}/x`, { maxBytes: 10_000 })).resolves.toMatchObject({ size: 1 })
   })
 
+  /** A body that streams `chunks` of `size` bytes and records how many it was asked for (no Content-Length). */
+  const streaming = (chunks: number, size: number) => {
+    const pulled = { count: 0, cancelled: false }
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (pulled.count >= chunks) {
+          controller.close()
+
+          return
+        }
+
+        pulled.count += 1
+        controller.enqueue(new Uint8Array(size))
+      },
+      cancel() {
+        pulled.cancelled = true
+      }
+    })
+
+    return { pulled, fetchImpl: vi.fn(async () => new Response(body, { status: 200 })) }
+  }
+
+  it('stops reading a file with no Content-Length once it is past the limit, and reads no more', async () => {
+    const { pulled, fetchImpl } = streaming(1000, 1000)
+
+    await expect(
+      make(fetchImpl as unknown as ReturnType<typeof answer>).fetch(`${BASE}/x`, { maxBytes: 2500 })
+    ).rejects.toMatchObject({ name: 'OutboxError', reason: 'too-large' })
+    // Three chunks make 3000 bytes: past the cap at the third, so far fewer than the thousand on offer were pulled.
+    expect(pulled.count).toBeLessThan(10)
+    expect(pulled.cancelled).toBe(true)
+  })
+
+  it('stops a body that is larger than the Content-Length it announced', async () => {
+    const { fetchImpl } = streaming(100, 100)
+    const lying = vi.fn(async () => {
+      const response = await fetchImpl()
+
+      return new Response(response.body, { status: 200, headers: { 'content-length': '10' } })
+    })
+
+    await expect(
+      make(lying as unknown as ReturnType<typeof answer>).fetch(`${BASE}/x`, { maxBytes: 1000 })
+    ).rejects.toMatchObject({ reason: 'too-large' })
+  })
+
+  it('holds a file with no Content-Length that is within the limit, whole and with the type it came with', async () => {
+    const { fetchImpl } = streaming(4, 250)
+    const typed = vi.fn(async () => {
+      const response = await fetchImpl()
+
+      return new Response(response.body, { status: 200, headers: { 'content-type': 'image/png' } })
+    })
+    const bytes = await make(typed as unknown as ReturnType<typeof answer>).fetch(`${BASE}/x`, { maxBytes: 1000 })
+
+    expect(bytes.size).toBe(1000)
+    expect(bytes.type).toBe('image/png')
+  })
+
+  it('reports a body that breaks off as unreachable', async () => {
+    const broken = vi.fn(
+      async () =>
+        new Response(
+          new ReadableStream<Uint8Array>({
+            pull(controller) {
+              controller.error(new TypeError('connection reset'))
+            }
+          }),
+          { status: 200 }
+        )
+    )
+
+    await expect(
+      make(broken as unknown as ReturnType<typeof answer>).fetch(`${BASE}/x`, { maxBytes: 1000 })
+    ).rejects.toMatchObject({ reason: 'unreachable' })
+  })
+
   it('stops when told to', async () => {
     const controller = new AbortController()
     const waits = vi.fn(
@@ -148,70 +226,62 @@ describe('createOutboxFiles', () => {
   })
 })
 
-describe('openPdf', () => {
-  const filesOf = (body: string | null, status = 200) =>
-    createOutboxFiles({
-      headers: () => Promise.resolve({}),
-      gated: true,
-      fetchImpl: vi.fn(async () => new Response(body, { status })) as unknown as typeof fetch
-    })
-  const tab = () => ({ opener: {} as unknown, location: { href: '' }, close: vi.fn() })
+describe('blobFor, the type an element is given the bytes under', () => {
+  const typed = (type: string) => new Blob(['bytes'], { type })
 
-  it('opens the tab in the press, cuts it off, and sends it to a blob of the PDF once the bytes are one', async () => {
-    const target = tab()
-    const open = vi.fn(() => target as unknown as Window)
-    const make = vi.fn(() => 'blob:https://gateway.test/1')
-    const created: unknown[] = []
+  it.each(['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/avif', 'image/bmp'])(
+    'keeps %s for a picture',
+    type => {
+      expect(blobFor('image', typed(type)).type).toBe(type)
+    }
+  )
 
-    vi.stubGlobal(
-      'URL',
-      Object.assign(URL, {
-        createObjectURL: (blob: Blob) => (created.push(blob), make()),
-        revokeObjectURL: vi.fn()
-      })
-    )
-
-    const result = await openPdf(filesOf('%PDF-1.7 body'), `${BASE}/x`, {
-      open: open as unknown as typeof window.open,
-      revoke: vi.fn()
-    })
-
-    expect(result).toBe('opened')
-    expect(open).toHaveBeenCalledWith('', '_blank')
-    expect(target.opener).toBeNull()
-    expect(target.location.href).toBe('blob:https://gateway.test/1')
-    expect((created[0] as Blob).type).toBe('application/pdf')
-    vi.unstubAllGlobals()
+  it('keeps the type of a picture without its parameters and in lower case', () => {
+    expect(blobFor('image', typed('Image/PNG; charset=binary')).type).toBe('image/png')
   })
 
-  it('opens nothing when the file is not a PDF, and closes the tab it opened', async () => {
-    const target = tab()
-
-    expect(
-      await openPdf(filesOf('<html>'), `${BASE}/x`, { open: (() => target) as unknown as typeof window.open })
-    ).toBe('not-a-pdf')
-    expect(target.close).toHaveBeenCalled()
-    expect(target.location.href).toBe('')
+  it.each([
+    ['a hostile SVG', 'image/svg+xml'],
+    ['an HTML answer', 'text/html'],
+    ['an HTML answer with a charset', 'text/html; charset=utf-8'],
+    ['plain text', 'text/plain'],
+    ['a script', 'application/javascript'],
+    ['a video', 'video/mp4'],
+    ['a type that only starts like an image', 'image/pngx'],
+    ['a type that has the image type inside it', 'text/html;x=image/png'],
+    ['no type', '']
+  ])('gives a picture opaque bytes when the answer was %s', (_what, type) => {
+    expect(blobFor('image', typed(type)).type).toBe('application/octet-stream')
   })
 
-  it('says the browser blocked the tab, before it fetches anything', async () => {
-    const fetchImpl = vi.fn()
-    const files = createOutboxFiles({
-      headers: () => Promise.resolve({}),
-      gated: true,
-      fetchImpl: fetchImpl as unknown as typeof fetch
-    })
-
-    expect(await openPdf(files, `${BASE}/x`, { open: (() => null) as unknown as typeof window.open })).toBe('blocked')
-    expect(fetchImpl).not.toHaveBeenCalled()
+  it.each(['video/mp4', 'video/webm', 'video/quicktime', 'video/x-matroska'])('keeps %s for a video', type => {
+    expect(blobFor('video', typed(type)).type).toBe(type)
   })
 
-  it('closes the tab and passes the failure on when the file is gone', async () => {
-    const target = tab()
+  it.each(['image/png', 'image/svg+xml', 'text/html', 'audio/mpeg', 'application/octet-stream', ''])(
+    'gives a video opaque bytes when the answer was %j',
+    type => {
+      expect(blobFor('video', typed(type)).type).toBe('application/octet-stream')
+    }
+  )
 
-    await expect(
-      openPdf(filesOf('nope', 404), `${BASE}/x`, { open: (() => target) as unknown as typeof window.open })
-    ).rejects.toMatchObject({ reason: 'missing' })
-    expect(target.close).toHaveBeenCalled()
+  it.each(['audio/mpeg', 'audio/ogg', 'audio/wav', 'audio/x-m4a'])('keeps %s for a sound', type => {
+    expect(blobFor('audio', typed(type)).type).toBe(type)
+  })
+
+  it.each(['video/mp4', 'image/svg+xml', 'text/html', 'text/plain', ''])(
+    'gives a sound opaque bytes when the answer was %j',
+    type => {
+      expect(blobFor('audio', typed(type)).type).toBe('application/octet-stream')
+    }
+  )
+
+  it.each(['pdf', 'file'] as const)('never types a %s as anything but opaque bytes', kind => {
+    expect(blobFor(kind, typed('application/pdf')).type).toBe('application/octet-stream')
+    expect(blobFor(kind, typed('text/html')).type).toBe('application/octet-stream')
+  })
+
+  it('keeps the bytes', () => {
+    expect(blobFor('image', typed('image/png')).size).toBe(5)
   })
 })

@@ -6,10 +6,15 @@
  *  - **A video** and **a sound** are players (`controls`, `preload="metadata"`): the route answers byte ranges,
  *    so they seek without the whole file. With the shared token an element cannot carry the credential, so the
  *    player waits for a press and plays the bytes the page fetched (`use-outbox-source.ts`).
- *  - **A PDF** is a card with a button that opens it in a tab of its own, from bytes the page fetched and checked
- *    (`openPdf`): the route will not hand a browser's own viewer the file as a page.
+ *  - **A PDF** is a card (the document glyph, its name, its size) whose action is "Download". On the web it is saved,
+ *    not opened: the route serves it as an attachment because a built-in PDF viewer does not run under the sandbox
+ *    it serves with, and a `blob:` of our own would take this page's origin and run outside it
+ *    (`contract/outbox` §4). Native apps show a PDF in their own viewer.
  *  - **Any other file** is a chip: its name as text, its size, and a download. It is never rendered in this page's
  *    origin: a `file` is HTML, SVG, a script, an archive or something unknown, and it is saved, not opened.
+ *
+ * With no gateway to ask (`ItemContext.gatewayBaseUrl`: a cron run) every file is a name-only chip: its name and its
+ * size, nothing to press and no claim that it could not be loaded.
  *
  * The name is the sender's text and goes through React as text only, never as markup. Unknown kinds arrive as
  * `file` (`parseOutboxAttachments`). It is a list named "Attachments", one item per file, in the order the reply
@@ -26,7 +31,6 @@ import {
   OUTBOX_FILE_FETCH_MAX,
   OUTBOX_IMAGE_FETCH_MAX,
   OUTBOX_MEDIA_FETCH_MAX,
-  openPdf,
   outboxHref
 } from '../../../core/chats/outbox-files'
 import { BOT_NAME_LIMIT, displayText, NAME_LIMIT } from '../../../core/requests/secure-input'
@@ -42,16 +46,12 @@ import { useOutboxSource } from './use-outbox-source'
 import './media.css'
 
 /** The words under a name for a file that did not arrive. */
-function failureText(reason: OutboxFailure | 'invalid' | 'blocked' | 'not-a-pdf'): string {
+function failureText(reason: OutboxFailure | 'invalid', saving = false): string {
   switch (reason) {
     case 'missing':
       return sheetStrings.shared.unavailable
     case 'too-large':
-      return sheetStrings.shared.tooLarge
-    case 'blocked':
-      return sheetStrings.shared.popupBlocked
-    case 'not-a-pdf':
-      return sheetStrings.shared.notPdf
+      return saving ? sheetStrings.shared.tooLargeToSave : sheetStrings.shared.tooLarge
     default:
       return sheetStrings.shared.failed
   }
@@ -74,8 +74,7 @@ function filesOf(host: { outbox?: OutboxFiles }): OutboxFiles {
 const nameOf = (file: OutboxAttachment): string =>
   displayText(file.name, NAME_LIMIT) || displayText(file.name, BOT_NAME_LIMIT) || file.kind
 
-type Action =
-  { state: 'idle' } | { state: 'working' } | { state: 'failed'; reason: OutboxFailure | 'blocked' | 'not-a-pdf' }
+type Action = { state: 'idle' } | { state: 'working' } | { state: 'failed'; reason: OutboxFailure }
 
 /** The save of a file: a link where the address works on its own, a button that fetches and saves where it does not. */
 function useSave(file: OutboxAttachment): {
@@ -146,7 +145,7 @@ function DownloadAction({ file, save }: { file: OutboxAttachment; save: ReturnTy
 /** Any file the page does not show: its name, its size, a download. */
 function SharedFileChip({ file, problem }: { file: OutboxAttachment; problem?: string }) {
   const save = useSave(file)
-  const error = problem ?? (save.action.state === 'failed' ? failureText(save.action.reason) : undefined)
+  const error = problem ?? (save.action.state === 'failed' ? failureText(save.action.reason, true) : undefined)
 
   return (
     <FileChip
@@ -154,55 +153,6 @@ function SharedFileChip({ file, problem }: { file: OutboxAttachment; problem?: s
       size={file.size}
       {...(error ? { error } : {})}
       trailing={<DownloadAction file={file} save={save} />}
-    />
-  )
-}
-
-/** A PDF: opened in a tab of its own, from fetched bytes. */
-function SharedPdf({ file }: { file: OutboxAttachment }) {
-  const host = useItemHost()
-  const { gatewayBaseUrl, profile } = useItemContext()
-  const href = outboxHref(file, gatewayBaseUrl, profile)
-  const files = filesOf(host)
-  const save = useSave(file)
-  const [action, setAction] = useState<Action>({ state: 'idle' })
-  const name = nameOf(file)
-  const open = useCallback(() => {
-    if (!href) {
-      return
-    }
-
-    setAction({ state: 'working' })
-    openPdf(files, href, { maxBytes: OUTBOX_FILE_FETCH_MAX })
-      .then(result => setAction(result === 'opened' ? { state: 'idle' } : { state: 'failed', reason: result }))
-      .catch((cause: unknown) => setAction({ state: 'failed', reason: reasonOf(cause) }))
-  }, [files, href])
-
-  if (!href) {
-    return <FileChip name={file.name} size={file.size} error={failureText('invalid')} />
-  }
-
-  return (
-    <FileChip
-      name={file.name}
-      size={file.size}
-      {...(action.state === 'failed' ? { error: failureText(action.reason) } : {})}
-      trailing={
-        <>
-          <button
-            type="button"
-            className="hm-shared__action"
-            onClick={open}
-            disabled={action.state === 'working'}
-            aria-label={sheetStrings.shared.openPdfName({ name })}
-          >
-            {action.state === 'working' ? sheetStrings.shared.loading : sheetStrings.shared.openPdf}
-          </button>
-          {action.state === 'failed' && (action.reason === 'blocked' || action.reason === 'too-large') ? (
-            <DownloadAction file={file} save={save} />
-          ) : null}
-        </>
-      }
     />
   )
 }
@@ -219,6 +169,7 @@ function SharedImage({ file, layout }: { file: OutboxAttachment; layout: 'solo' 
         name={file.name}
         layout={layout}
         reserve
+        rootRef={watch}
         onOpen={opener => host.openImage({ src: source.src, name: file.name }, opener)}
       />
     )
@@ -318,6 +269,11 @@ export interface SharedFilesProps {
 function SharedFilesImpl({ files }: SharedFilesProps) {
   useLocale()
 
+  // A view with no gateway to ask (a cron run, which is read from a transcript alone) cannot fetch a file, and
+  // does not pretend to have failed to: it names the file, its size, and nothing to press.
+  const { gatewayBaseUrl } = useItemContext()
+  const nameOnly = gatewayBaseUrl === undefined
+
   if (files.length === 0) {
     return null
   }
@@ -335,15 +291,16 @@ function SharedFilesImpl({ files }: SharedFilesProps) {
           data-kind={file.kind === 'image' ? 'image' : 'file'}
           data-shared={file.kind}
         >
-          {file.kind === 'image' ? (
+          {nameOnly ? (
+            <FileChip name={file.name} size={file.size} />
+          ) : file.kind === 'image' ? (
             <SharedImage file={file} layout={layout} />
           ) : file.kind === 'video' ? (
             <SharedVideo file={file} />
           ) : file.kind === 'audio' ? (
             <SharedAudio file={file} />
-          ) : file.kind === 'pdf' ? (
-            <SharedPdf file={file} />
           ) : (
+            // A PDF is a card like any file: saved, never opened in this page.
             <SharedFileChip file={file} />
           )}
         </li>
