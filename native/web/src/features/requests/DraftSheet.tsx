@@ -48,6 +48,8 @@ export interface DraftSheetProps {
   onAnswer: (result: InteractiveAnswer) => Promise<AnswerOutcome>
   /** Put the sheet away without answering (what was edited stays while it is away). */
   onLater: () => void
+  /** Whether the sheet is the one on screen: its tap guard runs from the moment it is (default: it is). */
+  shown?: boolean
   /** Milliseconds before a field or button takes anything. Tests pass 0. */
   tapGuardMs?: number
   /** Epoch milliseconds, for the countdown; the clock unless a test hands in its own. */
@@ -90,6 +92,7 @@ export function DraftSheet({
   descriptionId,
   onAnswer,
   onLater,
+  shown = true,
   tapGuardMs = DEFAULT_TAP_GUARD_MS,
   now
 }: DraftSheetProps): ReactElement {
@@ -97,7 +100,7 @@ export function DraftSheet({
 
   const { ask } = request
   const ids = useId()
-  const armed = useTapGuard(tapGuardMs, request.id)
+  const armed = useTapGuard(tapGuardMs, request.id, shown)
   const sending = useSending()
   const editor = useRef<HTMLTextAreaElement>(null)
   const [text, setText] = useState(ask.text)

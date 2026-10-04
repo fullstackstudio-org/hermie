@@ -23,7 +23,10 @@
  *    without `inert`) is brought back.
  *  - **Escape does not dismiss.** A question that is dismissed is a question the
  *    bot goes on waiting for, with nobody looking: only an answer closes it. The
- *    scrim does not either.
+ *    scrim does not either. The one exception is a form, a file request or a draft
+ *    to review, where Escape is Later: the sheet is put away with what was entered
+ *    in it, the page is usable, and the transcript's record offers Open. Nothing
+ *    was answered, and the request still waits.
  *  - Focus goes to the dialog itself, not to a button, when it opens, so that a
  *    Return meant for the field the reader was typing in finds nothing to press;
  *    when the last request is gone focus returns to where it was.
@@ -266,6 +269,8 @@ interface InteractiveSheetForProps {
   titleId: string
   descriptionId: string
   tapGuardMs?: number
+  /** The sheet is the one on screen: its tap guard starts from then. */
+  shown: boolean
   onAnswer: (result: InteractiveAnswer) => Promise<AnswerOutcome>
   onSkip: () => Promise<AnswerOutcome>
   onCannotShow: (reason: string) => 'sent' | 'closed' | 'offline' | 'busy'
@@ -505,8 +510,9 @@ export function RequestLayer({
       }
     }
 
-    lastShown.current = queue[0]
-  }, [chats, connections, interactive, passkeys, queue, secureInput])
+    // The one on screen, not the first of the queue: a sheet put away (Later) is not the one a reader is looking at.
+    lastShown.current = current
+  }, [chats, connections, current, interactive, passkeys, queue, secureInput])
 
   // An approval is acknowledged to the gateway's queue the first time a person can see it.
   const approvalId = current?.kind === 'engine' && current.item.kind === 'approval' ? current.item.requestId : undefined
@@ -563,6 +569,11 @@ export function RequestLayer({
 
     const onKeyDown = (event: globalThis.KeyboardEvent): void => {
       if (event.key === 'Escape') {
+        // The Escape that ends an input method's composition is the input method's, not the sheet's.
+        if (event.isComposing) {
+          return
+        }
+
         // Not an answer. For a form, a file request or a draft it is Later: the sheet goes away with what was entered,
         // the page is usable, and the transcript's record offers Open. For anything else it is no way out: a question
         // that is dismissed is a question the bot goes on waiting for. Nothing behind the dialog hears it either.
@@ -681,6 +692,7 @@ export function RequestLayer({
                   sheets={sheets}
                   request={asked}
                   gateway={interactiveGateway}
+                  shown={isCurrent}
                   // Only the sheet in the dialog is the dialog's heading and description.
                   titleId={isCurrent ? titleId : `${ids}-away-${entry.id}-title`}
                   descriptionId={isCurrent ? descriptionId : `${ids}-away-${entry.id}-description`}

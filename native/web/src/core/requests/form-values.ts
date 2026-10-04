@@ -345,7 +345,9 @@ function evaluateNumber(field: Extract<FormField, { kind: 'number' }>, raw: stri
     return problem('not_integer')
   }
 
-  if (!onStep(text, field.min, field.step)) {
+  // What is checked is what goes out: the number the answer carries (`JSON.stringify`), not the text typed (a text of
+  // more digits than a double holds is sent as the double nearest to it).
+  if (!onStep(String(value), field.min, field.step)) {
     return problem('step')
   }
 

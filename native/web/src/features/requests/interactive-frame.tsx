@@ -10,8 +10,9 @@
  *     link, already cleaned and bounded by the reader (`interactive-types.ts`).
  *  2. **What is entered is never state outside the sheet.** The sheet holds it in its own component state for as long
  *     as it is on screen, and hands it to `InteractiveModel.answer` once; no store, cache, draft or log sees it.
- *  3. **Nothing takes a stray press.** For `tapGuardMs` after the sheet appears its controls are off, so a click or a
- *     keystroke meant for what was under it never answers (Escape and the scrim do nothing: the layer keeps them).
+ *  3. **Nothing takes a stray press.** For `tapGuardMs` after the sheet is shown (each time it is: a sheet queued behind
+ *     another, or put away and opened again, starts over) its controls are off, so a click or a keystroke meant for
+ *     what was under it never answers. Escape is Later, and the scrim does nothing (the layer keeps both).
  *  4. **A countdown to the gateway's deadline.** The model ends the request at the deadline on its own clock.
  *  5. **Offline, busy and failed are said, never swallowed:** nothing was sent, and what was entered stays.
  */
@@ -32,11 +33,23 @@ const countdown = (ms: number): string => {
   return `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`
 }
 
-/** Whether the sheet takes presses yet: false for `tapGuardMs` after it appears (and again for a new request). */
-export function useTapGuard(tapGuardMs: number, key: unknown): boolean {
+/**
+ * Whether the sheet takes presses yet: false for `tapGuardMs` after it BECOMES THE SHOWN ONE, not after it was built.
+ * A sheet queued behind another is mounted (so that what is typed in it survives Later) but not on screen, and a
+ * guard that ran while it was hidden would be spent when a click meant for the sheet before it lands on it. So the
+ * guard is closed while the sheet is not shown, and starts over each time it is shown again (a new request, the one
+ * before it answered, Open after Later).
+ */
+export function useTapGuard(tapGuardMs: number, key: unknown, shown = true): boolean {
   const [armed, setArmed] = useState(tapGuardMs <= 0)
 
   useEffect(() => {
+    if (!shown) {
+      setArmed(false)
+
+      return
+    }
+
     if (tapGuardMs <= 0) {
       setArmed(true)
 
@@ -48,9 +61,10 @@ export function useTapGuard(tapGuardMs: number, key: unknown): boolean {
     const timer = setTimeout(() => setArmed(true), tapGuardMs)
 
     return () => clearTimeout(timer)
-  }, [key, tapGuardMs])
+  }, [key, tapGuardMs, shown])
 
-  return armed
+  // Not shown is not armed, whatever the last effect left: the first render after it is shown must not take a press.
+  return shown && armed
 }
 
 /** What a failed try says, apart from the gateway's refusal (which the sheet reads from the request). */

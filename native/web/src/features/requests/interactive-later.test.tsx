@@ -294,3 +294,124 @@ describe('Return in a form', () => {
     expect(harness.gw.calls).toHaveLength(1)
   })
 })
+
+/** Real time: the sheets' own guard runs on the page's clock. */
+const wait = (ms: number): Promise<void> =>
+  act(async () => {
+    await new Promise<void>(resolve => setTimeout(resolve, ms))
+  })
+
+const disabled = (name: string | RegExp): boolean => (button(name) as HTMLButtonElement).disabled
+
+describe('the tap guard runs from the moment a sheet is shown', () => {
+  const GUARD = 60
+
+  it('guards a sheet that appears behind another that was answered: a second click cannot approve unread mail', async () => {
+    mount(harness, { tapGuardMs: GUARD })
+    raise(harness, 'srq-1', 'input.form', formFrame(NAME, { optional: false }))
+    raise(harness, 'srq-2', 'review.draft', draftFrame())
+    // The form's own guard ends; the draft behind it has been mounted all that time.
+    await wait(GUARD * 3)
+    expect(disabled('Send answers')).toBe(false)
+
+    await act(async () => {
+      fireEvent.click(button('Send answers'))
+      // The double click: its second half, at once.
+      fireEvent.click(button('Send answers'))
+    })
+
+    expect(screen.getByRole('dialog', { name: 'A mail to review' })).toBe(dialog())
+    expect(disabled('Approve')).toBe(true)
+    expect(disabled('Reject')).toBe(true)
+    expect(within(dialog()).getByLabelText('Draft')).toHaveProperty('disabled', true)
+
+    // A click on it now answers nothing.
+    fireEvent.click(button('Approve'))
+    expect(harness.gw.calls.filter(call => call.params.id === 'srq-2')).toEqual([])
+
+    await wait(GUARD * 3)
+
+    expect(disabled('Approve')).toBe(false)
+  })
+
+  it('starts over when a sheet that was put away is opened again', async () => {
+    mount(harness, { tapGuardMs: GUARD })
+    raise(harness, 'srq-1', 'input.form', formFrame(NAME, { optional: false }))
+    await wait(GUARD * 3)
+    expect(disabled('Send answers')).toBe(false)
+
+    fireEvent.click(button('Later'))
+    act(() => requestLaterStore.getState().bringBack(key('srq-1')))
+
+    expect(disabled('Send answers')).toBe(true)
+    expect(disabled("Don't share")).toBe(true)
+    expect(field(/^Name/u).matches(':disabled')).toBe(true)
+
+    await wait(GUARD * 3)
+
+    expect(disabled('Send answers')).toBe(false)
+  })
+
+  it('is unchanged for a sheet that simply appears: off for a moment, then on', async () => {
+    mount(harness, { tapGuardMs: GUARD })
+    raise(harness, 'srq-1', 'review.draft', draftFrame())
+
+    expect(disabled('Approve')).toBe(true)
+
+    await wait(GUARD * 3)
+
+    expect(disabled('Approve')).toBe(false)
+  })
+
+  it('guards a sheet queued behind one that was put away, and one that is the next of several', async () => {
+    mount(harness, { tapGuardMs: GUARD })
+    raise(harness, 'srq-1', 'input.form', formFrame(NAME, { optional: false }))
+    raise(harness, 'srq-2', 'input.file', fileFrame({ optional: false }))
+    await wait(GUARD * 3)
+    fireEvent.click(button('Later'))
+
+    expect(screen.getByRole('dialog', { name: 'Files to upload' })).toBe(dialog())
+    expect(disabled("Don't share")).toBe(true)
+
+    await wait(GUARD * 3)
+
+    expect(disabled("Don't share")).toBe(false)
+  })
+})
+
+describe('what is said when a request ends', () => {
+  it('is said for the sheet that was on screen, even while another is put away', () => {
+    mount(harness)
+    raise(harness, 'srq-1', 'input.form', formFrame(NAME, { optional: false }))
+    raise(harness, 'srq-2', 'review.draft', draftFrame())
+    // A is first in the queue and put away; B is the one shown.
+    fireEvent.click(button('Later'))
+    expect(screen.getByRole('dialog', { name: 'A mail to review' })).toBe(dialog())
+
+    act(() => harness.gw.cancel('srq-2', 'interrupted'))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(document.querySelector('[aria-live="polite"]')?.textContent).toBe(
+      'The request from Dr. Researcher was withdrawn.'
+    )
+  })
+
+  it('does not say a put-away sheet left when it only went away', () => {
+    mount(harness)
+    raise(harness, 'srq-1', 'input.form', formFrame(NAME, { optional: false }))
+    fireEvent.click(button('Later'))
+
+    expect(document.querySelector('[aria-live="polite"]')?.textContent).toBe('')
+  })
+})
+
+describe('Escape while an input method is composing', () => {
+  it('is the input method’s, not Later', () => {
+    mount(harness)
+    raise(harness, 'srq-1', 'input.form', formFrame(NAME, { optional: false }))
+    fireEvent.keyDown(field(/^Name/u), { key: 'Escape', isComposing: true })
+
+    expect(screen.getByRole('dialog')).toBe(dialog())
+    expect(requestLaterStore.getState().away).toEqual([])
+  })
+})

@@ -48,6 +48,8 @@ export interface FormSheetProps {
   onCannotShow: (reason: string) => 'sent' | 'closed' | 'offline' | 'busy'
   /** Put the sheet away without answering (what was entered stays while it is away). */
   onLater: () => void
+  /** Whether the sheet is the one on screen: its tap guard runs from the moment it is (default: it is). */
+  shown?: boolean
   /** Milliseconds before a field or button takes anything. Tests pass 0. */
   tapGuardMs?: number
   /** Epoch milliseconds, for the countdown; the clock unless a test hands in its own. */
@@ -63,6 +65,7 @@ export function FormSheet({
   onSkip,
   onCannotShow,
   onLater,
+  shown = true,
   tapGuardMs = DEFAULT_TAP_GUARD_MS,
   now
 }: FormSheetProps): ReactElement {
@@ -73,7 +76,7 @@ export function FormSheet({
   const base = useId()
   const device = useMemo(deviceZone, [])
   const form = useRef<HTMLFormElement>(null)
-  const armed = useTapGuard(tapGuardMs, request.id)
+  const armed = useTapGuard(tapGuardMs, request.id, shown)
   const sending = useSending()
   const [raw, setRaw] = useState<Record<string, RawValue>>(() =>
     Object.fromEntries(fields.map(field => [field.id, initialRaw(field, device)]))

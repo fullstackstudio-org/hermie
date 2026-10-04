@@ -58,6 +58,8 @@ export interface FileSheetProps {
   onUpload?: FileUploader | undefined
   /** Prepare a file for upload (metadata, size, SHA-256); the real one unless a test hands in its own. */
   prepare?: (file: File, stripMetadata: boolean) => Promise<PreparedFile>
+  /** Whether the sheet is the one on screen: its tap guard runs from the moment it is (default: it is). */
+  shown?: boolean
   /** Milliseconds before a control takes anything. Tests pass 0. */
   tapGuardMs?: number
   /** Epoch milliseconds, for the countdown; the clock unless a test hands in its own. */
@@ -110,6 +112,7 @@ export function FileSheet({
   onCannotShow,
   onUpload,
   prepare = prepareFile,
+  shown = true,
   tapGuardMs = DEFAULT_TAP_GUARD_MS,
   now
 }: FileSheetProps): ReactElement {
@@ -118,7 +121,7 @@ export function FileSheet({
   const { ask } = request
   const { upload } = ask
   const ids = useId()
-  const armed = useTapGuard(tapGuardMs, request.id)
+  const armed = useTapGuard(tapGuardMs, request.id, shown)
   const sending = useSending()
   const picker = useRef<HTMLInputElement>(null)
   const camera = useRef<HTMLInputElement>(null)

@@ -412,3 +412,15 @@ describe('a step is exact', () => {
     expect(evaluate(field, '0.35', DEVICE)).toEqual({ problem: 'step' })
   })
 })
+
+describe('the step is checked on the number that is sent', () => {
+  it('takes what a double holds: more digits than that are sent as the nearest double', () => {
+    const field = read({ id: 'n', kind: 'number', label: 'N', step: 2 })
+
+    // 2^53 + 1 is not a double; the answer carries 2^53, which is on a step of 2.
+    expect(evaluate(field, '9007199254740993', DEVICE)).toEqual({ value: 9007199254740992 })
+    expect(evaluate(field, '9007199254740992', DEVICE)).toEqual({ value: 9007199254740992 })
+    expect(evaluate(field, '9007199254740991', DEVICE)).toEqual({ problem: 'step' })
+    expect(evaluate(read({ id: 'n', kind: 'number', label: 'N', step: 2 }), '1e21', DEVICE)).toEqual({ value: 1e21 })
+  })
+})
