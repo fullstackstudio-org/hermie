@@ -286,6 +286,19 @@ describe('the confirm sheet', () => {
     expect(screen.getByText('The request from Dr. Researcher timed out.')).toBeTruthy()
   })
 
+  it('says politely that the gateway no longer lists a confirmation, and closes', async () => {
+    mount()
+    await show()
+    await phase({ kind: 'ended', end: { kind: 'closed_here' } }, true)
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(
+      screen.getByText(
+        'The gateway no longer lists the confirmation from Dr. Researcher. It comes back if it is still open.'
+      )
+    ).toBeTruthy()
+  })
+
   it('names the gateway when the confirmation is in no chat the page holds', async () => {
     mount()
     await show({ sessionId: 'rt-elsewhere' })

@@ -385,7 +385,7 @@ describe('the passkey model against the fake gateway', () => {
     )
   })
 
-  it('ends a confirmation the gateway timed out while the socket was down, when it reads the open requests again', async () => {
+  it('lets go of a confirmation the gateway timed out while the socket was down, when it reads the open requests again', async () => {
     const gateway = await passkeyGateway()
     let sessionId = ''
     const page = await openPage(gateway, { sessions: () => (sessionId ? [{ sessionId, lastSeen: 0 }] : []) })
@@ -406,7 +406,7 @@ describe('the passkey model against the fake gateway', () => {
     // Back on a new socket the page reads the open requests again, and this one is not among them.
     await waitFor(() =>
       expect(confirmation(page, id)).toMatchObject({
-        phase: { kind: 'ended', end: { kind: 'timed_out' } },
+        phase: { kind: 'ended', end: { kind: 'closed_here' } },
         dismissed: true
       })
     )

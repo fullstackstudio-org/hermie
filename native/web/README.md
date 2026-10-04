@@ -1275,9 +1275,11 @@ knows a passkey of its own before advertising: the gateway decides per request w
 and a browser can hold a synced passkey this page never enrolled. Once `passkey` is newly accepted on a socket the open
 requests of every session the page holds are read again (`session.events.since`), because the gateway hides a gated
 request from a connection that had not advertised the level when the resume ran. A chat that resumes while the capability calls are still in flight (its answer hidden, and not yet taken in when the level is accepted) is read when its session appears. The read also settles what the page already holds: a confirmation that was open before it,
-belongs to a session just read and is not among the `open_requests` the gateway answers with is over (the socket that
-would have said so dropped), and ends as timed out, quietly, like the gateway's own `request.cancel timeout`; a
-gateway that answers without the list says nothing about them.
+belongs to a session just read and is not among the `open_requests` the gateway answers with is let go of here
+(`closed_here`), quietly, and not ended as timed out: the list can be short (with turn isolation the gateway mirrors
+one request per session), so the gateway delivering it again opens it again, while one a `request.cancel` ended stays
+closed. An answer on its way is left alone, a list read where the gateway did not take the passkey level (it cannot
+name a confirmation) closes nothing, and a gateway that answers without the list says nothing about them.
 
 **Answering**, as rules (the model's header has them in full):
 

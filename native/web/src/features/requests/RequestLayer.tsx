@@ -202,6 +202,8 @@ function confirmationAnnouncement(confirmation: PasskeyConfirmation | undefined,
       return webStrings.requests.timedOut({ name })
     case 'answered_elsewhere':
       return webStrings.passkeys.answeredElsewhere({ name })
+    case 'closed_here':
+      return webStrings.passkeys.closedHere({ name })
     case 'withdrawn':
       return webStrings.requests.withdrawn({ name })
     default:

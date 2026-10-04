@@ -48,6 +48,12 @@ export type ConfirmEnd =
   | { kind: 'timed_out' }
   /** `request.cancel resolved` before this page answered: another client did. */
   | { kind: 'answered_elsewhere' }
+  /**
+   * Let go of here, not withdrawn: a reconnect's list of open requests did not name it. The list can be short (with
+   * turn isolation the gateway mirrors one request per session), so this is no proof that it ended, and the gateway
+   * delivering it again opens it again.
+   */
+  | { kind: 'closed_here' }
   /** The fifth refused answer settled it (`too_many_attempts`). */
   | { kind: 'too_many_attempts' }
   /** The answer was received but the gateway could not commit it (`verification_failed`): NOT confirmed. */
@@ -61,7 +67,7 @@ export type ConfirmEnd =
   /**
    * It ended without a definitive word after an assertion may have reached the gateway (a `request.answer`
    * carrying one got no reply): it may have been confirmed. Every ending that is not the gateway's
-   * definitive verdict (`timed_out`, `answered_elsewhere`, `withdrawn`, `unavailable`, an answer the gateway
+   * definitive verdict (`timed_out`, `answered_elsewhere`, `closed_here`, `withdrawn`, `unavailable`, an answer the gateway
    * no longer takes) becomes this one, so the page never says "nothing was confirmed" when it may have been.
    */
   | { kind: 'outcome_unknown' }

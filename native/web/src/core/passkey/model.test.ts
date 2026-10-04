@@ -814,16 +814,71 @@ describe('the base URL the gateway lists', () => {
 })
 
 describe('reading the open requests again', () => {
-  it('ends a confirmation of a session just read that the gateway no longer lists', async () => {
+  it('lets go of a confirmation of a session just read that the gateway no longer lists, quietly', async () => {
     const page = advertising()
 
     page.deliver('srq-1', frame())
     await page.model.advertise()
 
     expect(page.store.getState().confirmations[0]).toMatchObject({
-      phase: { kind: 'ended', end: { kind: 'timed_out' } },
+      phase: { kind: 'ended', end: { kind: 'closed_here' } },
       dismissed: true
     })
+  })
+
+  it('opens a confirmation a short list left out again when the gateway delivers it again', async () => {
+    const page = advertising()
+
+    page.deliver('srq-1', frame())
+    await page.model.advertise()
+    expect(page.store.getState().confirmations[0]?.phase).toEqual({ kind: 'ended', end: { kind: 'closed_here' } })
+
+    // The gateway still waits for it (the list mirrored one request per session): it offers it again.
+    expect(page.deliver('srq-1', frame()).accepted).toBe(true)
+
+    expect(page.store.getState().confirmations).toHaveLength(1)
+    expect(page.store.getState().confirmations[0]).toMatchObject({
+      id: 'srq-1',
+      phase: { kind: 'waiting' },
+      dismissed: false
+    })
+  })
+
+  it('keeps one that a request.cancel ended closed, whatever is delivered after', async () => {
+    const page = advertising()
+
+    page.deliver('srq-1', frame())
+    page.emit('request.cancel', { id: 'srq-1', reason: 'resolved' })
+    expect(page.store.getState().confirmations[0]?.phase).toEqual({
+      kind: 'ended',
+      end: { kind: 'answered_elsewhere' }
+    })
+
+    page.deliver('srq-1', frame())
+    expect(page.store.getState().confirmations[0]?.phase).toEqual({
+      kind: 'ended',
+      end: { kind: 'answered_elsewhere' }
+    })
+
+    page.deliver('srq-2', frame())
+    page.emit('request.cancel', { id: 'srq-2', reason: 'timeout' })
+    page.deliver('srq-2', frame())
+    expect(page.store.getState().confirmations.find(entry => entry.id === 'srq-2')?.phase).toEqual({
+      kind: 'ended',
+      end: { kind: 'timed_out' }
+    })
+  })
+
+  it('leaves an answer on its way alone', async () => {
+    const page = advertising()
+
+    page.deliver('srq-1', frame())
+    page.store.setState(state => ({
+      confirmations: state.confirmations.map(entry => ({ ...entry, phase: { kind: 'sending' } }))
+    }))
+    await page.model.advertise()
+
+    expect(page.store.getState().confirmations[0]?.phase.kind).toBe('sending')
   })
 
   it('keeps one the gateway still lists, one of another session, and one it said nothing about', async () => {
@@ -848,6 +903,41 @@ describe('reading the open requests again', () => {
     }))
     await answered.model.advertise()
     expect(answered.store.getState().confirmations[0]?.phase.kind).toBe('received')
+  })
+
+  it('closes nothing when the gateway did not take the passkey level on this socket: its list cannot name one', async () => {
+    const page = (() => {
+      const hooks = {
+        methods: vi.fn((list: readonly string[]) => showableMethods(list, { file: true })),
+        settled: vi.fn(),
+        openRequests: vi.fn()
+      }
+      const set = setUp({
+        requests: hooks,
+        sessions: [{ sessionId: 'sess-1', lastSeen: 0 }],
+        client: { status: vi.fn(async () => GATEWAY_STATUS()) }
+      })
+
+      set.answer.mockImplementation(async (method: string, params: unknown) => {
+        if (method === 'client.capabilities') {
+          const sent = params as { requests?: string[] }
+
+          return sent.requests
+            ? { confirm: [], requests: sent.requests }
+            : { server_requests: ['input.form', 'confirm'], confirm: [] }
+        }
+
+        return method === 'session.events.since' ? { open_requests: [] } : { status: 'ok' }
+      })
+
+      return set
+    })()
+
+    page.deliver('srq-1', frame())
+    await page.model.advertise()
+
+    expect(callsTo(page, 'session.events.since')).toHaveLength(1)
+    expect(page.store.getState().confirmations[0]?.phase).toEqual({ kind: 'waiting' })
   })
 
   it('reads a session the page starts holding after the level was accepted, once, and not before', async () => {

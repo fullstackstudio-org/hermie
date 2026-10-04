@@ -54,8 +54,12 @@
  *    resumed while the capability calls were still in flight, and whose answer
  *    the gateway had hidden) is read when it appears. A confirmation that was
  *    open before a read, belongs to a session just read and is not listed any
- *    more is over (the socket that told us so dropped): it ends as `timed_out`,
- *    quietly, like the gateway's own `timeout`.
+ *    more is over, or so it seems: the list can be short (with turn isolation the
+ *    gateway mirrors one request per session), so it closes as let go of here
+ *    (`closed_here`), quietly, and not as timed out. The gateway delivering it
+ *    again opens it again; one `request.cancel` ended stays closed. A list read on
+ *    a socket where the passkey level was not accepted cannot list a confirmation
+ *    at all, and closes nothing.
  *  - **The page's clock ends a confirmation too.** A confirmation whose
  *    `expires_at` has passed is not actionable (`confirm` and `decline` end it as
  *    `timed_out` instead of running a ceremony for a dead request), and the sheet
@@ -262,6 +266,8 @@ export class PasskeyModel {
   /** Bumped per socket generation (every arrival at `ready`), so a late capability answer is dropped. */
   private generation = 0
   private acceptedOnSocket = false
+  /** The gateway took the passkey level on this socket: only then can a list of open requests name a confirmation. */
+  private passkeyOnSocket = false
   /** How many sockets went away: an advert that started under an earlier count ran on a socket that is gone. */
   private socketsGone = 0
   /** The socket (its `socketsGone` count) whose advert the interactive model was last told about: once per socket. */
@@ -332,6 +338,7 @@ export class PasskeyModel {
           this.wasReady = false
           this.socketsGone += 1
           this.acceptedOnSocket = false
+          this.passkeyOnSocket = false
           this.sessionsRead.clear()
 
           return
@@ -475,6 +482,7 @@ export class PasskeyModel {
     // sessions the page holds are read again.
     if ((accepted.includes('passkey') || requestsAccepted) && !this.acceptedOnSocket) {
       this.acceptedOnSocket = true
+      this.passkeyOnSocket = accepted.includes('passkey')
       await this.readOpenRequests()
     }
 
@@ -532,8 +540,8 @@ export class PasskeyModel {
   /**
    * Read the open requests of every session the page holds again; they arrive through the channel. A
    * confirmation that was open before the read, is in a session just read and is not among the open
-   * requests the gateway lists now is over: the socket that said so was dropped (or the request never
-   * reached it), and nothing will say it again.
+   * requests the gateway lists now is let go of (`closed_here`), not ended: the list can be short, and the
+   * gateway delivering it again opens it again (`ingest`).
    */
   private async readOpenRequests(): Promise<void> {
     const sessions = (this.options.openSessions?.() ?? []).filter(({ sessionId }) => !this.sessionsRead.has(sessionId))
@@ -580,9 +588,14 @@ export class PasskeyModel {
           askedAt
         )
 
+        // A list read where the gateway did not take the passkey level cannot name a confirmation: it says nothing.
+        if (!this.passkeyOnSocket) {
+          return
+        }
+
         for (const id of before) {
           if (!listed.has(id)) {
-            this.withdrawn(id, 'timeout')
+            this.letGo(id)
           }
         }
       })
@@ -615,7 +628,8 @@ export class PasskeyModel {
     // the newest copy. The one exception is a request this connection was told (4033) it may not answer: that
     // was about the connection then (an answer in the window before the second capabilities call was
     // accepted), and a frame delivered again is the gateway offering it to this connection now.
-    if (existing && !(existing.phase.kind === 'ended' && existing.phase.end.kind === 'not_allowed')) {
+    // A request let go of here (`closed_here`: a reconnect's list did not name it) is likewise offered again.
+    if (existing && !(existing.phase.kind === 'ended' && REOPENABLE_ENDS.has(existing.phase.end.kind))) {
       const context = this.contexts.get(request.id)
 
       if (context) {
@@ -960,10 +974,32 @@ export class PasskeyModel {
         next = answered ? null : { kind: 'ended', end: { kind: 'withdrawn', reason } }
     }
 
-    if (!next) {
+    if (next) {
+      this.end(id, current, next)
+    }
+  }
+
+  /**
+   * A reconnect's list of open requests did not name this confirmation: let go of here, quietly. Not withdrawn: the
+   * list is no proof it ended (it can be short), so a re-delivery opens it again. An answer on its way, or one
+   * that went through, is left alone.
+   */
+  private letGo(id: string): void {
+    const current = this.find(id)
+
+    if (
+      !current ||
+      current.phase.kind === 'received' ||
+      current.phase.kind === 'declined' ||
+      current.phase.kind === 'sending'
+    ) {
       return
     }
 
+    this.end(id, current, { kind: 'ended', end: { kind: 'closed_here' } })
+  }
+
+  private end(id: string, current: PasskeyConfirmation, next: ConfirmPhase): void {
     // The phase moves first: a ceremony that returns while `cancel()` runs finds the request over and
     // sends nothing.
     this.setPhase(id, next)
@@ -1447,7 +1483,15 @@ export class PasskeyModel {
 }
 
 /** Endings the layer announces as the sheet closes (nothing the person must read on the sheet). */
-const QUIET_ENDS: ReadonlySet<ConfirmEnd['kind']> = new Set(['timed_out', 'answered_elsewhere', 'withdrawn'])
+const QUIET_ENDS: ReadonlySet<ConfirmEnd['kind']> = new Set([
+  'timed_out',
+  'answered_elsewhere',
+  'closed_here',
+  'withdrawn'
+])
+
+/** Endings a re-delivery of the same request undoes: the connection was told no then, or a list did not name it. */
+const REOPENABLE_ENDS: ReadonlySet<ConfirmEnd['kind']> = new Set(['not_allowed', 'closed_here'])
 
 /**
  * Endings that are not the gateway's verdict on an answer: after an assertion may have arrived, each of
@@ -1457,6 +1501,7 @@ const QUIET_ENDS: ReadonlySet<ConfirmEnd['kind']> = new Set(['timed_out', 'answe
 const UNSETTLED_ENDS: ReadonlySet<ConfirmEnd['kind']> = new Set([
   'timed_out',
   'answered_elsewhere',
+  'closed_here',
   'withdrawn',
   'unavailable'
 ])

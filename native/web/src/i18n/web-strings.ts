@@ -694,6 +694,15 @@ export const WEB_STRINGS_SOURCE = {
       nl: ({ name }: { name: string }) => `Het verzoek van ${name} is op een ander apparaat beantwoord.`,
       de: ({ name }: { name: string }) => `Die Anfrage von ${name} wurde auf einem anderen Gerät beantwortet.`
     },
+    /** Said politely when the gateway's list after a reconnect did not name the confirmation on screen. */
+    closedHere: {
+      en: ({ name }: { name: string }) =>
+        `The gateway no longer lists the confirmation from ${name}. It comes back if it is still open.`,
+      nl: ({ name }: { name: string }) =>
+        `De gateway toont de bevestiging van ${name} niet meer. Ze komt terug als ze nog openstaat.`,
+      de: ({ name }: { name: string }) =>
+        `Das Gateway listet die Bestätigung von ${name} nicht mehr auf. Sie kommt wieder, wenn sie noch offen ist.`
+    },
     notice: {
       gatewayIdMismatch: {
         en: 'This gateway presents itself differently from when you added your passkey here. Its passkey requests are refused; ask whoever runs it.',
