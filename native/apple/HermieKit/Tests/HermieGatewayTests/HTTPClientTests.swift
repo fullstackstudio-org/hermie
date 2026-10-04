@@ -59,6 +59,29 @@ import Testing
     #expect(uri.hasPrefix("data:image/png;base64,"))
   }
 
+  // MARK: fetchFile
+
+  @Test("a file the gateway serves comes back whole when it fits the cap, and not at all when it does not")
+  func fileCap() async throws {
+    let body = Data(repeating: 0x41, count: 4_096)
+    let server = StubServer { _ in .respond(status: 200, body: body, headers: ["content-type": "application/pdf"]) }
+    let http = try Self.http(server)
+
+    #expect(try await http.fetchFile("/api/files/a.pdf", maxBytes: 4_096) == body)
+    #expect(try await http.fetchFile("/api/files/a.pdf", maxBytes: 4_095) == nil, "one byte over: refused")
+    #expect(try await http.fetchFile("/api/files/a.pdf", maxBytes: 100) == nil)
+  }
+
+  @Test("a declared length over the cap is refused before the body is read")
+  func fileCapDeclared() async throws {
+    let server = StubServer { _ in
+      .respond(status: 200, body: Data(repeating: 0, count: 64), headers: ["content-length": "64"])
+    }
+
+    #expect(try await Self.http(server).fetchFile("/api/files/a.bin", maxBytes: 32) == nil)
+    #expect(try await Self.http(server).fetchFile("/api/files/a.bin", maxBytes: 64)?.count == 64)
+  }
+
   @Test("answers \"missing\" on a 404 and never throws")
   func pictureMissing() async throws {
     let server = StubServer { _ in .text("not found", status: 404) }

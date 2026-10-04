@@ -453,16 +453,21 @@ over the chat it belongs to, the chat under it dimmed and disabled, while the si
 other chats stay usable. Choosing another chat takes the pane away with its chat and puts the request
 away. iPhone and iPad keep the system sheet. The three sheet modifiers each add their request to the
 pane's preference (`transformPreference`), never replace the others'. Nothing typed for a request can
-leave as a message: the card takes the keyboard, the composer's text view stops being editable and gives
-up the keyboard while covered (`isEnabled` from the environment), Return and paste do nothing there, and
-the composer model holds every send while a request of its chat is up (`ComposerModel.held`).
+leave as a message, on any platform: the Mac's card takes the keyboard; the composer slot is disabled while
+a request of its chat is up (under the iPhone's and iPad's sheet too), so its text view stops being
+editable and gives up the keyboard (`isEnabled` from the environment), and Return and paste do nothing
+there; and the composer model holds every send, refuses typing (`ComposerModel.type`) and writes nothing
+to the drafts store meanwhile (`ComposerModel.held`).
 
 **A row's Retry and attachments.** Retry on a failed reply sends the prompt it answered again
-(`ChatModel.retryTurn`): only the newest turn, one press at a time, never while a turn runs, and never a
+(`ChatModel.retryTurn`): only the newest turn (an older failure shows no Retry, `TranscriptRow.retryable`),
+one press at a time, never while a turn runs, and never a
 prompt that may be a colleague's (a gateway that stamps authors, before it said who this is, refuses an
 authored row). An attachment opens in Quick Look when this device can have it: a `/api/files/…` path,
-fetched with the gateway's credentials (at most 100 MiB; the copies are deleted when the session ends),
-or a path on this device's disk only when the gateway is dialled at a loopback address. Anything else
+fetched with the gateway's credentials (at most 100 MiB, refused by its declared length and cut off while
+it downloads; the copies are kept per gateway and deleted on signing out of it or removing it, never on a
+reconnect, since Quick Look may be showing one), or a path on this device's disk only when the gateway is
+dialled at a loopback address (`localhost`, `::1`, a real `127.x.x.x`). Anything else
 says it is on the gateway's disk.
 
 **Advertising.** The second `client.capabilities` call carries `requests` only after the first call's

@@ -408,9 +408,6 @@ public final class GatewaySession {
     await interactive.shutdown()
     await passkeys?.shutdown()
     mcp?.shutdown()
-    // The copies of the gateway's files opened from this session (sign-out, the gateway removed or
-    // switched): nothing of them stays on this device.
-    AttachmentOpening.discardOpened()
     await store.persistAll()
     await link.shutdown()
 

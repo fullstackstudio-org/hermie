@@ -20,12 +20,25 @@ struct AssistantItemView: View {
   let presentation: Presentation
   let markdown: MarkdownDocument?
   var bubble: BubbleLayout?
+  /// Retry is offered under a failure: only on the newest turn (`TranscriptRow.retryable`).
+  var retryable = true
 
   @Environment(\.transcriptItemActions) private var actions
   @Environment(\.transcriptExpansion) private var expansion
 
   private var hasBody: Bool { !item.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
   private var closesGroup: Bool { bubble?.closesGroup ?? true }
+
+  /// The failure card's Retry, or nil under an older turn's failure.
+  private var retryAction: (@MainActor () -> Void)? {
+    guard retryable else {
+      return nil
+    }
+
+    let actions = self.actions
+    let item = self.item
+    return { actions.retry(item) }
+  }
 
   var body: some View {
     switch presentation {
@@ -81,7 +94,7 @@ struct AssistantItemView: View {
         }
       }
       if let error = item.error {
-        AssistantErrorCard(error: error) { actions.retry(item) }
+        AssistantErrorCard(error: error, retry: retryAction)
       }
     }
     .accessibilityElement(children: .contain)
@@ -190,7 +203,8 @@ struct ReasoningDisclosure: View {
 /// reconnecting on its own.
 struct AssistantErrorCard: View {
   let error: AssistantFailure
-  let retry: @MainActor () -> Void
+  /// Nil: no Retry (an older turn's failure).
+  let retry: (@MainActor () -> Void)?
 
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
@@ -204,7 +218,7 @@ struct AssistantErrorCard: View {
         Text(Strings.Chat.Assistant.reconnecting)
           .font(.footnote)
           .foregroundStyle(.secondary)
-      } else {
+      } else if let retry {
         Button(Strings.Chat.Assistant.retry, action: retry)
           .buttonStyle(.bordered)
       }

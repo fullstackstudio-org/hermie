@@ -81,6 +81,9 @@ public struct TranscriptRow: Identifiable, Equatable, Sendable {
   /// The row a search hit was followed to, marked for a moment (`ChatFeed`). Compared, so setting or
   /// clearing it redraws this row and no other.
   public var flash = false
+  /// A failed reply here offers Retry: only the newest turn's (no prompt follows it). Compared, so a
+  /// prompt sent after it takes the button away.
+  public var retryable = true
   let stamp: Stamp
 
   public init(
@@ -103,7 +106,7 @@ public struct TranscriptRow: Identifiable, Equatable, Sendable {
   /// is a function of the item's text, so it is left out too.
   public static func == (lhs: TranscriptRow, rhs: TranscriptRow) -> Bool {
     lhs.stamp == rhs.stamp && lhs.opensAuthorRun == rhs.opensAuthorRun && lhs.bubble == rhs.bubble
-      && lhs.id == rhs.id && lhs.flash == rhs.flash
+      && lhs.id == rhs.id && lhs.flash == rhs.flash && lhs.retryable == rhs.retryable
   }
 
   /// The transcript items this row draws, oldest first: one, or the members of a roll-up or a group.
@@ -292,8 +295,25 @@ public struct TranscriptRowBuilder: Sendable {
     flushTools()
 
     Self.layOutBubbles(&rows, historyComplete: historyComplete)
+    Self.markRetryable(&rows)
     parsed = next
     return rows
+  }
+
+  /// Retry only on a failed reply no prompt follows: an older failure is history, and running it again
+  /// would answer a question the chat has moved on from.
+  static func markRetryable(_ rows: inout [TranscriptRow]) {
+    var promptAfter = false
+
+    for index in rows.indices.reversed() {
+      if case .item(let visible) = rows[index].content, case .assistant(let reply) = visible.item, reply.error != nil {
+        rows[index].retryable = !promptAfter
+      }
+
+      if rows[index].items.contains(where: { if case .user = $0.item { true } else { false } }) {
+        promptAfter = true
+      }
+    }
   }
 
   /// The id of the group a run of tool calls starting with `firstID` is: stable while the run

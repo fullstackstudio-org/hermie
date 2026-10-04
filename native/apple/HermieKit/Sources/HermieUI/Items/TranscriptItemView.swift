@@ -66,7 +66,9 @@ public struct TranscriptItemView: View, Equatable {
   @ViewBuilder private var content: some View {
     switch row.content {
     case .item(let visible):
-      ItemContentView(visible: visible, markdown: row.markdown, opensAuthorRun: row.opensAuthorRun, bubble: row.bubble)
+      ItemContentView(
+        visible: visible, markdown: row.markdown, opensAuthorRun: row.opensAuthorRun, bubble: row.bubble,
+        retryable: row.retryable)
     case .botDmRollup(let members):
       BotDmRollupView(id: row.id, members: members)
     case .toolGroup(let members):
@@ -83,6 +85,8 @@ struct ItemContentView: View {
   let markdown: MarkdownDocument?
   let opensAuthorRun: Bool
   var bubble: BubbleLayout?
+  /// A failed reply offers Retry (`TranscriptRow.retryable`).
+  var retryable = true
 
   var body: some View {
     let presentation = visible.presentation
@@ -91,7 +95,7 @@ struct ItemContentView: View {
       UserBubbleView(
         item: item, presentation: presentation, markdown: markdown, opensAuthorRun: opensAuthorRun, bubble: bubble)
     case .assistant(let item):
-      AssistantItemView(item: item, presentation: presentation, markdown: markdown, bubble: bubble)
+      AssistantItemView(item: item, presentation: presentation, markdown: markdown, bubble: bubble, retryable: retryable)
     case .tool(let item):
       ToolItemView(item: item, presentation: presentation)
     case .status(let item):

@@ -158,8 +158,8 @@ public struct HTTPClient: Sendable {
   /// call and no redirect followed. Nil when the gateway refused it, does not have it, or could not
   /// be reached, or the file is larger than `maxBytes`; throws only what the credential provider
   /// throws.
-  public func fetchFile(_ path: String, maxBytes: Int = .max, timeoutMs: Int? = nil) async throws -> Data? {
-    var attempt = try await attemptBinary(path, timeoutMs: timeoutMs, auth: AuthHeaderOptions())
+  public func fetchFile(_ path: String, maxBytes: Int = 100 * 1024 * 1024, timeoutMs: Int? = nil) async throws -> Data? {
+    var attempt = try await attemptBinary(path, timeoutMs: timeoutMs, auth: AuthHeaderOptions(), maxBytes: maxBytes)
 
     if attempt.status == 401 {
       timeline?.record(AuthEvent(.restUnauthorized, status: 401, kind: .auth))
@@ -168,7 +168,8 @@ public struct HTTPClient: Sendable {
         return nil
       }
 
-      attempt = try await attemptBinary(path, timeoutMs: timeoutMs, auth: AuthHeaderOptions(forceRefresh: false))
+      attempt = try await attemptBinary(
+        path, timeoutMs: timeoutMs, auth: AuthHeaderOptions(forceRefresh: false), maxBytes: maxBytes)
     }
 
     guard attempt.ok, let data = attempt.data, data.count <= maxBytes else {
@@ -291,8 +292,8 @@ public struct HTTPClient: Sendable {
 
   /// `attemptBinary`: a plain `GET` read as bytes. Any transport failure is
   /// status 0, since a picture that failed to load is `.error` whatever the reason.
-  private func attemptBinary(_ path: String, timeoutMs: Int?, auth options: AuthHeaderOptions) async throws
-    -> BinaryAttempt
+  private func attemptBinary(_ path: String, timeoutMs: Int?, auth options: AuthHeaderOptions, maxBytes: Int? = nil)
+    async throws -> BinaryAttempt
   {
     let url = try GatewayAddress.apiURL(baseURL, path: path)
     let auth = try await credentials.httpAuthHeaders(options)
@@ -305,7 +306,8 @@ public struct HTTPClient: Sendable {
         headers: extraHeaders.merging(auth) { _, auth in auth },
         body: nil,
         timeoutMs: timeoutMs ?? defaultTimeoutMs,
-        redirects: .refuseAll
+        redirects: .refuseAll,
+        maxBytes: maxBytes
       )
       let ok = (200...299).contains(raw.status)
 

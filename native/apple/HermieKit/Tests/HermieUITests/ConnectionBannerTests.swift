@@ -53,21 +53,34 @@
       let (view, window) = host(connection)
       defer { window.close() }
 
+      // Waited for rather than looked at once after a fixed pause: with the other suites hosting
+      // views on the main actor beside this one, the banner's own 900 ms task can land later.
       connection.status = ConnectionStatus(.connecting)
-      await spin(1.4)
-      #expect(bannerShown(view), "connecting for over a second: the banner is up")
+      #expect(await settles(view, shown: true, within: 5), "connecting for over a second: the banner is up")
 
       connection.status = ConnectionStatus(.ready)
-      await spin(0.5)
-      #expect(!bannerShown(view), "ready: the banner is gone")
+      #expect(await settles(view, shown: false, within: 3), "ready: the banner is gone")
 
       connection.status = ConnectionStatus(.reconnecting)
-      await spin(1.4)
-      #expect(bannerShown(view), "a drop: the banner is back")
+      #expect(await settles(view, shown: true, within: 5), "a drop: the banner is back")
 
       connection.status = ConnectionStatus(.ready)
-      await spin(0.5)
-      #expect(!bannerShown(view))
+      #expect(await settles(view, shown: false, within: 3))
+    }
+
+    /// Whether the banner comes to `shown` within `seconds`.
+    private func settles(_ view: NSView, shown: Bool, within seconds: Double) async -> Bool {
+      let deadline = ContinuousClock.now + .seconds(seconds)
+
+      while ContinuousClock.now < deadline {
+        if bannerShown(view) == shown {
+          return true
+        }
+
+        await spin(0.05)
+      }
+
+      return bannerShown(view) == shown
     }
 
     @Test func aBannerThatIsUpClearsWhenReadyFollowsAnotherPhaseAtOnce() async {

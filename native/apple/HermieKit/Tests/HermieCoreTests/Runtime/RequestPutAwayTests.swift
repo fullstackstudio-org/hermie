@@ -198,12 +198,15 @@ struct RequestPutAwayTests {
     for address in ["http://localhost:8642", "https://hermes.localhost", "http://127.0.0.1:9119", "http://[::1]:8642"] {
       #expect(AttachmentOpening.isLoopback(address), "\(address)")
     }
-    for address in ["https://hermes.example.test", "http://127.example.test", "http://10.0.0.2", "http://localhost.example.test", "", nil] {
+    for address in [
+      "https://hermes.example.test", "http://127.example.test", "http://127.foo.example.com", "http://127.0.0.256",
+      "http://127.0.0", "http://127.0.0.1.example.test", "http://127.a.b.c", "http://10.0.0.2", "http://localhost.example.test", "", nil
+    ] {
       #expect(!AttachmentOpening.isLoopback(address), "\(address ?? "nil")")
     }
   }
 
-  @Test("a file the gateway serves is fetched through the session and kept for Quick Look; shutdown deletes it")
+  @Test("a file the gateway serves is fetched through the session and kept for Quick Look; discarding its gateway deletes it")
   func attachmentFetched() async throws {
     let harness = SessionHarness()
     let bytes = Data("%PDF-1.7 hermie".utf8)
@@ -225,7 +228,12 @@ struct RequestPutAwayTests {
       "this test's gateway is not on this device: no local file opens")
     #expect(harness.link.fileCalls.count == 2, "a path only on the gateway's disk is never asked for")
 
+    // A reconnect or a switch shuts a session down: the copy stays (Quick Look may be showing it).
     await harness.session.shutdown()
+    #expect(FileManager.default.fileExists(atPath: url.path))
+
+    // Signing out of the gateway, or removing it, deletes its copies.
+    AttachmentOpening.discardOpened(gateway: harness.session.gatewayID)
     #expect(!FileManager.default.fileExists(atPath: url.path), "signing out leaves no copy behind")
   }
 

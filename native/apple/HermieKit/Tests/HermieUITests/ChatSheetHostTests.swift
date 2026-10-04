@@ -97,6 +97,86 @@ import Testing
       }
     }
 
+    struct Shown: Identifiable {
+      let id: String
+    }
+
+    /// Three request sheets stacked as the chat stacks them (approvals inside, secure prompts in the
+    /// middle, interactive requests outside), each with a request of its own or none.
+    struct ThreeSheets: View {
+      @State var inner: Shown?
+      @State var middle: Shown?
+      @State var outer: Shown?
+      let log: EntryLog
+
+      var body: some View {
+        Color.clear
+          .chatSheet(item: $inner) { _ in Text("approval") }
+          .chatSheet(item: $middle) { _ in Text("secure prompt") }
+          .chatSheet(item: $outer) { _ in Text("form") }
+          .environment(\.chatSheetHosted, true)
+          .overlayPreferenceValue(ChatSheetKey.self) { entries in
+            let _ = log.record(entries)
+            Color.clear
+          }
+      }
+    }
+
+    @Test(arguments: [
+      (inner: "srq-a", middle: nil, outer: nil, expected: ["srq-a"]),
+      (inner: nil, middle: "srq-s", outer: nil, expected: ["srq-s"]),
+      (inner: nil, middle: nil, outer: "srq-f", expected: ["srq-f"]),
+      (inner: "srq-a", middle: "srq-s", outer: nil, expected: ["srq-a", "srq-s"])
+    ] as [(inner: String?, middle: String?, outer: String?, expected: [String])])
+    func aRequestAtAnyLevelReachesThePane(inner: String?, middle: String?, outer: String?, expected: [String]) async throws {
+      let log = EntryLog()
+      let view = ThreeSheets(
+        inner: inner.map(Shown.init(id:)), middle: middle.map(Shown.init(id:)), outer: outer.map(Shown.init(id:)), log: log)
+      let (window, host) = host(view)
+      defer { window.close() }
+
+      await eventually("the pane's entries") {
+        host.layoutSubtreeIfNeeded()
+        return !log.ids.isEmpty
+      }
+      #expect(log.ids == expected, "a secure prompt in the middle is never hidden by the outer sheet")
+    }
+
+    @Test func theChatsComposerSlotIsOffWhileARequestIsUp() async throws {
+      let owner = ChatFeedOwner<ChatFeed>()
+      let feed = try #require(makeFeed(owner))
+      // The composer's own text field in the chat's slot, without the rest of the composer: the slot's
+      // `.disabled` is what is tested, and the field is what it must reach.
+      let slot = ComposerSlot(chat: feed.chat, session: session, feed: feed) { context in
+        ComposerTextField(
+          text: Binding(get: { context.composer.draft }, set: { context.composer.type($0) }), placeholder: "",
+          accessibilityLabel: "", accessibilityHint: "", maxLines: 6, controlHeight: 36, focusRequest: 0,
+          onFocusChange: { _ in }, onSend: {}, onEscape: { false }, onPaste: { _ in }, completionKeysActive: false,
+          onCompletionKey: { _ in false })
+      }
+      let (window, host) = host(slot)
+      defer { window.close() }
+      let field = try #require(Self.textView(in: host))
+      #expect(window.makeFirstResponder(field))
+
+      feed.requests.present("srq-1")
+      await eventually("the field off") {
+        host.layoutSubtreeIfNeeded()
+        return !field.isEditable
+      }
+      #expect(window.firstResponder !== field, "the keyboard is given up under the request")
+
+      await eventually("the composer held") { feed.composer.held }
+      feed.composer.type("a value typed for the secure prompt")
+      #expect(feed.composer.draft.isEmpty, "typing is refused while held")
+
+      feed.requests.dismissSheet()
+      await eventually("the field on again") {
+        host.layoutSubtreeIfNeeded()
+        return field.isEditable
+      }
+    }
+
     /// The composer's text field, covered or not.
     struct Field: View {
       @State var text = ""

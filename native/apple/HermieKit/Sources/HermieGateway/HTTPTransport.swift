@@ -180,6 +180,9 @@ public struct HTTPTransport: Sendable {
     var retryAfter: String = ""
   }
 
+  /// A body larger than the cap the caller set.
+  struct BodyTooLarge: Error {}
+
   private enum Race: Sendable {
     case done(Data, URLResponse)
     case timedOut
@@ -192,7 +195,8 @@ public struct HTTPTransport: Sendable {
     headers: [String: String],
     body: Data?,
     timeoutMs: Int,
-    redirects: RedirectPolicy
+    redirects: RedirectPolicy,
+    maxBytes: Int? = nil
   ) async throws(TransportFailure) -> RawResponse {
     guard let target = URL(string: url), URLOrigin(target) != nil else {
       throw TransportFailure(
@@ -222,8 +226,33 @@ public struct HTTPTransport: Sendable {
     do {
       race = try await withThrowingTaskGroup(of: Race.self) { group in
         group.addTask {
-          let (data, response) = try await session.data(for: outgoing, delegate: guardian)
-          return .done(data, response)
+          guard let maxBytes else {
+            let (data, response) = try await session.data(for: outgoing, delegate: guardian)
+            return .done(data, response)
+          }
+
+          // A body with a cap: refused by its declared length before a byte is read, and cut off
+          // the moment it runs past the cap, so an oversized file is never held whole.
+          let (bytes, response) = try await session.bytes(for: outgoing, delegate: guardian)
+
+          guard response.expectedContentLength <= Int64(maxBytes) else {
+            bytes.task.cancel()
+            throw BodyTooLarge()
+          }
+
+          var buffer: [UInt8] = []
+          buffer.reserveCapacity(Int(max(0, min(response.expectedContentLength, Int64(maxBytes)))))
+
+          for try await byte in bytes {
+            guard buffer.count < maxBytes else {
+              bytes.task.cancel()
+              throw BodyTooLarge()
+            }
+
+            buffer.append(byte)
+          }
+
+          return .done(Data(buffer), response)
         }
 
         if timeoutMs > 0 {

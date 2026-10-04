@@ -254,7 +254,8 @@ struct ChatSessionView<Composer: View>: View {
     }
     .onChange(of: covered) { _, covered in
       owner.feed?.coverChanged(covered: covered)
-    }    // A search hit followed to this chat: before the screen exists (taken on appear) or while it is open.
+    }
+    // A search hit followed to this chat: before the screen exists (taken on appear) or while it is open.
     .onChange(of: router?.chatFind) { _, request in
       takeFind(request)
     }
@@ -448,6 +449,9 @@ struct ComposerSlot<Composer: View>: View {
         botName: name
       )
     )
+    // On every platform: under a request's sheet (iPhone, iPad) or pane (Mac) the field is off and
+    // gives up the keyboard, so nothing typed for the request lands in the draft or goes out.
+    .disabled(feed.requestUp)
   }
 }
 

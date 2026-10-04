@@ -126,7 +126,8 @@ public struct ComposerView: View {
 
   private var field: some View {
     ComposerTextField(
-      text: $model.draft,
+      // Typing goes through the model, which refuses it while a request has the screen.
+      text: Binding(get: { model.draft }, set: { model.type($0) }),
       placeholder: Strings.Chat.Composer.placeholder,
       accessibilityLabel: Strings.Chat.Composer.messageTo(bot: model.bot),
       accessibilityHint: Self.keyHint,

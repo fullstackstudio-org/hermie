@@ -108,6 +108,38 @@ private struct ComposerHarness {
     await harness.session.shutdown()
   }
 
+  @Test func whileARequestHasTheScreenTypingIsRefusedAndNothingIsWritten() async throws {
+    let keyValues = try KeyValueStore(store: SQLiteStore(.inMemory))
+    let harness = SessionHarness(keyValues: keyValues)
+    let composer = ComposerModel(
+      chat: harness.session.chat(bot),
+      gatewayID: "g1",
+      session: harness.session,
+      drafts: keyValues,
+      debounce: .zero
+    )
+
+    composer.type("before")
+    try await eventually("the draft written") { @MainActor in
+      (try? await keyValues.string(forKey: composer.draftStorageKey)) == "before"
+    }
+
+    composer.held = true
+    composer.type("a secret meant for the prompt")
+    #expect(composer.draft == "before", "typing is refused while held")
+
+    // Even a draft set from elsewhere while held is not written to disk.
+    composer.draft = "set while held"
+    try await Task.sleep(for: .milliseconds(50))
+    #expect(try await keyValues.string(forKey: composer.draftStorageKey) == "before")
+    #expect(!composer.canSubmit)
+
+    composer.held = false
+    composer.type("after")
+    #expect(composer.draft == "after")
+    await harness.session.shutdown()
+  }
+
   // MARK: Sending
 
   @Test func aSendClearsTheFieldPaintsTheBubbleAndIsAnnounced() async throws {

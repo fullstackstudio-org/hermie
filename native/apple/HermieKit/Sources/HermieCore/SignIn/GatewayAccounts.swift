@@ -251,6 +251,8 @@ public final class GatewayAccounts {
    */
   public func signOut(_ id: String) async {
     await endSession?(id)
+    // The copies of this gateway's files opened on this device go with the sign-in.
+    AttachmentOpening.discardOpened(gateway: id)
 
     if let key = directory.entry(id: id)?.key {
       purgeSurfaces?(key)
@@ -298,6 +300,7 @@ public final class GatewayAccounts {
   /// process holds for it, and stop the share sheet sending to it. The engine removed the secrets.
   public func forgotten(_ id: String) async {
     _ = share?.drop(gatewayId: id)
+    AttachmentOpening.discardOpened(gateway: id)
     statuses[id] = nil
     credentialsChanged(id)
   }

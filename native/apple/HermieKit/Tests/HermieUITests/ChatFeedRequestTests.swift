@@ -79,6 +79,28 @@ import Testing
     #expect(ChatActionNotices.text(attachment: feed.attachmentNotice, retry: nil)?.contains(name) == true)
   }
 
+  @Test func onlyTheNewestFailedReplyOffersRetry() {
+    func base(_ id: String, _ seq: Int) -> ItemBase { ItemBase(id: id, seq: seq, ts: 1, origin: .history, version: 1) }
+    func failed(_ id: String, _ seq: Int) -> VisibleItem {
+      VisibleItem(
+        item: .assistant(
+          AssistantItem(
+            base: base(id, seq), text: "", streaming: false, interim: false,
+            error: AssistantFailure(message: "The model is unavailable.", partial: false))),
+        presentation: .full)
+    }
+    func user(_ id: String, _ seq: Int) -> VisibleItem {
+      VisibleItem(item: .user(UserItem(base: base(id, seq), text: "hi")), presentation: .full)
+    }
+
+    var builder = TranscriptRowBuilder()
+    let rows = builder.rows(for: [user("u1", 1), failed("a1", 2), user("u2", 3), failed("a2", 4)])
+    let retryable = Dictionary(uniqueKeysWithValues: rows.map { ($0.id, $0.retryable) })
+
+    #expect(retryable["a1"] == false, "an older turn's failure: no Retry")
+    #expect(retryable["a2"] == true, "the newest turn's failure: Retry")
+  }
+
   @Test func aCallerWithActionsOfItsOwnKeepsThem() throws {
     let owner = ChatFeedOwner<ChatFeed>()
     let feed = try #require(makeFeed(owner, standardActions: false))

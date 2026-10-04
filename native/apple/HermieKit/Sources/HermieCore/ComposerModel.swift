@@ -227,7 +227,20 @@ public final class ComposerModel {
 
   /// A request of the chat has the screen (an approval, a secure prompt, a form): nothing is sent from
   /// here until it goes. Above all, what was typed for a secure prompt must never leave as a message.
+  ///
+  /// Typing is refused as well (`type(_:)`), and nothing that reached the draft meanwhile is written
+  /// to the drafts store: a value typed for a secure prompt must not wait in the field, or on disk,
+  /// for the next Return.
   public var held = false
+
+  /// What the person typed into the field. Refused while `held`: the field shows the draft again.
+  public func type(_ text: String) {
+    guard !held else {
+      return
+    }
+
+    draft = text
+  }
 
   /// The bot is at work (a turn, a tool, a subagent, a compaction): Stop is
   /// offered while the field is empty, and Esc stops.
@@ -276,7 +289,7 @@ public final class ComposerModel {
   }
 
   private func scheduleDraftWrite() {
-    guard drafts != nil else {
+    guard drafts != nil, !held else {
       return
     }
 

@@ -56,24 +56,42 @@ public enum AttachmentOpening {
 
     let bare = host.trimmingCharacters(in: CharacterSet(charactersIn: "[]"))
 
-    return bare == "localhost" || bare.hasSuffix(".localhost") || bare == "::1"
-      || (bare.hasPrefix("127.") && bare.split(separator: ".").count == 4)
+    if bare == "localhost" || bare.hasSuffix(".localhost") || bare == "::1" {
+      return true
+    }
+
+    // A real IPv4 address in 127.0.0.0/8: four decimal labels of 0 to 255, never a name that starts
+    // with "127.".
+    let labels = bare.split(separator: ".", omittingEmptySubsequences: false)
+
+    guard labels.count == 4, labels.first == "127" else {
+      return false
+    }
+
+    return labels.allSatisfy { label in
+      !label.isEmpty && label.count <= 3 && label.allSatisfy { $0.isASCII && $0.isNumber } && Int(label).map { $0 <= 255 } == true
+    }
   }
 
-  /// Delete every copy of the gateway's files that was opened.
-  public static func discardOpened() {
-    try? FileManager.default.removeItem(at: directory)
+  /// Delete every copy of one gateway's files that was opened: on signing out of it and when it is
+  /// removed, never on a reconnect or a switch (Quick Look may still be showing one).
+  public static func discardOpened(gateway: String) {
+    try? FileManager.default.removeItem(at: directory(gateway: gateway))
   }
 
-  /// Where opened copies of the gateway's files are kept: the caches, never backed up, one folder
-  /// per file so two of one name do not meet.
+  /// Where opened copies of the gateway's files are kept: the temporary directory, never backed up,
+  /// a folder per gateway and one per file so two of one name do not meet.
   public static var directory: URL {
     FileManager.default.temporaryDirectory.appendingPathComponent("hermie-opened", isDirectory: true)
   }
 
+  static func directory(gateway: String) -> URL {
+    directory.appendingPathComponent(AttachmentRules.sanitisedName(gateway.isEmpty ? "gateway" : gateway), isDirectory: true)
+  }
+
   /// Write a fetched file where Quick Look can read it.
-  static func keep(_ data: Data, name: String) throws -> URL {
-    let folder = directory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+  static func keep(_ data: Data, name: String, gateway: String) throws -> URL {
+    let folder = directory(gateway: gateway).appendingPathComponent(UUID().uuidString, isDirectory: true)
     try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
     let url = folder.appendingPathComponent(AttachmentRules.sanitisedName(name.isEmpty ? "file" : name))
     try data.write(to: url, options: .atomic)
@@ -160,7 +178,7 @@ extension GatewaySession {
     case .unavailable(let name):
       return .unavailable(name: name)
     case .gatewayFile(let path, let name):
-      guard let data = await link.fetchFile(path), let url = try? AttachmentOpening.keep(data, name: name) else {
+      guard let data = await link.fetchFile(path), let url = try? AttachmentOpening.keep(data, name: name, gateway: gatewayID) else {
         return .failed(name: name)
       }
 
