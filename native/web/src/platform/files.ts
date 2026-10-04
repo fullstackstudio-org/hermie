@@ -71,9 +71,16 @@ export function guardStrayFileDrops(target: Document = document): () => void {
 /** How long the object URL of a saved file lives: long enough for every browser to have started the save. */
 const REVOKE_AFTER_MS = 30_000
 
-/** The name a download is offered under: the last segment, without what a file system would refuse. */
-function downloadNameOf(name: string): string {
-  const base = (name.split(/[/\\]/u).pop() ?? '').replace(/[<>:"|?*]/gu, '_').trim()
+/**
+ * The name a download is offered under: the last segment, without what a file system would refuse, and without the
+ * control and format characters (`\p{Cc}`, `\p{Cf}`: a right-to-left override, a zero-width joiner) the name on the
+ * card is shown without (`displayText`), so the saved name is the one the reader saw.
+ */
+export function downloadNameOf(name: string): string {
+  const base = (name.split(/[/\\]/u).pop() ?? '')
+    .replace(/[\p{Cc}\p{Cf}]/gu, '')
+    .replace(/[<>:"|?*]/gu, '_')
+    .trim()
 
   return base || 'file'
 }
