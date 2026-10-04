@@ -277,22 +277,130 @@ struct BotLongTextField: View {
   let identifier: String
 
   var body: some View {
-    if editable {
+    switch (editable, BotLongTextLayout.isFixedHeight(lines)) {
+    case (true, true):
+      BotFixedHeightEditor(
+        label: label, placeholder: placeholder, text: $text, lines: lines.lowerBound, identifier: identifier)
+    case (true, false):
       TextField(label, text: $text, prompt: Text(verbatim: placeholder), axis: .vertical)
         .labelsHidden()
         .lineLimit(lines)
         .multilineTextAlignment(.leading)
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityIdentifier(identifier)
-    } else {
-      Text(verbatim: text.isEmpty ? placeholder : text)
-        .foregroundStyle(text.isEmpty ? .secondary : .primary)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .textSelection(.enabled)
-        .accessibilityLabel(Text(verbatim: label))
-        .accessibilityValue(Text(verbatim: text))
-        .accessibilityIdentifier(identifier)
+    case (false, true):
+      BotFixedHeightReader(
+        label: label, placeholder: placeholder, text: text, lines: lines.lowerBound, identifier: identifier)
+    case (false, false):
+      BotLongTextReader(label: label, placeholder: placeholder, text: text, identifier: identifier)
     }
+  }
+}
+
+/// The measures of a long text field, as plain functions.
+enum BotLongTextLayout {
+  /// Whether the field is one fixed height (equal bounds) and so scrolls inside itself. A vertical-axis
+  /// `TextField` with a line limit does not scroll with the wheel or the trackpad on the Mac, and the
+  /// form's own scrolling takes the gesture on both platforms; an editor with its own scroll view does.
+  static func isFixedHeight(_ lines: ClosedRange<Int>) -> Bool {
+    lines.lowerBound == lines.upperBound
+  }
+
+  /// The room the editor keeps above and below its text, in points each.
+  static var verticalInset: CGFloat {
+    #if os(iOS)
+      8
+    #else
+      0
+    #endif
+  }
+
+  /// The room the editor keeps left of its text.
+  static let horizontalInset: CGFloat = 5
+
+  /// One line of the body font at the default text size.
+  static var baseLineHeight: CGFloat {
+    #if os(iOS)
+      let traits = UITraitCollection(preferredContentSizeCategory: .large)
+      return UIFont.preferredFont(forTextStyle: .body, compatibleWith: traits).lineHeight
+    #else
+      let font = NSFont.preferredFont(forTextStyle: .body)
+      return ceil(font.ascender - font.descender + font.leading)
+    #endif
+  }
+
+  /// The height of an editor that shows `lines` lines of `lineHeight` points each, text inset included.
+  static func height(lines: Int, lineHeight: CGFloat) -> CGFloat {
+    CGFloat(max(lines, 1)) * lineHeight + 2 * verticalInset
+  }
+}
+
+/// The editor of a fixed-height field: its own scroll view, `lines` lines tall.
+private struct BotFixedHeightEditor: View {
+  let label: String
+  let placeholder: String
+  @Binding var text: String
+  let lines: Int
+  let identifier: String
+
+  /// One line, following the person's text size.
+  @ScaledMetric(relativeTo: .body) private var lineHeight: CGFloat = BotLongTextLayout.baseLineHeight
+
+  var body: some View {
+    TextEditor(text: $text)
+      .font(.body)
+      .scrollContentBackground(.hidden)
+      .multilineTextAlignment(.leading)
+      .frame(height: BotLongTextLayout.height(lines: lines, lineHeight: lineHeight))
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .overlay(alignment: .topLeading) {
+        if text.isEmpty {
+          Text(verbatim: placeholder)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, BotLongTextLayout.horizontalInset)
+            .padding(.vertical, BotLongTextLayout.verticalInset)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
+      }
+      .accessibilityLabel(Text(verbatim: label))
+      .accessibilityIdentifier(identifier)
+  }
+}
+
+/// Read-only text of a fixed-height field: plain and selectable, scrolling inside the same height.
+private struct BotFixedHeightReader: View {
+  let label: String
+  let placeholder: String
+  let text: String
+  let lines: Int
+  let identifier: String
+
+  @ScaledMetric(relativeTo: .body) private var lineHeight: CGFloat = BotLongTextLayout.baseLineHeight
+
+  var body: some View {
+    ScrollView {
+      BotLongTextReader(label: label, placeholder: placeholder, text: text, identifier: identifier)
+    }
+    .frame(height: BotLongTextLayout.height(lines: lines, lineHeight: lineHeight))
+  }
+}
+
+/// Read-only text of a growing field.
+private struct BotLongTextReader: View {
+  let label: String
+  let placeholder: String
+  let text: String
+  let identifier: String
+
+  var body: some View {
+    Text(verbatim: text.isEmpty ? placeholder : text)
+      .foregroundStyle(text.isEmpty ? .secondary : .primary)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .textSelection(.enabled)
+      .accessibilityLabel(Text(verbatim: label))
+      .accessibilityValue(Text(verbatim: text))
+      .accessibilityIdentifier(identifier)
   }
 }
 

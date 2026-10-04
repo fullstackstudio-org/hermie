@@ -185,4 +185,26 @@ struct BotSettingsViewTests {
     #expect(router.selectedChat == other)
     #expect(router.detailPath == [.botProfile(other)])
   }
+
+  // MARK: Long text fields
+
+  @Test func equalBoundsSelectTheFixedHeightEditorAndUnequalBoundsKeepTheGrowingField() {
+    #expect(BotLongTextLayout.isFixedHeight(12...12))
+    #expect(BotLongTextLayout.isFixedHeight(18...18))
+    #expect(!BotLongTextLayout.isFixedHeight(3...8))
+  }
+
+  @Test func theEditorIsAsTallAsItsLinesPlusTheInset() {
+    let inset = BotLongTextLayout.verticalInset
+
+    #expect(BotLongTextLayout.height(lines: 12, lineHeight: 20) == 240 + 2 * inset)
+    #expect(BotLongTextLayout.height(lines: 18, lineHeight: 17.5) == 315 + 2 * inset)
+    // Never less than one line.
+    #expect(BotLongTextLayout.height(lines: 0, lineHeight: 20) == 20 + 2 * inset)
+  }
+
+  @Test func aBodyLineHasARealHeight() {
+    #expect(BotLongTextLayout.baseLineHeight > 10)
+    #expect(BotLongTextLayout.baseLineHeight < 40)
+  }
 }
