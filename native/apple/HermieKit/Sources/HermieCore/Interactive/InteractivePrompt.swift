@@ -282,10 +282,9 @@ public struct InteractivePrompt: Sendable, Equatable, Identifiable {
     return String(view)
   }
 
-  /// A draft with the whitespace at the end of each line removed, as the gateway compares it.
+  /// A draft as the gateway compares it: the whitespace at the end of each line and of the whole
+  /// text removed (`DraftText.gatewayTrimmed`).
   static func trimmed(_ text: String) -> String {
-    text.split(separator: "\n", omittingEmptySubsequences: false)
-      .map { line in String(line.reversed().drop { $0 == " " || $0 == "\t" || $0 == "\r" }.reversed()) }
-      .joined(separator: "\n")
+    DraftText.gatewayTrimmed(text)
   }
 }

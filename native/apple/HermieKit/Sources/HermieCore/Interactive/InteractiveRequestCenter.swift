@@ -59,13 +59,13 @@ public enum InteractiveCapabilities {
     ServerRequestBody.Method.interactive
   }
 
-  /// Whether a session announces `deviceMethods()` unless told otherwise. Off until the sheets that
-  /// show the requests exist (task N3): a build that announces a method it cannot draw leaves the
-  /// bot waiting on a question nobody sees. N3 turns this on.
+  /// Whether a session announces `deviceMethods()` unless told otherwise. On since the sheets that
+  /// show the requests exist (`FormSheet`, `FileSheet`, `DraftSheet`): a build that announces a
+  /// method it cannot draw leaves the bot waiting on a question nobody sees.
   public static let advertisedByDefault = false
 
-  /// The list `GatewaySession.Options.requests` starts with: `deviceMethods()` once
-  /// `advertisedByDefault`, none before.
+  /// The list `GatewaySession.Options.requests` starts with: `deviceMethods()` while
+  /// `advertisedByDefault`, none otherwise.
   public static func defaultMethods() -> [String]? {
     advertisedByDefault ? deviceMethods() : nil
   }
@@ -441,6 +441,15 @@ public final class InteractiveRequestCenter {
 
   public func dismissNotice(_ chatKey: String) {
     notices[chatKey] = nil
+  }
+
+  /// Where an `input.file` request's files go: `GatewayLink.uploadFile`, through the gateway's HTTP
+  /// upload route with the credentials the app already uses for attachments.
+  public var uploader: InteractiveUploader {
+    let link = self.link
+    return { file, name, mimeType, path, onProgress in
+      try await link.uploadFile(from: file, name: name, mimeType: mimeType, to: path, onProgress: onProgress)
+    }
   }
 
   // MARK: - Answering

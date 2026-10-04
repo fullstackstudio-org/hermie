@@ -43,9 +43,13 @@ public final class InteractiveModel {
   /// The requests still waiting, oldest first.
   public var openPrompts: [InteractivePrompt] { center.prompts(for: bot) }
 
-  /// The oldest open request the sheet is not showing yet.
+  /// The requests the person put away with Later: still open, in the transcript, and not raised
+  /// again by themselves.
+  public private(set) var putAway: Set<String> = []
+
+  /// The oldest open request the sheet is not showing yet and the person has not put away.
   public var nextToPresent: String? {
-    presentedID == nil ? openPrompts.first?.id : nil
+    presentedID == nil ? openPrompts.first { !putAway.contains($0.id) }?.id : nil
   }
 
   /// The request the sheet shows while it is open.
@@ -114,15 +118,30 @@ public final class InteractiveModel {
 
   // MARK: - The sheet
 
-  /// Show a request in the sheet.
+  /// Show a request in the sheet (it came up, or the person opened it from its card).
   public func present(_ id: String) {
     guard let prompt = openPrompts.first(where: { $0.id == id }) else {
       return
     }
 
+    putAway.remove(id)
     presentedID = id
     presentedPrompt = prompt
   }
+
+  /// Later: the person puts the sheet away. Not an answer: the request stays open, in the
+  /// transcript, and the sheet does not come back for it by itself (`present(_:)` opens it again).
+  public func later() {
+    if let presentedID, presented != nil {
+      putAway.insert(presentedID)
+    }
+
+    putAway.formIntersection(openPrompts.map(\.id))
+    dismiss()
+  }
+
+  /// Where an `input.file` request's files are uploaded to.
+  public var uploader: InteractiveUploader { center.uploader }
 
   /// The sheet went away after the request ended. Not an answer: while the request is open the
   /// sheet only goes by an answer, Skip or `cannotShow`.
