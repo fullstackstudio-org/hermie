@@ -9,13 +9,45 @@ public struct MessageImage: Sendable, Hashable, Identifiable {
   public var name: String
   /// The alternative text of a Markdown image, when it had one.
   public var alt: String?
+  /// The picture itself, base64, when the message holds it (a `data:` blob the transcript lifted out
+  /// of the text) rather than naming a file. `reference` is then a handle of the message's own
+  /// (`inline:<item>:<n>`), never something the gateway is asked for.
+  public var inlineBase64: String?
 
   public var id: String { reference }
 
-  public init(reference: String, name: String, alt: String? = nil) {
+  public init(reference: String, name: String, alt: String? = nil, inlineBase64: String? = nil) {
     self.reference = reference
     self.name = name
     self.alt = alt
+    self.inlineBase64 = inlineBase64
+  }
+
+  /// The handle of a picture a message holds itself: the row, the place in it and the picture's size and
+  /// last bytes, so two chats that both have a row `r:12` never share a file. Constant time.
+  public static func inlineReference(item: String, index: Int, base64: String) -> String {
+    "inline:\(item):\(index):\(base64.utf8.count):\(base64.suffix(12))"
+  }
+
+  /// A picture the message holds itself, named for the label.
+  public static func inline(item: String, index: Int, name: String, base64: String) -> MessageImage {
+    MessageImage(
+      reference: inlineReference(item: item, index: index, base64: base64), name: name, inlineBase64: base64)
+  }
+
+  public var isInline: Bool { inlineBase64 != nil }
+
+  // The bytes of an inline picture are not part of what makes two of these the same: a row asks "is
+  // this the same picture" on every redraw, and a message can hold twenty megabytes of them.
+  public static func == (lhs: MessageImage, rhs: MessageImage) -> Bool {
+    lhs.reference == rhs.reference && lhs.name == rhs.name && lhs.alt == rhs.alt
+      && (lhs.inlineBase64 == nil) == (rhs.inlineBase64 == nil)
+  }
+
+  public func hash(into hasher: inout Hasher) {
+    hasher.combine(reference)
+    hasher.combine(name)
+    hasher.combine(alt)
   }
 
   /// What VoiceOver says: the description the author gave it, or the file's name.

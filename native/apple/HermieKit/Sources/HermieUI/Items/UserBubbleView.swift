@@ -116,21 +116,21 @@ struct UserBubbleView: View {
   /// The words and the attachments, in the bubble's text colour, as wide as they need.
   private func words(foreground: Color) -> some View {
     let document = item.text.isEmpty ? nil : (markdown ?? MarkdownDocument(item.text))
-    let split = MessageImages.split(attachments: item.attachments ?? [])
     // With a store (a chat screen) the pictures are thumbnails and only the other files are chips;
     // without one, as before, every attachment is a chip.
-    let thumbnails = actions.images == nil ? [] : MessageImages.unique(split.images + (document?.images ?? []))
-    let chips = actions.images == nil ? (item.attachments ?? []) : split.others
+    let pictures = MessageImages.pictures(
+      itemID: item.id, inline: item.inlineImages ?? [], attachments: item.attachments ?? [],
+      named: document?.images ?? [], hasStore: actions.images != nil)
 
     return VStack(alignment: .leading, spacing: 8) {
       if let document {
         MarkdownView(document)
       }
-      if let store = actions.images, !thumbnails.isEmpty {
-        MessageImageGrid(images: thumbnails, store: store)
+      if let store = actions.images, !pictures.images.isEmpty {
+        MessageImageGrid(images: pictures.images, store: store)
       }
-      if !chips.isEmpty {
-        AttachmentSummary(references: chips, onOpen: actions.openAttachment)
+      if !pictures.chips.isEmpty {
+        AttachmentSummary(references: pictures.chips, onOpen: actions.openAttachment)
       }
     }
     .environment(\.markdownFillsWidth, false)
@@ -208,6 +208,7 @@ struct UserBubbleView: View {
     if let attachments = item.attachments {
       parts.append(contentsOf: attachments.map(ItemFormat.attachmentName))
     }
+    parts.append(contentsOf: (item.inlineImages ?? []).map(\.name))
     if item.pending == true { parts.append(Strings.Chat.Receipt.sending) }
     return parts.joined(separator: ", ")
   }

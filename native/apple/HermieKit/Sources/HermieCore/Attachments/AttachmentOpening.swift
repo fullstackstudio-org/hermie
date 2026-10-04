@@ -1,4 +1,5 @@
 import Foundation
+import HermieTranscript
 
 /// Where an attachment a message names can be opened from.
 public enum AttachmentTarget: Sendable, Equatable {
@@ -7,7 +8,11 @@ public enum AttachmentTarget: Sendable, Equatable {
   /// A file the gateway serves (`/api/files/…`, what an agent writes into a reply): fetched with
   /// the gateway's own credentials, never from anywhere else.
   case gatewayFile(path: String, name: String)
-  /// Only on the gateway's disk, which this device cannot read: nothing to open here.
+  /// An absolute path on the gateway's own disk (an upload, a screenshot the agent took): asked for
+  /// through the gateway's managed-files route, which serves what its own policy allows and refuses the
+  /// rest.
+  case gatewayDisk(path: String, name: String)
+  /// A name with nothing to fetch it by (a bare file name, a web address): nothing to open here.
   case unavailable(name: String)
 }
 
@@ -44,7 +49,71 @@ public enum AttachmentOpening {
       return .localFile(URL(fileURLWithPath: value))
     }
 
+    if let path = gatewayDiskPath(value) {
+      return .gatewayDisk(path: path, name: name)
+    }
+
     return .unavailable(name: name)
+  }
+
+  /// `GET /api/files/download?path=…`: the managed-files route, which serves a file by its absolute
+  /// path on the gateway's disk (the place an upload went to) and answers 4xx for what its policy keeps.
+  public static func managedDownloadPath(_ path: String) -> String {
+    "/api/files/download?path=\(queryValue(path))"
+  }
+
+  /// `GET /api/media?path=…`: the gateway's picture route (a JSON `data_url` for an image under its
+  /// images, screenshots and cache folders).
+  public static func mediaPath(_ path: String) -> String {
+    "/api/media?path=\(queryValue(path))"
+  }
+
+  private static func queryValue(_ path: String) -> String {
+    var allowed = CharacterSet.alphanumerics
+    allowed.insert(charactersIn: "-._~/")
+    return path.addingPercentEncoding(withAllowedCharacters: allowed) ?? path
+  }
+
+  /// An absolute path to ask the gateway for: not a web address, with no `..` or `.` segment, no
+  /// backslash and no NUL. What the gateway then allows is its own policy.
+  static func gatewayDiskPath(_ value: String) -> String? {
+    guard value.hasPrefix("/"), !value.hasPrefix("//"), value.count > 1, !value.contains("\0"), !value.contains("\\") else {
+      return nil
+    }
+
+    let segments = value.split(separator: "/", omittingEmptySubsequences: true)
+    guard !segments.isEmpty, !segments.contains(where: { $0 == ".." || $0 == "." }) else { return nil }
+    return value
+  }
+
+  /// The pictures a `/api/media` answer can be, by extension.
+  static let imageExtensions: Set<String> = ["png", "jpg", "jpeg", "gif", "webp", "heic", "heif", "bmp", "tif", "tiff"]
+
+  /// Whether `name` ends in a picture's extension.
+  public static func hasImageExtension(_ name: String) -> Bool {
+    guard let dot = name.lastIndex(of: "."), name.index(after: dot) < name.endIndex else { return false }
+    return imageExtensions.contains(name[name.index(after: dot)...].lowercased())
+  }
+
+  /// The image bytes inside a `/api/media` answer (`{"data_url": "data:image/png;base64,…"}`), or nil.
+  static func imageData(inMediaAnswer data: Data) -> Data? {
+    guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+      let url = object["data_url"] as? String, url.hasPrefix("data:"), let comma = url.firstIndex(of: ",")
+    else { return nil }
+
+    return Data(base64Encoded: String(url[url.index(after: comma)...]))
+  }
+
+  /// The extension a picture's own first bytes call for, or nil when they are not one of the five.
+  public static func sniffedExtension(_ data: Data) -> String? {
+    switch sniffImageType([UInt8](data.prefix(32))) {
+    case "image/png": "png"
+    case "image/jpeg": "jpg"
+    case "image/gif": "gif"
+    case "image/webp": "webp"
+    case "image/heic": "heic"
+    default: nil
+    }
   }
 
   /// Whether `address` dials this device itself: `localhost` (or a name under it), `127.0.0.0/8`,
@@ -93,7 +162,11 @@ public enum AttachmentOpening {
   static func keep(_ data: Data, name: String, gateway: String) throws -> URL {
     let folder = directory(gateway: gateway).appendingPathComponent(UUID().uuidString, isDirectory: true)
     try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-    let url = folder.appendingPathComponent(AttachmentRules.sanitisedName(name.isEmpty ? "file" : name))
+    var fileName = AttachmentRules.sanitisedName(name.isEmpty ? "file" : name)
+    // A file with no (or no picture) extension that is a picture by its first bytes gets the extension
+    // Quick Look and the gallery go by: an image dropped from a screenshot tool has none.
+    if !hasImageExtension(fileName), let ext = sniffedExtension(data) { fileName += ".\(ext)" }
+    let url = folder.appendingPathComponent(fileName)
     try data.write(to: url, options: .atomic)
     return url
   }
@@ -177,6 +250,24 @@ extension GatewaySession {
       return .preview(url)
     case .unavailable(let name):
       return .unavailable(name: name)
+    case .gatewayDisk(let path, let name):
+      // The upload (or the agent's file) is on the gateway's disk: its managed-files route serves it
+      // when its policy allows, and its picture route serves an image under its images folders.
+      if let data = await link.fetchFile(AttachmentOpening.managedDownloadPath(path)),
+        let url = try? AttachmentOpening.keep(data, name: name, gateway: gatewayID)
+      {
+        return .preview(url)
+      }
+
+      if AttachmentOpening.hasImageExtension(name),
+        let answer = await link.fetchFile(AttachmentOpening.mediaPath(path)),
+        let data = AttachmentOpening.imageData(inMediaAnswer: answer),
+        let url = try? AttachmentOpening.keep(data, name: name, gateway: gatewayID)
+      {
+        return .preview(url)
+      }
+
+      return .failed(name: name)
     case .gatewayFile(let path, let name):
       guard let data = await link.fetchFile(path), let url = try? AttachmentOpening.keep(data, name: name, gateway: gatewayID) else {
         return .failed(name: name)

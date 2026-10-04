@@ -64,18 +64,32 @@ import Testing
     #expect(feed.lastRetry == nil)
   }
 
-  @Test func openingAnAttachmentOnlyOnTheGatewaysDiskSaysSo() async throws {
+  @Test func openingAnAttachmentTheGatewayWillNotHandOverSaysSo() async throws {
     let owner = ChatFeedOwner<ChatFeed>()
     let feed = try #require(makeFeed(owner))
 
     feed.itemActions.openAttachment("@file:/srv/hermie/only-there-\(UUID().uuidString).pdf")
     await eventually("the notice") { feed.attachmentNotice != nil }
-    guard case .unavailable(let name)? = feed.attachmentNotice else {
-      Issue.record("expected unavailable, got \(String(describing: feed.attachmentNotice))")
+    guard case .failed(let name)? = feed.attachmentNotice else {
+      Issue.record("expected failed, got \(String(describing: feed.attachmentNotice))")
       return
     }
     #expect(name.hasSuffix(".pdf"))
     #expect(feed.attachmentPreview == nil)
+    #expect(ChatActionNotices.text(attachment: feed.attachmentNotice, retry: nil)?.contains(name) == true)
+  }
+
+  @Test func openingAnAttachmentWithNothingToFetchItBySaysSo() async throws {
+    let owner = ChatFeedOwner<ChatFeed>()
+    let feed = try #require(makeFeed(owner))
+
+    feed.itemActions.openAttachment("@image:Image")
+    await eventually("the notice") { feed.attachmentNotice != nil }
+    guard case .unavailable(let name)? = feed.attachmentNotice else {
+      Issue.record("expected unavailable, got \(String(describing: feed.attachmentNotice))")
+      return
+    }
+    #expect(name == "Image")
     #expect(ChatActionNotices.text(attachment: feed.attachmentNotice, retry: nil)?.contains(name) == true)
   }
 

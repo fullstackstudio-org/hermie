@@ -26,7 +26,10 @@ struct AssistantItemView: View {
   @Environment(\.transcriptItemActions) private var actions
   @Environment(\.transcriptExpansion) private var expansion
 
-  private var hasBody: Bool { !item.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+  private var hasBody: Bool {
+    !item.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !(item.inlineImages ?? []).isEmpty
+      || !(item.attachments ?? []).isEmpty
+  }
   private var closesGroup: Bool { bubble?.closesGroup ?? true }
 
   /// The failure card's Retry, or nil under an older turn's failure.
@@ -109,12 +112,21 @@ struct AssistantItemView: View {
   /// The reply's words; an interim note (the reply so far) a level quieter.
   private var words: some View {
     let document = markdown ?? MarkdownDocument(item.text)
+    let pictures = MessageImages.pictures(
+      itemID: item.id, inline: item.inlineImages ?? [], attachments: item.attachments ?? [], named: document.images,
+      hasStore: actions.images != nil)
 
     return VStack(alignment: .leading, spacing: 8) {
-      MarkdownView(document)
-      // The pictures the reply names (`![…](/api/files/…)`, a `MEDIA:` delivery), under its words.
-      if let store = actions.images, !document.images.isEmpty {
-        MessageImageGrid(images: document.images, store: store)
+      if !item.text.isEmpty {
+        MarkdownView(document)
+      }
+      // The pictures the reply names (`![…](/api/files/…)`, a `MEDIA:` delivery, a handle the gateway
+      // wrote for an attached image), under its words.
+      if let store = actions.images, !pictures.images.isEmpty {
+        MessageImageGrid(images: pictures.images, store: store)
+      }
+      if !pictures.chips.isEmpty {
+        AttachmentSummary(references: pictures.chips, onOpen: actions.openAttachment)
       }
     }
     .environment(\.markdownFillsWidth, false)

@@ -1,6 +1,7 @@
 import Foundation
 import HermieCore
 import HermieGateway
+import HermieMarkdown
 import HermieTranscript
 import Observation
 import SwiftUI
@@ -283,21 +284,46 @@ final class ChatFeed: ChatScreenFeed {
     }
   }
 
-  /// Open an attachment a message names: in Quick Look when this device can have it, otherwise a
-  /// line over the chat says why not (`AttachmentOpening`).
+  /// Open an attachment a message names. A picture (by its extension, or by its first bytes when the
+  /// file has none) opens in the gallery, any other file in Quick Look, and when this device cannot have
+  /// it a line over the chat says why not (`AttachmentOpening`): a tap is never silent.
   func openAttachment(_ reference: String) {
     let session = self.session
+    let store = itemActions.images
 
     Task {
       let result = await session.prepareAttachment(reference)
 
-      if case .preview(let url) = result {
-        attachmentNotice = nil
-        attachmentPreview = url
-      } else {
+      guard case .preview(let url) = result else {
         attachmentNotice = result
+        return
+      }
+
+      attachmentNotice = nil
+      if Self.destination(of: url) == .gallery, let store {
+        // The file is already here: the gallery uses it instead of asking the gateway again.
+        store.prime(reference, url: url)
+        store.present([MessageImage(reference: reference, name: url.lastPathComponent)], at: 0)
+      } else {
+        attachmentPreview = url
       }
     }
+  }
+
+  /// Where an opened attachment goes.
+  enum Destination: Equatable {
+    case gallery
+    case quickLook
+  }
+
+  /// A picture goes to the gallery, anything else to Quick Look. The extension decides when it names a
+  /// picture; a file with none (an image dropped from a screenshot tool) is read: its first bytes say.
+  static func destination(of url: URL) -> Destination {
+    if MessageImages.isImagePath(url.lastPathComponent) { return .gallery }
+    guard let handle = try? FileHandle(forReadingFrom: url) else { return .quickLook }
+    defer { try? handle.close() }
+    let head = (try? handle.read(upToCount: 32)) ?? Data()
+    return sniffImageType([UInt8](head)) == nil ? .quickLook : .gallery
   }
 
   /// The line about an attachment that could not be opened, or a Retry that sent nothing, goes.

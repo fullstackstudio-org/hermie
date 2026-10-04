@@ -10,6 +10,13 @@ struct MessageImageGrid: View {
   let images: [MessageImage]
   let store: MessageImageStore
 
+  init(images: [MessageImage], store: MessageImageStore) {
+    self.images = images
+    self.store = store
+    // A picture the message holds itself has to be known to the store before a frame asks for it.
+    store.register(images)
+  }
+
   var body: some View {
     let visible = MediaImageLayout.visibleCount(images.count)
     let nominal = MediaImageLayout.plan(count: images.count, width: nil)

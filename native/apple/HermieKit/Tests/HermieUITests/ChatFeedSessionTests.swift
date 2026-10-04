@@ -18,11 +18,17 @@ final class UnreachableLink: GatewayLink, Sendable {
   let statuses: AsyncStream<ConnectionStatus>
   private let requests: AsyncStream<InboundRequest>
 
-  init() {
+  /// What the gateway's files route answers, by path: nothing, unless a test serves something.
+  private let files: @Sendable (String) -> Data?
+
+  init(files: @escaping @Sendable (String) -> Data? = { _ in nil }) {
     events = AsyncStream { _ in }
     statuses = AsyncStream { _ in }
     requests = AsyncStream { _ in }
+    self.files = files
   }
+
+  func fetchFile(_ path: String) async -> Data? { files(path) }
 
   var serverRequests: any AsyncSequence<InboundRequest, Never> & Sendable { requests }
   func requestReply(_ method: String, params: JSONValue) async throws -> RPCReply<JSONValue> { throw Self.error }

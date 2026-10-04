@@ -467,8 +467,23 @@ authored row). An attachment opens in Quick Look when this device can have it: a
 fetched with the gateway's credentials (at most 100 MiB, refused by its declared length and cut off while
 it downloads; the copies are kept per gateway and deleted on signing out of it or removing it, never on a
 reconnect, since Quick Look may be showing one), or a path on this device's disk only when the gateway is
-dialled at a loopback address (`localhost`, `::1`, a real `127.x.x.x`). Anything else
-says it is on the gateway's disk.
+dialled at a loopback address (`localhost`, `::1`, a real `127.x.x.x`). An absolute path on the
+gateway's disk (an upload, the `[Image attached at: <path>]` handle of an attached image) is asked of
+the gateway's managed-files route (`GET /api/files/download?path=`, then `GET /api/media?path=` for a
+picture): what its own policy allows comes back, the rest says it could not be fetched. A picture
+opens in the gallery, decided by its extension or, for a file with none (a screenshot tool's), by its
+first bytes; any other file opens in Quick Look. Nothing is ever silent: a bare name or a web address
+says it is not on this device, a refusal says it could not be fetched.
+
+**Pictures inside a message's text.** The gateway writes an attached image into the turn as a handle
+line, `[Image attached at: <path>]` (`[Image attached: <url>]` for an address), and older sessions also
+kept the picture as a `data:image/…;base64,…` blob beside it. `stripUserText` (and the assistant history
+rows) lift both out (`scanInlineImages`, `packages/transcript/src/inline-images.ts`, ported to
+`HermieTranscript/InlineImages.swift` with the same golden vectors): a blob that decodes (png, jpeg, gif,
+webp, heic; at most 20 MiB; the first bytes must be a picture's whatever the declared type) becomes
+`inlineImages` on the item and a thumbnail drawn from those bytes; a handle becomes an `@image:<path>`
+reference (a thumbnail fetched as above); a blob that cannot be shown becomes the compact `@image:Image`
+chip. Neither the handle nor the blob is ever part of the text. A web address is never fetched.
 
 **A message's menu.** A long press on a bubble (iOS) or a right-click (Mac) opens the message's menu, and
 VoiceOver offers the same lines as the row's actions (`MessageMenu`, drawn by `MessageMenuItems`). A reply

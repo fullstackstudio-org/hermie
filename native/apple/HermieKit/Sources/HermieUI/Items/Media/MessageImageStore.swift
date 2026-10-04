@@ -1,4 +1,5 @@
 import Foundation
+import HermieCore
 import HermieMarkdown
 import ImageIO
 import Observation
@@ -84,6 +85,8 @@ final class MessageImageStore {
   @ObservationIgnored private let resolver: Resolver
   @ObservationIgnored private var resolutions: [String: Task<URL?, Never>] = [:]
   @ObservationIgnored private var failures: [String: Date] = [:]
+  /// The pictures messages hold themselves, by their handle (`MessageImage.inlineReference`).
+  @ObservationIgnored private var inlinePictures: [String: String] = [:]
   @ObservationIgnored private let cache: NSCache<NSString, Box> = {
     let cache = NSCache<NSString, Box>()
     // About 40 MB of decoded pictures, which is some three dozen thumbnails and a few full-size ones.
@@ -106,7 +109,23 @@ final class MessageImageStore {
 
   func present(_ images: [MessageImage], at index: Int) {
     guard !images.isEmpty else { return }
+    register(images)
     presentation = Presentation(model: ImageGalleryModel(images: images, start: index))
+  }
+
+  /// Makes the pictures a message holds itself something `file` can answer for: their bytes are kept
+  /// (the message's own string, not a copy) until a file is asked for.
+  func register(_ images: [MessageImage]) {
+    for image in images {
+      if let base64 = image.inlineBase64, inlinePictures[image.reference] == nil { inlinePictures[image.reference] = base64 }
+    }
+  }
+
+  /// A file already fetched for `reference` (an attachment chip that turned out to be a picture): the
+  /// gallery uses it instead of asking again.
+  func prime(_ reference: String, url: URL) {
+    failures[reference] = nil
+    resolutions[reference] = Task { url }
   }
 
   func dismissGallery() {
@@ -148,10 +167,17 @@ final class MessageImageStore {
     }
 
     let resolver = self.resolver
+    let inline = inlinePictures[reference]
     let task = Task { [weak self] () -> URL? in
       guard let self else { return nil }
       await self.acquire()
-      let url = await resolver(reference)
+      let url: URL?
+      if reference.hasPrefix("inline:") {
+        // A picture the message holds: its bytes go to a file once, off the main actor.
+        url = await Task.detached(priority: .utility) { Self.writeInline(inline, reference: reference) }.value
+      } else {
+        url = await resolver(reference)
+      }
       self.release()
       return url
     }
@@ -171,6 +197,34 @@ final class MessageImageStore {
   /// Forgets that `reference` failed, so the next ask tries again at once.
   func retry(_ reference: String) {
     failures[reference] = nil
+  }
+
+  // MARK: Inline pictures
+
+  /// Where the pictures of messages are kept as files (never backed up; the system clears it).
+  nonisolated static var inlineDirectory: URL {
+    FileManager.default.temporaryDirectory.appendingPathComponent("hermie-inline", isDirectory: true)
+  }
+
+  /// The bytes of `base64` in a file named for `reference`, with the extension its first bytes call for,
+  /// or `nil` when it does not decode. A file that is already there is reused.
+  nonisolated static func writeInline(_ base64: String?, reference: String) -> URL? {
+    guard let base64 else { return nil }
+    let stem = AttachmentRules.sanitisedName(reference)
+    let folder = inlineDirectory
+    if let existing = (try? FileManager.default.contentsOfDirectory(atPath: folder.path))?.first(where: { $0.hasPrefix(stem + ".") }) {
+      return folder.appendingPathComponent(existing)
+    }
+    guard let data = Data(base64Encoded: base64), !data.isEmpty else { return nil }
+    let ext = AttachmentOpening.sniffedExtension(data) ?? "img"
+    let url = folder.appendingPathComponent("\(stem).\(ext)")
+    do {
+      try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+      try data.write(to: url, options: .atomic)
+      return url
+    } catch {
+      return nil
+    }
   }
 
   // MARK: Limiting fetches

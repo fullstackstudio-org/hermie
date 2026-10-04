@@ -175,10 +175,19 @@ struct RequestPutAwayTests {
     #expect(AttachmentOpening.target(for: "@file:/Users/me/report.pdf", localFiles: true, fileExists: exists) == .localFile(local))
     #expect(AttachmentOpening.target(for: "@file:\"/Users/me/report.pdf\"", localFiles: true, fileExists: exists) == .localFile(local))
     #expect(
-      AttachmentOpening.target(for: "@file:/Users/me/report.pdf", localFiles: false, fileExists: exists) == .unavailable(name: "report.pdf"),
-      "a remote gateway's path never opens a file of this device")
-    #expect(AttachmentOpening.target(for: "@file:/srv/agent/out.csv", localFiles: true, fileExists: exists) == .unavailable(name: "out.csv"))
+      AttachmentOpening.target(for: "@file:/Users/me/report.pdf", localFiles: false, fileExists: exists)
+        == .gatewayDisk(path: "/Users/me/report.pdf", name: "report.pdf"),
+      "a remote gateway's path never opens a file of this device: it is asked of the gateway")
+    #expect(
+      AttachmentOpening.target(for: "@file:/srv/agent/out.csv", localFiles: true, fileExists: exists)
+        == .gatewayDisk(path: "/srv/agent/out.csv", name: "out.csv"))
     #expect(AttachmentOpening.target(for: "@image:photo.png", localFiles: true, fileExists: exists) == .unavailable(name: "photo.png"))
+    #expect(
+      AttachmentOpening.target(for: "@image:\"https://example.com/a.png\"", localFiles: false, fileExists: exists)
+        == .unavailable(name: "a.png"), "a web address is never asked for")
+    #expect(
+      AttachmentOpening.target(for: "@file:/srv/a/../../etc/passwd", localFiles: false, fileExists: exists)
+        == .unavailable(name: "passwd"), "a path that climbs is not even asked for")
     #expect(
       AttachmentOpening.target(for: "/api/files/chart.png", localFiles: false, fileExists: exists)
         == .gatewayFile(path: "/api/files/chart.png", name: "chart.png"))
@@ -224,9 +233,12 @@ struct RequestPutAwayTests {
 
     #expect(await harness.session.prepareAttachment("/api/files/missing.pdf") == .failed(name: "missing.pdf"))
     #expect(
-      await harness.session.prepareAttachment("@file:/etc/hosts", fileExists: { _ in true }) == .unavailable(name: "hosts"),
-      "this test's gateway is not on this device: no local file opens")
-    #expect(harness.link.fileCalls.count == 2, "a path only on the gateway's disk is never asked for")
+      await harness.session.prepareAttachment("@file:/etc/hosts", fileExists: { _ in true }) == .failed(name: "hosts"),
+      "this test's gateway is not on this device: no local file opens, and the gateway refuses the path")
+    #expect(
+      harness.link.fileCalls == [
+        "/api/files/report.pdf", "/api/files/missing.pdf", "/api/files/download?path=/etc/hosts"
+      ], "a path on the gateway's disk is asked of the gateway's managed-files route, and nothing else")
 
     // A reconnect or a switch shuts a session down: the copy stays (Quick Look may be showing it).
     await harness.session.shutdown()
@@ -235,6 +247,47 @@ struct RequestPutAwayTests {
     // Signing out of the gateway, or removing it, deletes its copies.
     AttachmentOpening.discardOpened(gateway: harness.session.gatewayID)
     #expect(!FileManager.default.fileExists(atPath: url.path), "signing out leaves no copy behind")
+  }
+
+  @Test("a path on the gateway's disk is fetched through its files route; a picture with no extension gets one from its bytes")
+  func attachmentOnTheGatewaysDisk() async throws {
+    let harness = SessionHarness()
+    let png = Data([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0])
+    let upload = "/root/.hermes/uploads/hermie/9eh14f1h-Image-2026-10-04-at-16.31.52"
+    harness.link.setFiles { $0 == "/api/files/download?path=\(upload)" ? png : nil }
+
+    guard case .preview(let url) = await harness.session.prepareAttachment("@file:\(upload)") else {
+      Issue.record("expected a preview")
+      return
+    }
+    #expect(url.lastPathComponent == "9eh14f1h-Image-2026-10-04-at-16.31.52.png", "a picture is named as one")
+    #expect(try Data(contentsOf: url) == png)
+
+    // A file that is not a picture keeps its name.
+    let text = Data("a,b".utf8)
+    harness.link.setFiles { $0.hasSuffix("notes.csv") ? text : nil }
+    guard case .preview(let csv) = await harness.session.prepareAttachment("@file:/root/notes.csv") else {
+      Issue.record("expected a preview")
+      return
+    }
+    #expect(csv.lastPathComponent == "notes.csv")
+
+    // The picture route is the second try for a picture the files route keeps back.
+    let answer = Data(#"{"data_url":"data:image/png;base64,\#(png.base64EncodedString())"}"#.utf8)
+    harness.link.setFiles { $0.hasPrefix("/api/media?path=") ? answer : nil }
+    guard case .preview(let viaMedia) = await harness.session.prepareAttachment("@image:/root/.hermes/images/upload_1.png") else {
+      Issue.record("expected a preview from the picture route")
+      return
+    }
+    #expect(try Data(contentsOf: viaMedia) == png)
+
+    // Both refuse: the reader is told, never left with nothing.
+    harness.link.setFiles { _ in nil }
+    #expect(await harness.session.prepareAttachment("@image:/root/.hermes/images/gone.png") == .failed(name: "gone.png"))
+
+    // Only this test's own copies go: the gateway's whole folder is shared with the test above.
+    for copy in [url, csv, viaMedia] { try? FileManager.default.removeItem(at: copy.deletingLastPathComponent()) }
+    await harness.session.shutdown()
   }
 
   // MARK: The shelf
