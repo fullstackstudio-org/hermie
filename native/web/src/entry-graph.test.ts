@@ -16,6 +16,8 @@ import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 
+import { entryGraph as sharedEntryGraph, splitReads } from '../scripts/catalogue-split.mjs'
+
 const here = dirname(fileURLToPath(import.meta.url))
 const ENTRY = join(here, 'main.tsx')
 
@@ -44,6 +46,10 @@ const ON_DEMAND = [
   // The chat screen and the settings pages are chunks of their own.
   'features/chat/ChatScreen.tsx',
   'features/settings/SettingsHost.tsx',
+  // The Crons pages and the Activity timeline, and the words only they say.
+  'features/cron/CronsPage.tsx',
+  'features/activity/ActivityPage.tsx',
+  'i18n/cron-strings.ts',
   // Web Push is loaded once the session has started; only the launch click's reader is in the first load.
   'features/push/push-runtime.ts',
   'features/settings/Notifications.tsx',
@@ -152,5 +158,35 @@ describe('the first load', () => {
 
   it('names modules that exist', () => {
     expect(ON_DEMAND.filter(file => !existsSync(file))).toEqual([])
+  })
+
+  it('is the graph the build splits the catalogue by (the same walk, kept in one place for the build)', () => {
+    expect([...sharedEntryGraph(ENTRY).keys()].sort()).toEqual([...reached.keys()].sort())
+  })
+})
+
+describe('the first load’s words', () => {
+  const split = splitReads(here, 'main.tsx')
+
+  it('are read by modules the entry imports, and a page’s own words are not among them', () => {
+    // The catalogue's English is inlined into the entry; what only a page loaded on demand reads is registered by the
+    // page (`vite.config.ts`, `catalogueOnlyWhatIsRead`). A page's words read from a module the entry imports would
+    // put them back, so the entry reads no key of these sections: the Crons pages, the Settings pages and the chat
+    // screen's own words (the sidebar's one word for Settings aside).
+    const paths = split.entry ?? []
+    const under = (prefix: string): string[] => paths.filter(path => path.startsWith(prefix))
+
+    expect(split.entry).not.toBeNull()
+    expect(under('cron.')).toEqual([])
+    expect(under('app.settings.')).toEqual(['app.settings.title'])
+    expect(under('chat.approval.')).toEqual([])
+    expect(under('chat.composer.')).toEqual([])
+    expect(under('chat.options.')).toEqual([])
+    expect(under('chat.notifications.')).toEqual([])
+  })
+
+  it('has pages that read words of their own, which is what leaves the entry', () => {
+    expect(split.inEntry.has('features/cron/CronsPage.tsx')).toBe(false)
+    expect(split.byFile.get('features/cron/CronList.tsx')?.some(path => path.startsWith('cron.'))).toBe(true)
   })
 })

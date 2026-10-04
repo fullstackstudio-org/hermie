@@ -106,32 +106,56 @@ function lookup(key: string, kind: 'text' | 'list' | 'template'): CatalogueValue
 
 type Branch = Record<string, unknown>
 
+/** The tree, one object for the page's life: `createStrings` hands it out and `registerEnglish` grows it. */
+const root: Branch = Object.create(null) as Branch
+
+/** Put one key into the tree: a getter for a string or a list, a function for a template. */
+function define(key: string, value: CatalogueValue): void {
+  const path = key.split('.')
+  const name = path.pop()!
+  let node = root
+
+  for (const segment of path) {
+    node = (node[segment] ??= Object.create(null)) as Branch
+  }
+
+  if (typeof value === 'string') {
+    Object.defineProperty(node, name, { enumerable: true, get: () => lookup(key, 'text') })
+  } else if (Array.isArray(value)) {
+    Object.defineProperty(node, name, { enumerable: true, get: () => lookup(key, 'list') })
+  } else {
+    node[name] = (args: Readonly<Record<string, ArgValue>> = {}): string =>
+      renderTemplate((lookup(key, 'template') as { template: Template }).template, args, activeLocale())
+  }
+}
+
+for (const [key, value] of Object.entries(english)) {
+  define(key, value)
+}
+
+/**
+ * Add English keys after the first load: the ones only a page loaded on demand reads. The production build leaves
+ * them out of the entry's English file and gives each page a module that calls this with them (`vite.config.ts`,
+ * `catalogueOnlyWhatIsRead`), so they are registered before the page's own code runs and are never read before they
+ * are there. A key the entry already holds is left as it is; another language is not touched, because its file holds
+ * every key the client reads.
+ */
+export function registerEnglish(more: CatalogueData): void {
+  const target = english as Record<string, CatalogueValue>
+
+  for (const [key, value] of Object.entries(more)) {
+    if (!(key in target)) {
+      target[key] = value
+      define(key, value)
+    }
+  }
+}
+
 /**
  * The tree over the English keys. Branches have no prototype, so a table
  * indexed with a key that arrives at run time (`strings.chat.approval.choices[id]`)
  * answers `undefined` for one it does not have, and never `constructor`.
  */
 export function createStrings<T>(): T {
-  const root: Branch = Object.create(null) as Branch
-
-  for (const [key, value] of Object.entries(english)) {
-    const path = key.split('.')
-    const name = path.pop()!
-    let node = root
-
-    for (const segment of path) {
-      node = (node[segment] ??= Object.create(null)) as Branch
-    }
-
-    if (typeof value === 'string') {
-      Object.defineProperty(node, name, { enumerable: true, get: () => lookup(key, 'text') })
-    } else if (Array.isArray(value)) {
-      Object.defineProperty(node, name, { enumerable: true, get: () => lookup(key, 'list') })
-    } else {
-      node[name] = (args: Readonly<Record<string, ArgValue>> = {}): string =>
-        renderTemplate((lookup(key, 'template') as { template: Template }).template, args, activeLocale())
-    }
-  }
-
   return root as T
 }

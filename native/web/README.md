@@ -155,6 +155,15 @@ draw is kept out of the entry instead. These do that today.
   reaches is kept. The rule only errs towards keeping: a read it cannot follow (the tree handed on, destructured,
   read with a computed key at the root, re-exported, imported dynamically) keeps the whole catalogue, which the gate
   would then show. The unit tests and the dev server read the files whole.
+- **English is split by who reads it.** The English file is inlined into the entry, so a key only a page loaded on
+  demand reads (the Crons and Activity pages, Settings, the chat screen's own words) would be first-load weight
+  too. `scripts/catalogue-split.mjs` follows the entry's static imports and separates what the entry reads from what
+  only other modules read; the build leaves the second kind out of the entry's English and puts it in virtual
+  modules, one per group of keys (`cron.detail`, `app.settings`), that each such module imports (the plugin appends
+  the import) and that register the keys (`registerEnglish`, `src/i18n/catalogue.ts`) when they are evaluated, before
+  the module's own code runs. A page therefore never reads a key that is not there, and needs nothing written in it.
+  Dutch and German are chunks already and keep every key. `src/entry-graph.test.ts` and
+  `scripts/web/catalogue-split.test.ts` fail when a page's words are read from a module the entry imports.
 - **The request sheets are a chunk of their own** (`features/requests/sheets.ts`, every sheet including the passkey
   confirmation's). `React.lazy` would suspend on each sheet's first render even with the chunk in memory, so
   `request-sheets.ts` holds the module once it has loaded and the layer draws from it in the same pass. The entry

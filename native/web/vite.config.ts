@@ -1,12 +1,13 @@
 import { mkdirSync, readdirSync, readFileSync, renameSync, rmSync } from 'node:fs'
-import { dirname, join, relative, resolve } from 'node:path'
+import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import react from '@vitejs/plugin-react'
 import { defineConfig, type Plugin } from 'vite'
 
 import { escapeNonAscii } from './scripts/ascii-only.mjs'
-import { catalogueRead, pathsReadUnder } from './scripts/catalogue-reads.mjs'
+import { catalogueRead, isRead, pathsReadUnder } from './scripts/catalogue-reads.mjs'
+import { groupOf, lazyOnlyKeys, splitReads } from './scripts/catalogue-split.mjs'
 import { resolveSourceCommit } from './scripts/source-commit.mjs'
 
 /**
@@ -144,19 +145,52 @@ function backtickAfterBangEscaped(): Plugin {
  * finds the keys the sources under `src` read, by a rule that only ever errs
  * towards keeping a key, and this hands the bundler the locale files cut down to
  * those. The unit tests and the dev server read the files whole.
+ *
+ * English is inlined into the entry, so it is cut once more: a key that only a module outside the entry's static
+ * graph reads (`scripts/catalogue-split.mjs`: a page loaded on demand) is not in the entry's English file. It is in a
+ * virtual module, one per group of keys (`cron.detail`, `app.settings`), that every such module imports
+ * (appended to its source here) and that registers the keys with `registerEnglish` when it is evaluated: before the
+ * importing module's own code runs, so a page never reads a key that is not there, and a group several pages read is
+ * in the chunk they share. Dutch and German are chunks already and keep every key the client reads.
  */
 function catalogueOnlyWhatIsRead(): Plugin {
-  const locales = join(root, 'src', 'generated', 'locales')
+  const src = join(root, 'src')
+  const locales = join(src, 'generated', 'locales')
+  const catalogueModule = join(src, 'i18n', 'catalogue.ts')
+  const virtualPrefix = 'virtual:hermie-english/'
   let paths: string[] | null = null
+  let split: ReturnType<typeof splitReads> | null = null
+  let english: Record<string, unknown> = {}
+  /** The keys that leave the entry, and the group each is registered with. */
+  let lazyKeys: string[] = []
+  const groups = new Map<string, string[]>()
 
   return {
     name: 'hermie:catalogue-only-what-is-read',
     apply: 'build',
     enforce: 'pre',
     buildStart() {
-      paths = pathsReadUnder(join(root, 'src'))
+      paths = pathsReadUnder(src)
+      split = splitReads(src, 'main.tsx')
+      english = JSON.parse(readFileSync(join(locales, 'en.json'), 'utf8')) as Record<string, unknown>
+      lazyKeys = lazyOnlyKeys(english, split).filter(key => paths === null || isRead(key, paths))
+      groups.clear()
+
+      for (const key of lazyKeys) {
+        groups.set(groupOf(key), [...(groups.get(groupOf(key)) ?? []), key])
+      }
+    },
+    resolveId(source) {
+      return source.startsWith(virtualPrefix) ? `\0${source}` : null
     },
     load(id) {
+      if (id.startsWith(`\0${virtualPrefix}`)) {
+        const keys = groups.get(id.slice(`\0${virtualPrefix}`.length)) ?? []
+        const more = Object.fromEntries(keys.map(key => [key, english[key]]))
+
+        return `import { registerEnglish } from ${JSON.stringify(catalogueModule)}\nregisterEnglish(${JSON.stringify(more)})\n`
+      }
+
       const file = id.split('?')[0] ?? id
 
       if (dirname(file) !== locales || !file.endsWith('.json')) {
@@ -164,8 +198,33 @@ function catalogueOnlyWhatIsRead(): Plugin {
       }
 
       const catalogue = JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>
+      const read = catalogueRead(catalogue, paths)
 
-      return `${JSON.stringify(catalogueRead(catalogue, paths), null, 1)}\n`
+      if (basename(file) === 'en.json') {
+        for (const key of lazyKeys) {
+          delete read[key]
+        }
+      }
+
+      return `${JSON.stringify(read, null, 1)}\n`
+    },
+    transform(code, id) {
+      const file = (id.split('?')[0] ?? id).split(sep).join('/')
+      const name = relative(src, file).split(sep).join('/')
+      const read = split?.byFile.get(name)
+
+      if (!read || split?.inEntry.has(name)) {
+        return null
+      }
+
+      const wanted = [...new Set(lazyKeys.filter(key => isRead(key, read)).map(groupOf))].sort()
+
+      return wanted.length === 0
+        ? null
+        : {
+            code: `${code}\n${wanted.map(group => `import ${JSON.stringify(`${virtualPrefix}${group}`)}`).join('\n')}\n`,
+            map: null
+          }
     }
   }
 }
