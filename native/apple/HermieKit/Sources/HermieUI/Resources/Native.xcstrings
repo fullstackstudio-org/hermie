@@ -1866,6 +1866,102 @@
         }
       }
     },
+    "native.composer.commandFailed" : {
+      "comment" : "A slash command the gateway refused or could not run; the words are back in the field. The argument is the gateway's error.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Befehl wurde nicht ausgeführt: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The command did not run: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het commando is niet uitgevoerd: %@"
+          }
+        }
+      }
+    },
+    "native.composer.commandRan" : {
+      "comment" : "Announced for VoiceOver after a slash command ran; its answer is in the chat.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Befehl ausgeführt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command ran"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Commando uitgevoerd"
+          }
+        }
+      }
+    },
+    "native.composer.commands.insertHint" : {
+      "comment" : "VoiceOver hint on a line of the command list under the message field: activating it puts the command in the field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fügt den Befehl in die Nachricht ein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puts the command in the message."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zet het commando in het bericht."
+          }
+        }
+      }
+    },
+    "native.composer.commands.skill" : {
+      "comment" : "Small label on a line of the command list that is a skill of the bot rather than a built-in command.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skill"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skill"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skill"
+          }
+        }
+      }
+    },
     "native.composer.failed" : {
       "comment" : "A message that was shown in the chat but did not reach the gateway. The argument is the gateway's error.",
       "extractionState" : "manual",

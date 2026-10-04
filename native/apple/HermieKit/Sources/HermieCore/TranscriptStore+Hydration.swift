@@ -1289,6 +1289,8 @@ extension TranscriptStore {
     }
 
     generations[key, default: 0] += 1
+    slashCatalogs[key] = nil
+    slashCatalogLoads[key] = nil
     // A hydration of the forgotten chat no longer stands for the key: `open`
     // starts a fresh one for whatever comes next.
     opening[key] = nil

@@ -162,6 +162,14 @@
 	<string>Video</string>
 	<key>native.composer.attach.waitingHint</key>
 	<string>Wartet, bis die Anhänge fertig sind</string>
+	<key>native.composer.commandFailed</key>
+	<string>Der Befehl wurde nicht ausgeführt: %@</string>
+	<key>native.composer.commandRan</key>
+	<string>Befehl ausgeführt</string>
+	<key>native.composer.commands.insertHint</key>
+	<string>Fügt den Befehl in die Nachricht ein.</string>
+	<key>native.composer.commands.skill</key>
+	<string>Skill</string>
 	<key>native.composer.failed</key>
 	<string>Die Nachricht wurde nicht gesendet: %@</string>
 	<key>native.composer.opening</key>

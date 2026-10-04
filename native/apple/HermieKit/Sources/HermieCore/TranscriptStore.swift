@@ -193,6 +193,14 @@ public actor TranscriptStore {
   var refetchAgain: Set<String> = []
   /// Event types this build has no typed case for, counted per name (debug builds only).
   var unknownEvents: [String: Int] = [:]
+  /// The gateway's command list per chat (`commands.catalog`), and the load in flight for it
+  /// (`TranscriptStore+Slash.swift`).
+  var slashCatalogs: [String: CachedSlashCatalog] = [:]
+  var slashCatalogLoads: [String: SlashCatalogLoad] = [:]
+  var nextSlashLoadID = 0
+  /// Whether `complete.slash` may be told which session is asking: an older gateway refuses the
+  /// field, and once it has, it is left out for good.
+  var slashSessionParam = true
 
   // MARK: Publishing
 

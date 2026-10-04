@@ -37,14 +37,19 @@ extension TranscriptStore {
 
   /// `send`: answers the id of the item the prompt was painted as, or `nil`
   /// when it was parked behind the running turn.
+  ///
+  /// `display` is for one caller, a slash command's `send` or `skill` directive: its `text` is the
+  /// expansion the model is meant to read, not what the reader typed, and the bubble shows
+  /// `display` (`/docx`) while the gateway is sent the expansion.
   @discardableResult
   public func send(
     _ key: String,
     text: String,
     attachments: [String]? = nil,
-    outgoing: [OutgoingAttachment] = []
+    outgoing: [OutgoingAttachment] = [],
+    display: String? = nil
   ) async throws -> String? {
-    switch try await submit(key, text: text, attachments: attachments, outgoing: outgoing) {
+    switch try await submit(key, text: text, attachments: attachments, outgoing: outgoing, display: display) {
     case .submitted(let itemID): itemID
     case .parked: nil
     }
@@ -77,7 +82,8 @@ extension TranscriptStore {
     attachments: [String]?,
     parkAs: String? = nil,
     follow: Bool = false,
-    outgoing: [OutgoingAttachment] = []
+    outgoing: [OutgoingAttachment] = [],
+    display: String? = nil
   ) async throws -> SendReceipt {
     let author = options.ownAuthor()
     // What the bubble records: the references the gateway's own row will carry. A file is also named
@@ -120,7 +126,7 @@ extension TranscriptStore {
       }
 
       let now = self.now()
-      self.mutateState(key) { beginLocalTurn(into: &$0, body, references, now, author) }
+      self.mutateState(key) { beginLocalTurn(into: &$0, display ?? body, references, now, author) }
       self.chats[key]?.sending += 1
 
       return .painted(itemID: self.chats[key]?.state.order.last, runtimeID: runtimeID)

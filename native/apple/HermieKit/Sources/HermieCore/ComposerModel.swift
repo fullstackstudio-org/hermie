@@ -32,6 +32,8 @@ public enum ComposerNotice: Sendable, Equatable {
   case stopFailed(String)
   /// Something else the gateway refused (a `/new` that failed, a queue action).
   case other(String)
+  /// A slash command the gateway refused or could not run: the words are back in the field.
+  case commandFailed(String)
 }
 
 /// What the composer just did, for a VoiceOver announcement.
@@ -39,6 +41,17 @@ public enum ComposerEvent: Sendable, Equatable {
   case sent
   case queued
   case stopped
+  /// A slash command ran; its answer is in the transcript.
+  case commandRan
+}
+
+/// The keys that steer the completion list while it is open, as a field reports them.
+public enum CompletionKey: Sendable, Equatable {
+  case up
+  case down
+  case tab
+  case enter
+  case escape
 }
 
 public struct ComposerEventEntry: Sendable, Equatable {
@@ -74,8 +87,42 @@ public final class ComposerModel {
       }
 
       scheduleDraftWrite()
+
+      // Typing opens the list; a field set from somewhere else (a stored draft, a prefill, words put
+      // back after a failure) does not.
+      if settingProgrammatically {
+        closeSuggestions()
+      } else {
+        refreshSuggestions()
+      }
     }
   }
+
+  // MARK: Slash completions
+
+  /// What could follow what is typed, while the field holds a command being written: the commands
+  /// whose name matches, or for a command with its name done, what the gateway offers after it.
+  public internal(set) var suggestions: [SlashSuggestion] = []
+  /// The line the arrow keys are on.
+  public internal(set) var selectedSuggestion = 0
+  /// What the command being filled in takes (`/model [model]`), shown under the list.
+  public internal(set) var argumentHint: SlashArgumentHint?
+  /// The list is waiting for an answer and has nothing to show yet.
+  public internal(set) var suggestionsLoading = false
+  /// The gateway method whose refusal left the list empty, for its one line.
+  public internal(set) var suggestionsFailure: String?
+  /// Escape closed the list; it stays closed until the reader types again.
+  public internal(set) var suggestionsDismissed = false
+
+  /// The list is on screen: the field holds a command being written and there is something to say
+  /// about it (matches, a hint, a wait, a refusal), and Escape has not closed it.
+  public var suggestionsOpen: Bool {
+    !suggestionsDismissed
+      && (!suggestions.isEmpty || argumentHint != nil || suggestionsLoading || suggestionsFailure != nil)
+  }
+
+  /// The gateway's command list for this chat, as last fetched (nil until the first slash).
+  public var commands: SlashCatalog? { commandCatalog }
 
   /// What is staged to go with the next message: images read, files uploaded, each a chip.
   /// A send waits for it (`canSubmit`) and takes it out in the same step that clears the draft.
@@ -83,12 +130,12 @@ public final class ComposerModel {
 
   /// Sends whose `prompt.submit` has not answered yet. A second message may
   /// follow before the first is answered: the store queues it behind the turn.
-  public private(set) var sendsInFlight = 0
+  public internal(set) var sendsInFlight = 0
   public var isSending: Bool { sendsInFlight > 0 }
   public private(set) var isStopping = false
-  public private(set) var notice: ComposerNotice?
+  public internal(set) var notice: ComposerNotice?
   /// The last event, with a counter so the same event twice is announced twice.
-  public private(set) var lastEvent: ComposerEventEntry?
+  public internal(set) var lastEvent: ComposerEventEntry?
 
   /// Called once for every message the reader sends from this composer, the moment it is
   /// accepted (before the gateway answers): the chat screen takes its transcript to the bottom on
@@ -101,6 +148,18 @@ public final class ComposerModel {
   @ObservationIgnored private var draftWrite: Task<Void, Never>?
   @ObservationIgnored private var loaded = false
   @ObservationIgnored private var eventSerial = 0
+  // The completion list's working state (`ComposerModel+Slash.swift`).
+  @ObservationIgnored var settingProgrammatically = false
+  @ObservationIgnored var commandCatalog: SlashCatalog?
+  @ObservationIgnored var catalogTask: Task<Void, Never>?
+  @ObservationIgnored var remoteTask: Task<Void, Never>?
+  /// The reader is inside one run of typing a command (from the slash to the line being sent or
+  /// emptied): the list is fetched once per run, and a fetch that failed is not repeated within it.
+  @ObservationIgnored var inSlashRun = false
+  @ObservationIgnored var catalogFailedInRun = false
+  @ObservationIgnored var suggestionSerial = 0
+  /// A send waiting for the command list, so a second Return does not send the line twice.
+  @ObservationIgnored var resolvingCommand = false
 
   /// The composer for `bot` on `session`, its draft kept in the session's
   /// key-value store.
@@ -198,7 +257,7 @@ public final class ComposerModel {
     }
 
     if draft.isEmpty {
-      draft = stored
+      putDraft(stored)
       // Read back, not typed: nothing new to write.
       draftWrite?.cancel()
       draftWrite = nil
@@ -254,8 +313,11 @@ public final class ComposerModel {
 
   /// Send what is in the field, or run the command it holds.
   ///
-  /// `/new`, `/reset` and `/clear` start a new conversation. Anything else goes
-  /// to the bot as written; while a turn runs it is queued behind it.
+  /// `/new`, `/reset` and `/clear` start a new conversation. A line that begins with a slash and
+  /// names a command the gateway has (`/model`, `/status`, a skill) runs it, and its answer lands in
+  /// the transcript; a slash command takes no attachments, they stay staged for the next message.
+  /// Anything else, `/usr/local/bin` or a sentence that happens to begin with a slash, goes to the
+  /// bot as written; while a turn runs it is queued behind it.
   public func submit() async {
     let body = draft
     let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -272,6 +334,18 @@ public final class ComposerModel {
     if tray.isEmpty, let command = Self.conversationCommand(trimmed) {
       await runConversationCommand(command, body: body)
       return
+    }
+
+    if SlashLine.looksLikeCommand(trimmed) {
+      switch await decideCommand(trimmed) {
+      case .command:
+        await runSlashCommand(trimmed, body: body)
+        return
+      case .abandoned:
+        return
+      case .prompt:
+        break
+      }
     }
 
     guard canSend else {
@@ -302,7 +376,7 @@ public final class ComposerModel {
     } catch let error as ChatRuntimeError where error.isNotAttached {
       // Refused before anything was painted: the words go back where they were, and so do the files.
       if draft.isEmpty {
-        draft = body
+        putDraft(body)
       }
 
       if let taken {
@@ -368,7 +442,7 @@ public final class ComposerModel {
       return
     }
 
-    draft = draft.isEmpty ? text : draft + "\n" + text
+    putDraft(draft.isEmpty ? text : draft + "\n" + text)
   }
 
   private func runConversationCommand(_ command: ConversationCommand, body: String) async {
@@ -401,11 +475,11 @@ public final class ComposerModel {
 
   private func restore(_ body: String) {
     if draft.isEmpty {
-      draft = body
+      putDraft(body)
     }
   }
 
-  private func announce(_ event: ComposerEvent) {
+  func announce(_ event: ComposerEvent) {
     eventSerial += 1
     lastEvent = ComposerEventEntry(event: event, serial: eventSerial)
   }

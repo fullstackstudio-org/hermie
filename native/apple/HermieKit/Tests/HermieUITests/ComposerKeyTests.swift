@@ -1,5 +1,6 @@
 #if os(macOS)
   import AppKit
+  import HermieCore
   import Testing
 
   @testable import HermieUI
@@ -79,6 +80,58 @@
       let (view, recorder, window) = makeField()
       view.keyDown(with: try key(76, "\u{3}", in: window))
       #expect(recorder.sends == 1)
+    }
+
+    @Test func theCommandListsKeysGoToTheListWhileItIsOpenAndItUsesThem() throws {
+      let (view, recorder, window) = makeField()
+      var keys: [CompletionKey] = []
+      view.completionKeysActive = true
+      view.onCompletionKey = {
+        keys.append($0)
+        return true
+      }
+
+      view.keyDown(with: try key(126, "\u{F700}", [.function, .numericPad], in: window))
+      view.keyDown(with: try key(125, "\u{F701}", [.function, .numericPad], in: window))
+      view.keyDown(with: try key(48, "\t", in: window))
+
+      #expect(keys == [.up, .down, .tab])
+      #expect(view.string == "hello", "no tab was typed, no caret moved")
+      #expect(recorder.sends == 0)
+    }
+
+    @Test func aKeyTheListDoesNotUseIsTheFieldsOwn() throws {
+      let (view, _, window) = makeField()
+      var asked = 0
+      view.completionKeysActive = true
+      view.onCompletionKey = { _ in
+        asked += 1
+        return false
+      }
+
+      view.keyDown(with: try key(48, "\t", in: window))
+      #expect(asked == 1)
+      #expect(view.string == "hello\t", "unused, the Tab is typed as it always was")
+    }
+
+    @Test func theListsKeysAreTheFieldsWhenNoListIsOpenOrAModifierIsHeld() throws {
+      let (view, _, window) = makeField()
+      var asked = 0
+      view.onCompletionKey = { _ in
+        asked += 1
+        return true
+      }
+
+      // No list: nothing is asked, whatever the key.
+      view.keyDown(with: try key(48, "\t", in: window))
+      #expect(asked == 0)
+      #expect(view.string == "hello\t")
+
+      // A list, but Shift-Tab and Option-Up are the field's (back-tab, caret movement).
+      view.completionKeysActive = true
+      view.keyDown(with: try key(48, "\u{19}", .shift, in: window))
+      view.keyDown(with: try key(126, "\u{F700}", [.option, .function, .numericPad], in: window))
+      #expect(asked == 0)
     }
 
     @Test func escapeGoesToTheComposerAndNeverClearsTheText() throws {

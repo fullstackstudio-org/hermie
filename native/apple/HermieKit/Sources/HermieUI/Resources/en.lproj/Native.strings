@@ -162,6 +162,14 @@
 	<string>Video</string>
 	<key>native.composer.attach.waitingHint</key>
 	<string>Waiting for the attachments to finish</string>
+	<key>native.composer.commandFailed</key>
+	<string>The command did not run: %@</string>
+	<key>native.composer.commandRan</key>
+	<string>Command ran</string>
+	<key>native.composer.commands.insertHint</key>
+	<string>Puts the command in the message.</string>
+	<key>native.composer.commands.skill</key>
+	<string>Skill</string>
 	<key>native.composer.failed</key>
 	<string>The message did not go out: %@</string>
 	<key>native.composer.opening</key>

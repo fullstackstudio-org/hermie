@@ -1,3 +1,4 @@
+import HermieCore
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -47,6 +48,10 @@ enum ComposerFieldMetrics {
 ///   text) commits that text instead.
 /// - The on-screen keyboard's Return types a new line: it is not a key event.
 /// - Esc goes to `onEscape`, which says whether it used it.
+/// - While the command list is open (`completionKeysActive`), Up, Down and Tab go to
+///   `onCompletionKey` first, which says whether the list used them; the field's own handling of
+///   them (the caret moving a line, a tab) is for when it did not. Return and Esc go through
+///   `onSend` and `onEscape` as always, and the composer decides what they mean for the list.
 /// - A paste takes the pasteboard's string as plain text; files and pictures on the pasteboard
 ///   (and no text) go to `onPaste` instead, to be attached.
 /// - The placeholder is the text view's own: drawn by the same layout as the typed text, at the
@@ -66,6 +71,9 @@ struct ComposerTextField {
   let onSend: () -> Void
   let onEscape: () -> Bool
   let onPaste: ([PasteItem]) -> Void
+  /// The command list is open with something to move on: its keys are listened for.
+  let completionKeysActive: Bool
+  let onCompletionKey: (CompletionKey) -> Bool
 
   static let identifier = "composer.field"
 
@@ -137,6 +145,8 @@ struct ComposerTextField {
       view.onSend = { coordinator.parent.onSend() }
       view.onEscape = { coordinator.parent.onEscape() }
       view.onPaste = { coordinator.parent.onPaste($0) }
+      view.completionKeysActive = completionKeysActive
+      view.onCompletionKey = { coordinator.parent.onCompletionKey($0) }
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView view: KeyTextView, context: Context) -> CGSize? {
@@ -181,6 +191,8 @@ struct ComposerTextField {
     var onSend: () -> Void = {}
     var onEscape: () -> Bool = { false }
     var onPaste: ([PasteItem]) -> Void = { _ in }
+    var completionKeysActive = false
+    var onCompletionKey: (CompletionKey) -> Bool = { _ in false }
 
     /// What shows while the field is empty, a label laid out on the text's own first line.
     let placeholderLabel = UILabel()
@@ -276,6 +288,41 @@ struct ComposerTextField {
 
     @objc private func escapePressed() {
       _ = onEscape()
+    }
+
+    // The command list's keys from a hardware keyboard, while it is open: Up, Down and Tab are the
+    // list's when it uses them, and every other press is the text view's.
+    override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+      guard completionKeysActive else {
+        super.pressesBegan(presses, with: event)
+        return
+      }
+
+      var rest = Set<UIPress>()
+
+      for press in presses {
+        if let key = press.key,
+          key.modifierFlags.intersection([.shift, .control, .alternate, .command]).isEmpty,
+          let mapped = Self.completionKey(for: key.keyCode), onCompletionKey(mapped)
+        {
+          continue
+        }
+
+        rest.insert(press)
+      }
+
+      if !rest.isEmpty {
+        super.pressesBegan(rest, with: event)
+      }
+    }
+
+    static func completionKey(for code: UIKeyboardHIDUsage) -> CompletionKey? {
+      switch code {
+      case .keyboardUpArrow: .up
+      case .keyboardDownArrow: .down
+      case .keyboardTab: .tab
+      default: nil
+      }
     }
 
     // Text goes in as plain text; files and pictures with no text go to be attached.
@@ -391,6 +438,8 @@ struct ComposerTextField {
       textView.onEscape = { coordinator.parent.onEscape() }
       textView.onFocusChange = { coordinator.parent.onFocusChange($0) }
       textView.onPaste = { coordinator.parent.onPaste($0) }
+      textView.completionKeysActive = completionKeysActive
+      textView.onCompletionKey = { coordinator.parent.onCompletionKey($0) }
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView scroll: NSScrollView, context: Context) -> CGSize? {
@@ -462,6 +511,8 @@ struct ComposerTextField {
     var onEscape: () -> Bool = { false }
     var onFocusChange: (Bool) -> Void = { _ in }
     var onPaste: ([PasteItem]) -> Void = { _ in }
+    var completionKeysActive = false
+    var onCompletionKey: (CompletionKey) -> Bool = { _ in false }
 
     /// What shows while the field is empty.
     var placeholder = "" {
@@ -526,7 +577,27 @@ struct ComposerTextField {
       drawn.layout.drawGlyphs(forGlyphRange: drawn.layout.glyphRange(for: drawn.container), at: placeholderOrigin)
     }
 
+    /// Up, Down and Tab with no modifier: the keys of the command list.
+    static func completionKey(for event: NSEvent) -> CompletionKey? {
+      guard event.modifierFlags.intersection([.shift, .control, .option, .command]).isEmpty else {
+        return nil
+      }
+
+      switch event.keyCode {
+      case 126: return .up
+      case 125: return .down
+      case 48: return .tab
+      default: return nil
+      }
+    }
+
     override func keyDown(with event: NSEvent) {
+      // The command list first, while it is open. Not while an input method is composing: its
+      // arrows pick a candidate.
+      if completionKeysActive, !hasMarkedText(), let key = Self.completionKey(for: event), onCompletionKey(key) {
+        return
+      }
+
       if Self.returnKeys.contains(event.keyCode), !hasMarkedText() {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
 

@@ -17,6 +17,11 @@ import SwiftUI
 ///
 /// The field keeps its focus after a send.
 ///
+/// While the field holds a command being written (a line that starts with a slash), a list of the
+/// gateway's commands opens above it (`SlashCompletionList`, `ComposerModel`'s `suggestions`): on
+/// the Mac the arrow keys move, Tab or Return take a line and Esc closes it, on iPhone and iPad a
+/// tap takes it.
+///
 /// A "+" at the leading edge adds attachments, as in Messages: on iPhone and iPad a menu (Photo
 /// Library, Camera where there is one, Files), on the Mac the file picker; files can also be
 /// dropped on the composer and pictures or copied files pasted into the field. Each becomes a chip
@@ -63,6 +68,10 @@ public struct ComposerView: View {
 
       if !model.tray.items.isEmpty {
         AttachmentStrip(tray: model.tray)
+      }
+
+      if model.suggestionsOpen {
+        SlashCompletionList(model: model, onAccept: { focusRequest += 1 })
       }
 
       GlassEffectContainer(spacing: 8) {
@@ -123,8 +132,13 @@ public struct ComposerView: View {
       controlHeight: controlHeight,
       focusRequest: focusRequest,
       onFocusChange: { focused = $0 },
-      onSend: { send() },
+      onSend: { returnPressed() },
       onEscape: {
+        // The command list closes first; Esc stops the bot only when no list is open.
+        if model.handle(.escape) {
+          return true
+        }
+
         guard model.running else {
           return false
         }
@@ -134,7 +148,9 @@ public struct ComposerView: View {
       },
       onPaste: { items in
         AttachmentIntake.addPasted(items, to: model.tray)
-      }
+      },
+      completionKeysActive: model.suggestionsOpen && !model.suggestions.isEmpty,
+      onCompletionKey: { model.handle($0) }
     )
     // The placeholder is the text view's own (`ComposerTextField`), drawn on the typed text's first
     // line: no overlay with insets to keep in step with it.
@@ -299,6 +315,16 @@ public struct ComposerView: View {
       .accessibilityHidden(true)
   }
 
+  /// Return from the field: takes the line of the command list the arrow keys are on when there is
+  /// one to take, and sends otherwise.
+  private func returnPressed() {
+    if model.handle(.enter) {
+      return
+    }
+
+    send()
+  }
+
   private func send() {
     guard model.canSubmit else {
       return
@@ -364,6 +390,7 @@ public struct ComposerView: View {
     case .steerRejected: Strings.Chat.Queue.steerRejected
     case .stopFailed(let reason): NativeStrings.Composer.stopFailed(reason)
     case .other(let reason): reason
+    case .commandFailed(let reason): NativeStrings.Composer.commandFailed(reason)
     }
   }
 
@@ -372,6 +399,7 @@ public struct ComposerView: View {
     case .sent: NativeStrings.Composer.sent
     case .queued: NativeStrings.Composer.queued
     case .stopped: NativeStrings.Composer.stopped
+    case .commandRan: NativeStrings.Composer.commandRan
     }
   }
 }
@@ -563,6 +591,30 @@ extension NativeStrings {
         table: "Native",
         bundle: .module
       )
+    }
+    /// The command did not run: {reason}
+    static func commandFailed(_ reason: String) -> String {
+      String(
+        localized: "native.composer.commandFailed",
+        defaultValue: "The command did not run: \(reason)",
+        table: "Native",
+        bundle: .module
+      )
+    }
+    /// Command ran
+    static var commandRan: String {
+      String(localized: "native.composer.commandRan", table: "Native", bundle: .module)
+    }
+    /// The lines of the command list under the field.
+    enum Commands {
+      /// Puts the command in the message.
+      static var insertHint: String {
+        String(localized: "native.composer.commands.insertHint", table: "Native", bundle: .module)
+      }
+      /// Skill
+      static var skill: String {
+        String(localized: "native.composer.commands.skill", table: "Native", bundle: .module)
+      }
     }
     /// Opening the chat…
     static var opening: String {

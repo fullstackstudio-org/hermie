@@ -162,6 +162,14 @@
 	<string>Video</string>
 	<key>native.composer.attach.waitingHint</key>
 	<string>Wacht tot de bijlagen klaar zijn</string>
+	<key>native.composer.commandFailed</key>
+	<string>Het commando is niet uitgevoerd: %@</string>
+	<key>native.composer.commandRan</key>
+	<string>Commando uitgevoerd</string>
+	<key>native.composer.commands.insertHint</key>
+	<string>Zet het commando in het bericht.</string>
+	<key>native.composer.commands.skill</key>
+	<string>Skill</string>
 	<key>native.composer.failed</key>
 	<string>Het bericht is niet verstuurd: %@</string>
 	<key>native.composer.opening</key>

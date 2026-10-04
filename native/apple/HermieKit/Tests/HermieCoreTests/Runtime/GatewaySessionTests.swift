@@ -21,7 +21,8 @@ struct SessionHarness {
     cache: (any ChatCaching)? = nil,
     keyValues: KeyValueStore? = nil,
     reachability: (any Reachability)? = nil,
-    requests: [String]? = nil
+    requests: [String]? = nil,
+    now: (@Sendable () -> Double)? = nil
   ) {
     var options = GatewaySession.Options()
 
@@ -31,7 +32,7 @@ struct SessionHarness {
 
     options.store.clock = clock
     options.store.frames = frames
-    options.store.now = { 1_790_000_000_000 }
+    options.store.now = now ?? { 1_790_000_000_000 }
     options.store.summaryInterval = .zero
     session = GatewaySession(
       gatewayID: "g1",
