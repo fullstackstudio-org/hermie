@@ -319,8 +319,37 @@ the session layer's rules. The composer keeps the draft per gateway and bot in t
 (`hermie.chat.draft.<bot>@<gateway id>`, written 400 ms after typing stops and when the screen goes),
 sends through `TranscriptStore.send` (a send during a turn is parked in the store's queue, which the
 strip shows), stops with `stopTurn`, and routes `/new`, `/reset` and `/clear` to
-`startNewConversation`. Every other line, `/` included, goes to the bot as written until slash
-commands land. A send refused before anything was painted keeps the draft; one that failed after
+`startNewConversation`.
+
+**Slash commands** are the web composer's, on the same gateway methods. While the field holds a
+line that starts with a slash (and has no line break), a list opens above it. The command NAME is
+completed from `commands.catalog`, which the store keeps per chat (`TranscriptStore+Slash.swift`:
+one fetch shared by every keystroke that arrives while it is in the air, believed for five
+minutes, refetched on the next slash after that with the old list shown meanwhile and kept if the
+refetch fails; a failed fetch is never remembered as an empty list) and which `SlashCatalog`
+filters on the device, so the list answers at once. Once the name is done the gateway completes the
+argument (`complete.slash`, whose `replace_from` says how much of the line an item replaces; only
+the newest question may paint), the command's own subcommands (`sub`) are offered at once, and a
+line under the list says what the command takes (the `(usage: …)` the gateway appends to a
+description, or its `argument_mode`). A gateway whose list cannot be read is asked for the
+completions themselves, as the web client always does. On the Mac the arrow keys move, Tab takes
+the line, Return takes it too unless the field already holds that line (`/status` typed in full is
+sent), Esc closes the list until the next keystroke; on iPhone and iPad a tap takes the line. The
+keys are `ComposerModel.handle(_:)`; the text view only hands them over (`ComposerTextField`).
+
+A line that begins with a slash and names a command the catalogue has is RUN: a worker command
+through `slash.exec`, a skill through `command.dispatch` (`slash.exec` refuses one, and a gateway
+that says so is believed over the catalogue), `/status` through `session.status` where the
+catalogue does not list it. The answer is one command row in the transcript (the line typed as its
+title, the whole answer as its body, plain text, shown at `quiet` too). `slash.exec` may also
+return a `command.dispatch` directive: `exec`/`plugin` is output, `alias` is followed once,
+`prefill` hands its text to the field, and `send`/`skill` send the expansion to the bot while the
+bubble shows only the invocation (the expansion is model-facing and never drawn; a skill is refused
+while a turn runs rather than parked in the queue strip). Anything the catalogue does not know,
+`/usr/local/bin` or a sentence that happens to begin with a slash, goes to the bot as written. A
+command typed before the list has arrived waits for it, so it is not sent as prose, and a second
+Return meanwhile does nothing. A command that fails puts its words back in the field and says so.
+A send refused before anything was painted keeps the draft; one that failed after
 the paint leaves the bubble, marked interrupted. The requests model answers approvals with a choice
 the request offered and nothing else, asks `approval.pending` first (an approval the gateway no
 longer lists is closed with a notice instead of answered), answers through `ChatModel` (whose
