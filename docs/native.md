@@ -1575,8 +1575,8 @@ environment. It only follows: which gateway is live is `LiveGateway`'s, who is s
   carries that this build does not draw (other devices' rows, the plugin advert) goes back
   as it came; nothing taken in is treated as this person's own choice. A change made only of chores
   (the roster folded into the order, a lapsed mute swept, a push row) never wins over a section the
-  gateway holds (HERM-191): it is dropped, not sent, and redone on top of what was taken. The settings bridge (`UIMetaSettingsBridge`) is
-  not registered yet: there is no native settings model to bridge to.
+  gateway holds (HERM-191): it is dropped, not sent, and redone on top of what was taken. The settings bridge (`UIMetaSettingsBridge`) carries
+  the account's settings between `AppSettings` and the app section (see Chats and Appearance settings).
 - **Sign-out and removal.** `GatewayAccounts.endSession` is wrapped: before the session ends, the
   surfaces stop publishing for that gateway and, when it is the live gateway, the bridge withdraws
   this installation's row from it (while the credentials still work, waiting at most three
@@ -1908,3 +1908,40 @@ native/apple/scripts/test.sh --integration --filter MCP
 The golden corpus (`contract/transcript/golden/author.json`, `preview.json`) and the gateway vectors
 (`contract/gateway/vectors/author-id.json`) replay in full in `HermieTranscriptTests` and
 `HermieGatewayTests`; `ParityGates.corpusCalls` moved with them.
+
+## Chats and Appearance settings
+
+Settings › Chats and Settings › Appearance (`HermieUI/Settings/ChatsSettingsPage.swift`,
+`AppearanceSettingsPage.swift`) read and write one model, `AppSettings` (`HermieCore/Settings`,
+`AppLaunch.settings`). It holds two halves, and which setting is in which is the decision:
+
+| Setting                                             | Where it lives                                                       | Follows     |
+| --------------------------------------------------- | -------------------------------------------------------------------- | ----------- |
+| Colour scheme (system, light, dark)                 | `hermie.appearance` (the Expo app's blob; its other fields are kept) | the device  |
+| Transcript cache on or off                          | `hermie.transcript.cache` (`"false"` only when off)                  | the device  |
+| Default chat view (verbosity, bot-to-bot, thinking) | the ui_meta app section's `defaults`                                 | the account |
+| Chat text size                                      | the app section's `textSize`                                         | the account |
+| Accent colour (the theme: Blue, Graphite, Lime)     | the app section's `themeChoice` (and `themes`, carried whole)        | the account |
+| Language                                            | the system's per-app language (D20), shown, not stored               | the system  |
+
+The account's half is `SyncedSettings`, the model `UIMetaSettingsBridge` always expected as its
+`SettingsStore`. `GatewayMetaBridge` registers the bridge for the live session; `AppSettings` keeps a
+device-wide mirror (`hermie.settings.synced`, in the shape of the app section) so a launch is right from
+its first frame and offline, and the gateway's copy stays the truth. Gateways are told only what the
+reader changed.
+
+- **Live.** Every window's root applies the scheme and the accent (`appAppearance`, in `MainWindow`,
+  `ChatWindow`, `SettingsWindow` and the Settings sheet); `ChatTranscript` applies the text size
+  (`transcriptTextSize`: the device's Dynamic Type size moved by one step per size, never replaced, so
+  the transcript stays on top of the device's own size and the list measures its rows again). The
+  default chat view reaches the open conversations through `GatewaySession.setDefaultVisibility`:
+  a chat follows it until the reader gives it a view of its own (`ChatModel.hasOwnVisibility`).
+- **Accent.** A preset maps to one tint (D19): Blue is the app's own accent, Graphite and Lime are the
+  Expo app's bubble colours for them. A theme of the reader's own (made in the Expo app) is listed too,
+  and tints with the accent it chose per face. The native app has no editor for them.
+- **Transcript cache.** The session's cache is wrapped in `GatedChatCache` over a `ChatCacheSwitch`:
+  off, nothing is read from it or written to it. Switching it off also clears what is stored
+  (`SQLiteStore.clearAllChatCaches`, every gateway's rosters and transcripts); "Clear Now" does the
+  same. What the open conversations hold in memory is not touched.
+- **Language.** No picker: the page names the language the app is speaking and opens the system's
+  per-app language setting (the app's page in Settings on iPhone and iPad, Language & Region on the Mac).

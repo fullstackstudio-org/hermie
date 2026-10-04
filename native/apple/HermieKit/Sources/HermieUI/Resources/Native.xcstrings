@@ -162,6 +162,121 @@
         }
       }
     },
+    "native.appearance.languageChange" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In den Einstellungen ändern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change in Settings"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wijzig in Instellingen"
+          }
+        }
+      }
+    },
+    "native.appearance.languageChangeMac" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In den Systemeinstellungen ändern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change in System Settings"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wijzig in Systeeminstellingen"
+          }
+        }
+      }
+    },
+    "native.appearance.languageFooter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie verwendet die Sprache, die du dafür in den Systemeinstellungen festlegst, damit jede App ihre eigene haben kann."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie uses the language you set for it in the system settings, so every app can have its own."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie gebruikt de taal die je ervoor instelt in de systeeminstellingen, zodat elke app een eigen taal kan hebben."
+          }
+        }
+      }
+    },
+    "native.appearance.tintFooter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Färbt Schaltflächen, Links und Auswahlen. Es folgt dir auf deine anderen Geräte, auf denen du angemeldet bist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Colours buttons, links and selections. It follows you to your other devices signed in as you."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kleurt knoppen, links en selecties. Het volgt je naar je andere apparaten waarop je bent ingelogd."
+          }
+        }
+      }
+    },
+    "native.appearance.tintHeader" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akzentfarbe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accent colour"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accentkleur"
+          }
+        }
+      }
+    },
     "native.botSettings.about" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1170,6 +1285,236 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Meld je aan bij deze gateway om de chats te zien."
+          }
+        }
+      }
+    },
+    "native.chats.cacheClear" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jetzt löschen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Now"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nu wissen"
+          }
+        }
+      }
+    },
+    "native.chats.cacheCleared" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die gespeicherten Verläufe wurden gelöscht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The stored transcripts were cleared."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De opgeslagen gesprekken zijn gewist."
+          }
+        }
+      }
+    },
+    "native.chats.cacheFailed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die gespeicherten Verläufe konnten nicht gelöscht werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The stored transcripts could not be cleared."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De opgeslagen gesprekken konden niet worden gewist."
+          }
+        }
+      }
+    },
+    "native.chats.cacheFooter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktuelle Gespräche und die Botliste werden hier gespeichert, damit sie sofort öffnen, noch bevor das Gateway geantwortet hat. Ausgeschaltet wird nichts gespeichert, und das Ausschalten löscht das Gespeicherte."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recent conversations and the list of bots are kept here, so they open at once, before the gateway has answered. Switched off, nothing is kept, and switching off clears what is stored."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recente gesprekken en de lijst met bots worden hier bewaard, zodat ze meteen openen, voordat de gateway heeft geantwoord. Uitgezet wordt er niets bewaard, en uitzetten wist wat is opgeslagen."
+          }
+        }
+      }
+    },
+    "native.chats.cacheHeader" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verläufe auf diesem Gerät"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcripts on this device"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesprekken op dit apparaat"
+          }
+        }
+      }
+    },
+    "native.chats.cacheKeep" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verläufe auf diesem Gerät speichern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep transcripts on this device"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesprekken op dit apparaat bewaren"
+          }
+        }
+      }
+    },
+    "native.chats.cacheOff" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verläufe werden nicht mehr auf diesem Gerät gespeichert, und das Gespeicherte wurde gelöscht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcripts are no longer kept on this device, and what was stored is cleared."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesprekken worden niet meer op dit apparaat bewaard, en wat was opgeslagen is gewist."
+          }
+        }
+      }
+    },
+    "native.chats.cacheOn" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verläufe werden wieder auf diesem Gerät gespeichert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcripts are kept on this device again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesprekken worden weer op dit apparaat bewaard."
+          }
+        }
+      }
+    },
+    "native.chats.defaultsFooter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese folgen dir auf deine anderen Geräte, auf denen du angemeldet bist. Ein Gespräch mit eigener Einstellung behält sie."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These follow you to your other devices signed in as you. A conversation with its own setting keeps it."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze volgen je naar je andere apparaten waarop je bent ingelogd. Een gesprek met een eigen instelling houdt die."
+          }
+        }
+      }
+    },
+    "native.chats.defaultsHeader" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was ein neues Gespräch zeigt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What a new conversation shows"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wat een nieuw gesprek toont"
           }
         }
       }

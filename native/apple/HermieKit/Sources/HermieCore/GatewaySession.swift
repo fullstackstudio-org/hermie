@@ -41,6 +41,9 @@ public final class GatewaySession {
     /// the one built-in default, `SyncedSettings.defaultChatView` (`quiet`, no
     /// reasoning; the owner's call, 2026-10-03).
     public var defaultVisibility = SyncedSettings.defaultChatView
+    /// The reader's switch for the chat cache (Settings › Chats): switched off, nothing is read from
+    /// the cache and nothing is written to it. `nil`: the cache is always on.
+    public var cacheSwitch: ChatCacheSwitch?
     public var secureInput = SecureInputCenter.Options()
     public var interactive = InteractiveRequestCenter.Options()
     /// The interactive request methods this device shows, announced to the gateway in the second
@@ -116,7 +119,8 @@ public final class GatewaySession {
   @ObservationIgnored public let roster: BotRoster
   @ObservationIgnored let link: any GatewayLink
   @ObservationIgnored let reachability: (any Reachability)?
-  @ObservationIgnored let defaultVisibility: VisibilityOptions
+  /// What a chat without a view of its own of the reader's shows (`setDefaultVisibility`).
+  @ObservationIgnored private(set) var defaultVisibility: VisibilityOptions
   @ObservationIgnored var models: [String: ChatModel] = [:]
   @ObservationIgnored private var tasks: [Task<Void, Never>] = []
   @ObservationIgnored private var started = false
@@ -165,7 +169,11 @@ public final class GatewaySession {
     reachability: (any Reachability)? = nil,
     options: Options = Options()
   ) throws {
-    let cache = database.map { SQLiteChatCache(store: $0, gatewayId: record.id) }
+    let cache = database.map { store -> any ChatCaching in
+      let cache = SQLiteChatCache(store: store, gatewayId: record.id)
+
+      return options.cacheSwitch.map { GatedChatCache(cache, gate: $0) } ?? cache
+    }
     let keyValues = database.map { KeyValueStore(store: $0) }
     let source = options.passkey.map { _ in ConfirmCapabilitySource() }
     var connectionOptions = options.connection
@@ -442,6 +450,23 @@ public final class GatewaySession {
     sink.yield(.observe(name, model.visibility))
 
     return model
+  }
+
+  /**
+   The reader changed the default view (Settings › Chats). Every chat that has not been given a
+   view of its own follows it at once; one that has keeps it, and so does a chat opened later
+   until the reader changes it there.
+   */
+  public func setDefaultVisibility(_ options: VisibilityOptions) {
+    guard options != defaultVisibility else {
+      return
+    }
+
+    defaultVisibility = options
+
+    for model in models.values {
+      model.followDefault(options)
+    }
   }
 
   /// The screen is gone for good: the chat stays live, but its transcript is no

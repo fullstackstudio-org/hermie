@@ -309,6 +309,7 @@ public final class LiveWiring {
       gatewayKey: entry.key,
       installation: installation,
       push: launch.push,
+      settings: launch.settings,
       persistence: KeyValueUIMetaPersistence(store: launch.keyValues, namespace: GatewayNamespace(session.gatewayID)),
       debounce: metaDebounce
     )

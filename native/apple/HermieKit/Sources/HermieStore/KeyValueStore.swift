@@ -47,6 +47,16 @@ public enum StoreKeys {
   /// Light or dark. Device-wide.
   public static let appearance = "hermie.appearance"
   public static let language = "hermie.language"
+  /// Whether this device keeps the transcripts it has read: `"false"` when the reader switched it
+  /// off, absent when it is on (only the departure from the default is stored). Device-wide.
+  public static let transcriptCache = "hermie.transcript.cache"
+  /**
+   The settings that follow the account (`SyncedSettings`), as this device last held them, in the
+   shape of the ui_meta app section's fields. A device-wide mirror, so the text size and the theme are
+   right from the first frame, before any gateway has answered, and without one. The gateway's copy
+   stays the truth (`UIMetaSettingsBridge`).
+   */
+  public static let syncedSettings = "hermie.settings.synced"
   public static let voice = "hermie.voice"
   /// The reader's context switches. Device-wide.
   public static let context = "hermie.context"

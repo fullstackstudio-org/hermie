@@ -91,6 +91,27 @@ public struct SyncedSettings: Sendable, Hashable {
     self.userThemes = userThemes
   }
 
+  /// The default chat view as the app section carries it.
+  public var defaultsJSON: JSONValue {
+    [
+      "level": .string(defaults.level.rawValue),
+      "showBotToBot": .bool(defaults.showBotToBot),
+      "showThinking": .bool(defaults.showThinking)
+    ]
+  }
+
+  /// Every field as an app section carries it: what a device keeps of these settings, and what
+  /// `SyncedSettingsPatch(app:)` reads back.
+  public var appFields: JSONObject {
+    [
+      UIMetaField.defaults: defaultsJSON,
+      UIMetaField.botNameOrder: .string(botNameOrder.rawValue),
+      UIMetaField.textSize: .string(textSize.rawValue),
+      UIMetaField.themeChoice: themeChoice.jsonValue,
+      UIMetaField.themes: .array(userThemes.map(JSONValue.object))
+    ]
+  }
+
   /// `DEFAULT_CHAT_VIEW`.
   public static let defaultChatView = VisibilityOptions(level: .quiet, showBotToBot: true, showThinking: false)
 }
@@ -371,11 +392,7 @@ public actor UIMetaSettingsBridge: UIMetaContributor {
   /// Write each field of `settings` that differs from `held`; leave the rest raw.
   private static func write(_ settings: SyncedSettings, into app: inout JSONObject, over held: SyncedSettingsPatch) {
     if held.defaults != settings.defaults {
-      app[UIMetaField.defaults] = [
-        "level": .string(settings.defaults.level.rawValue),
-        "showBotToBot": .bool(settings.defaults.showBotToBot),
-        "showThinking": .bool(settings.defaults.showThinking)
-      ]
+      app[UIMetaField.defaults] = settings.defaultsJSON
     }
 
     if held.botNameOrder != settings.botNameOrder {

@@ -1,28 +1,18 @@
 import HermieCore
 import SwiftUI
 
-/// Settings, Chats: the entry that finds the live gateway's session.
+/// Settings, Chats: the entry that finds the live gateway's session. The page works without one (the
+/// defaults and the cache are the device's and the account's, not a gateway's); only the folders need it.
 struct ChatListSettingsEntry: View {
   @Environment(LiveGateway.self) private var live: LiveGateway?
 
   var body: some View {
-    if let session = live?.session {
-      ChatListSettingsPage(session: session)
-    } else {
-      Form {
-        Section {
-          Text(NativeStrings.ChatList.settingsNoGateway)
-            .foregroundStyle(Color.primary)
-        }
-      }
-      .formStyle(.grouped)
-      .accessibilityIdentifier("hermie.settings.chats")
-    }
+    ChatsSettingsPage(session: live?.session)
   }
 }
 
 /**
- Settings, Chats: the person's folders and where each chat is. It edits the same `ui_meta`
+ Settings, Chats, the folders half: the person's folders and where each chat is. It edits the same `ui_meta`
  arrangement as the chat list's own menus and as the web client's Settings, Chat list, so what is
  done here follows the person to their other devices.
 
@@ -30,7 +20,7 @@ struct ChatListSettingsEntry: View {
  the folder's place); every chat has a menu with the folder it is in. Everything is a button or a
  menu, so it is as reachable by keyboard and VoiceOver as by touch; the chat list adds the drags.
  */
-struct ChatListSettingsPage: View {
+struct ChatListFolderSections: View {
   let session: GatewaySession
 
   @State private var naming: FolderNaming?
@@ -41,7 +31,9 @@ struct ChatListSettingsPage: View {
     let roster = session.chatList.names
     let chats = chatNames(arrangement.arrangement, roster: roster)
 
-    Form {
+    // Sections of the Chats page's own form, below the defaults and the cache. Only these are
+    // disabled while the arrangement cannot be edited: the defaults and the cache never wait for a gateway.
+    Group {
       Section {
         Text(NativeStrings.ChatList.settingsIntro)
           .foregroundStyle(Color.primary)
@@ -76,7 +68,6 @@ struct ChatListSettingsPage: View {
         }
       }
     }
-    .formStyle(.grouped)
     .disabled(!arrangement.canEdit)
     .folderNameAlert($naming) { request, name in
       switch request {
@@ -86,7 +77,6 @@ struct ChatListSettingsPage: View {
         arrangement.renameFolder(folder, to: name)
       }
     }
-    .accessibilityIdentifier("hermie.settings.chats")
   }
 
   /// Every chat of the gateway, in the order the list draws them, the archived ones last.

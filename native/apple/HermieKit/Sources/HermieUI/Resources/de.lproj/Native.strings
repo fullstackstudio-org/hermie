@@ -16,6 +16,16 @@
 	<string>Von diesem Gateway abmelden? Die Adresse bleibt erhalten, und du kannst dich jederzeit wieder anmelden.</string>
 	<key>native.account.userId</key>
 	<string>Benutzer-ID</string>
+	<key>native.appearance.languageChange</key>
+	<string>In den Einstellungen ändern</string>
+	<key>native.appearance.languageChangeMac</key>
+	<string>In den Systemeinstellungen ändern</string>
+	<key>native.appearance.languageFooter</key>
+	<string>Hermie verwendet die Sprache, die du dafür in den Systemeinstellungen festlegst, damit jede App ihre eigene haben kann.</string>
+	<key>native.appearance.tintFooter</key>
+	<string>Färbt Schaltflächen, Links und Auswahlen. Es folgt dir auf deine anderen Geräte, auf denen du angemeldet bist.</string>
+	<key>native.appearance.tintHeader</key>
+	<string>Akzentfarbe</string>
 	<key>native.botSettings.about</key>
 	<string>Über diesen Bot</string>
 	<key>native.botSettings.chatList</key>
@@ -104,6 +114,26 @@
 	<string>Verbinde dich mit einem Gateway, um seine Chats anzuordnen.</string>
 	<key>native.chatList.signedOut</key>
 	<string>Melde dich bei diesem Gateway an, um seine Chats zu sehen.</string>
+	<key>native.chats.cacheClear</key>
+	<string>Jetzt löschen</string>
+	<key>native.chats.cacheCleared</key>
+	<string>Die gespeicherten Verläufe wurden gelöscht.</string>
+	<key>native.chats.cacheFailed</key>
+	<string>Die gespeicherten Verläufe konnten nicht gelöscht werden.</string>
+	<key>native.chats.cacheFooter</key>
+	<string>Aktuelle Gespräche und die Botliste werden hier gespeichert, damit sie sofort öffnen, noch bevor das Gateway geantwortet hat. Ausgeschaltet wird nichts gespeichert, und das Ausschalten löscht das Gespeicherte.</string>
+	<key>native.chats.cacheHeader</key>
+	<string>Verläufe auf diesem Gerät</string>
+	<key>native.chats.cacheKeep</key>
+	<string>Verläufe auf diesem Gerät speichern</string>
+	<key>native.chats.cacheOff</key>
+	<string>Verläufe werden nicht mehr auf diesem Gerät gespeichert, und das Gespeicherte wurde gelöscht.</string>
+	<key>native.chats.cacheOn</key>
+	<string>Verläufe werden wieder auf diesem Gerät gespeichert.</string>
+	<key>native.chats.defaultsFooter</key>
+	<string>Diese folgen dir auf deine anderen Geräte, auf denen du angemeldet bist. Ein Gespräch mit eigener Einstellung behält sie.</string>
+	<key>native.chats.defaultsHeader</key>
+	<string>Was ein neues Gespräch zeigt</string>
 	<key>native.commands.addGateway</key>
 	<string>Gateway hinzufügen…</string>
 	<key>native.commands.chatMenu</key>

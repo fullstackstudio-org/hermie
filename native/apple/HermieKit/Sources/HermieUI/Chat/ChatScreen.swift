@@ -278,6 +278,8 @@ struct ChatSessionView<Composer: View>: View {
 /// The transcript itself: the only part of the screen that changes with every streamed delta.
 struct ChatTranscript: View {
   let feed: ChatFeed
+  /// The reader's text size for conversations (Settings › Appearance); none without a launch (a preview).
+  @Environment(AppLaunch.self) private var launch: AppLaunch?
 
   /// None between rows: each row carries the room above itself (`TranscriptItemView.Gaps`), so a
   /// row that draws nothing takes none.
@@ -296,6 +298,7 @@ struct ChatTranscript: View {
       JumpToLatestPill(state: state, newCount: feed.newCount)
     }
     .environment(\.transcriptTailInset, ChatSpacing.transcriptTail)
+    .transcriptTextSize(launch?.settings.synced.textSize ?? .standard)
     .overlay {
       ChatEmptyOverlay(feed: feed)
     }

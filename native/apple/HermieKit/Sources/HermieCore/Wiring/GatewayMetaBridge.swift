@@ -34,10 +34,16 @@ public final class GatewayMetaBridge {
   private var reconciling: Task<Void, Never>?
   private var again = false
   private var user: String?
+  private let settings: AppSettings?
+  /// The settings bridge (the sync holds its contributors weakly) and the tasks that feed it.
+  private var settingsBridge: UIMetaSettingsBridge?
+  private var settingsTasks: [Task<Void, Never>] = []
 
   /// - Parameters:
   ///   - gatewayKey: the gateway's link key, written into the push row.
   ///   - installation: this installation's id (`PushInstallation`).
+  ///   - settings: the device's settings, bridged to this gateway's app section and followed by the
+  ///     session's default chat view; nil leaves them out.
   ///   - persistence: where the device's copy survives a relaunch; nil keeps it in memory.
   ///   - debounce: how long edits wait before they are sent (`UIMetaSync.Options.debounce`).
   public init(
@@ -45,6 +51,7 @@ public final class GatewayMetaBridge {
     gatewayKey: String,
     installation: String,
     push: PushController,
+    settings: AppSettings? = nil,
     persistence: (any UIMetaPersistence)?,
     debounce: Duration? = .milliseconds(600)
   ) {
@@ -57,6 +64,7 @@ public final class GatewayMetaBridge {
     self.sync = sync
     self.gatewayID = session.gatewayID
     self.session = session
+    self.settings = settings
     self.writer = PushRowWriter(
       sync: sync,
       gatewayId: session.gatewayID,
@@ -80,6 +88,7 @@ public final class GatewayMetaBridge {
     }
 
     session.arrangement.attach(sync)
+    followSettings(session)
 
     session.onSessionsChanged = { [weak self] in
       self?.reconcileSoon()
@@ -106,6 +115,13 @@ public final class GatewayMetaBridge {
     following = nil
     writer.stop()
     session?.arrangement.detach(sync)
+
+    for task in settingsTasks {
+      task.cancel()
+    }
+
+    settingsTasks = []
+    settingsBridge = nil
 
     if let session, session.onSessionsChanged != nil {
       session.onSessionsChanged = nil
@@ -188,6 +204,46 @@ public final class GatewayMetaBridge {
     }
 
     await sync.settle()
+  }
+
+  /**
+   The device's settings and this gateway's app section: the settings bridge carries the account's
+   fields (the default chat view, the name order, the text size, the theme) both ways, and the
+   session's default chat view follows the model.
+   */
+  private func followSettings(_ session: GatewaySession) {
+    guard let settings, settingsBridge == nil else {
+      return
+    }
+
+    let bridge = UIMetaSettingsBridge(store: settings, sync: sync)
+    settingsBridge = bridge
+
+    let changes = Observations { settings.synced }
+    let defaults = Observations { settings.synced.defaults }
+
+    settingsTasks = [
+      Task {
+        await bridge.start()
+
+        for await _ in changes {
+          guard !Task.isCancelled else {
+            return
+          }
+
+          await bridge.settingsDidChange()
+        }
+      },
+      Task { [weak session] in
+        for await options in defaults {
+          guard !Task.isCancelled else {
+            return
+          }
+
+          session?.setDefaultVisibility(options)
+        }
+      }
+    ]
   }
 
   private func follow(_ next: ReadyUser) {

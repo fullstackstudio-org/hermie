@@ -16,6 +16,16 @@
 	<string>Afmelden bij deze gateway? Het adres blijft bewaard en je kunt je altijd opnieuw aanmelden.</string>
 	<key>native.account.userId</key>
 	<string>Gebruikers-ID</string>
+	<key>native.appearance.languageChange</key>
+	<string>Wijzig in Instellingen</string>
+	<key>native.appearance.languageChangeMac</key>
+	<string>Wijzig in Systeeminstellingen</string>
+	<key>native.appearance.languageFooter</key>
+	<string>Hermie gebruikt de taal die je ervoor instelt in de systeeminstellingen, zodat elke app een eigen taal kan hebben.</string>
+	<key>native.appearance.tintFooter</key>
+	<string>Kleurt knoppen, links en selecties. Het volgt je naar je andere apparaten waarop je bent ingelogd.</string>
+	<key>native.appearance.tintHeader</key>
+	<string>Accentkleur</string>
 	<key>native.botSettings.about</key>
 	<string>Over deze bot</string>
 	<key>native.botSettings.chatList</key>
@@ -104,6 +114,26 @@
 	<string>Verbind met een gateway om de chats ervan te ordenen.</string>
 	<key>native.chatList.signedOut</key>
 	<string>Meld je aan bij deze gateway om de chats te zien.</string>
+	<key>native.chats.cacheClear</key>
+	<string>Nu wissen</string>
+	<key>native.chats.cacheCleared</key>
+	<string>De opgeslagen gesprekken zijn gewist.</string>
+	<key>native.chats.cacheFailed</key>
+	<string>De opgeslagen gesprekken konden niet worden gewist.</string>
+	<key>native.chats.cacheFooter</key>
+	<string>Recente gesprekken en de lijst met bots worden hier bewaard, zodat ze meteen openen, voordat de gateway heeft geantwoord. Uitgezet wordt er niets bewaard, en uitzetten wist wat is opgeslagen.</string>
+	<key>native.chats.cacheHeader</key>
+	<string>Gesprekken op dit apparaat</string>
+	<key>native.chats.cacheKeep</key>
+	<string>Gesprekken op dit apparaat bewaren</string>
+	<key>native.chats.cacheOff</key>
+	<string>Gesprekken worden niet meer op dit apparaat bewaard, en wat was opgeslagen is gewist.</string>
+	<key>native.chats.cacheOn</key>
+	<string>Gesprekken worden weer op dit apparaat bewaard.</string>
+	<key>native.chats.defaultsFooter</key>
+	<string>Deze volgen je naar je andere apparaten waarop je bent ingelogd. Een gesprek met een eigen instelling houdt die.</string>
+	<key>native.chats.defaultsHeader</key>
+	<string>Wat een nieuw gesprek toont</string>
 	<key>native.commands.addGateway</key>
 	<string>Gateway toevoegen…</string>
 	<key>native.commands.chatMenu</key>

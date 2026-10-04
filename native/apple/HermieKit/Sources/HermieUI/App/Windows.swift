@@ -51,6 +51,7 @@ public struct MainWindow: View {
     LockGate {
       RootView()
     }
+    .appAppearance(launch.settings)
     .environment(router)
     .modifier(TestProbes(launch: launch))
     .focusedSceneValue(\.appRouter, router)
@@ -190,6 +191,7 @@ public struct ChatWindow: View {
         }
       }
     }
+    .appAppearance(launch.settings)
     .modifier(TestProbes(launch: launch))
     .privacyCover(launch.lock)
     .task {
@@ -260,6 +262,7 @@ private struct TestProbes: ViewModifier {
           openWindow(id: ShellScene.main)
         })
       }
+      .appAppearance(launch.settings)
       .privacyCover(launch.lock)
       .frame(minWidth: 640, minHeight: 440)
       .task {

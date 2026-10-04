@@ -152,6 +152,9 @@ public final class AppLaunch {
   public let iCloudSync: ICloudSyncModel
   /// Push notifications: the switch, the permission and the relay registrations.
   public let push: PushController
+  /// The reader's settings: the colour scheme, the transcript cache, and the ones that follow the
+  /// account (the default chat view, the text size, the theme).
+  public let settings: AppSettings
   /// Passkeys for every session the live gateway builds (`GatewaySession.Options.passkey`). Set once
   /// by the app shell's wiring (`PasskeySetup.live`) before the first session; `nil` in tests,
   /// previews and anything else that does not set it: no `confirm` level is announced.
@@ -216,6 +219,7 @@ public final class AppLaunch {
       store: GatewayRegistryStore(store: store), changes: KeyValueStore(store: store), remover: sync)
     self.gateways = directory
     self.iCloudSync = ICloudSyncModel(engine: sync, directory: directory)
+    self.settings = AppSettings(keyValues: KeyValueStore(store: store), store: store)
     self.push = PushController(
       system: pushSystem ?? InertPushSystem(),
       registrar: PushRegistrar(
@@ -263,6 +267,7 @@ public final class AppLaunch {
     #endif
 
     await lock.hydrate()
+    await settings.hydrate()
 
     if lock.settingNeedsAttention, !notices.contains(.lockSettingNotRestored) {
       notices.append(.lockSettingNotRestored)

@@ -245,9 +245,25 @@ public final class ChatModel {
     self.observe = observe
   }
 
-  /// Show the transcript at other verbosity options; the next frame carries it.
+  /// Whether the reader gave this chat a view of its own. Until then it follows the default.
+  @ObservationIgnored public private(set) var hasOwnVisibility = false
+
+  /// Show the transcript at other verbosity options; the next frame carries it. The chat has a view
+  /// of its own from now on, and the default no longer moves it.
   public func setVisibility(_ options: VisibilityOptions) {
+    hasOwnVisibility = true
+
     guard options != visibility else {
+      return
+    }
+
+    visibility = options
+    observe(key, options)
+  }
+
+  /// The default view changed: a chat that has none of its own shows it.
+  func followDefault(_ options: VisibilityOptions) {
+    guard !hasOwnVisibility, options != visibility else {
       return
     }
 

@@ -87,9 +87,8 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
  Settings: the category list and one page per category. A sheet with a stack on iPhone and iPad,
  the `Settings` window with a sidebar on the Mac.
 
- Implemented: Account, Privacy (the app lock), Gateways, MCP, Chats (the folders), Notifications and About. Every other category is
- a placeholder
- page until its task lands.
+ Implemented: Account, Privacy (the app lock), Gateways, MCP, Chats (the defaults, the cache and the folders),
+ Notifications, Appearance and About. Every other category is a placeholder page until its task lands.
  */
 public struct SettingsView: View {
   private let onAddGateway: @MainActor () -> Void
@@ -134,6 +133,7 @@ public struct SettingsView: View {
       // The toggle button the system draws at the top of the sidebar is gone. The sidebar still
       // collapses: View > Hide Sidebar (Control-Command-S) and dragging the divider, and the state is kept.
       .toolbar(removing: .sidebarToggle)
+      .appAppearance(launch.settings)
       .accessibilityIdentifier("hermie.settings")
       .onChange(of: ShellRequests.shared.settingsCategory, initial: true) { _, requested in
         if let requested {
@@ -158,6 +158,7 @@ public struct SettingsView: View {
           }
         }
       }
+      .appAppearance(launch.settings)
       .accessibilityIdentifier("hermie.settings")
       .onChange(of: ShellRequests.shared.settingsCategory, initial: true) { _, requested in
         if let requested {
@@ -232,10 +233,12 @@ struct SettingsPage: View {
         PasskeysSettingsEntry()
       case .mcp:
         MCPSettingsEntry()
-      case .notifications:
-        NotificationsSettingsPage()
       case .chats:
         ChatListSettingsEntry()
+      case .notifications:
+        NotificationsSettingsPage()
+      case .appearance:
+        AppearanceSettingsPage()
       case .about:
         AboutSettingsPage()
       case .advanced:

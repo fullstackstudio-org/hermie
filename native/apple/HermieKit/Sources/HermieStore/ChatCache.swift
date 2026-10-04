@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 
 /**
  One bot's cached transcript: the last items as opaque JSON, and where the stream had got to.
@@ -250,5 +251,90 @@ public actor FallbackChatCache: ChatCaching {
 
   public func clear() async throws {
     try await run { try await $0.clear() }
+  }
+}
+
+/**
+ The reader's switch for the transcript cache, readable from any thread. On unless the reader
+ turned it off (`AppSettings.transcriptCache`).
+ */
+public final class ChatCacheSwitch: Sendable {
+  private let state: Mutex<Bool>
+
+  public init(enabled: Bool = true) {
+    state = Mutex(enabled)
+  }
+
+  public var isEnabled: Bool {
+    get { state.withLock { $0 } }
+    set { state.withLock { $0 = newValue } }
+  }
+}
+
+/**
+ A cache the reader can switch off. Switched off, nothing is read from the inner cache and nothing
+ is written to it: a chat opens from the gateway alone and no copy is kept. `forget` and `clear`
+ pass through either way, so what a removal or a "clear now" asks for always happens.
+
+ As `GatedChatCache` in the web client's `platform/chat-cache.ts`.
+ */
+public struct GatedChatCache: ChatCaching {
+  public let inner: any ChatCaching
+  public let gate: ChatCacheSwitch
+
+  public init(_ inner: any ChatCaching, gate: ChatCacheSwitch) {
+    self.inner = inner
+    self.gate = gate
+  }
+
+  public func read(bot: String) async throws -> CachedTranscript? {
+    guard gate.isEnabled else {
+      return nil
+    }
+
+    return try await inner.read(bot: bot)
+  }
+
+  public func write(_ snapshot: CachedTranscript) async throws {
+    guard gate.isEnabled else {
+      return
+    }
+
+    try await inner.write(snapshot)
+  }
+
+  public func forget(bot: String) async throws {
+    try await inner.forget(bot: bot)
+  }
+
+  public func readBots() async throws -> [CachedBot] {
+    guard gate.isEnabled else {
+      return []
+    }
+
+    return try await inner.readBots()
+  }
+
+  public func writeBots(_ rows: [CachedBot]) async throws {
+    guard gate.isEnabled else {
+      return
+    }
+
+    try await inner.writeBots(rows)
+  }
+
+  public func clear() async throws {
+    try await inner.clear()
+  }
+}
+
+extension SQLiteStore {
+  /// Everything cached for every gateway: the rosters and the transcripts. What the registry keeps
+  /// (the gateways, the settings) is not touched.
+  public func clearAllChatCaches() throws {
+    try write { database in
+      try database.execute("DELETE FROM transcripts")
+      try database.execute("DELETE FROM bots")
+    }
   }
 }

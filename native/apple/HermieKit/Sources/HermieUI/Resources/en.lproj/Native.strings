@@ -16,6 +16,16 @@
 	<string>Sign out of this gateway? Its address stays, and you can sign in again at any time.</string>
 	<key>native.account.userId</key>
 	<string>User ID</string>
+	<key>native.appearance.languageChange</key>
+	<string>Change in Settings</string>
+	<key>native.appearance.languageChangeMac</key>
+	<string>Change in System Settings</string>
+	<key>native.appearance.languageFooter</key>
+	<string>Hermie uses the language you set for it in the system settings, so every app can have its own.</string>
+	<key>native.appearance.tintFooter</key>
+	<string>Colours buttons, links and selections. It follows you to your other devices signed in as you.</string>
+	<key>native.appearance.tintHeader</key>
+	<string>Accent colour</string>
 	<key>native.botSettings.about</key>
 	<string>About this bot</string>
 	<key>native.botSettings.chatList</key>
@@ -104,6 +114,26 @@
 	<string>Connect to a gateway to arrange its chats.</string>
 	<key>native.chatList.signedOut</key>
 	<string>Sign in to this gateway to see its chats.</string>
+	<key>native.chats.cacheClear</key>
+	<string>Clear Now</string>
+	<key>native.chats.cacheCleared</key>
+	<string>The stored transcripts were cleared.</string>
+	<key>native.chats.cacheFailed</key>
+	<string>The stored transcripts could not be cleared.</string>
+	<key>native.chats.cacheFooter</key>
+	<string>Recent conversations and the list of bots are kept here, so they open at once, before the gateway has answered. Switched off, nothing is kept, and switching off clears what is stored.</string>
+	<key>native.chats.cacheHeader</key>
+	<string>Transcripts on this device</string>
+	<key>native.chats.cacheKeep</key>
+	<string>Keep transcripts on this device</string>
+	<key>native.chats.cacheOff</key>
+	<string>Transcripts are no longer kept on this device, and what was stored is cleared.</string>
+	<key>native.chats.cacheOn</key>
+	<string>Transcripts are kept on this device again.</string>
+	<key>native.chats.defaultsFooter</key>
+	<string>These follow you to your other devices signed in as you. A conversation with its own setting keeps it.</string>
+	<key>native.chats.defaultsHeader</key>
+	<string>What a new conversation shows</string>
 	<key>native.commands.addGateway</key>
 	<string>Add Gateway…</string>
 	<key>native.commands.chatMenu</key>
