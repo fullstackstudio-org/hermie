@@ -2,6 +2,7 @@ import Foundation
 import HermieGateway
 import HermieProtocol
 import HermieTranscript
+import Synchronization
 import Testing
 
 @testable import HermieCore
@@ -42,6 +43,8 @@ private func answerEverything(_ link: ScriptedLink) {
   }
 
   link.respond(to: RPC.SessionTitle.name) { params in ["title": params["title"] ?? .null] }
+  // Nothing is live but the chat itself.
+  link.respond(to: RPC.SessionActiveList.name, with: ["sessions": []])
 }
 
 @Suite(.timeLimit(.minutes(1))) struct ConversationServiceTests {
@@ -148,6 +151,63 @@ private func answerEverything(_ link: ScriptedLink) {
     await harness.shutdown()
   }
 
+  // MARK: A session another client has live is not this client's to end
+
+  /// The gateway lists the session as live under any of the names it goes by, or cannot say.
+  @Test(arguments: [
+    ["id": "rt-2"], ["id": "other", "session_key": "stored-2"], ["id": "stored-2"], ["id": "tip-2"]
+  ] as [JSONObject])
+  func aConversationLiveElsewhereIsRenamedAndLeftRunning(_ live: JSONObject) async throws {
+    let (harness, service) = try await opened()
+    answerEverything(harness.link)
+    harness.link.respond(to: RPC.SessionActiveList.name, with: ["sessions": [.object(live)]])
+    let conversation = Conversation(id: "stored-2", resolvedID: "tip-2", title: "Trip planning", kind: .past)
+
+    _ = try await service.rename(bot: bot, conversation: conversation, title: "Lisbon trip")
+
+    #expect(harness.link.calls(RPC.SessionTitle.name).last?.params["session_id"] == "rt-2")
+    #expect(harness.link.calls(RPC.SessionClose.name).isEmpty, "another client may rely on it")
+    await harness.shutdown()
+  }
+
+  @Test func aGatewayThatCannotListItsLiveSessionsLeavesWhatItResumedRunning() async throws {
+    let (harness, service) = try await opened()
+    answerEverything(harness.link)
+    harness.link.respond(to: RPC.SessionActiveList.name, with: [:])
+
+    _ = try await service.rename(bot: bot, conversation: past(), title: "Lisbon trip")
+
+    #expect(harness.link.calls(RPC.SessionClose.name).isEmpty, "cannot tell: not closed")
+    await harness.shutdown()
+  }
+
+  @Test func aSessionThatIsLiveOnlyBecauseThisClientResumedItIsPutAway() async throws {
+    let (harness, service) = try await opened()
+    answerEverything(harness.link)
+    // Another conversation is live; this one is not.
+    harness.link.respond(to: RPC.SessionActiveList.name, with: ["sessions": [["id": "rt-7", "session_key": "stored-7"]]])
+
+    _ = try await service.rename(bot: bot, conversation: past(), title: "Lisbon trip")
+
+    #expect(harness.link.calls(RPC.SessionClose.name).map { $0.params["session_id"] } == ["rt-2"])
+    await harness.shutdown()
+  }
+
+  @Test func aTranscriptReadOverRPCLeavesALiveSessionRunning() async throws {
+    let (harness, service) = try await opened()
+    answerEverything(harness.link)
+    harness.link.setREST { _, _ in nil }
+    harness.link.respond(to: RPC.SessionActiveList.name, with: ["sessions": [["id": "rt-2"]]])
+    harness.link.respond(to: RPC.SessionHistory.name, with: ["count": 2, "messages": .array(Fixture.rows(2))])
+
+    let page = try await service.transcript(bot: bot, conversation: past(), window: MessageWindow(limit: 200))
+    try await Task.sleep(for: .milliseconds(50))
+
+    #expect(page.rows.count == 2)
+    #expect(harness.link.calls(RPC.SessionClose.name).isEmpty)
+    await harness.shutdown()
+  }
+
   // MARK: Delete
 
   @Test func deleteTakesTheStoredIDAndTheProfile() async throws {
@@ -187,7 +247,7 @@ private func answerEverything(_ link: ScriptedLink) {
       "session.title rt-1 retired",
       "session.title rt-2 Bot Chat",
       "session.set_hidden rt-2 hidden=true",
-      "session.close rt-1",
+      // The conversation put away is not closed: another client may have it attached.
       // The chat opens on the new conversation.
       "session.resume stored-2"
     ])
@@ -356,6 +416,69 @@ private func answerEverything(_ link: ScriptedLink) {
 
     #expect(harness.link.calls(RPC.SessionCreate.name).first?.params["parent_session_id"] == .string(Fixture.stored))
     #expect(await harness.state().storedSessionID == "stored-9")
+    await harness.shutdown()
+  }
+
+  /// The stamp counts minutes: two new conversations in one minute meet the first one's name.
+  @Test func twoNewConversationsInOneMinuteDoNotMeetTheSameRetiredName() async throws {
+    let (harness, service) = try await opened()
+    answerEverything(harness.link)
+    let counter = Mutex(8)
+    harness.link.respond(to: RPC.SessionCreate.name) { _ in
+      let n = counter.withLock { value -> Int in
+        value += 1
+        return value
+      }
+
+      return ["session_id": .string("rt-\(n)"), "stored_session_id": .string("stored-\(n)")]
+    }
+    // A gateway that lets each title be worn once, except the Bot Chat's own, which the retire frees.
+    let worn = Mutex<Set<String>>([])
+    harness.link.refuse(RPC.SessionTitle.name) { params in
+      let title = params["title"]?.stringValue ?? ""
+
+      guard title != ChatResolver.canonicalTitle, !worn.withLock({ $0.insert(title).inserted }) else {
+        return nil
+      }
+
+      return GatewayRPCError(.rejected, "Title '\(title)' is already in use by session stored-9")
+    }
+
+    try await service.startNew(bot: bot)
+    await harness.settle()
+    try await service.startNew(bot: bot)
+    await harness.settle()
+
+    let retired = harness.link.calls(RPC.SessionTitle.name).compactMap { $0.params["title"]?.stringValue }.filter {
+      ConversationClassifier.isRetiredTitle($0)
+    }
+    // First: the stamp. Second: the stamp refused, then the stamp with the seconds.
+    #expect(retired.count == 3)
+    #expect(retired[1] == retired[0])
+    #expect(retired[2].hasPrefix(retired[0]) && retired[2].count == retired[0].count + 3)
+
+    let state = await harness.state()
+    #expect(state.storedSessionID == "stored-10", "the second conversation started")
+    let notice = state.orderedItems.compactMap(\.asNotice).last?.body ?? ""
+    #expect(notice.hasPrefix("New conversation started."))
+    #expect(notice.contains(retired[2]))
+    await harness.shutdown()
+  }
+
+  @Test func aNewConversationWhoseRetireNameIsRefusedTwiceChangesNothing() async throws {
+    let (harness, service) = try await opened()
+    answerEverything(harness.link)
+    harness.link.refuse(RPC.SessionTitle.name) { _ in GatewayRPCError(.rejected, "no names today") }
+
+    try await service.startNew(bot: bot)
+    await harness.settle()
+
+    #expect(harness.link.calls(RPC.SessionTitle.name).count == 2, "the stamp, and once more with the seconds")
+    #expect(harness.link.calls(RPC.SessionCreate.name).isEmpty)
+    #expect(harness.link.calls(RPC.SessionSetHidden.name).map { $0.params["hidden"] } == [false, true])
+    let state = await harness.state()
+    #expect(state.storedSessionID == Fixture.stored)
+    #expect(state.orderedItems.compactMap(\.asNotice).last?.body?.contains("no names today") == true)
     await harness.shutdown()
   }
 

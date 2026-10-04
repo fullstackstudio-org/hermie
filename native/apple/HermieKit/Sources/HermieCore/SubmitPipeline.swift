@@ -747,15 +747,19 @@ extension TranscriptStore {
     }
 
     let storedID = state.storedSessionID
-    let stamped = "\(ChatResolver.canonicalTitle) · \(Self.localStamp(now()))"
+    let moment = now()
     let asked = argument.trimmingCharacters(in: .whitespacesAndNewlines)
-    var retired = asked.isEmpty ? stamped : asked
+    var retired = asked
     var refusedName = ""
 
     try? await resolver.setHidden(key, runtimeID: runtimeID, hidden: false)
 
     do {
-      try await resolver.titleSession(key, runtimeID: runtimeID, title: retired)
+      if asked.isEmpty {
+        retired = try await titleAsRetired(resolver, key, runtimeID, at: moment)
+      } else {
+        try await resolver.titleSession(key, runtimeID: runtimeID, title: asked)
+      }
     } catch {
       guard !asked.isEmpty else {
         await undoRetire(resolver, key, runtimeID, renamed: false)
@@ -766,10 +770,9 @@ extension TranscriptStore {
       // A refused title is nearly always the argument; the owner asked for a new
       // conversation, not that name.
       refusedName = ChatResolver.describe(error)
-      retired = stamped
 
       do {
-        try await resolver.titleSession(key, runtimeID: runtimeID, title: retired)
+        retired = try await titleAsRetired(resolver, key, runtimeID, at: moment)
       } catch {
         await undoRetire(resolver, key, runtimeID, renamed: false)
         commandRow(key, runtimeID, command, Self.retireFailed(ChatResolver.describe(error)))

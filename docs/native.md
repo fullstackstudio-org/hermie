@@ -1787,11 +1787,17 @@ also read when the connection returns and when a `sessions.changed` sweep is hea
   `Conversation.actions` is empty for the canonical row, the one guard, and the model refuses an action a row
   does not allow.
 - `ConversationService` makes the calls: rename resumes a conversation nothing runs (`session.title` takes the
-  RUNTIME id) and puts it away again afterwards, because the gateway refuses to delete a session that is live;
-  delete takes the STORED id; the swap is `TranscriptStore.adoptAsCanonical`, the order `/new` retires with
-  (un-hide and rename the current chat `Bot Chat · <date time>`, rename the incoming one `Bot Chat` and hide
-  it, switch), rolled back step by step, refused (`ConversationBusyError`) while a reply streams or messages
-  are queued. The stamp counts minutes, so a second swap in the same minute is retried once with the seconds.
+  RUNTIME id) and puts it away again afterwards, because the gateway refuses to delete a session that is live,
+  but only when this client brought it up: the live sessions are listed first (`session.active_list`) and a
+  session that is listed under its stored id, its lineage tip or the runtime id the resume answers, or a list
+  that cannot be read, means "another client may rely on it" and nothing is closed (the same rule for the
+  viewer's `session.history` fallback; the REST transcript needs no resume at all). Delete takes the STORED
+  id; the swap is `TranscriptStore.adoptAsCanonical`, the order `/new` retires with (un-hide and rename the
+  current chat `Bot Chat · <date time>`, rename the incoming one `Bot Chat` and hide it, switch), rolled back
+  step by step, refused (`ConversationBusyError`) while a reply streams or messages are queued; it does not
+  close the chat it puts away (the Bot Chat is shared), so deleting that conversation can be refused by the
+  gateway until nobody has it live. The stamp counts minutes, so a retire in the same minute as another (a
+  swap or a `/new`, `TranscriptStore.titleAsRetired`) is retried once with the seconds.
 - `ConversationsModel` is the page: phase, the open question (`Mode`), the notice, one action at a time, a read
   that a newer one overtook dropped. `ConversationViewerModel` reads the transcript (REST from the newest row,
   older pages on request, else `session.history`) and projects it onto the chat's items; nothing is live, no

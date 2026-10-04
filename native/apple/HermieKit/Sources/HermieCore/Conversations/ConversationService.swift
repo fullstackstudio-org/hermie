@@ -86,12 +86,13 @@ public struct ConversationService: ConversationsBackend {
    Rename one conversation that is not the canonical chat.
 
    `session.title` takes a RUNTIME id, so a conversation nothing is running is resumed first. A
-   session this call resumed only to name it is closed again afterwards: the gateway refuses to
-   delete a session that is live, and nobody asked for this one to be. The refusals travel (an empty
+   session THIS call brought up only to name it is closed again afterwards (the gateway refuses to
+   delete a session that is live, and nobody asked for this one to be); one that was live already is
+   left as it was, because another client may rely on it (`TranscriptStore.runtimeSession`). The refusals travel (an empty
    title, a title another session already holds): nothing is swallowed here.
    */
   public func rename(bot: String, conversation: Conversation, title: String) async throws -> String {
-    let session = try await store.runtimeSession(for: conversation.id, profile: bot)
+    let session = try await store.runtimeSession(for: conversation.id, resolvedID: conversation.resolvedID, profile: bot)
 
     do {
       let settled = try await roster.resolver.titleSession(bot, runtimeID: session.id, title: title)
@@ -148,7 +149,7 @@ public struct ConversationService: ConversationsBackend {
       return ConversationTranscriptPage(rows: [], shape: .rpc, reachedStart: true)
     }
 
-    let session = try await store.runtimeSession(for: conversation.id, profile: bot)
+    let session = try await store.runtimeSession(for: conversation.id, resolvedID: conversation.resolvedID, profile: bot)
 
     do {
       let reply = try await link.requestReply(
@@ -165,9 +166,10 @@ public struct ConversationService: ConversationsBackend {
     }
   }
 
-  /// A session this service resumed only to read or name it stops being live again (best effort).
-  private func putAway(_ session: (id: String, resumed: Bool), bot: String) async {
-    if session.resumed {
+  /// A session this service brought up only to read or name it stops being live again (best effort);
+  /// one that was live already is left alone.
+  private func putAway(_ session: (id: String, broughtUp: Bool), bot: String) async {
+    if session.broughtUp {
       try? await roster.resolver.closeSession(bot, runtimeID: session.id)
     }
   }

@@ -79,6 +79,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the event type only. The daemon posts only to relays on its own allow-list (`--push-relays`, env
   `HERMIE_PUSH_RELAYS`, default `https://push.hermie.dev`), and lists `push.relay` among the
   capabilities in its availability stamp.
+- **The native Apple apps have a Conversations page for each bot.** It lists the conversation the bot is in, its
+  branches and its past conversations (title, first words, number of messages, last activity), and opens one
+  in a read-only viewer. A past conversation or a branch can be renamed, deleted (after a question) or made the
+  Bot Chat again, and a new conversation puts the current one away for everybody on the gateway (after a
+  question). It opens from the chat's options menu, from the bot's settings and, on the Mac, from the Chat menu.
+  Putting a conversation away twice in the same minute no longer fails on its name, and renaming a conversation
+  never ends a session another client has open (`docs/native.md`).
 
 ### Changed
 

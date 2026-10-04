@@ -206,6 +206,8 @@ final class ScriptedLink: GatewayLink, Sendable {
     var calls: [Call] = []
     var waiting: [Int: CheckedContinuation<RPCReply<JSONValue>, any Error>] = [:]
     var responders: [String: @Sendable (JSONValue) -> JSONValue] = [:]
+    /// Calls to a method the gateway refuses, by what they asked.
+    var refusals: [String: @Sendable (JSONValue) -> GatewayRPCError?] = [:]
     var restRows: (@Sendable (String, MessageWindow) -> [TranscriptRow]?)?
     var restCalls: [(String, MessageWindow)] = []
     var lifecycle: [String] = []
@@ -555,6 +557,12 @@ final class ScriptedLink: GatewayLink, Sendable {
     respond(to: method) { _ in result }
   }
 
+  /// Refuse the calls to `method` that `verdict` names an error for (it is asked for each call, so it
+  /// may keep state: a gateway that holds each title once). The others are answered as usual.
+  func refuse(_ method: String, when verdict: @escaping @Sendable (JSONValue) -> GatewayRPCError?) {
+    state.withLock { $0.refusals[method] = verdict }
+  }
+
   /// Stop answering `method` by itself: its calls wait for the test again.
   func unrespond(_ method: String) {
     state.withLock { $0.responders[method] = nil }
@@ -601,6 +609,10 @@ final class ScriptedLink: GatewayLink, Sendable {
     }
 
     let listed = state.withLock { $0.listed }
+
+    if let refusal = state.withLock({ $0.refusals[method] }), let error = refusal(params) {
+      throw error
+    }
 
     if let responder {
       return RPCReply(index: nextIndex(), result: responder(params), listedRequests: listed)
