@@ -64,8 +64,8 @@ const ON_DEMAND = [
   'features/voice/read-aloud.ts',
   'features/voice/use-read-aloud.ts',
   'features/voice/speech-text.ts',
-  'features/voice/recognition.ts',
-  'features/voice/synthesis.ts',
+  'platform/speech-recognition.ts',
+  'platform/speech-synthesis.ts',
   'features/settings/Voice.tsx',
   'state/voice-settings.ts',
   // A chat row's menu and a bot's profile page are chunks of their own, with the model and the picture code they use.
