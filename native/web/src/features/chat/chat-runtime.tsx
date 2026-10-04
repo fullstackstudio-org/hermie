@@ -46,6 +46,7 @@ export type ChatScreenController = Pick<
   | 'runSlash'
   | 'slashRouteFor'
   | 'uploadFile'
+  | 'uploadFileTo'
   | 'respondApproval'
   | 'respondClarify'
   | 'lockClarify'

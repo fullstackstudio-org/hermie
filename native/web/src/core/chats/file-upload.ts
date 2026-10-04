@@ -111,8 +111,14 @@ export interface UploadedFile {
 export interface UploadFileOptions {
   http: GatewayHttp
   file: UploadableFile
-  /** The session's working directory: `SessionLiveInfo.cwd`. */
+  /** The session's working directory: `SessionLiveInfo.cwd`. Not read when `path` names where the file goes. */
   cwd: string | undefined
+  /**
+   * Where the file goes, absolute, when the caller already knows (an interactive `input.file` request names its
+   * directory: `flatUploadPath`). Without it the file goes under `cwd` (`uploadPathFor`), which is why `cwd` is
+   * needed then.
+   */
+  path?: string
   /** 0…1 where the platform reports it, which React Native's fetch does not. */
   onProgress?: (fraction: number) => void
   /**
@@ -177,6 +183,22 @@ export function uploadPathFor(cwd: string, name: string, options: { now?: Date; 
   const token = options.token ?? randomToken()
 
   return `${root}/uploads/hermie/${folder}/${token}-${sanitiseUploadName(name)}`
+}
+
+/**
+ * `<dir>/<16 lowercase hex>-<name>`: where an `input.file` request wants its file (`contract/requests/README.md` §5).
+ * DIRECTLY in the request's directory, never in a subdirectory (the gateway refuses the answer otherwise), with the
+ * name made safe like every upload's. `token` is 16 lowercase hex digits; a random one when none is given.
+ */
+export function flatUploadPath(dir: string, name: string, token?: string): string {
+  const root = dir.replace(/\/+$/u, '')
+  const hex =
+    token ??
+    Array.from(globalThis.crypto.getRandomValues(new Uint8Array(8)), byte => byte.toString(16).padStart(2, '0')).join(
+      ''
+    )
+
+  return `${root}/${hex}-${sanitiseUploadName(name)}`
 }
 
 /**
@@ -260,17 +282,19 @@ export async function uploadFile(options: UploadFileOptions): Promise<UploadedFi
     `no-workspace` message is already the right thing to say. It only had to be
     asked about the NORMALISED value, because `"/"` is truthy.
   */
-  if (!cwd || !cwd.replace(/\/+$/u, '')) {
+  if (options.path === undefined && (!cwd || !cwd.replace(/\/+$/u, ''))) {
     throw new FileUploadError(
       'no-workspace',
       'This conversation has not told us its working directory, and a file has to be uploaded inside it to be readable.'
     )
   }
 
-  const path = uploadPathFor(cwd, file.name, {
-    ...(options.now ? { now: options.now } : {}),
-    ...(options.token ? { token: options.token } : {})
-  })
+  const path =
+    options.path ??
+    uploadPathFor(cwd ?? '', file.name, {
+      ...(options.now ? { now: options.now } : {}),
+      ...(options.token ? { token: options.token } : {})
+    })
 
   const body = new FormData()
   // The three fields `upload_managed_file_stream` declares: the part named

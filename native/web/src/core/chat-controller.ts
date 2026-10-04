@@ -2539,6 +2539,30 @@ export class ChatController {
     })
   }
 
+  /**
+   * Put a file on the gateway at a path the caller chose (an `input.file` request names its directory:
+   * `flatUploadPath`), instead of under the session's working directory. The same route, credentials and refusals as
+   * `uploadFile`; it needs no `cwd`.
+   */
+  async uploadFileTo(
+    path: string,
+    file: UploadableFile,
+    options: { onProgress?: (fraction: number) => void; signal?: AbortSignal } = {}
+  ): Promise<UploadedFile> {
+    if (!this.http) {
+      throw new FileUploadError('failed', 'There is no gateway connection to upload to.')
+    }
+
+    return uploadFile({
+      http: this.http,
+      file,
+      cwd: undefined,
+      path,
+      ...(options.onProgress ? { onProgress: options.onProgress } : {}),
+      ...(options.signal ? { signal: options.signal } : {})
+    })
+  }
+
   /** Stop the running turn. The partial reply is kept; it was really said. */
   async stopTurn(botName: string): Promise<void> {
     const chat = this.chats.getState().chats[botName]
