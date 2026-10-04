@@ -408,8 +408,9 @@ test.describe('a passkey confirmation in the browser', () => {
     await virtualAuthenticator(page)
     await app.open('#/chat/researcher')
     await app.ready()
-    // The request sheets, the confirmation's included, arrive before any request does.
-    await expect.poll(() => fetched).toEqual(['sheets'])
+    // The request sheets, the confirmation's included, arrive before any request does: their script and their styles
+    // (the interactive sheets' stylesheet is part of the chunk), and nothing else.
+    await expect.poll(() => [...new Set(fetched)]).toEqual(['sheets'])
 
     // The settings page: its own chunk (and styles).
     await enrol(page, gateway, hash => app.open(hash))
