@@ -11,7 +11,7 @@ import { checkBundle, DEVELOPMENT_ONLY_MARKER, LIMITS, REFERENCE_POLICY } from '
 const COMMIT = '0123456789abcdef0123456789abcdef01234567'
 
 const POLICY =
-  "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; media-src 'self' blob:; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; require-trusted-types-for 'script'; trusted-types 'none'"
+  "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; media-src 'self' blob:; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; require-trusted-types-for 'script'; trusted-types hermie-service-worker"
 
 function documentWith({ head = '', policy = POLICY } = {}): string {
   return [

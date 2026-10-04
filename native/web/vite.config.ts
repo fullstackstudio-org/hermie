@@ -253,10 +253,22 @@ function serveAtGatewayPath(): Plugin {
 }
 
 /**
+ * The service worker (`src/sw/sw.ts`, plan W14): a second entry, written to
+ * `dist/sw.js` under a name that never changes, because the page registers it
+ * by that address and its scope is the directory it is served from
+ * (`/dashboard-plugins/hermie/app/`). It is registered as a classic script, so
+ * it must import nothing: `src/sw` imports only from `src/sw`, and nothing
+ * outside `src/sw` imports from it, which keeps Rollup from splitting a shared
+ * chunk out of it (`src/sw/sw-graph.test.ts` holds both rules, and the
+ * Playwright suite registers the built file).
+ */
+const SERVICE_WORKER_ENTRY = 'sw'
+
+/**
  * `--mode harness`: the development-only pages under `src/dev` (the transcript
  * harness), built into `dist-harness/` and served by `vite preview --mode
  * harness` for the performance specs. Production React, minified, the same
- * policy; nothing of it is in `dist/`, whose only entry is `index.html`.
+ * policy; nothing of it is in `dist/`, whose entries are `index.html` and the service worker.
  */
 const HARNESS_MODE = 'harness'
 const HARNESS_PORT = 4180
@@ -314,9 +326,12 @@ export default defineConfig(({ command, mode }) => {
       // The browsers this client supports preload modules natively.
       modulePreload: { polyfill: false },
       rollupOptions: {
-        ...(harness ? { input: join(root, 'src/dev/transcript-harness.html') } : {}),
+        input: harness
+          ? join(root, 'src/dev/transcript-harness.html')
+          : { index: join(root, 'index.html'), [SERVICE_WORKER_ENTRY]: join(root, 'src/sw/sw.ts') },
         output: {
-          entryFileNames: 'assets/[name]-[hash].js',
+          entryFileNames: chunk =>
+            chunk.name === SERVICE_WORKER_ENTRY && !harness ? 'sw.js' : 'assets/[name]-[hash].js',
           chunkFileNames: 'assets/[name]-[hash].js',
           assetFileNames: 'assets/[name]-[hash][extname]',
           manualChunks

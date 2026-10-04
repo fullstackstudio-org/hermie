@@ -212,8 +212,13 @@ function initialScripts(html, contents) {
 
 /**
  * The policy `native/web/index.html` carries: the plan's decision W6, plus
- * `trusted-types 'none'` so the page can create no Trusted Types policy to turn a
- * string into script. The document must carry exactly this set: a missing
+ * `trusted-types hermie-service-worker`: the page can create exactly one Trusted
+ * Types policy, once, and the client's only one (`core/push/platform.ts`) turns
+ * nothing into script but the address of its own service worker, which
+ * `navigator.serviceWorker.register` takes only as a `TrustedScriptURL` under
+ * `require-trusted-types-for 'script'` (Chromium refuses a string). With
+ * `'none'` no service worker could be registered at all, so Web Push could not
+ * be offered. The document must carry exactly this set: a missing
  * directive, an extra one, or a source added to or removed from one is a
  * different policy and fails the gate. Change it here and in `index.html`
  * together, with the reason in the commit.
@@ -233,7 +238,7 @@ export const REFERENCE_POLICY = Object.freeze({
   'object-src': ["'none'"],
   'frame-src': ["'none'"],
   'require-trusted-types-for': ["'script'"],
-  'trusted-types': ["'none'"]
+  'trusted-types': ['hermie-service-worker']
 })
 
 /**
