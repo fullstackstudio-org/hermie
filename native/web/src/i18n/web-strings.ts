@@ -206,6 +206,101 @@ export const WEB_STRINGS_SOURCE = {
     }
   },
   chat: {
+    /** The record in the transcript of a form, a file request or a draft the bot asked for (`OtherRow`). */
+    request: {
+      kindForm: {
+        en: 'Form',
+        nl: 'Formulier',
+        de: 'Formular'
+      },
+      kindFile: {
+        en: 'File request',
+        nl: 'Bestandsverzoek',
+        de: 'Dateianfrage'
+      },
+      kindDraft: {
+        en: 'Draft to review',
+        nl: 'Concept om na te kijken',
+        de: 'Entwurf zur Prüfung'
+      },
+      /** The line under the bot's heading while the question waits. */
+      open: {
+        en: 'Waiting for your answer',
+        nl: 'Wacht op je antwoord',
+        de: 'Wartet auf deine Antwort'
+      },
+      answered: {
+        en: 'Answered',
+        nl: 'Beantwoord',
+        de: 'Beantwortet'
+      },
+      skipped: {
+        en: 'Skipped',
+        nl: 'Overgeslagen',
+        de: 'Übersprungen'
+      },
+      files: {
+        en: ({ count }: { count: number }) => (count === 1 ? '1 file sent' : `${count} files sent`),
+        nl: ({ count }: { count: number }) => (count === 1 ? '1 bestand verstuurd' : `${count} bestanden verstuurd`),
+        de: ({ count }: { count: number }) => (count === 1 ? '1 Datei gesendet' : `${count} Dateien gesendet`)
+      },
+      approved: {
+        en: 'Approved',
+        nl: 'Goedgekeurd',
+        de: 'Freigegeben'
+      },
+      approvedEdited: {
+        en: 'Approved with changes',
+        nl: 'Goedgekeurd met wijzigingen',
+        de: 'Mit Änderungen freigegeben'
+      },
+      rejected: {
+        en: 'Rejected',
+        nl: 'Afgewezen',
+        de: 'Abgelehnt'
+      },
+      timedOut: {
+        en: 'Timed out',
+        nl: 'Verlopen',
+        de: 'Abgelaufen'
+      },
+      withdrawn: {
+        en: 'Withdrawn',
+        nl: 'Ingetrokken',
+        de: 'Zurückgezogen'
+      },
+      /** This page told the gateway it could not show the request (`4041`). */
+      cannotShow: {
+        en: 'Could not be shown here',
+        nl: 'Kon hier niet getoond worden',
+        de: 'Konnte hier nicht angezeigt werden'
+      },
+      /** What a bot asked for, after a verb ("sent a form"), for the chat's line about a request this page could not show. */
+      whatForm: {
+        en: 'a form',
+        nl: 'een formulier',
+        de: 'ein Formular'
+      },
+      whatFile: {
+        en: 'a file request',
+        nl: 'een bestandsverzoek',
+        de: 'eine Dateianfrage'
+      },
+      whatDraft: {
+        en: 'a draft to review',
+        nl: 'een concept om na te kijken',
+        de: 'einen Entwurf zur Prüfung'
+      },
+      /** The chat's line when this page told the gateway it could not show a request: the bot was told. */
+      noticeCannotShow: {
+        en: ({ name, what }: { name: string; what: string }) =>
+          `${name} sent ${what}, and this page could not show it. ${name} was told.`,
+        nl: ({ name, what }: { name: string; what: string }) =>
+          `${name} stuurde ${what}, en deze pagina kon het niet tonen. ${name} is op de hoogte gebracht.`,
+        de: ({ name, what }: { name: string; what: string }) =>
+          `${name} hat ${what} gesendet, und diese Seite konnte es nicht anzeigen. ${name} wurde informiert.`
+      }
+    },
     /** The accessible name of the transcript region (`role="log"`). */
     transcriptLabel: {
       en: ({ name }: { name: string }) => `Conversation with ${name}`,

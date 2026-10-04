@@ -88,6 +88,7 @@ import { chatsStore } from '../../state/chats'
 import { connectionStore } from '../../state/connection'
 import { Button } from '../../ui/primitives'
 import { ResumeProgressLine } from '../notices/ResumeProgressLine'
+import { InteractiveNotice } from '../notices/InteractiveNotice'
 import { SecureInputNotice } from '../notices/SecureInputNotice'
 import { useFindRequest } from '../search/find-request'
 import { useFindInChat } from '../search/use-find-in-chat'
@@ -527,6 +528,8 @@ export function ChatScreen({ bot, session, view: pinned }: ChatScreenProps): Rea
       {find.missed ? <p className="hm-chat__banner">{find.status}</p> : null}
       {/* A secret, sudo or vault prompt that ended without an answer, or a request only the desktop app can answer. */}
       <SecureInputNotice chatKey={key ?? bot} bot={bot} />
+      {/* A form, a file request or a draft that ended without an answer, or that this page could not show. */}
+      <InteractiveNotice chatKey={key ?? bot} bot={bot} />
       <ResumeProgressLine chatKey={key ?? bot} />
 
       <div className="hm-chat__stage" ref={stage}>
