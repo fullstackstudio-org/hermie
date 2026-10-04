@@ -68,10 +68,10 @@ private final class WiringRig {
     wiring.start()
     await live.follow(gatewayId)
 
-    let link = try #require(link(gatewayId))
+    let scripted = try #require(link(gatewayId))
     let session = try #require(live.session)
 
-    link.status(.ready)
+    scripted.status(.ready)
     try await eventually("the roster") { await session.roster.bot(named: Fixture.profile) != nil }
     try await eventually("the surfaces to open") { await MainActor.run { self.wiring.isUnlocked } }
   }
