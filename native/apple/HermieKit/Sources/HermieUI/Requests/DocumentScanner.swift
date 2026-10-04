@@ -28,7 +28,10 @@
       Coordinator(self)
     }
 
-    final class Coordinator: NSObject, VNDocumentCameraViewControllerDelegate {
+    // VisionKit calls its delegate on the main thread, and the protocol is not main-actor
+    // isolated in every SDK: `@preconcurrency` lets the main-actor methods witness it.
+    @MainActor
+    final class Coordinator: NSObject, @preconcurrency VNDocumentCameraViewControllerDelegate {
       let parent: DocumentScanner
 
       init(_ parent: DocumentScanner) {
