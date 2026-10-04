@@ -474,14 +474,14 @@
             "item": {
               "id": "req:srq-1",
               "kind": "request",
-              "method": "review.draft",
-              "optional": false,
+              "method": "device.calendar",
+              "optional": true,
               "origin": "live",
               "requestId": "srq-1",
               "seq": 7000,
               "state": "open",
-              "summary": "Here is the reply I would send. Approve, edit or reject it.",
-              "title": "Reply to Bram",
+              "summary": "Put the dentist appointment in your calendar.",
+              "title": "Add to your calendar",
               "ts": 1790000006,
               "version": 0
             },
@@ -592,14 +592,14 @@
             "item": {
               "id": "req:srq-1",
               "kind": "request",
-              "method": "review.draft",
-              "optional": false,
+              "method": "device.calendar",
+              "optional": true,
               "origin": "live",
               "requestId": "srq-1",
               "seq": 7000,
               "state": "open",
-              "summary": "Here is the reply I would send. Approve, edit or reject it.",
-              "title": "Reply to Bram",
+              "summary": "Put the dentist appointment in your calendar.",
+              "title": "Add to your calendar",
               "ts": 1790000006,
               "version": 0
             },
@@ -729,14 +729,14 @@
             "item": {
               "id": "req:srq-1",
               "kind": "request",
-              "method": "review.draft",
-              "optional": false,
+              "method": "device.calendar",
+              "optional": true,
               "origin": "live",
               "requestId": "srq-1",
               "seq": 7000,
               "state": "open",
-              "summary": "Here is the reply I would send. Approve, edit or reject it.",
-              "title": "Reply to Bram",
+              "summary": "Put the dentist appointment in your calendar.",
+              "title": "Add to your calendar",
               "ts": 1790000006,
               "version": 0
             },
@@ -871,19 +871,18 @@
           {
             "item": {
               "answerSummary": {
-                "decision": "approved",
-                "edited": true
+                "status": "answered"
               },
               "id": "req:srq-1",
               "kind": "request",
-              "method": "review.draft",
-              "optional": false,
+              "method": "device.calendar",
+              "optional": true,
               "origin": "live",
               "requestId": "srq-1",
               "seq": 7000,
               "state": "answered",
-              "summary": "Here is the reply I would send. Approve, edit or reject it.",
-              "title": "Reply to Bram",
+              "summary": "Put the dentist appointment in your calendar.",
+              "title": "Add to your calendar",
               "ts": 1790000006,
               "version": 1
             },
@@ -993,19 +992,18 @@
           {
             "item": {
               "answerSummary": {
-                "decision": "approved",
-                "edited": true
+                "status": "answered"
               },
               "id": "req:srq-1",
               "kind": "request",
-              "method": "review.draft",
-              "optional": false,
+              "method": "device.calendar",
+              "optional": true,
               "origin": "live",
               "requestId": "srq-1",
               "seq": 7000,
               "state": "answered",
-              "summary": "Here is the reply I would send. Approve, edit or reject it.",
-              "title": "Reply to Bram",
+              "summary": "Put the dentist appointment in your calendar.",
+              "title": "Add to your calendar",
               "ts": 1790000006,
               "version": 1
             },
@@ -1134,19 +1132,18 @@
           {
             "item": {
               "answerSummary": {
-                "decision": "approved",
-                "edited": true
+                "status": "answered"
               },
               "id": "req:srq-1",
               "kind": "request",
-              "method": "review.draft",
-              "optional": false,
+              "method": "device.calendar",
+              "optional": true,
               "origin": "live",
               "requestId": "srq-1",
               "seq": 7000,
               "state": "answered",
-              "summary": "Here is the reply I would send. Approve, edit or reject it.",
-              "title": "Reply to Bram",
+              "summary": "Put the dentist appointment in your calendar.",
+              "title": "Add to your calendar",
               "ts": 1790000006,
               "version": 1
             },
@@ -1156,7 +1153,7 @@
       }
     }
   ],
-  "description": "The same chat receives a review.draft (a mail to approve or edit); the person edits it and approves, and the engine records that it was approved, edited, and not what it now says.",
+  "description": "The same chat receives a device.calendar with an event; the person saves it in the system sheet, and the engine records that it was saved and nothing of the event.",
   "final": {
     "botName": "researcher",
     "byApprovalId": {},
@@ -1272,19 +1269,18 @@
       },
       "req:srq-1": {
         "answerSummary": {
-          "decision": "approved",
-          "edited": true
+          "status": "answered"
         },
         "id": "req:srq-1",
         "kind": "request",
-        "method": "review.draft",
-        "optional": false,
+        "method": "device.calendar",
+        "optional": true,
         "origin": "live",
         "requestId": "srq-1",
         "seq": 7000,
         "state": "answered",
-        "summary": "Here is the reply I would send. Approve, edit or reject it.",
-        "title": "Reply to Bram",
+        "summary": "Put the dentist appointment in your calendar.",
+        "title": "Add to your calendar",
         "ts": 1790000006,
         "version": 1
       },
@@ -1667,24 +1663,27 @@
       "frame": {
         "id": "srq-1",
         "jsonrpc": "2.0",
-        "method": "review.draft",
+        "method": "device.calendar",
         "params": {
           "acting_user": {
             "id": "oidc:5b1e0c9a",
             "name": "Ada"
           },
-          "editable": true,
           "expires_at": 1790000300,
-          "kind": "mail",
-          "optional": false,
-          "recipients": [
-            "Bram de Vries <bram@example.com>"
-          ],
+          "item": {
+            "alarm_minutes": 30,
+            "end": "2026-10-12T10:00+02:00",
+            "location": "Tandarts Jansen, Prinsengracht 4",
+            "notes": "Bring the insurance card.",
+            "start": "2026-10-12T09:30+02:00",
+            "title": "Dentist",
+            "url": "https://example.com/appointments/4711"
+          },
+          "kind": "event",
+          "optional": true,
           "session_id": "runtime-4a31c816",
-          "subject": "Re: Flat on the Oudegracht",
-          "summary": "Here is the reply I would send. Approve, edit or reject it.",
-          "text": "Hi Bram,\n\nThe flat is free from 1 November. The rent is EUR 1,150 a month, deposit two months.\nCould you confirm by Friday?\n\nKind regards,\nAda",
-          "title": "Reply to Bram",
+          "summary": "Put the dentist appointment in your calendar.",
+          "title": "Add to your calendar",
           "v": 1
         }
       }
@@ -1692,7 +1691,7 @@
   ],
   "pinnedNow": 1790000000000,
   "profile": "researcher",
-  "scenario": "review-draft",
+  "scenario": "device-calendar",
   "stepMs": 1000,
   "steps": [
     {
@@ -1891,24 +1890,27 @@
       "args": [
         {
           "id": "srq-1",
-          "method": "review.draft",
+          "method": "device.calendar",
           "params": {
             "acting_user": {
               "id": "oidc:5b1e0c9a",
               "name": "Ada"
             },
-            "editable": true,
             "expires_at": 1790000300,
-            "kind": "mail",
-            "optional": false,
-            "recipients": [
-              "Bram de Vries <bram@example.com>"
-            ],
+            "item": {
+              "alarm_minutes": 30,
+              "end": "2026-10-12T10:00+02:00",
+              "location": "Tandarts Jansen, Prinsengracht 4",
+              "notes": "Bring the insurance card.",
+              "start": "2026-10-12T09:30+02:00",
+              "title": "Dentist",
+              "url": "https://example.com/appointments/4711"
+            },
+            "kind": "event",
+            "optional": true,
             "session_id": "runtime-4a31c816",
-            "subject": "Re: Flat on the Oudegracht",
-            "summary": "Here is the reply I would send. Approve, edit or reject it.",
-            "text": "Hi Bram,\n\nThe flat is free from 1 November. The rent is EUR 1,150 a month, deposit two months.\nCould you confirm by Friday?\n\nKind regards,\nAda",
-            "title": "Reply to Bram",
+            "summary": "Put the dentist appointment in your calendar.",
+            "title": "Add to your calendar",
             "v": 1
           }
         },
@@ -1921,8 +1923,7 @@
       "args": [
         "srq-1",
         {
-          "decision": "approved",
-          "edited": true
+          "status": "answered"
         }
       ],
       "op": "answerRequest"

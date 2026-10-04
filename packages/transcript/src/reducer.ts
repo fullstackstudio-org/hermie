@@ -33,6 +33,7 @@ import {
   type ChatState,
   type ClarifyItem,
   type ClarifyQuestionItem,
+  type ContactSummaryField,
   freeItemId,
   type ItemOrigin,
   type ItemReaction,
@@ -43,6 +44,7 @@ import {
   type RequestItem,
   type RequestLikeItem,
   isRequestLikeItem,
+  type ScanSummarySymbology,
   SEQ_STEP,
   type StatusItem,
   type SubagentGroupItem,
@@ -1767,6 +1769,24 @@ const SUMMARY_KEY = /^[a-z][a-z0-9_]{0,23}$/
 const SUMMARY_COUNT_MAX = 9_999
 /** A diff review has at most this many hunks (`contract/requests`: 1 to 200). */
 const SUMMARY_HUNKS_MAX = 200
+/** The contract's closed names (`device.contact` fields, `device.scan` symbologies): all a summary may say of them. */
+const SUMMARY_CONTACT_FIELDS: readonly ContactSummaryField[] = [
+  'name',
+  'phones',
+  'emails',
+  'postal',
+  'birthday',
+  'organization'
+]
+const SUMMARY_SYMBOLOGIES: readonly ScanSummarySymbology[] = [
+  'qr',
+  'ean13',
+  'ean8',
+  'code128',
+  'pdf417',
+  'datamatrix',
+  'aztec'
+]
 
 /**
  * Narrow what the model passed for an answer to the keys and numbers a
@@ -1813,7 +1833,26 @@ function requestAnswerSummary(value: unknown): RequestAnswerSummary | undefined 
     out.precision = raw.precision
   }
 
-  // Without how it ended, `count` / `edited` / `precision` / the hunk counts describe nothing.
+  // The shared contact fields: only the contract's six names, once each, in the order the contract lists them.
+  if (Array.isArray(raw.fields)) {
+    const fields = SUMMARY_CONTACT_FIELDS.filter(name => (raw.fields as unknown[]).includes(name))
+
+    if (fields.length) {
+      out.fields = [...fields]
+    }
+  }
+
+  const symbology = SUMMARY_SYMBOLOGIES.find(name => name === raw.symbology)
+
+  if (symbology) {
+    out.symbology = symbology
+  }
+
+  if (raw.audio === true) {
+    out.audio = true
+  }
+
+  // Without how it ended, `count` / `edited` / `precision` / the hunk counts / the fields describe nothing.
   return out.status || out.decision ? out : undefined
 }
 

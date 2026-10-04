@@ -1609,7 +1609,12 @@
             "input.form",
             "input.file",
             "review.draft",
-            "review.diff"
+            "review.diff",
+            "input.signature",
+            "device.location",
+            "device.contact",
+            "device.calendar",
+            "device.scan"
           ]
         }
       }
@@ -1628,7 +1633,12 @@
             "input.form",
             "input.file",
             "review.draft",
-            "review.diff"
+            "review.diff",
+            "input.signature",
+            "device.location",
+            "device.contact",
+            "device.calendar",
+            "device.scan"
           ],
           "server_requests": [
             "approval",
@@ -1642,6 +1652,11 @@
             "input.file",
             "review.draft",
             "review.diff",
+            "input.signature",
+            "device.location",
+            "device.contact",
+            "device.calendar",
+            "device.scan",
             "confirm"
           ]
         }

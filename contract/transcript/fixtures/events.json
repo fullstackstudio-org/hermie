@@ -340,6 +340,66 @@
       "type": "message.complete"
     }
   ],
+  "deviceCalendarRequest": {
+    "id": "srq-17",
+    "method": "device.calendar",
+    "params": {
+      "expires_at": 1791119400,
+      "item": {
+        "alarm_minutes": 30,
+        "end": "2026-10-12T10:00+02:00",
+        "start": "2026-10-12T09:30+02:00",
+        "title": "Dentist"
+      },
+      "kind": "event",
+      "optional": true,
+      "session_id": "run-1a2b",
+      "summary": "Put the dentist appointment in your calendar.",
+      "title": "Add to your calendar",
+      "v": 1
+    }
+  },
+  "deviceContactRequest": {
+    "id": "srq-16",
+    "method": "device.contact",
+    "params": {
+      "expires_at": 1791119400,
+      "fields": [
+        "name",
+        "phones"
+      ],
+      "optional": true,
+      "session_id": "run-1a2b",
+      "summary": "Pick the plumber from your contacts so I can message him.",
+      "title": "Share a contact",
+      "v": 1
+    }
+  },
+  "deviceLocationRequest": {
+    "id": "srq-15",
+    "method": "device.location",
+    "params": {
+      "expires_at": 1791119400,
+      "optional": true,
+      "precision": "approximate",
+      "session_id": "run-1a2b",
+      "summary": "Share roughly where you are so I can look up pharmacies nearby.",
+      "title": "Share your area",
+      "v": 1
+    }
+  },
+  "deviceScanRequest": {
+    "id": "srq-18",
+    "method": "device.scan",
+    "params": {
+      "expires_at": 1791119400,
+      "optional": true,
+      "session_id": "run-1a2b",
+      "summary": "Scan the QR code on the router so I can read its Wi-Fi name.",
+      "title": "Scan a code",
+      "v": 1
+    }
+  },
   "dmDispatchTurn": [
     {
       "payload": {},
@@ -472,6 +532,49 @@
       "session_id": "run-1a2b",
       "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
       "title": "Hotel booking details",
+      "v": 1
+    }
+  },
+  "inputSignatureRequest": {
+    "id": "srq-14",
+    "method": "input.signature",
+    "params": {
+      "expires_at": 1791119400,
+      "optional": true,
+      "session_id": "run-1a2b",
+      "signer_name": "Ada Lovelace",
+      "statement": "I have read the rental agreement dated 3 October 2026 and agree to its terms.",
+      "summary": "Sign to confirm you accept the rental agreement.",
+      "title": "Sign the agreement",
+      "upload": {
+        "dir": "/home/ada/work/uploads/hermie/2026-10-04",
+        "max_bytes": 1048576,
+        "max_files": 2,
+        "max_total_bytes": 2097152,
+        "strip_metadata": false
+      },
+      "v": 1
+    }
+  },
+  "inputVoiceRequest": {
+    "id": "srq-13",
+    "method": "input.file",
+    "params": {
+      "accept": "audio",
+      "capture": "audio",
+      "expires_at": 1791119400,
+      "multiple": false,
+      "optional": true,
+      "session_id": "run-1a2b",
+      "summary": "Record your answer to the landlord; I will transcribe and send it.",
+      "title": "Voice reply",
+      "upload": {
+        "dir": "/home/ada/work/uploads/hermie/2026-10-04",
+        "max_bytes": 26214400,
+        "max_files": 1,
+        "max_total_bytes": 26214400,
+        "strip_metadata": false
+      },
       "v": 1
     }
   },

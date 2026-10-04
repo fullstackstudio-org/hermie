@@ -18,8 +18,14 @@ import { rowsToItems, type TranscriptRow } from './rows-to-items'
 import { openRequests, visibleItems } from './selectors'
 import { turnActivity } from './turn-activity'
 import {
+  deviceCalendarRequest,
+  deviceContactRequest,
+  deviceLocationRequest,
+  deviceScanRequest,
   inputFileRequest,
   inputFormRequest,
+  inputSignatureRequest,
+  inputVoiceRequest,
   reviewDiffRequest,
   reviewDraftRequest,
   SESSION
@@ -68,25 +74,33 @@ describe('INTERACTIVE_METHODS', () => {
 })
 
 describe('applyServerRequest for an interactive method', () => {
-  it.each([inputFormRequest, inputFileRequest, reviewDraftRequest, reviewDiffRequest])(
-    'opens a request item for $method',
-    request => {
-      const state = applyServerRequest(fresh(), request, NOW)
-      const [item] = requests(state)
+  it.each([
+    inputFormRequest,
+    inputFileRequest,
+    inputVoiceRequest,
+    reviewDraftRequest,
+    reviewDiffRequest,
+    inputSignatureRequest,
+    deviceLocationRequest,
+    deviceContactRequest,
+    deviceCalendarRequest,
+    deviceScanRequest
+  ])('opens a request item for $method', request => {
+    const state = applyServerRequest(fresh(), request, NOW)
+    const [item] = requests(state)
 
-      expect(item).toMatchObject({
-        kind: 'request',
-        requestId: request.id,
-        method: request.method,
-        title: request.params.title,
-        summary: request.params.summary,
-        optional: request.params.optional,
-        state: 'open',
-        ts: NOW / 1000
-      })
-      expect(state.byRequestId[request.id]).toBe(item!.id)
-    }
-  )
+    expect(item).toMatchObject({
+      kind: 'request',
+      requestId: request.id,
+      method: request.method,
+      title: request.params.title,
+      summary: request.params.summary,
+      optional: request.params.optional,
+      state: 'open',
+      ts: NOW / 1000
+    })
+    expect(state.byRequestId[request.id]).toBe(item!.id)
+  })
 
   it('keeps the item free of the sheet’s params: no value field, no field definitions, no draft text', () => {
     const [form] = requests(applyServerRequest(fresh(), inputFormRequest, NOW))
@@ -189,7 +203,14 @@ describe('answerRequest for an interactive request', () => {
     ['review.draft rejected', { decision: 'rejected' }],
     ['review.diff approved, one hunk of two', { decision: 'approved', approvedHunks: 1, rejectedHunks: 1 }],
     ['review.diff approved, every hunk', { decision: 'approved', approvedHunks: 2, rejectedHunks: 0 }],
-    ['review.diff rejected', { decision: 'rejected', approvedHunks: 0, rejectedHunks: 2 }]
+    ['review.diff rejected', { decision: 'rejected', approvedHunks: 0, rejectedHunks: 2 }],
+    ['a voice note sent', { status: 'answered', count: 1, audio: true }],
+    ['input.signature signed', { status: 'answered' }],
+    ['device.location precise', { status: 'answered', precision: 'precise' }],
+    ['device.contact, two fields shared', { status: 'answered', fields: ['name', 'phones'] }],
+    ['device.calendar saved', { status: 'answered' }],
+    ['device.calendar skipped', { status: 'skipped' }],
+    ['device.scan, a QR code', { status: 'answered', symbology: 'qr' }]
   ] as const)('records %s as keys, never as text', (_name, summary) => {
     const state = answerRequest(open(), 'srq-9', summary)
 
@@ -210,6 +231,46 @@ describe('answerRequest for an interactive request', () => {
 
     expect(item.answerSummary).toEqual({ status: 'answered', count: 1 })
     expect(JSON.stringify(state)).not.toMatch(/Ada Lovelace|secret draft body|passport|Oudegracht/)
+  })
+
+  it('keeps a contact’s shared fields as the contract’s names only, and a scan’s symbology as one of its seven', () => {
+    const state = answerRequest(open(), 'srq-9', {
+      status: 'answered',
+      // A value, a key the contract does not have and a repeat: only the names survive, once, in the contract's order.
+      fields: ['phones', 'Bram de Vries', 'name', 'phones', 'ssn'],
+      symbology: 'qr',
+      audio: true,
+      contact: { name: 'Bram de Vries', phones: ['+31 6 12345678'] },
+      value: 'WIFI:T:WPA;S:home;P:hunter2;;'
+    } as never)
+
+    expect(requestsById(state, 'srq-9').answerSummary).toEqual({
+      status: 'answered',
+      fields: ['name', 'phones'],
+      symbology: 'qr',
+      audio: true
+    })
+    expect(JSON.stringify(state)).not.toMatch(/Bram|31 6|hunter2|WIFI|ssn/)
+
+    for (const bad of [
+      { fields: [] },
+      { fields: 'name' },
+      { fields: ['Bram de Vries'] },
+      { symbology: 'QR' },
+      { symbology: 'https://example.com' },
+      { audio: false },
+      { audio: 'yes' }
+    ]) {
+      const dropped = answerRequest(open(), 'srq-9', { status: 'answered', ...bad } as never)
+
+      expect(requestsById(dropped, 'srq-9').answerSummary, JSON.stringify(bad)).toEqual({ status: 'answered' })
+    }
+
+    // Without how it ended they describe nothing.
+    expect(
+      requestsById(answerRequest(open(), 'srq-9', { fields: ['name'], symbology: 'qr' } as never), 'srq-9')
+        .answerSummary
+    ).toBeUndefined()
   })
 
   it('keeps a diff’s hunk counts only as whole numbers a diff can have, and never a hunk or its text', () => {
@@ -471,6 +532,27 @@ describe('the transcript around a request', () => {
 
     expect(exported.text).toContain('Request — Changes to settings.py (approved, 1 of 2 hunks)')
     expect(exported.text).not.toContain('currency')
+  })
+
+  it('says in an export which kind of thing was shared, and not what it was', () => {
+    const exportedLine = (request: { id: string; method: string; params: Record<string, unknown> }, summary: object) =>
+      exportTranscript(list(answerRequest(applyServerRequest(fresh(), request, NOW), request.id, summary as never)), {
+        botName: 'Researcher',
+        selfName: 'Me'
+      }).text
+
+    expect(exportedLine(deviceContactRequest, { status: 'answered', fields: ['name', 'phones'] })).toContain(
+      'Request — Share a contact (answered, name + phones)'
+    )
+    expect(exportedLine(deviceLocationRequest, { status: 'answered', precision: 'approximate' })).toContain(
+      'Request — Share your area (answered, approximate)'
+    )
+    expect(exportedLine(deviceScanRequest, { status: 'answered', symbology: 'qr' })).toContain(
+      'Request — Scan a code (answered, qr)'
+    )
+    expect(exportedLine(inputVoiceRequest, { status: 'answered', count: 1, audio: true })).toContain(
+      'Request — Voice reply (answered, 1, voice note)'
+    )
   })
 
   it('does not trip the optimistic user turn that follows it', () => {

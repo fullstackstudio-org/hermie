@@ -293,6 +293,113 @@ export const reviewDiffRequest = {
   }
 }
 
+/** A voice note: `input.file` with `accept: audio` (`contract/requests/examples.json`, trimmed). */
+export const inputVoiceRequest = {
+  id: 'srq-13',
+  method: 'input.file',
+  params: {
+    session_id: SESSION,
+    v: 1,
+    title: 'Voice reply',
+    summary: 'Record your answer to the landlord; I will transcribe and send it.',
+    expires_at: 1_791_119_400,
+    optional: true,
+    accept: 'audio',
+    capture: 'audio',
+    multiple: false,
+    upload: {
+      dir: '/home/ada/work/uploads/hermie/2026-10-04',
+      max_bytes: 26_214_400,
+      max_total_bytes: 26_214_400,
+      max_files: 1,
+      strip_metadata: false
+    }
+  }
+}
+
+/** A signature on a pad (`input.signature`): the statement is shown in full, so it is the request's, not the item's. */
+export const inputSignatureRequest = {
+  id: 'srq-14',
+  method: 'input.signature',
+  params: {
+    session_id: SESSION,
+    v: 1,
+    title: 'Sign the agreement',
+    summary: 'Sign to confirm you accept the rental agreement.',
+    expires_at: 1_791_119_400,
+    optional: true,
+    statement: 'I have read the rental agreement dated 3 October 2026 and agree to its terms.',
+    signer_name: 'Ada Lovelace',
+    upload: {
+      dir: '/home/ada/work/uploads/hermie/2026-10-04',
+      max_bytes: 1_048_576,
+      max_total_bytes: 2_097_152,
+      max_files: 2,
+      strip_metadata: false
+    }
+  }
+}
+
+/** `device.location`: where the device is now, approximately. */
+export const deviceLocationRequest = {
+  id: 'srq-15',
+  method: 'device.location',
+  params: {
+    session_id: SESSION,
+    v: 1,
+    title: 'Share your area',
+    summary: 'Share roughly where you are so I can look up pharmacies nearby.',
+    expires_at: 1_791_119_400,
+    optional: true,
+    precision: 'approximate'
+  }
+}
+
+/** `device.contact`: one picked contact, reduced to the fields asked for. */
+export const deviceContactRequest = {
+  id: 'srq-16',
+  method: 'device.contact',
+  params: {
+    session_id: SESSION,
+    v: 1,
+    title: 'Share a contact',
+    summary: 'Pick the plumber from your contacts so I can message him.',
+    expires_at: 1_791_119_400,
+    optional: true,
+    fields: ['name', 'phones']
+  }
+}
+
+/** `device.calendar`: one event, saved by the person in the system sheet. */
+export const deviceCalendarRequest = {
+  id: 'srq-17',
+  method: 'device.calendar',
+  params: {
+    session_id: SESSION,
+    v: 1,
+    title: 'Add to your calendar',
+    summary: 'Put the dentist appointment in your calendar.',
+    expires_at: 1_791_119_400,
+    optional: true,
+    kind: 'event',
+    item: { title: 'Dentist', start: '2026-10-12T09:30+02:00', end: '2026-10-12T10:00+02:00', alarm_minutes: 30 }
+  }
+}
+
+/** `device.scan`: one QR code or barcode read with the camera. */
+export const deviceScanRequest = {
+  id: 'srq-18',
+  method: 'device.scan',
+  params: {
+    session_id: SESSION,
+    v: 1,
+    title: 'Scan a code',
+    summary: 'Scan the QR code on the router so I can read its Wi-Fi name.',
+    expires_at: 1_791_119_400,
+    optional: true
+  }
+}
+
 export const reviewDraftRequest = {
   id: 'srq-11',
   method: 'review.draft',

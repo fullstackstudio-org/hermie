@@ -1123,6 +1123,12 @@ public struct RequestAnswerSummary: TranscriptJSONCodable, Hashable {
   public var rejectedHunks: Int?
   /// A coarse key such as `approximate`.
   public var precision: String?
+  /// `device.contact`: which fields the person shared, by the contract's names (`name`, `phones`, ...); never a value.
+  public var fields: [String]?
+  /// `device.scan`: the kind of code that was read (`qr`, `ean13`, ...); never what it said.
+  public var symbology: String?
+  /// `input.file` answered with a recording (a voice note); never the recording or its transcript.
+  public var audio: Bool?
   public var extra: JSONObject
 
   public init(
@@ -1133,6 +1139,9 @@ public struct RequestAnswerSummary: TranscriptJSONCodable, Hashable {
     approvedHunks: Int? = nil,
     rejectedHunks: Int? = nil,
     precision: String? = nil,
+    fields: [String]? = nil,
+    symbology: String? = nil,
+    audio: Bool? = nil,
     extra: JSONObject = [:]
   ) {
     self.status = status
@@ -1142,6 +1151,9 @@ public struct RequestAnswerSummary: TranscriptJSONCodable, Hashable {
     self.approvedHunks = approvedHunks
     self.rejectedHunks = rejectedHunks
     self.precision = precision
+    self.fields = fields
+    self.symbology = symbology
+    self.audio = audio
     self.extra = extra
   }
 
@@ -1154,6 +1166,9 @@ public struct RequestAnswerSummary: TranscriptJSONCodable, Hashable {
     approvedHunks = reader.optional("approvedHunks")
     rejectedHunks = reader.optional("rejectedHunks")
     precision = reader.optional("precision")
+    fields = reader.optional("fields")
+    symbology = reader.optional("symbology")
+    audio = reader.optional("audio")
     extra = reader.residue
   }
 
@@ -1166,11 +1181,15 @@ public struct RequestAnswerSummary: TranscriptJSONCodable, Hashable {
     writer.set("approvedHunks", approvedHunks)
     writer.set("rejectedHunks", rejectedHunks)
     writer.set("precision", precision)
+    writer.set("fields", fields)
+    writer.set("symbology", symbology)
+    writer.set("audio", audio)
     return writer.json
   }
 }
 
-/// One interactive request (`input.form`, `input.file`, `review.draft`, `review.diff`): that a
+/// One interactive request (`input.form`, `input.file`, `review.draft`, `review.diff`, `input.signature`,
+/// `device.location`, `device.contact`, `device.calendar`, `device.scan`): that a
 /// question was asked and how it ended, never what was answered. `RequestItem`.
 /// There is no field that could hold a value.
 public struct RequestItem: TranscriptItemProtocol {

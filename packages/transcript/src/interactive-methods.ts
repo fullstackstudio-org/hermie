@@ -8,7 +8,17 @@
  *
  * `approval` and `clarify` are not in it: they have items of their own.
  */
-export const INTERACTIVE_METHODS = ['input.form', 'input.file', 'review.draft', 'review.diff'] as const
+export const INTERACTIVE_METHODS = [
+  'input.form',
+  'input.file',
+  'review.draft',
+  'review.diff',
+  'input.signature',
+  'device.location',
+  'device.contact',
+  'device.calendar',
+  'device.scan'
+] as const
 
 export type InteractiveMethod = (typeof INTERACTIVE_METHODS)[number]
 

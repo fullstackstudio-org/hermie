@@ -474,14 +474,14 @@
             "item": {
               "id": "req:srq-1",
               "kind": "request",
-              "method": "review.draft",
-              "optional": false,
+              "method": "input.file",
+              "optional": true,
               "origin": "live",
               "requestId": "srq-1",
               "seq": 7000,
               "state": "open",
-              "summary": "Here is the reply I would send. Approve, edit or reject it.",
-              "title": "Reply to Bram",
+              "summary": "Record your answer to the landlord; I will transcribe and send it.",
+              "title": "Voice reply",
               "ts": 1790000006,
               "version": 0
             },
@@ -592,14 +592,14 @@
             "item": {
               "id": "req:srq-1",
               "kind": "request",
-              "method": "review.draft",
-              "optional": false,
+              "method": "input.file",
+              "optional": true,
               "origin": "live",
               "requestId": "srq-1",
               "seq": 7000,
               "state": "open",
-              "summary": "Here is the reply I would send. Approve, edit or reject it.",
-              "title": "Reply to Bram",
+              "summary": "Record your answer to the landlord; I will transcribe and send it.",
+              "title": "Voice reply",
               "ts": 1790000006,
               "version": 0
             },
@@ -729,14 +729,14 @@
             "item": {
               "id": "req:srq-1",
               "kind": "request",
-              "method": "review.draft",
-              "optional": false,
+              "method": "input.file",
+              "optional": true,
               "origin": "live",
               "requestId": "srq-1",
               "seq": 7000,
               "state": "open",
-              "summary": "Here is the reply I would send. Approve, edit or reject it.",
-              "title": "Reply to Bram",
+              "summary": "Record your answer to the landlord; I will transcribe and send it.",
+              "title": "Voice reply",
               "ts": 1790000006,
               "version": 0
             },
@@ -871,19 +871,20 @@
           {
             "item": {
               "answerSummary": {
-                "decision": "approved",
-                "edited": true
+                "audio": true,
+                "count": 1,
+                "status": "answered"
               },
               "id": "req:srq-1",
               "kind": "request",
-              "method": "review.draft",
-              "optional": false,
+              "method": "input.file",
+              "optional": true,
               "origin": "live",
               "requestId": "srq-1",
               "seq": 7000,
               "state": "answered",
-              "summary": "Here is the reply I would send. Approve, edit or reject it.",
-              "title": "Reply to Bram",
+              "summary": "Record your answer to the landlord; I will transcribe and send it.",
+              "title": "Voice reply",
               "ts": 1790000006,
               "version": 1
             },
@@ -993,19 +994,20 @@
           {
             "item": {
               "answerSummary": {
-                "decision": "approved",
-                "edited": true
+                "audio": true,
+                "count": 1,
+                "status": "answered"
               },
               "id": "req:srq-1",
               "kind": "request",
-              "method": "review.draft",
-              "optional": false,
+              "method": "input.file",
+              "optional": true,
               "origin": "live",
               "requestId": "srq-1",
               "seq": 7000,
               "state": "answered",
-              "summary": "Here is the reply I would send. Approve, edit or reject it.",
-              "title": "Reply to Bram",
+              "summary": "Record your answer to the landlord; I will transcribe and send it.",
+              "title": "Voice reply",
               "ts": 1790000006,
               "version": 1
             },
@@ -1134,19 +1136,20 @@
           {
             "item": {
               "answerSummary": {
-                "decision": "approved",
-                "edited": true
+                "audio": true,
+                "count": 1,
+                "status": "answered"
               },
               "id": "req:srq-1",
               "kind": "request",
-              "method": "review.draft",
-              "optional": false,
+              "method": "input.file",
+              "optional": true,
               "origin": "live",
               "requestId": "srq-1",
               "seq": 7000,
               "state": "answered",
-              "summary": "Here is the reply I would send. Approve, edit or reject it.",
-              "title": "Reply to Bram",
+              "summary": "Record your answer to the landlord; I will transcribe and send it.",
+              "title": "Voice reply",
               "ts": 1790000006,
               "version": 1
             },
@@ -1156,7 +1159,7 @@
       }
     }
   ],
-  "description": "The same chat receives a review.draft (a mail to approve or edit); the person edits it and approves, and the engine records that it was approved, edited, and not what it now says.",
+  "description": "The same chat receives an input.file asking for a voice note (accept and capture audio); the person records one, sends it with the transcript the device made, and the engine records that one recording was sent and that it was a voice note, not what it said.",
   "final": {
     "botName": "researcher",
     "byApprovalId": {},
@@ -1272,19 +1275,20 @@
       },
       "req:srq-1": {
         "answerSummary": {
-          "decision": "approved",
-          "edited": true
+          "audio": true,
+          "count": 1,
+          "status": "answered"
         },
         "id": "req:srq-1",
         "kind": "request",
-        "method": "review.draft",
-        "optional": false,
+        "method": "input.file",
+        "optional": true,
         "origin": "live",
         "requestId": "srq-1",
         "seq": 7000,
         "state": "answered",
-        "summary": "Here is the reply I would send. Approve, edit or reject it.",
-        "title": "Reply to Bram",
+        "summary": "Record your answer to the landlord; I will transcribe and send it.",
+        "title": "Voice reply",
         "ts": 1790000006,
         "version": 1
       },
@@ -1667,24 +1671,27 @@
       "frame": {
         "id": "srq-1",
         "jsonrpc": "2.0",
-        "method": "review.draft",
+        "method": "input.file",
         "params": {
+          "accept": "audio",
           "acting_user": {
             "id": "oidc:5b1e0c9a",
             "name": "Ada"
           },
-          "editable": true,
+          "capture": "audio",
           "expires_at": 1790000300,
-          "kind": "mail",
-          "optional": false,
-          "recipients": [
-            "Bram de Vries <bram@example.com>"
-          ],
+          "multiple": false,
+          "optional": true,
           "session_id": "runtime-4a31c816",
-          "subject": "Re: Flat on the Oudegracht",
-          "summary": "Here is the reply I would send. Approve, edit or reject it.",
-          "text": "Hi Bram,\n\nThe flat is free from 1 November. The rent is EUR 1,150 a month, deposit two months.\nCould you confirm by Friday?\n\nKind regards,\nAda",
-          "title": "Reply to Bram",
+          "summary": "Record your answer to the landlord; I will transcribe and send it.",
+          "title": "Voice reply",
+          "upload": {
+            "dir": "/home/ada/work/uploads/hermie/2026-10-04",
+            "max_bytes": 26214400,
+            "max_files": 1,
+            "max_total_bytes": 26214400,
+            "strip_metadata": false
+          },
           "v": 1
         }
       }
@@ -1692,7 +1699,7 @@
   ],
   "pinnedNow": 1790000000000,
   "profile": "researcher",
-  "scenario": "review-draft",
+  "scenario": "input-voice",
   "stepMs": 1000,
   "steps": [
     {
@@ -1891,24 +1898,27 @@
       "args": [
         {
           "id": "srq-1",
-          "method": "review.draft",
+          "method": "input.file",
           "params": {
+            "accept": "audio",
             "acting_user": {
               "id": "oidc:5b1e0c9a",
               "name": "Ada"
             },
-            "editable": true,
+            "capture": "audio",
             "expires_at": 1790000300,
-            "kind": "mail",
-            "optional": false,
-            "recipients": [
-              "Bram de Vries <bram@example.com>"
-            ],
+            "multiple": false,
+            "optional": true,
             "session_id": "runtime-4a31c816",
-            "subject": "Re: Flat on the Oudegracht",
-            "summary": "Here is the reply I would send. Approve, edit or reject it.",
-            "text": "Hi Bram,\n\nThe flat is free from 1 November. The rent is EUR 1,150 a month, deposit two months.\nCould you confirm by Friday?\n\nKind regards,\nAda",
-            "title": "Reply to Bram",
+            "summary": "Record your answer to the landlord; I will transcribe and send it.",
+            "title": "Voice reply",
+            "upload": {
+              "dir": "/home/ada/work/uploads/hermie/2026-10-04",
+              "max_bytes": 26214400,
+              "max_files": 1,
+              "max_total_bytes": 26214400,
+              "strip_metadata": false
+            },
             "v": 1
           }
         },
@@ -1921,8 +1931,9 @@
       "args": [
         "srq-1",
         {
-          "decision": "approved",
-          "edited": true
+          "audio": true,
+          "count": 1,
+          "status": "answered"
         }
       ],
       "op": "answerRequest"

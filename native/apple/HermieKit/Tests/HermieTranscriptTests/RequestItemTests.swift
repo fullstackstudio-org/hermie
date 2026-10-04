@@ -91,6 +91,38 @@ import Testing
     #expect(item.title.utf16.count == 80 && item.summary.utf16.count == 500 && item.optional == false)
   }
 
+  @Test func aContactsSharedFieldsAndAScansSymbologyAreTheContractsNamesOnly() throws {
+    var state = Self.asked()
+    answerRequest(
+      into: &state, "srq-9",
+      .object([
+        "status": "answered",
+        // A value, a key the contract does not have and a repeat: only the names survive, once, in the contract's order.
+        "fields": .array(["phones", "Bram de Vries", "name", "phones", "ssn"]),
+        "symbology": "qr", "audio": true,
+        "contact": .object(["name": "Bram de Vries"]), "value": "WIFI:T:WPA;S:home;P:hunter2;;",
+      ])
+    )
+
+    #expect(
+      Self.requestItem(state)?.answerSummary
+        == RequestAnswerSummary(status: "answered", fields: ["name", "phones"], symbology: "qr", audio: true))
+    let text = String(decoding: try JSONEncoder().encode(state), as: UTF8.self)
+    #expect(!text.contains("Bram") && !text.contains("hunter2") && !text.contains("ssn"))
+
+    let bads: [JSONObject] = [
+      ["fields": .array([])], ["fields": "name"], ["fields": .array(["Bram de Vries"])], ["symbology": "QR"],
+      ["symbology": "https://example.com"], ["audio": false], ["audio": "yes"],
+    ]
+    for bad in bads {
+      var dropped = Self.asked()
+      var summary: JSONObject = ["status": "answered"]
+      summary.merge(bad) { $1 }
+      answerRequest(into: &dropped, "srq-9", .object(summary))
+      #expect(Self.requestItem(dropped)?.answerSummary == RequestAnswerSummary(status: "answered"), "\(bad)")
+    }
+  }
+
   // MARK: - Settling
 
   @Test func aStringOrAMapThatIsNoSummaryRecordsAnsweredAndNothingMore() throws {

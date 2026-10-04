@@ -122,6 +122,10 @@ extension TranscriptReducer {
   static let summaryCountMax = 9_999
   /// A diff review has at most this many hunks (`contract/requests`: 1 to 200).
   static let summaryHunksMax = 200
+  /// The contract's closed names (`device.contact` fields, `device.scan` symbologies): all a summary may say of them,
+  /// the fields in the order the contract lists them.
+  static let summaryContactFields = ["name", "phones", "emails", "postal", "birthday", "organization"]
+  static let summarySymbologies = ["qr", "ean13", "ean8", "code128", "pdf417", "datamatrix", "aztec"]
 
   /// `/^[a-z][a-z0-9_]{0,23}$/`.
   static func isSummaryKey(_ value: String) -> Bool {
@@ -166,6 +170,28 @@ extension TranscriptReducer {
 
     if case .string(let precision)? = raw["precision"], isSummaryKey(precision) {
       out.precision = precision
+    }
+
+    // The shared contact fields: only the contract's six names, once each, in the order the contract lists them.
+    if case .array(let listed)? = raw["fields"] {
+      let names = Set(
+        listed.compactMap { value -> String? in
+          if case .string(let name) = value { return name }
+          return nil
+        })
+      let fields = summaryContactFields.filter { names.contains($0) }
+
+      if !fields.isEmpty {
+        out.fields = fields
+      }
+    }
+
+    if case .string(let symbology)? = raw["symbology"], summarySymbologies.contains(symbology) {
+      out.symbology = symbology
+    }
+
+    if case .bool(true)? = raw["audio"] {
+      out.audio = true
     }
 
     return out.status != nil || out.decision != nil ? out : nil

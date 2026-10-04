@@ -149,6 +149,11 @@ private func requestLine(_ request: RequestItem) -> String {
       summary.edited == true ? "edited" : "",
       (summary.count ?? 0) != 0 ? String(summary.count ?? 0) : "",
       hunks,
+      // Which kind of thing was shared, never the thing: a voice note, a precision, a symbology, contact fields.
+      summary.audio == true ? "voice note" : "",
+      summary.precision ?? "",
+      summary.symbology ?? "",
+      summary.fields.map { $0.joined(separator: " + ") } ?? "",
     ].filter { !$0.isEmpty }.joined(separator: ", ")
   } else {
     ended = request.state.rawValue

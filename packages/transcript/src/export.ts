@@ -97,7 +97,12 @@ function requestLine(item: Extract<TranscriptItem, { kind: 'approval' | 'clarify
           summary.status ?? summary.decision,
           summary.edited ? 'edited' : '',
           summary.count ? `${summary.count}` : '',
-          hunks
+          hunks,
+          // Which kind of thing was shared, never the thing: a voice note, a precision, a symbology, contact fields.
+          summary.audio ? 'voice note' : '',
+          summary.precision ?? '',
+          summary.symbology ?? '',
+          summary.fields?.length ? summary.fields.join(' + ') : ''
         ]
           .filter(Boolean)
           .join(', ')

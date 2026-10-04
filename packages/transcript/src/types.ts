@@ -413,7 +413,8 @@ export interface ClarifyItem extends ItemBase {
 }
 
 /**
- * How an interactive request (`input.form`, `input.file`, `review.draft`, `review.diff`) ended,
+ * How an interactive request (`input.form`, `input.file`, `review.draft`, `review.diff`,
+ * `input.signature`, `device.location`, `device.contact`, `device.calendar`, `device.scan`) ended,
  * as KEYS and numbers only.
  *
  * What the person answered (form values, file names, the edited draft, a location)
@@ -437,7 +438,19 @@ export interface RequestAnswerSummary {
   rejectedHunks?: number
   /** A coarse key such as `approximate`; never a value. */
   precision?: string
+  /** `device.contact`: which fields the person shared, by the contract's names (`name`, `phones`, ...); never a value. */
+  fields?: readonly ContactSummaryField[]
+  /** `device.scan`: the kind of code that was read (`qr`, `ean13`, ...); never what it said. */
+  symbology?: ScanSummarySymbology
+  /** `input.file` answered with a recording (a voice note); never the recording or its transcript. */
+  audio?: boolean
 }
+
+/** The contract's contact fields (`device.contact`): the names a summary may carry. */
+export type ContactSummaryField = 'name' | 'phones' | 'emails' | 'postal' | 'birthday' | 'organization'
+
+/** The contract's symbologies (`device.scan`): the names a summary may carry. */
+export type ScanSummarySymbology = 'qr' | 'ean13' | 'ean8' | 'code128' | 'pdf417' | 'datamatrix' | 'aztec'
 
 /**
  * One interactive request: that a question was asked and how it ended.
