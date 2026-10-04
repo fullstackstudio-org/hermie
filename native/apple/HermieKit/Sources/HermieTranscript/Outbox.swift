@@ -172,14 +172,17 @@ public struct OutboxAttachment: TranscriptJSONCodable, Hashable, Sendable, Ident
     return count >= 1
   }
 
-  /// `urlNames`: whether `url` is the outbox route of exactly this id and name. The name is compared by its
-  /// code points, as a JavaScript string is, never by canonical equivalence: `é` and `é` are two names.
+  /// `urlNames`: whether `url` is the outbox route of exactly this id and name. Everything is compared by its
+  /// code points, as a JavaScript string is, never as Swift's `Character`s, which go by grapheme clusters and
+  /// canonical equivalence: a Kelvin sign (U+212A) is not a `K`, a `?` with a combining mark after it is still a
+  /// `?`, and `é` and `é` are two names.
   static func routeNames(_ url: String, _ id: String, _ name: String) -> Bool {
     let head = "\(urlPrefix)\(id)/"
-    guard url.hasPrefix(head) else { return false }
-    let segment = String(url.dropFirst(head.count))
+    guard url.utf8.starts(with: head.utf8) else { return false }
+    // `head` is ASCII, so the cut after it is at a code point boundary.
+    let segment = String(decoding: Array(url.utf8.dropFirst(head.utf8.count)), as: UTF8.self)
     // One path segment, with nothing after it: a query or a fragment is somebody else's addition.
-    guard !segment.isEmpty, !segment.contains(where: { $0 == "/" || $0 == "\\" || $0 == "?" || $0 == "#" }) else {
+    guard !segment.isEmpty, !segment.unicodeScalars.contains(where: { "/\\?#".unicodeScalars.contains($0) }) else {
       return false
     }
     guard let decoded = segment.removingPercentEncoding else { return false }

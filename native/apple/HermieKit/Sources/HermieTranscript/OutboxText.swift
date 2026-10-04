@@ -28,16 +28,18 @@ public enum OutboxText {
   }
 
   /// The name a copy is saved under: the card's name, without what a file system refuses (`<>:"|?*` and a
-  /// slash, which become `_`), without a leading or trailing space, at most `savedNameMaximumBytes` bytes
-  /// with its extension kept, and never empty or only dots.
+  /// slash, which become `_`), without a leading or trailing space, never hidden (a leading dot gets a `_` before
+  /// it), at most `savedNameMaximumBytes` bytes with its extension kept, and never empty or only dots.
   public static func savedName(_ name: String) -> String {
     let refused: Set<Unicode.Scalar> = ["<", ">", ":", "\"", "|", "?", "*", "/", "\\"]
     var scalars = String.UnicodeScalarView()
     for scalar in name.unicodeScalars where !isStripped(scalar) {
       scalars.append(refused.contains(scalar) ? "_" : scalar)
     }
-    let cleaned = String(scalars).trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !cleaned.isEmpty, cleaned.contains(where: { $0 != "." }) else { return "file" }
+    var cleaned = String(scalars).trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !cleaned.isEmpty, cleaned.unicodeScalars.contains(where: { $0 != "." }) else { return "file" }
+    // A name that starts with a dot is a hidden file on a Mac and in Files: what was saved would not be seen.
+    if cleaned.unicodeScalars.first == "." { cleaned = "_" + cleaned }
     return limited(cleaned)
   }
 

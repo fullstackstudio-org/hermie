@@ -133,13 +133,37 @@ import Testing
       ("a raw .. segment before the id", mutate(["url": .string("/api/files/outbox/../\(id)/\(name)")])),
       ("a raw .. segment as the name", mutate(["name": .string("x.mp3"), "url": .string("\(route)/..")])),
       ("a . segment between the id and the name", mutate(["url": .string("\(route)/./\(name)")])),
-      ("a canonically equal but different name", mutate(["name": .string("e\u{301}.mp3"), "url": .string("\(route)/%C3%A9.mp3")]))
+      ("a canonically equal but different name", mutate(["name": .string("e\u{301}.mp3"), "url": .string("\(route)/%C3%A9.mp3")])),
+      // Swift's `Character` compares grapheme clusters by canonical equivalence; the route is compared by code points.
+      (
+        "a url whose id has a Kelvin sign where the id has a K",
+        mutate([
+          "id": .string("K3Wm0B2v7yXk4Lr9TzPa1sDf6GhJ8cNe"),
+          "url": .string("/api/files/outbox/\u{212A}3Wm0B2v7yXk4Lr9TzPa1sDf6GhJ8cNe/\(name)"),
+        ])
+      ),
+      (
+        "a raw ? that carries a combining mark",
+        mutate(["name": .string("a?\u{301}b.mp3"), "url": .string("\(route)/a?\u{301}b.mp3")])
+      ),
+      (
+        "a raw # that carries a combining mark",
+        mutate(["name": .string("a#\u{301}b.mp3"), "url": .string("\(route)/a#\u{301}b.mp3")])
+      ),
     ]
   }
 
   @Test(arguments: hostile.map(\.0)) func dropsAnAttachmentWith(_ what: String) throws {
     let value = try #require(Self.hostile.first { $0.0 == what }?.1)
     #expect(OutboxAttachment.parse(value) == nil)
+  }
+
+  @Test func aNameWithAQuestionMarkOrAHashIsKeptWhenItsUrlEncodesThem() throws {
+    for name in ["a?\u{301}b.mp3", "a#\u{301}b.mp3", "K.mp3"] {
+      let url = "\(Self.route)/\(OutboxAttachment.encodedName(name))"
+      let parsed = try #require(OutboxAttachment.parse(Self.mutate(["name": .string(name), "url": .string(url)])))
+      #expect(parsed.name == name)
+    }
   }
 
   @Test func readsANameWithMarkupAsTheTextItIsAndAPercentEncodedNameByWhatItDecodesTo() {
@@ -365,7 +389,9 @@ import Testing
     #expect(OutboxText.savedName("") == "file")
     #expect(OutboxText.savedName("\u{200B}") == "file")
     #expect(OutboxText.savedName("...") == "file")
-    #expect(OutboxText.savedName(".bashrc") == ".bashrc")
+    #expect(OutboxText.savedName(".bashrc") == "_.bashrc", "a saved copy is never a hidden file")
+    #expect(OutboxText.savedName(" .env") == "_.env")
+    #expect(OutboxText.savedName("..hidden.txt") == "_..hidden.txt")
   }
 
   @Test func aSavedNameIsCutAtACharacterBoundaryAndKeepsItsExtension() {
