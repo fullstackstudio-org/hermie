@@ -140,6 +140,15 @@ public final class InteractiveModel {
     dismiss()
   }
 
+  /// Something time-critical wants the screen (an approval, a confirmation, a secure prompt): the
+  /// sheet steps aside without putting the request away, so it comes back by itself once the screen
+  /// is free (`nextToPresent`). What was typed in it is gone, as with Later.
+  public func yield() {
+    if presented != nil {
+      dismiss()
+    }
+  }
+
   /// Where an `input.file` request's files are uploaded to.
   public var uploader: InteractiveUploader { center.uploader }
 
@@ -172,7 +181,8 @@ public final class InteractiveModel {
     return finish(id, await center.answer(id, answer))
   }
 
-  /// Skip (the Skip button, Esc), for a request that offers it. Answers whether the gateway took it.
+  /// Skip (the Skip button), for a request that offers it; Esc is Later, never Skip. Answers whether
+  /// the gateway took it.
   @discardableResult
   public func skip() async -> Bool {
     await answer(.skip)

@@ -50,6 +50,10 @@ extension NativeStrings {
     static var tryAgain: String { string("native.interactive.tryAgain") }
     /// Close
     static var close: String { string("native.interactive.close") }
+    /// Don't share
+    static var decline: String { string("native.interactive.decline") }
+    /// Tells the bot you chose not to give this. It does not ask again at once.
+    static var declineHint: String { string("native.interactive.declineHint") }
     /// Your earlier answer did not reach the gateway. Please answer again.
     static var earlierAnswerLost: String { string("native.interactive.earlierAnswerLost") }
 
@@ -76,6 +80,14 @@ extension NativeStrings {
     static var refusalFilesTooLarge: String { string("native.interactive.refusal.filesTooLarge") }
     /// The gateway did not accept one of the files.
     static var refusalFileRefused: String { string("native.interactive.refusal.fileRefused") }
+    /// A file is not where the gateway expects it.
+    static var refusalOutsideDir: String { string("native.interactive.refusal.outsideDir") }
+    /// A file is larger than the gateway allows.
+    static var refusalFileTooLarge: String { string("native.interactive.refusal.fileTooLarge") }
+    /// The gateway could not read this answer.
+    static var refusalBadShape: String { string("native.interactive.refusal.badShape") }
+    /// Too many wrong answers: the request was withdrawn.
+    static var refusalTooManyAttempts: String { string("native.interactive.refusal.tooManyAttempts") }
     /// The text holds characters that cannot be sent as they are.
     static var refusalNotVerbatim: String { string("native.interactive.refusal.notVerbatim") }
     /// This draft cannot be changed.
@@ -86,11 +98,15 @@ extension NativeStrings {
     /// The words for a reason the gateway refused an answer with (never the reason itself).
     static func refusal(_ reason: String) -> String {
       switch reason {
+      case "bad_shape": refusalBadShape
+      case "too_many_attempts": refusalTooManyAttempts
       case "not_optional": refusalNotOptional
       case "files:too_many": refusalTooManyFiles
       case "files:too_large": refusalFilesTooLarge
       case "text:not_verbatim": refusalNotVerbatim
       case "text:edited": refusalEdited
+      case _ where reason.hasPrefix("file:") && reason.hasSuffix(":outside_dir"): refusalOutsideDir
+      case _ where reason.hasPrefix("file:") && reason.hasSuffix(":too_large"): refusalFileTooLarge
       case _ where reason.hasPrefix("file:"): refusalFileRefused
       default: refusalOther
       }
@@ -342,10 +358,47 @@ extension NativeStrings {
       static var revert: String { string("native.interactive.draft.revert") }
       /// This draft cannot be changed. You can approve or reject it.
       static var notEditable: String { string("native.interactive.draft.notEditable") }
-      /// The text holds characters that cannot be sent as they are:
+      /// The text cannot be sent as it is:
       static var hiddenWarning: String { string("native.interactive.draft.hiddenWarning") }
-      /// Remove them
-      static var removeHidden: String { string("native.interactive.draft.removeHidden") }
+      /// Nothing is left of the text once whitespace at the ends is removed.
+      static var problemEmpty: String { string("native.interactive.draft.problem.empty") }
+      /// Characters that do not show as themselves (invisible, direction, special spaces, tabs).
+      static var problemCharacters: String { string("native.interactive.draft.problem.characters") }
+      /// More than {limit} combining marks on one character.
+      static func problemMarks(_ limit: Int) -> String {
+        String(
+          localized: "native.interactive.draft.problem.marks",
+          defaultValue: "More than \(limit) combining marks on one character.", table: "Native", bundle: .module)
+      }
+      /// From line {line} there are more than {limit} blank lines in a row.
+      static func problemBlankLines(_ line: Int, _ limit: Int) -> String {
+        String(
+          localized: "native.interactive.draft.problem.blankLines",
+          defaultValue: "From line \(line) there are more than \(limit) blank lines in a row.", table: "Native",
+          bundle: .module)
+      }
+      /// Line {line} is longer than {limit} characters.
+      static func problemLineTooLong(_ line: Int, _ limit: Int) -> String {
+        String(
+          localized: "native.interactive.draft.problem.lineTooLong",
+          defaultValue: "Line \(line) is longer than \(limit) characters.", table: "Native", bundle: .module)
+      }
+      /// Line {line} is indented by more than {limit} spaces.
+      static func problemIndent(_ line: Int, _ limit: Int) -> String {
+        String(
+          localized: "native.interactive.draft.problem.indent",
+          defaultValue: "Line \(line) is indented by more than \(limit) spaces.", table: "Native", bundle: .module)
+      }
+      /// Line {line} has more than {limit} spaces in a row.
+      static func problemSpaceRun(_ line: Int, _ limit: Int) -> String {
+        String(
+          localized: "native.interactive.draft.problem.spaceRun",
+          defaultValue: "Line \(line) has more than \(limit) spaces in a row.", table: "Native", bundle: .module)
+      }
+      /// Correct the text yourself: nothing is changed for you.
+      static var correctNote: String { string("native.interactive.draft.correctNote") }
+      /// Lines are not wrapped; scroll sideways for a long line.
+      static var noWrapHint: String { string("native.interactive.draft.noWrapHint") }
       /// Invisible characters are shown as codes in brackets.
       static var hiddenLegend: String { string("native.interactive.draft.hiddenLegend") }
       /// The text is longer than {max} characters.

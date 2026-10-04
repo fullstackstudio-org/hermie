@@ -365,6 +365,32 @@ struct InteractiveFileTests {
     files.discardAll()
   }
 
+  @Test("the answer's name is at most 120 code points with its extension kept, and its type at most 80")
+  func answerLimits() async throws {
+    let long = String(repeating: "a", count: 126) + ".pdf"
+    #expect(long.count == 130)
+
+    let scratch = try Scratch()
+    let files = InteractiveFileModel(params: fileParams())
+    await files.importFiles([try scratch.write(long, Data("x".utf8))])
+    let references = try #require(await files.upload(through: UploadLog().recording()))
+    let name = try #require(references.first?.name)
+    #expect(name.unicodeScalars.count == 120)
+    #expect(name.hasSuffix(".pdf"))
+    #expect(name.hasPrefix("aaaa"))
+    files.discardAll()
+
+    #expect(InteractiveFileModel.answerName("short.txt") == "short.txt")
+    #expect(InteractiveFileModel.answerName("") == "file")
+    // No extension, a huge "extension", and code points that are several UTF-16 units.
+    #expect(InteractiveFileModel.answerName(String(repeating: "b", count: 200)).unicodeScalars.count == 120)
+    #expect(InteractiveFileModel.answerName("x." + String(repeating: "c", count: 200)).unicodeScalars.count == 120)
+    #expect(InteractiveFileModel.answerName(String(repeating: "😀", count: 130) + ".png").unicodeScalars.count == 120)
+    #expect(InteractiveFileModel.answerMime("image/jpeg") == "image/jpeg")
+    #expect(InteractiveFileModel.answerMime(nil) == "application/octet-stream")
+    #expect(InteractiveFileModel.answerMime("application/" + String(repeating: "x", count: 80)) == "application/octet-stream")
+  }
+
   @Test("two uploads of one name do not collide, and the token is fresh each time")
   func tokens() {
     let tokens = Set((0..<200).map { _ in InteractiveFileModel.randomToken() })

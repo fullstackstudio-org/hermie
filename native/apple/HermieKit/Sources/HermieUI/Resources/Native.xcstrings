@@ -5235,6 +5235,54 @@
         }
       }
     },
+    "native.interactive.decline" : {
+      "comment" : "Button that refuses a request outright: the bot is told the person chose not to give it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht teilen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don’t share"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niet delen"
+          }
+        }
+      }
+    },
+    "native.interactive.declineHint" : {
+      "comment" : "VoiceOver hint of the Don't share button.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teilt dem Bot mit, dass du das nicht geben möchtest. Er fragt nicht sofort erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tells the bot you chose not to give this. It does not ask again at once."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laat de bot weten dat je dit niet wilt geven. Hij vraagt het niet meteen opnieuw."
+          }
+        }
+      }
+    },
     "native.interactive.draft.approve" : {
       "comment" : "Button that approves a draft as it is.",
       "extractionState" : "manual",
@@ -5355,6 +5403,30 @@
         }
       }
     },
+    "native.interactive.draft.correctNote" : {
+      "comment" : "Under the rules a draft's text breaks: the person corrects it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Korrigiere den Text selbst; es wird nichts für dich geändert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Correct the text yourself; nothing is changed for you."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pas de tekst zelf aan; er wordt niets voor je veranderd."
+          }
+        }
+      }
+    },
     "native.interactive.draft.edited" : {
       "comment" : "Shown when the person changed a draft.",
       "extractionState" : "manual",
@@ -5404,25 +5476,25 @@
       }
     },
     "native.interactive.draft.hiddenWarning" : {
-      "comment" : "Warning above the list of characters in the text that cannot be sent as they are.",
+      "comment" : "Warning above the list of rules a draft's text breaks.",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Text enthält Zeichen, die nicht so gesendet werden können:"
+            "value" : "Der Text kann so nicht gesendet werden:"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The text holds characters that cannot be sent as they are:"
+            "value" : "The text cannot be sent as it is:"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "De tekst bevat tekens die niet zo verstuurd kunnen worden:"
+            "value" : "De tekst kan niet zo worden verstuurd:"
           }
         }
       }
@@ -5547,6 +5619,30 @@
         }
       }
     },
+    "native.interactive.draft.noWrapHint" : {
+      "comment" : "VoiceOver hint of the draft's text editor.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeilen werden nicht umbrochen. Eine lange Zeile scrollt seitlich."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lines are not wrapped. A long line scrolls sideways."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regels worden niet afgebroken. Een lange regel schuift opzij."
+          }
+        }
+      }
+    },
     "native.interactive.draft.notEditable" : {
       "comment" : "Shown under a draft that cannot be changed.",
       "extractionState" : "manual",
@@ -5567,6 +5663,174 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dit concept kan niet worden aangepast. Je kunt het goedkeuren of afwijzen."
+          }
+        }
+      }
+    },
+    "native.interactive.draft.problem.blankLines" : {
+      "comment" : "A rule a draft's text breaks. The arguments are the line where it starts and the most blank lines allowed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ab Zeile %1$lld folgen mehr als %2$lld Leerzeilen hintereinander."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From line %1$lld there are more than %2$lld blank lines in a row."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vanaf regel %1$lld staan meer dan %2$lld lege regels achter elkaar."
+          }
+        }
+      }
+    },
+    "native.interactive.draft.problem.characters" : {
+      "comment" : "A rule a draft's text breaks, with the characters listed below it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeichen, die nicht als sie selbst sichtbar sind (unsichtbare oder Richtungszeichen, besondere Leerzeichen, Tabs):"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Characters that do not show as themselves (invisible or direction characters, special spaces, tabs):"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekens die niet als zichzelf zichtbaar zijn (onzichtbare tekens of richtingstekens, bijzondere spaties, tabs):"
+          }
+        }
+      }
+    },
+    "native.interactive.draft.problem.empty" : {
+      "comment" : "A rule a draft's text breaks: nothing is left of it once whitespace at the ends is removed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vom Text bleibt nichts übrig, wenn der Leerraum an den Enden entfernt wird."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing is left of the text once the whitespace at its ends is removed."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er blijft niets over van de tekst als de witruimte aan de uiteinden weg is."
+          }
+        }
+      }
+    },
+    "native.interactive.draft.problem.indent" : {
+      "comment" : "A rule a draft's text breaks. The arguments are the line and the most spaces allowed at its start.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeile %1$lld ist um mehr als %2$lld Leerzeichen eingerückt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Line %1$lld is indented by more than %2$lld spaces."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regel %1$lld is meer dan %2$lld spaties ingesprongen."
+          }
+        }
+      }
+    },
+    "native.interactive.draft.problem.lineTooLong" : {
+      "comment" : "A rule a draft's text breaks. The arguments are the line and the most characters allowed on one.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeile %1$lld ist länger als %2$lld Zeichen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Line %1$lld is longer than %2$lld characters."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regel %1$lld is langer dan %2$lld tekens."
+          }
+        }
+      }
+    },
+    "native.interactive.draft.problem.marks" : {
+      "comment" : "A rule a draft's text breaks. The argument is the most combining marks allowed on one character.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mehr als %lld kombinierende Zeichen auf einem Zeichen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More than %lld combining marks on one character."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meer dan %lld combinerende tekens op één teken."
+          }
+        }
+      }
+    },
+    "native.interactive.draft.problem.spaceRun" : {
+      "comment" : "A rule a draft's text breaks. The arguments are the line and the most spaces allowed in a row.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeile %1$lld hat mehr als %2$lld Leerzeichen hintereinander."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Line %1$lld has more than %2$lld spaces in a row."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regel %1$lld heeft meer dan %2$lld spaties achter elkaar."
           }
         }
       }
@@ -5639,30 +5903,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Concept afwijzen"
-          }
-        }
-      }
-    },
-    "native.interactive.draft.removeHidden" : {
-      "comment" : "Button that removes those characters.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Entfernen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remove them"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verwijder ze"
           }
         }
       }
@@ -7083,6 +7323,30 @@
         }
       }
     },
+    "native.interactive.refusal.badShape" : {
+      "comment" : "The gateway could not read an answer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Gateway konnte diese Antwort nicht lesen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The gateway could not read this answer."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De gateway kon dit antwoord niet lezen."
+          }
+        }
+      }
+    },
     "native.interactive.refusal.edited" : {
       "comment" : "The gateway refused an approved draft because the draft may not be changed.",
       "extractionState" : "manual",
@@ -7127,6 +7391,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "De gateway accepteerde een van de bestanden niet."
+          }
+        }
+      }
+    },
+    "native.interactive.refusal.fileTooLarge" : {
+      "comment" : "The gateway refused a file of an answer: it is larger than allowed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine Datei ist größer, als das Gateway erlaubt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A file is larger than the gateway allows."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een bestand is groter dan de gateway toestaat."
           }
         }
       }
@@ -7180,25 +7468,25 @@
       }
     },
     "native.interactive.refusal.notVerbatim" : {
-      "comment" : "The gateway refused an approved draft because it holds characters that cannot be shown as they are.",
+      "comment" : "The gateway refused an approved draft because its text cannot be shown as it is.",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Text enthält Zeichen, die nicht so gesendet werden können."
+            "value" : "Das Gateway lehnt den Text ab: Er enthält Zeichen oder Leerraum, die nicht so angezeigt werden können."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The text holds characters that cannot be sent as they are."
+            "value" : "The gateway refuses the text: it holds characters or spacing that cannot be shown as they are."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "De tekst bevat tekens die niet zo verstuurd kunnen worden."
+            "value" : "De gateway weigert de tekst: er staan tekens of witruimte in die niet zo getoond kunnen worden."
           }
         }
       }
@@ -7223,6 +7511,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "De gateway accepteerde dit antwoord niet."
+          }
+        }
+      }
+    },
+    "native.interactive.refusal.outsideDir" : {
+      "comment" : "The gateway refused a file of an answer: it is not directly in the upload folder.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine Datei liegt nicht dort, wo das Gateway sie erwartet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A file is not where the gateway expects it."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een bestand staat niet waar de gateway het verwacht."
+          }
+        }
+      }
+    },
+    "native.interactive.refusal.tooManyAttempts" : {
+      "comment" : "The request was withdrawn after too many refused answers.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu viele Antworten wurden abgelehnt, daher wurde die Anfrage zurückgezogen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Too many answers were refused, so the request was withdrawn."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er zijn te veel antwoorden geweigerd, dus het verzoek is ingetrokken."
           }
         }
       }

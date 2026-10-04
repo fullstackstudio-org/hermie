@@ -87,7 +87,18 @@ public final class InteractiveFormModel {
       return
     }
 
+    // A person picks minutes: no hidden seconds ride along with the picker's own clock.
+    if case .datetime(let instant?) = input {
+      inputs[id] = .datetime(Self.wholeMinute(instant))
+      return
+    }
+
     inputs[id] = input
+  }
+
+  /// The instant at the start of its minute.
+  static func wholeMinute(_ instant: Date) -> Date {
+    Date(timeIntervalSince1970: (instant.timeIntervalSince1970 / 60).rounded(.down) * 60)
   }
 
   private static func fits(_ input: FormInput, _ field: FormField) -> Bool {
@@ -134,14 +145,16 @@ public final class InteractiveFormModel {
     case .time(let field):
       set(.time(Self.clamp(clock.time(of: current), field.min, field.max)), for: id)
     case .datetime(let field):
-      var chosen = current
+      // Now, to the minute; inside the bounds, which may themselves have seconds: the earliest
+      // minute at or after `min`, the latest at or before `max`.
+      var chosen = Self.wholeMinute(current)
 
       if let min = field.min.flatMap(FormInstant.parse), chosen < min {
-        chosen = min
+        chosen = Self.wholeMinute(min) < min ? Self.wholeMinute(min).addingTimeInterval(60) : min
       }
 
       if let max = field.max.flatMap(FormInstant.parse), chosen > max {
-        chosen = max
+        chosen = Self.wholeMinute(max)
       }
 
       set(.datetime(chosen), for: id)

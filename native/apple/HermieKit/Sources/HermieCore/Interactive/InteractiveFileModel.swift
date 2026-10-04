@@ -318,6 +318,42 @@ public final class InteractiveFileModel {
     return "\(root == "/" ? "" : root)/\(token())-\(AttachmentRules.sanitisedName(file.name))"
   }
 
+  /// The longest `name` of an uploaded file, in code points (`UploadedFile`'s `maxLength`).
+  public nonisolated static let nameLimit = 120
+  /// The longest `mime` of an uploaded file.
+  public nonisolated static let mimeLimit = 80
+
+  /// The name an answer carries: the file's own, cut to `nameLimit` code points with its extension
+  /// kept (`a-very-long-name….pdf`), and never empty.
+  public nonisolated static func answerName(_ name: String) -> String {
+    let scalars = Array(name.unicodeScalars)
+
+    if scalars.isEmpty {
+      return "file"
+    }
+
+    guard scalars.count > nameLimit else {
+      return name
+    }
+
+    // A short extension survives the cut; a "extension" that is most of the name does not.
+    let ext = (name as NSString).pathExtension
+    let keep = ext.isEmpty || ext.unicodeScalars.count > 16 ? "" : ".\(ext)"
+    let room = nameLimit - keep.unicodeScalars.count
+    var cut = String.UnicodeScalarView()
+    cut.append(contentsOf: scalars.prefix(room))
+    return String(cut) + keep
+  }
+
+  /// The type an answer carries: the file's own when it fits the contract, else the generic one.
+  public nonisolated static func answerMime(_ mime: String?) -> String {
+    guard let mime, !mime.isEmpty, mime.unicodeScalars.count <= mimeLimit else {
+      return AttachmentRules.fallbackType
+    }
+
+    return mime
+  }
+
   /// Sixteen lowercase hex characters.
   public nonisolated static func randomToken() -> String {
     (0..<8).map { _ in String(format: "%02x", UInt8.random(in: 0...255)) }.joined()
@@ -370,8 +406,8 @@ public final class InteractiveFileModel {
         done.append(
           UploadedFile(
             path: landed,
-            name: String(file.name.unicodeScalars.prefix(255).map(Character.init)),
-            mime: file.mimeType ?? AttachmentRules.fallbackType,
+            name: Self.answerName(file.name),
+            mime: Self.answerMime(file.mimeType),
             bytes: size,
             sha256: digest))
       }

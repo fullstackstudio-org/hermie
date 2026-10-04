@@ -32,15 +32,18 @@ extension View {
   /// VoiceOver announcements.
   public func answeringRequests(
     with requests: RequestsModel,
-    actions base: TranscriptItemActions = .none
+    actions base: TranscriptItemActions = .none,
+    hold: Bool = false
   ) -> some View {
-    modifier(RequestAnsweringModifier(requests: requests, base: base))
+    modifier(RequestAnsweringModifier(requests: requests, base: base, hold: hold))
   }
 }
 
 struct RequestAnsweringModifier: ViewModifier {
   let requests: RequestsModel
   let base: TranscriptItemActions
+  /// Another sheet of the chat has the screen: none is raised until it steps aside.
+  let hold: Bool
 
   /// Built once: the rows compare on their items alone, so the closures must
   /// not change while the chat is open.
@@ -50,7 +53,7 @@ struct RequestAnsweringModifier: ViewModifier {
     content
       .environment(\.transcriptItemActions, actions ?? requests.transcriptItemActions(base))
       .environment(\.transcriptRequests, requests)
-      .requestSheet(requests)
+      .requestSheet(requests, hold: hold)
       .onAppear {
         if actions == nil {
           actions = requests.transcriptItemActions(base)

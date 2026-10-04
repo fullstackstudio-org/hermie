@@ -386,9 +386,23 @@ from images when the request says `strip_metadata`, assembles a scan into a PDF 
 uploads each file through `GatewayLink.uploadFile` directly into `upload.dir` as
 `<16 hex>-<safe name>` with progress and a way to cancel, and answers with the path, name, type, size
 and SHA-256 of the bytes as uploaded. A failed upload is said in the sheet; Give up then answers `4041
-upload_failed`. The draft sheet shows the text verbatim in a monospaced block or editor, with every
-invisible or bidirectional character made visible as a code, and will not approve text the gateway
-would refuse (`text:not_verbatim`).
+upload_failed`. The form and file sheets also have a quiet Don't share button that answers `4041
+declined` (contract §3), which the gateway passes to the agent as the person's choice, neither a skip
+nor a failure; a draft's refusal is Reject. The draft sheet shows the text verbatim, in a monospaced
+block or editor that never wraps (a long line scrolls sideways: `NoWrapText`, `NoWrapTextEditor`), with
+every character the gateway refuses shown as a visible code. It runs the contract's §6.1 to §6.4 exactly
+(`DraftText`: the stripping, the character rules with the contract's own default-ignorable table, the
+layout limits), says which rule is broken and on which line, never rewrites the text for the person, and
+will not approve a text the gateway would refuse (`text:not_verbatim`).
+
+One sheet is up at a time on a chat (`ChatSheetOrder`). An approval, a passkey confirmation or a secure
+prompt is time-critical and goes first: a form, file request or draft review on screen steps aside the
+moment one waits (`InteractiveModel.yield()`, not Later), does not come up while one waits, and comes back
+by itself afterwards; the approval and secure sheets are held back only until it has stepped aside. A
+sheet that steps aside, is put away with Later or is covered by the app lock (the lock dismisses it) is
+gone with what was typed or chosen in it, by design: the values live only in the sheet's own models,
+which are wiped when it disappears, and the staged copies of chosen files are deleted. A request that
+was put away stays open, and its transcript card opens it again.
 
 `LiveGateway` (`HermieCore/LiveGateway.swift`) is the app's one live session (ADR-0024). The app
 shell builds it next to `GatewayAccounts`; it follows the registry's active gateway once

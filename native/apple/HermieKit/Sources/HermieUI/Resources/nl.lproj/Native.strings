@@ -450,6 +450,10 @@
 	<string>Verlopen</string>
 	<key>native.interactive.close</key>
 	<string>Sluiten</string>
+	<key>native.interactive.decline</key>
+	<string>Niet delen</string>
+	<key>native.interactive.declineHint</key>
+	<string>Laat de bot weten dat je dit niet wilt geven. Hij vraagt het niet meteen opnieuw.</string>
 	<key>native.interactive.draft.approve</key>
 	<string>Goedkeuren</string>
 	<key>native.interactive.draft.approveWithChanges</key>
@@ -460,12 +464,14 @@
 	<string>Een toelichting voor %@ (optioneel)</string>
 	<key>native.interactive.draft.commentTooLong</key>
 	<string>De toelichting is langer dan %lld tekens.</string>
+	<key>native.interactive.draft.correctNote</key>
+	<string>Pas de tekst zelf aan; er wordt niets voor je veranderd.</string>
 	<key>native.interactive.draft.edited</key>
 	<string>Aangepast</string>
 	<key>native.interactive.draft.hiddenLegend</key>
 	<string>Onzichtbare tekens worden als codes tussen haken getoond.</string>
 	<key>native.interactive.draft.hiddenWarning</key>
-	<string>De tekst bevat tekens die niet zo verstuurd kunnen worden:</string>
+	<string>De tekst kan niet zo worden verstuurd:</string>
 	<key>native.interactive.draft.kind.document</key>
 	<string>Document</string>
 	<key>native.interactive.draft.kind.mail</key>
@@ -476,16 +482,30 @@
 	<string>Concept</string>
 	<key>native.interactive.draft.kind.post</key>
 	<string>Post</string>
+	<key>native.interactive.draft.noWrapHint</key>
+	<string>Regels worden niet afgebroken. Een lange regel schuift opzij.</string>
 	<key>native.interactive.draft.notEditable</key>
 	<string>Dit concept kan niet worden aangepast. Je kunt het goedkeuren of afwijzen.</string>
+	<key>native.interactive.draft.problem.blankLines</key>
+	<string>Vanaf regel %1$lld staan meer dan %2$lld lege regels achter elkaar.</string>
+	<key>native.interactive.draft.problem.characters</key>
+	<string>Tekens die niet als zichzelf zichtbaar zijn (onzichtbare tekens of richtingstekens, bijzondere spaties, tabs):</string>
+	<key>native.interactive.draft.problem.empty</key>
+	<string>Er blijft niets over van de tekst als de witruimte aan de uiteinden weg is.</string>
+	<key>native.interactive.draft.problem.indent</key>
+	<string>Regel %1$lld is meer dan %2$lld spaties ingesprongen.</string>
+	<key>native.interactive.draft.problem.lineTooLong</key>
+	<string>Regel %1$lld is langer dan %2$lld tekens.</string>
+	<key>native.interactive.draft.problem.marks</key>
+	<string>Meer dan %lld combinerende tekens op één teken.</string>
+	<key>native.interactive.draft.problem.spaceRun</key>
+	<string>Regel %1$lld heeft meer dan %2$lld spaties achter elkaar.</string>
 	<key>native.interactive.draft.recipients</key>
 	<string>Ontvangers</string>
 	<key>native.interactive.draft.reject</key>
 	<string>Afwijzen…</string>
 	<key>native.interactive.draft.rejectConfirm</key>
 	<string>Concept afwijzen</string>
-	<key>native.interactive.draft.removeHidden</key>
-	<string>Verwijder ze</string>
 	<key>native.interactive.draft.revert</key>
 	<string>Mijn wijzigingen ongedaan maken</string>
 	<key>native.interactive.draft.subject</key>
@@ -604,18 +624,26 @@
 	<string>Dit apparaat mag dit verzoek niet beantwoorden. Een ander apparaat moet dat doen.</string>
 	<key>native.interactive.onBehalfOf</key>
 	<string>Namens %@</string>
+	<key>native.interactive.refusal.badShape</key>
+	<string>De gateway kon dit antwoord niet lezen.</string>
 	<key>native.interactive.refusal.edited</key>
 	<string>Dit concept kan niet worden aangepast.</string>
 	<key>native.interactive.refusal.fileRefused</key>
 	<string>De gateway accepteerde een van de bestanden niet.</string>
+	<key>native.interactive.refusal.fileTooLarge</key>
+	<string>Een bestand is groter dan de gateway toestaat.</string>
 	<key>native.interactive.refusal.filesTooLarge</key>
 	<string>De bestanden zijn samen te groot.</string>
 	<key>native.interactive.refusal.notOptional</key>
 	<string>Dit verzoek kan niet worden overgeslagen.</string>
 	<key>native.interactive.refusal.notVerbatim</key>
-	<string>De tekst bevat tekens die niet zo verstuurd kunnen worden.</string>
+	<string>De gateway weigert de tekst: er staan tekens of witruimte in die niet zo getoond kunnen worden.</string>
 	<key>native.interactive.refusal.other</key>
 	<string>De gateway accepteerde dit antwoord niet.</string>
+	<key>native.interactive.refusal.outsideDir</key>
+	<string>Een bestand staat niet waar de gateway het verwacht.</string>
+	<key>native.interactive.refusal.tooManyAttempts</key>
+	<string>Er zijn te veel antwoorden geweigerd, dus het verzoek is ingetrokken.</string>
 	<key>native.interactive.refusal.tooManyFiles</key>
 	<string>Te veel bestanden.</string>
 	<key>native.interactive.says</key>

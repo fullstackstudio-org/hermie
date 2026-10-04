@@ -62,7 +62,11 @@ struct InteractiveSheetModifier: ViewModifier {
           #endif
       }
       .onChange(of: Raise(next: model.nextToPresent, locked: locked, blocked: blocked), initial: true) { _, raise in
-        if !raise.locked, !raise.blocked, let next = raise.next {
+        // An approval or a secure prompt is time-critical: the sheet steps aside for it (it comes back by
+        // itself once the screen is free), and none comes up while one waits.
+        if raise.blocked {
+          model.yield()
+        } else if !raise.locked, let next = raise.next {
           model.present(next)
         }
       }
@@ -405,6 +409,38 @@ struct SkipButton: View {
     .controlSize(.large)
     .disabled(!armed || disabled || model.isSending)
     .accessibilityIdentifier("interactive.skip")
+  }
+}
+
+/// Don't share: refuse the request outright. The bot is told the person chose not to give it
+/// (`4041 cannot_show` with reason `declined`, contract §3), which is neither a skip nor a failure.
+/// A plain, quiet button: never the default, and with its own words, not the agent's.
+struct DeclineButton: View {
+  let model: InteractiveModel
+  let armed: Bool
+  var onDeclined: () -> Void = {}
+
+  var body: some View {
+    Button {
+      guard armed else {
+        return
+      }
+
+      Task {
+        if await model.cannotShow(reason: CannotShowReason.declined) {
+          onDeclined()
+        }
+      }
+    } label: {
+      Text(NativeStrings.Interactive.decline)
+        .font(.callout)
+        .frame(maxWidth: .infinity)
+    }
+    .buttonStyle(.borderless)
+    .foregroundStyle(.secondary)
+    .disabled(!armed || model.isSending)
+    .accessibilityHint(NativeStrings.Interactive.declineHint)
+    .accessibilityIdentifier("interactive.decline")
   }
 }
 

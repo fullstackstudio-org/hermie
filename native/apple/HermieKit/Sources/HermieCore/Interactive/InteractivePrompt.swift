@@ -164,6 +164,12 @@ public struct InteractivePrompt: Sendable, Equatable, Identifiable {
         return .cannotShow(reason: CannotShowReason.notSupportedOnDevice)
       }
 
+      // A zone this device does not know: the answer could not be in the zone the field names, and
+      // the offset would be wrong, so the form is declined rather than answered in another zone.
+      guard fields.allSatisfy({ $0.hasKnownZone }) else {
+        return .cannotShow(reason: CannotShowReason.notSupportedOnDevice)
+      }
+
       return .content(content(.form(params), params))
     case .inputFile(let params):
       guard params.v == 1 else {
@@ -286,5 +292,25 @@ public struct InteractivePrompt: Sendable, Equatable, Identifiable {
   /// text removed (`DraftText.gatewayTrimmed`).
   static func trimmed(_ text: String) -> String {
     DraftText.gatewayTrimmed(text)
+  }
+}
+
+extension FormField {
+  /// The field names no `tz`, or one this device knows (an IANA zone name).
+  var hasKnownZone: Bool {
+    let name: String? =
+      switch self {
+      case .date(let field): field.tz
+      case .time(let field): field.tz
+      case .datetime(let field): field.tz
+      case .daterange(let field): field.tz
+      default: nil
+      }
+
+    guard let name else {
+      return true
+    }
+
+    return TimeZone(identifier: name) != nil
   }
 }

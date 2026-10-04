@@ -62,21 +62,9 @@ struct FormSheetView: View {
         }
       }
     } actions: {
-      ViewThatFits(in: .horizontal) {
-        HStack(spacing: 10) {
-          LaterButton(model: model)
-          if prompt.offersSkip {
-            SkipButton(model: model, armed: armed, onSkipped: { form.wipe() })
-          }
-          sendButton
-        }
-        VStack(spacing: 10) {
-          sendButton
-          if prompt.offersSkip {
-            SkipButton(model: model, armed: armed, onSkipped: { form.wipe() })
-          }
-          LaterButton(model: model)
-        }
+      VStack(spacing: 6) {
+        buttons
+        DeclineButton(model: model, armed: armed, onDeclined: { form.wipe() })
       }
     }
     .modifier(InteractiveTapGuard(armed: $armed, id: prompt.id))
@@ -89,6 +77,25 @@ struct FormSheetView: View {
     }
     .onDisappear {
       form.wipe()
+    }
+  }
+
+  private var buttons: some View {
+    ViewThatFits(in: .horizontal) {
+      HStack(spacing: 10) {
+        LaterButton(model: model)
+        if prompt.offersSkip {
+          SkipButton(model: model, armed: armed, onSkipped: { form.wipe() })
+        }
+        sendButton
+      }
+      VStack(spacing: 10) {
+        sendButton
+        if prompt.offersSkip {
+          SkipButton(model: model, armed: armed, onSkipped: { form.wipe() })
+        }
+        LaterButton(model: model)
+      }
     }
   }
 

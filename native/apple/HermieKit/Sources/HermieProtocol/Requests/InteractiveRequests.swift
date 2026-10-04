@@ -109,6 +109,9 @@ public enum CannotShowReason {
   public static let uploadFailed = "upload_failed"
   public static let unsupportedVersion = "unsupported_version"
   public static let shuttingDown = "shutting_down"
+  /// The person chose not to share what was asked (Don't share): not a failure of the client, and
+  /// not a made-up skip either.
+  public static let declined = "declined"
 }
 
 extension ServerRequest {

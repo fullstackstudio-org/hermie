@@ -312,6 +312,32 @@ struct InteractiveTests {
 
   // MARK: What this build cannot show
 
+  @Test("a form whose field names a time zone this device does not know is declined, not answered in another zone")
+  func unknownZone() async throws {
+    let h = InteractiveHarness()
+    try await h.open()
+    var params = InteractiveFrames.form(fields: [
+      ["id": "ok", "kind": "date", "label": "A", "tz": "Europe/Amsterdam"],
+      ["id": "x", "kind": "datetime", "label": "X", "tz": "Mars/Olympus_Mons"]
+    ])
+    params["session_id"] = .string(Fixture.runtime)
+
+    h.link.raise(id: "srq-z", method: "input.form", params: params)
+    let center = h.center
+    try await eventually("the notice") { await center.notices[bot] != nil }
+    #expect(h.cannotShowReason("srq-z") == CannotShowReason.notSupportedOnDevice)
+    #expect(center.prompts.isEmpty)
+    #expect(h.link.answers.isEmpty)
+
+    // A zone it knows, and none at all, are shown.
+    var fine = InteractiveFrames.form(fields: [
+      ["id": "ok", "kind": "date", "label": "A", "tz": "Europe/Amsterdam"], ["id": "t", "kind": "time", "label": "T"]
+    ])
+    fine["session_id"] = .string(Fixture.runtime)
+    h.link.raise(id: "srq-k", method: "input.form", params: fine)
+    try await eventually("srq-k to open") { await center.isOpen("srq-k") }
+  }
+
   @Test("a form with a field kind this build does not know is declined 4041 not_supported_on_device, with a notice")
   func unknownFieldKind() async throws {
     let h = InteractiveHarness()

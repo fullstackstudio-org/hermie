@@ -340,6 +340,37 @@ struct InteractiveFormTests {
     #expect(form.input("d") == .date(nil))
   }
 
+  @Test("a datetime is chosen and set in whole minutes, and choosing never lands outside the bounds")
+  func wholeMinutes() throws {
+    let now = try #require(FormInstant.parse("2026-10-07T12:30:45+00:00"))
+    let form = InteractiveFormModel(
+      params: params(
+        ["id": "a", "kind": "datetime", "label": "a", "tz": "Europe/Amsterdam"],
+        ["id": "capped", "kind": "datetime", "label": "c", "tz": "Europe/Amsterdam", "max": "2026-10-07T14:00:30+02:00"],
+        ["id": "late", "kind": "datetime", "label": "l", "tz": "Europe/Amsterdam", "min": "2026-10-07T15:00:30+02:00"],
+        ["id": "kept", "kind": "datetime", "label": "k", "tz": "Europe/Amsterdam", "default": "2026-10-07T14:30:15+02:00"]),
+      now: { now })
+
+    form.choose("a")
+    #expect(form.values()["a"] == .datetime(instant: "2026-10-07T14:30+02:00", zone: "Europe/Amsterdam"), "no seconds")
+
+    // Now (14:30:45) is past the cap (14:00:30): the last whole minute before it.
+    form.choose("capped")
+    #expect(form.values()["capped"] == .datetime(instant: "2026-10-07T14:00+02:00", zone: "Europe/Amsterdam"))
+    #expect(form.problem(of: "capped") == nil, "picking the maximum does not show above_max")
+
+    // Before the earliest (15:00:30): the first whole minute after it.
+    form.choose("late")
+    #expect(form.values()["late"] == .datetime(instant: "2026-10-07T15:01+02:00", zone: "Europe/Amsterdam"))
+    #expect(form.problem(of: "late") == nil)
+
+    // What the picker hands over loses its seconds; what the agent defaulted keeps them.
+    form.set(.datetime(now), for: "a")
+    let floored = try #require(FormInstant.parse("2026-10-07T12:30:00+00:00") as Date?)
+    #expect(form.input("a") == .datetime(floored))
+    #expect(form.values()["kept"] == .datetime(instant: "2026-10-07T14:30:15+02:00", zone: "Europe/Amsterdam"))
+  }
+
   @Test("a date range with one end is no value; an end before the start is an order problem")
   func ranges() throws {
     let form = InteractiveFormModel(

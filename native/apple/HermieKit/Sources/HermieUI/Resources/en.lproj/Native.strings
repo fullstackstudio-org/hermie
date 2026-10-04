@@ -450,6 +450,10 @@
 	<string>Timed out</string>
 	<key>native.interactive.close</key>
 	<string>Close</string>
+	<key>native.interactive.decline</key>
+	<string>Don’t share</string>
+	<key>native.interactive.declineHint</key>
+	<string>Tells the bot you chose not to give this. It does not ask again at once.</string>
 	<key>native.interactive.draft.approve</key>
 	<string>Approve</string>
 	<key>native.interactive.draft.approveWithChanges</key>
@@ -460,12 +464,14 @@
 	<string>A word for %@ (optional)</string>
 	<key>native.interactive.draft.commentTooLong</key>
 	<string>The comment is longer than %lld characters.</string>
+	<key>native.interactive.draft.correctNote</key>
+	<string>Correct the text yourself; nothing is changed for you.</string>
 	<key>native.interactive.draft.edited</key>
 	<string>Edited</string>
 	<key>native.interactive.draft.hiddenLegend</key>
 	<string>Invisible characters are shown as codes in brackets.</string>
 	<key>native.interactive.draft.hiddenWarning</key>
-	<string>The text holds characters that cannot be sent as they are:</string>
+	<string>The text cannot be sent as it is:</string>
 	<key>native.interactive.draft.kind.document</key>
 	<string>Document</string>
 	<key>native.interactive.draft.kind.mail</key>
@@ -476,16 +482,30 @@
 	<string>Draft</string>
 	<key>native.interactive.draft.kind.post</key>
 	<string>Post</string>
+	<key>native.interactive.draft.noWrapHint</key>
+	<string>Lines are not wrapped. A long line scrolls sideways.</string>
 	<key>native.interactive.draft.notEditable</key>
 	<string>This draft cannot be changed. You can approve or reject it.</string>
+	<key>native.interactive.draft.problem.blankLines</key>
+	<string>From line %1$lld there are more than %2$lld blank lines in a row.</string>
+	<key>native.interactive.draft.problem.characters</key>
+	<string>Characters that do not show as themselves (invisible or direction characters, special spaces, tabs):</string>
+	<key>native.interactive.draft.problem.empty</key>
+	<string>Nothing is left of the text once the whitespace at its ends is removed.</string>
+	<key>native.interactive.draft.problem.indent</key>
+	<string>Line %1$lld is indented by more than %2$lld spaces.</string>
+	<key>native.interactive.draft.problem.lineTooLong</key>
+	<string>Line %1$lld is longer than %2$lld characters.</string>
+	<key>native.interactive.draft.problem.marks</key>
+	<string>More than %lld combining marks on one character.</string>
+	<key>native.interactive.draft.problem.spaceRun</key>
+	<string>Line %1$lld has more than %2$lld spaces in a row.</string>
 	<key>native.interactive.draft.recipients</key>
 	<string>Recipients</string>
 	<key>native.interactive.draft.reject</key>
 	<string>Reject…</string>
 	<key>native.interactive.draft.rejectConfirm</key>
 	<string>Reject draft</string>
-	<key>native.interactive.draft.removeHidden</key>
-	<string>Remove them</string>
 	<key>native.interactive.draft.revert</key>
 	<string>Undo my changes</string>
 	<key>native.interactive.draft.subject</key>
@@ -604,18 +624,26 @@
 	<string>This device is not allowed to answer this request. Another device has to.</string>
 	<key>native.interactive.onBehalfOf</key>
 	<string>On behalf of %@</string>
+	<key>native.interactive.refusal.badShape</key>
+	<string>The gateway could not read this answer.</string>
 	<key>native.interactive.refusal.edited</key>
 	<string>This draft cannot be changed.</string>
 	<key>native.interactive.refusal.fileRefused</key>
 	<string>The gateway did not accept one of the files.</string>
+	<key>native.interactive.refusal.fileTooLarge</key>
+	<string>A file is larger than the gateway allows.</string>
 	<key>native.interactive.refusal.filesTooLarge</key>
 	<string>The files are too large together.</string>
 	<key>native.interactive.refusal.notOptional</key>
 	<string>This request cannot be skipped.</string>
 	<key>native.interactive.refusal.notVerbatim</key>
-	<string>The text holds characters that cannot be sent as they are.</string>
+	<string>The gateway refuses the text: it holds characters or spacing that cannot be shown as they are.</string>
 	<key>native.interactive.refusal.other</key>
 	<string>The gateway did not accept this answer.</string>
+	<key>native.interactive.refusal.outsideDir</key>
+	<string>A file is not where the gateway expects it.</string>
+	<key>native.interactive.refusal.tooManyAttempts</key>
+	<string>Too many answers were refused, so the request was withdrawn.</string>
 	<key>native.interactive.refusal.tooManyFiles</key>
 	<string>Too many files.</string>
 	<key>native.interactive.says</key>

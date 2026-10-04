@@ -50,6 +50,8 @@ final class ChatFeed: ChatScreenFeed {
   /// The forms, file requests and draft reviews of this chat (`input.form`, `input.file`,
   /// `review.draft`).
   let interactive: InteractiveModel
+  /// Which of those sheets has the screen: approvals and secure prompts first.
+  let sheets: ChatSheetOrder
 
   private(set) var rows = TranscriptListItems<TranscriptRow>()
   /// The first rows have arrived.
@@ -111,9 +113,13 @@ final class ChatFeed: ChatScreenFeed {
     self.session = session
     (self.model, self.lease) = ChatLeases.acquire(session, chat.bot)
     self.composer = ComposerModel(session: session, bot: chat.bot)
-    self.requests = RequestsModel(session: session, bot: chat.bot)
-    self.secureInput = SecureInputModel(session: session, bot: chat.bot)
-    self.interactive = InteractiveModel(session: session, bot: chat.bot)
+    let requests = RequestsModel(session: session, bot: chat.bot)
+    let secureInput = SecureInputModel(session: session, bot: chat.bot)
+    let interactive = InteractiveModel(session: session, bot: chat.bot)
+    self.requests = requests
+    self.secureInput = secureInput
+    self.interactive = interactive
+    self.sheets = ChatSheetOrder(requests: requests, secureInput: secureInput, interactive: interactive)
     self.itemActions = actions(model)
     ChatLifecycleLog.note("feed f\(tag) made for \(chat.bot) (lease \(lease.id))")
   }

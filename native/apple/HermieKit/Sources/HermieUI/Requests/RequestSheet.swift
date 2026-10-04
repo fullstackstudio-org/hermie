@@ -6,13 +6,21 @@ extension View {
   /// The sheet for a pending request: raised for the oldest open question the
   /// reader has not put away, and for one `RequestsModel.present(_:)` names.
   /// Putting it away (Later, Esc, a swipe down) is never an answer.
-  public func requestSheet(_ requests: RequestsModel) -> some View {
-    modifier(RequestSheetModifier(requests: requests))
+  public func requestSheet(_ requests: RequestsModel, hold: Bool = false) -> some View {
+    modifier(RequestSheetModifier(requests: requests, hold: hold))
   }
 }
 
 struct RequestSheetModifier: ViewModifier {
   let requests: RequestsModel
+  /// Another sheet of the chat has the screen (a form): nothing is raised until it steps aside.
+  let hold: Bool
+
+  /// What decides whether the next request comes up.
+  private struct Raise: Equatable {
+    let next: String?
+    let hold: Bool
+  }
 
   private struct Presented: Identifiable {
     let id: String
@@ -33,8 +41,8 @@ struct RequestSheetModifier: ViewModifier {
             .frame(minWidth: 420, idealWidth: 480, minHeight: 320)
           #endif
       }
-      .onChange(of: requests.nextToPresent, initial: true) { _, next in
-        if requests.presentedRequestID == nil, let next {
+      .onChange(of: Raise(next: requests.nextToPresent, hold: hold), initial: true) { _, raise in
+        if requests.presentedRequestID == nil, !raise.hold, let next = raise.next {
           requests.present(next)
         }
       }

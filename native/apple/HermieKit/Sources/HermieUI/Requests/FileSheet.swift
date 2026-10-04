@@ -156,7 +156,9 @@ struct FileSheetView: View {
       isPresented: $showPhotos,
       selection: $photoSelection,
       maxSelectionCount: params.isMultiple ? max(1, files.maxFiles - files.items.count) : 1,
-      matching: params.accept == .image ? .images : .any(of: [.images, .videos]),
+      // With strip_metadata only pictures: a video's location is not removed, and the request said
+      // none should leave.
+      matching: params.accept == .image || files.stripsMetadata ? .images : .any(of: [.images, .videos]),
       // What the library holds: a movie is not transcoded to be picked. A photo is made ready for the
       // gateway (location removed, HEIC as JPEG) as it is staged.
       preferredItemEncoding: .current
@@ -374,9 +376,12 @@ struct FileSheetView: View {
       .controlSize(.large)
       .accessibilityIdentifier("file.cancel")
     } else {
-      ViewThatFits(in: .horizontal) {
-        HStack(spacing: 10) { buttons(mainLast: true) }
-        VStack(spacing: 10) { buttons(mainLast: false) }
+      VStack(spacing: 6) {
+        ViewThatFits(in: .horizontal) {
+          HStack(spacing: 10) { buttons(mainLast: true) }
+          VStack(spacing: 10) { buttons(mainLast: false) }
+        }
+        DeclineButton(model: model, armed: armed, onDeclined: { files.discardAll() })
       }
     }
   }

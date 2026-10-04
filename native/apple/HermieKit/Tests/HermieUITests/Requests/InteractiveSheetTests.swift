@@ -4,6 +4,9 @@ import HermieProtocol
 import HermieTranscript
 import SwiftUI
 import Testing
+#if os(macOS)
+  import AppKit
+#endif
 
 @testable import HermieUI
 
@@ -135,11 +138,14 @@ struct InteractiveSheetTests {
     #expect(NativeStrings.Interactive.refusal("not_optional") == "This request cannot be skipped.")
     #expect(NativeStrings.Interactive.refusal("files:too_many") == "Too many files.")
     #expect(NativeStrings.Interactive.refusal("files:too_large") == "The files are too large together.")
-    #expect(NativeStrings.Interactive.refusal("file:0:too_large") == "The gateway did not accept one of the files.")
-    #expect(NativeStrings.Interactive.refusal("file:2:outside_dir") == "The gateway did not accept one of the files.")
-    #expect(NativeStrings.Interactive.refusal("text:not_verbatim") == "The text holds characters that cannot be sent as they are.")
+    #expect(NativeStrings.Interactive.refusal("file:0:too_large") == "A file is larger than the gateway allows.")
+    #expect(NativeStrings.Interactive.refusal("file:2:outside_dir") == "A file is not where the gateway expects it.")
+    #expect(NativeStrings.Interactive.refusal("file:2:something_new") == "The gateway did not accept one of the files.")
+    #expect(NativeStrings.Interactive.refusal("bad_shape") == "The gateway could not read this answer.")
+    #expect(NativeStrings.Interactive.refusal("too_many_attempts") == "Too many answers were refused, so the request was withdrawn.")
+    #expect(NativeStrings.Interactive.refusal("text:not_verbatim") == "The gateway refuses the text: it holds characters or spacing that cannot be shown as they are.")
     #expect(NativeStrings.Interactive.refusal("text:edited") == "This draft cannot be changed.")
-    #expect(NativeStrings.Interactive.refusal("bad_shape") == "The gateway did not accept this answer.")
+    #expect(NativeStrings.Interactive.refusal("some_new_reason") == "The gateway did not accept this answer.")
     #expect(NativeStrings.Interactive.refusal("a:reason\nthat is long and from elsewhere") == "The gateway did not accept this answer.")
   }
 
@@ -158,6 +164,52 @@ struct InteractiveSheetTests {
 
     #expect(InteractiveNoticeView.text(.answeredElsewhere, bot: "ada") == "This was answered on another device. Nothing was sent from here.")
     #expect(InteractiveNoticeView.text(.cannotShow(method: "input.form", reason: "x"), bot: "ada") == "Hermie could not show a request from ada and told it so.")
+  }
+
+  @Test("each rule a draft breaks is said in a sentence with its line and its limit")
+  func draftProblemWords() {
+    #expect(DraftSheetView.words(for: .combiningMarks) == "More than 4 combining marks on one character.")
+    #expect(DraftSheetView.words(for: .blankLines(line: 7)) == "From line 7 there are more than 3 blank lines in a row.")
+    let long = DraftSheetView.words(for: .lineTooLong(line: 2))
+    #expect(long.hasPrefix("Line 2 is longer than 2") && long.hasSuffix("000 characters."), "\(long)")
+    #expect(DraftSheetView.words(for: .indent(line: 5)) == "Line 5 is indented by more than 32 spaces.")
+    #expect(DraftSheetView.words(for: .spaceRun(line: 1)) == "Line 1 has more than 16 spaces in a row.")
+    #expect(DraftSheetView.words(for: .empty).hasPrefix("Nothing is left"))
+    #expect(DraftSheetView.words(for: .characters([])).hasPrefix("Characters that do not show"))
+  }
+
+  #if os(macOS)
+    @Test("the draft editor never wraps and corrects nothing")
+    func editorDoesNotWrap() {
+      let scroll = NSScrollView()
+      let view = NSTextView(frame: .zero)
+      NoWrapTextEditor.configure(view, in: scroll)
+
+      #expect(view.textContainer?.widthTracksTextView == false)
+      #expect(view.isHorizontallyResizable)
+      #expect((view.textContainer?.containerSize.width ?? 0) >= NoWrapTextEditor.containerWidth)
+      #expect(view.textContainer?.lineBreakMode == .byClipping)
+      #expect(scroll.hasHorizontalScroller)
+      #expect(!view.isRichText)
+      #expect(!view.isAutomaticQuoteSubstitutionEnabled)
+      #expect(!view.isAutomaticDashSubstitutionEnabled)
+      #expect(!view.isAutomaticTextReplacementEnabled)
+      #expect(!view.isAutomaticSpellingCorrectionEnabled)
+      #expect(!view.isAutomaticLinkDetectionEnabled)
+      #expect(!view.isAutomaticDataDetectionEnabled)
+      #expect(!view.isContinuousSpellCheckingEnabled)
+      #expect(!view.smartInsertDeleteEnabled)
+    }
+  #endif
+
+  @Test("the draft's text draws, and a long line is not wrapped into many")
+  func noWrapTextRenders() throws {
+    let long = "a long line " + String(repeating: "x", count: 600)
+    let renderer = ImageRenderer(content: NoWrapText(text: "short\n" + long + "\n  indented").frame(width: 390))
+    renderer.proposedSize = ProposedViewSize(width: 390, height: nil)
+    let image = try #require(renderer.cgImage)
+    #expect(image.height > 0)
+    #expect(image.height < 200, "\(image.height)")
   }
 
   // MARK: The transcript's card
@@ -313,9 +365,10 @@ struct InteractiveSheetTests {
     typealias I = NativeStrings.Interactive
     let all: [String] = [
       I.titleForm("A"), I.titleFile("A"), I.titleDraft("A"), I.says("A"), I.onBehalfOf("A"), I.later, I.skip, I.send,
-      I.tryAgain, I.close, I.earlierAnswerLost, I.answeredElsewhere, I.notAllowed, I.cannotShow("A"),
+      I.tryAgain, I.close, I.decline, I.declineHint, I.earlierAnswerLost, I.answeredElsewhere, I.notAllowed, I.cannotShow("A"),
       I.refusalNotOptional, I.refusalTooManyFiles, I.refusalFilesTooLarge, I.refusalFileRefused,
-      I.refusalNotVerbatim, I.refusalEdited, I.refusalOther,
+      I.refusalNotVerbatim, I.refusalEdited, I.refusalOther, I.refusalOutsideDir, I.refusalFileTooLarge,
+      I.refusalBadShape, I.refusalTooManyAttempts,
       I.Form.required, I.Form.chooseDate, I.Form.chooseTime, I.Form.chooseDateTime, I.Form.chooseRange, I.Form.clear,
       I.Form.from, I.Form.to, I.Form.choose, I.Form.none, I.Form.inZone("A"), I.Form.characters(1, of: 2),
       I.Form.between("1", "2"), I.Form.atLeast("1"), I.Form.atMost("2"), I.Form.wholeAmounts("JPY"),
@@ -330,7 +383,9 @@ struct InteractiveSheetTests {
       I.Draft.kindMail, I.Draft.kindPost, I.Draft.kindMessage, I.Draft.kindDocument, I.Draft.kindOther,
       I.Draft.subject, I.Draft.recipients, I.Draft.textLabel, I.Draft.approve, I.Draft.approveWithChanges,
       I.Draft.reject, I.Draft.rejectConfirm, I.Draft.back, I.Draft.comment("A"), I.Draft.edited, I.Draft.revert,
-      I.Draft.notEditable, I.Draft.hiddenWarning, I.Draft.removeHidden, I.Draft.hiddenLegend, I.Draft.tooLong(1),
+      I.Draft.notEditable, I.Draft.hiddenWarning, I.Draft.hiddenLegend, I.Draft.tooLong(1), I.Draft.problemEmpty,
+      I.Draft.problemCharacters, I.Draft.problemMarks(4), I.Draft.problemBlankLines(2, 3), I.Draft.problemLineTooLong(2, 2000),
+      I.Draft.problemIndent(2, 32), I.Draft.problemSpaceRun(2, 16), I.Draft.correctNote, I.Draft.noWrapHint,
       I.Draft.commentTooLong(1),
       I.Card.form, I.Card.file, I.Card.draft, I.Card.open, I.Card.answered, I.Card.skipped, I.Card.files(1),
       I.Card.approved, I.Card.approvedEdited, I.Card.rejected, I.Card.timedOut, I.Card.ended,

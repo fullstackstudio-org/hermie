@@ -6,13 +6,15 @@ extension View {
   /// sheet for the oldest open one, raised as it arrives, never over the app
   /// lock (it waits and comes up after the unlock), and the chat's notice when
   /// one expired, was withdrawn, or asked for something this app cannot show.
-  public func secureInput(_ model: SecureInputModel) -> some View {
-    modifier(SecureInputModifier(model: model))
+  public func secureInput(_ model: SecureInputModel, hold: Bool = false) -> some View {
+    modifier(SecureInputModifier(model: model, hold: hold))
   }
 }
 
 struct SecureInputModifier: ViewModifier {
   let model: SecureInputModel
+  /// Another sheet of the chat has the screen (a form): nothing is raised until it steps aside.
+  let hold: Bool
 
   @Environment(AppLaunch.self) private var launch: AppLaunch?
 
@@ -24,6 +26,7 @@ struct SecureInputModifier: ViewModifier {
   private struct Raise: Equatable {
     let next: String?
     let locked: Bool
+    let hold: Bool
   }
 
   /// The app lock's plate is up, or its setting not read yet. (`LockGate` does
@@ -53,8 +56,8 @@ struct SecureInputModifier: ViewModifier {
             .frame(minWidth: 420, idealWidth: 480, minHeight: 360)
           #endif
       }
-      .onChange(of: Raise(next: model.nextToPresent, locked: locked), initial: true) { _, raise in
-        if !raise.locked, let next = raise.next {
+      .onChange(of: Raise(next: model.nextToPresent, locked: locked, hold: hold), initial: true) { _, raise in
+        if !raise.locked, !raise.hold, let next = raise.next {
           model.present(next)
         }
       }

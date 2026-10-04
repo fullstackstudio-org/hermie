@@ -179,12 +179,11 @@ struct ChatSessionView<Composer: View>: View {
         ChatTranscript(feed: feed)
           .environment(\.transcriptExpansion, feed.expansion)
           .modifier(OwnAuthor(session: session))
-          .answeringRequests(with: feed.requests, actions: feed.itemActions)
-          .secureInput(feed.secureInput)
-          // Never over another sheet of the chat: an approval, a passkey confirmation, a secure prompt.
-          .interactiveRequests(
-            feed.interactive,
-            blocked: feed.requests.presentedRequestID != nil || feed.secureInput.presentedID != nil)
+          // One sheet at a time, approvals and secure prompts first (`ChatSheetOrder`): they wait
+          // until a form on screen has stepped aside, and a form does not come up over them.
+          .answeringRequests(with: feed.requests, actions: feed.itemActions, hold: feed.sheets.holdForInteractive)
+          .secureInput(feed.secureInput, hold: feed.sheets.holdForInteractive)
+          .interactiveRequests(feed.interactive, blocked: feed.sheets.interactiveBlocked)
           .safeAreaInset(edge: .top, spacing: 0) {
             ChatBanners(feed: feed)
           }

@@ -450,6 +450,10 @@
 	<string>Abgelaufen</string>
 	<key>native.interactive.close</key>
 	<string>Schließen</string>
+	<key>native.interactive.decline</key>
+	<string>Nicht teilen</string>
+	<key>native.interactive.declineHint</key>
+	<string>Teilt dem Bot mit, dass du das nicht geben möchtest. Er fragt nicht sofort erneut.</string>
 	<key>native.interactive.draft.approve</key>
 	<string>Genehmigen</string>
 	<key>native.interactive.draft.approveWithChanges</key>
@@ -460,12 +464,14 @@
 	<string>Ein Wort an %@ (optional)</string>
 	<key>native.interactive.draft.commentTooLong</key>
 	<string>Die Anmerkung ist länger als %lld Zeichen.</string>
+	<key>native.interactive.draft.correctNote</key>
+	<string>Korrigiere den Text selbst; es wird nichts für dich geändert.</string>
 	<key>native.interactive.draft.edited</key>
 	<string>Geändert</string>
 	<key>native.interactive.draft.hiddenLegend</key>
 	<string>Unsichtbare Zeichen werden als Codes in Klammern angezeigt.</string>
 	<key>native.interactive.draft.hiddenWarning</key>
-	<string>Der Text enthält Zeichen, die nicht so gesendet werden können:</string>
+	<string>Der Text kann so nicht gesendet werden:</string>
 	<key>native.interactive.draft.kind.document</key>
 	<string>Dokument</string>
 	<key>native.interactive.draft.kind.mail</key>
@@ -476,16 +482,30 @@
 	<string>Entwurf</string>
 	<key>native.interactive.draft.kind.post</key>
 	<string>Beitrag</string>
+	<key>native.interactive.draft.noWrapHint</key>
+	<string>Zeilen werden nicht umbrochen. Eine lange Zeile scrollt seitlich.</string>
 	<key>native.interactive.draft.notEditable</key>
 	<string>Dieser Entwurf kann nicht geändert werden. Du kannst ihn genehmigen oder ablehnen.</string>
+	<key>native.interactive.draft.problem.blankLines</key>
+	<string>Ab Zeile %1$lld folgen mehr als %2$lld Leerzeilen hintereinander.</string>
+	<key>native.interactive.draft.problem.characters</key>
+	<string>Zeichen, die nicht als sie selbst sichtbar sind (unsichtbare oder Richtungszeichen, besondere Leerzeichen, Tabs):</string>
+	<key>native.interactive.draft.problem.empty</key>
+	<string>Vom Text bleibt nichts übrig, wenn der Leerraum an den Enden entfernt wird.</string>
+	<key>native.interactive.draft.problem.indent</key>
+	<string>Zeile %1$lld ist um mehr als %2$lld Leerzeichen eingerückt.</string>
+	<key>native.interactive.draft.problem.lineTooLong</key>
+	<string>Zeile %1$lld ist länger als %2$lld Zeichen.</string>
+	<key>native.interactive.draft.problem.marks</key>
+	<string>Mehr als %lld kombinierende Zeichen auf einem Zeichen.</string>
+	<key>native.interactive.draft.problem.spaceRun</key>
+	<string>Zeile %1$lld hat mehr als %2$lld Leerzeichen hintereinander.</string>
 	<key>native.interactive.draft.recipients</key>
 	<string>Empfänger</string>
 	<key>native.interactive.draft.reject</key>
 	<string>Ablehnen …</string>
 	<key>native.interactive.draft.rejectConfirm</key>
 	<string>Entwurf ablehnen</string>
-	<key>native.interactive.draft.removeHidden</key>
-	<string>Entfernen</string>
 	<key>native.interactive.draft.revert</key>
 	<string>Meine Änderungen rückgängig machen</string>
 	<key>native.interactive.draft.subject</key>
@@ -604,18 +624,26 @@
 	<string>Dieses Gerät darf diese Anfrage nicht beantworten. Ein anderes Gerät muss das tun.</string>
 	<key>native.interactive.onBehalfOf</key>
 	<string>Im Auftrag von %@</string>
+	<key>native.interactive.refusal.badShape</key>
+	<string>Das Gateway konnte diese Antwort nicht lesen.</string>
 	<key>native.interactive.refusal.edited</key>
 	<string>Dieser Entwurf kann nicht geändert werden.</string>
 	<key>native.interactive.refusal.fileRefused</key>
 	<string>Das Gateway hat eine der Dateien nicht akzeptiert.</string>
+	<key>native.interactive.refusal.fileTooLarge</key>
+	<string>Eine Datei ist größer, als das Gateway erlaubt.</string>
 	<key>native.interactive.refusal.filesTooLarge</key>
 	<string>Die Dateien sind zusammen zu groß.</string>
 	<key>native.interactive.refusal.notOptional</key>
 	<string>Diese Anfrage kann nicht übersprungen werden.</string>
 	<key>native.interactive.refusal.notVerbatim</key>
-	<string>Der Text enthält Zeichen, die nicht so gesendet werden können.</string>
+	<string>Das Gateway lehnt den Text ab: Er enthält Zeichen oder Leerraum, die nicht so angezeigt werden können.</string>
 	<key>native.interactive.refusal.other</key>
 	<string>Das Gateway hat diese Antwort nicht akzeptiert.</string>
+	<key>native.interactive.refusal.outsideDir</key>
+	<string>Eine Datei liegt nicht dort, wo das Gateway sie erwartet.</string>
+	<key>native.interactive.refusal.tooManyAttempts</key>
+	<string>Zu viele Antworten wurden abgelehnt, daher wurde die Anfrage zurückgezogen.</string>
 	<key>native.interactive.refusal.tooManyFiles</key>
 	<string>Zu viele Dateien.</string>
 	<key>native.interactive.says</key>

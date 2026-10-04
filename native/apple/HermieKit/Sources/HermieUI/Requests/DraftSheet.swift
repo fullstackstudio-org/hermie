@@ -140,21 +140,16 @@ struct DraftSheetView: View {
     }
   }
 
+  /// The draft's text. Never wrapped: a long line scrolls sideways, in the editor and in the
+  /// read-only block alike, so no line break appears that the text does not have.
   @ViewBuilder private var bodyText: some View {
     if params.isEditable {
       VStack(alignment: .leading, spacing: 8) {
-        TextEditor(text: $draft.text)
-          .font(.body.monospaced())
-          .autocorrectionDisabled()
-          #if os(iOS)
-            .textInputAutocapitalization(.never)
-          #endif
-          .scrollContentBackground(.hidden)
-          .frame(minHeight: 220)
-          .padding(8)
+        NoWrapTextEditor(text: $draft.text)
+          .frame(height: NoWrapTextEditor.minimumHeight)
           .background(.background.secondary, in: .rect(cornerRadius: 10))
           .accessibilityLabel(NativeStrings.Interactive.Draft.textLabel)
-          .accessibilityIdentifier("draft.editor")
+          .accessibilityHint(NativeStrings.Interactive.Draft.noWrapHint)
 
         if draft.isEdited {
           HStack {
@@ -171,32 +166,7 @@ struct DraftSheetView: View {
           }
         }
 
-        let refused = draft.refusedCharacters
-
-        if !refused.isEmpty {
-          VStack(alignment: .leading, spacing: 6) {
-            Label(NativeStrings.Interactive.Draft.hiddenWarning, systemImage: "eye.trianglebadge.exclamationmark")
-              .font(.footnote.weight(.semibold))
-              .foregroundStyle(.red)
-              .fixedSize(horizontal: false, vertical: true)
-            Text(verbatim: refused.map { "\($0.code) ×\($0.count)" }.joined(separator: "  "))
-              .font(.footnote.monospaced())
-              .fixedSize(horizontal: false, vertical: true)
-            // The text as it would be sent, with those characters in view.
-            Text(verbatim: DraftText.reveal(draft.text))
-              .font(.footnote.monospaced())
-              .foregroundStyle(.secondary)
-              .frame(maxWidth: .infinity, alignment: .leading)
-              .textSelection(.enabled)
-            Button(NativeStrings.Interactive.Draft.removeHidden) {
-              draft.removeRefusedCharacters()
-            }
-            .buttonStyle(.bordered)
-            .accessibilityIdentifier("draft.removeHidden")
-          }
-          .accessibilityElement(children: .contain)
-          .accessibilityIdentifier("draft.hidden")
-        }
+        problemsView
 
         if draft.isTooLong {
           Label(NativeStrings.Interactive.Draft.tooLong(InteractivePrompt.draftLimit), systemImage: "exclamationmark.circle")
@@ -207,16 +177,10 @@ struct DraftSheetView: View {
       }
     } else {
       VStack(alignment: .leading, spacing: 8) {
-        Text(verbatim: DraftText.reveal(draft.original))
-          .font(.body.monospaced())
-          .fixedSize(horizontal: false, vertical: true)
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .textSelection(.enabled)
-          .padding(12)
-          .background(.background.secondary, in: .rect(cornerRadius: 10))
+        NoWrapText(text: DraftText.reveal(draft.original))
+          .accessibilityElement(children: .ignore)
           .accessibilityLabel(NativeStrings.Interactive.Draft.textLabel)
           .accessibilityValue(DraftText.reveal(draft.original))
-          .accessibilityIdentifier("draft.text")
         Text(NativeStrings.Interactive.Draft.notEditable)
           .font(.footnote)
           .foregroundStyle(.secondary)
@@ -229,6 +193,61 @@ struct DraftSheetView: View {
         .font(.footnote)
         .foregroundStyle(.secondary)
         .fixedSize(horizontal: false, vertical: true)
+    }
+  }
+
+  /// Which rules the text breaks, in words, the characters that break the first as visible codes,
+  /// and a note that the person corrects it.
+  @ViewBuilder private var problemsView: some View {
+    let problems = draft.problems
+
+    if !problems.isEmpty {
+      VStack(alignment: .leading, spacing: 6) {
+        Label(NativeStrings.Interactive.Draft.hiddenWarning, systemImage: "eye.trianglebadge.exclamationmark")
+          .font(.footnote.weight(.semibold))
+          .foregroundStyle(.red)
+          .fixedSize(horizontal: false, vertical: true)
+
+        ForEach(Array(problems.enumerated()), id: \.offset) { _, problem in
+          VStack(alignment: .leading, spacing: 4) {
+            Text(Self.words(for: problem))
+              .font(.footnote)
+              .fixedSize(horizontal: false, vertical: true)
+
+            if case .characters(let found) = problem {
+              Text(verbatim: found.map { "\($0.code) ×\($0.count)" }.joined(separator: "  "))
+                .font(.footnote.monospaced())
+                .fixedSize(horizontal: false, vertical: true)
+              // The text with those characters in view, as it would be sent.
+              NoWrapText(text: DraftText.reveal(draft.text), font: .footnote.monospaced(), identifier: "draft.revealed")
+            }
+          }
+        }
+
+        // Nothing is rewritten for the person (contract §6.5): they correct the text, with the
+        // characters and the lines in view.
+        Text(NativeStrings.Interactive.Draft.correctNote)
+          .font(.footnote)
+          .foregroundStyle(.secondary)
+          .fixedSize(horizontal: false, vertical: true)
+      }
+      .accessibilityElement(children: .contain)
+      .accessibilityIdentifier("draft.problems")
+    }
+  }
+
+  /// The rule a text breaks, in a sentence.
+  static func words(for problem: DraftText.Problem) -> String {
+    typealias Words = NativeStrings.Interactive.Draft
+
+    switch problem {
+    case .empty: return Words.problemEmpty
+    case .characters: return Words.problemCharacters
+    case .combiningMarks: return Words.problemMarks(DraftText.maxCombiningMarks)
+    case .blankLines(let line): return Words.problemBlankLines(line, DraftText.maxBlankLines)
+    case .lineTooLong(let line): return Words.problemLineTooLong(line, DraftText.maxLineChars)
+    case .indent(let line): return Words.problemIndent(line, DraftText.maxIndent)
+    case .spaceRun(let line): return Words.problemSpaceRun(line, DraftText.maxSpaceRun)
     }
   }
 

@@ -786,6 +786,23 @@ extension Integration {
       }
     }
 
+    @Test("Don't share answers 4041 declined, which the gateway reports as unavailable, never as an answer")
+    func declined() async throws {
+      try await withInteractiveGateway { gateway in
+        let chat = try await InteractiveChat.open(gateway)
+        let model = chat.model
+        let id = try await chat.raise(gateway, "input.form", ["fields": Self.fields, "optional": false])
+
+        #expect(await model.cannotShow(reason: CannotShowReason.declined))
+        let view = try await InteractiveChat.view(gateway, id)
+        #expect(view["outcome"] == "unavailable")
+        #expect(view["reason"] == "declined")
+        #expect(view["error"]?["code"] == 4041)
+        #expect(view["answer"] == nil)
+        await chat.session.shutdown()
+      }
+    }
+
     @Test("Later puts a form away without answering; the request stays open at the gateway and opens again")
     func laterIsNotAnAnswer() async throws {
       try await withInteractiveGateway { gateway in
