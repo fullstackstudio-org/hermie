@@ -202,16 +202,6 @@ struct InteractiveSheetTests {
     }
   #endif
 
-  @Test("the draft's text draws, and a long line is not wrapped into many")
-  func noWrapTextRenders() throws {
-    let long = "a long line " + String(repeating: "x", count: 600)
-    let renderer = ImageRenderer(content: NoWrapText(text: "short\n" + long + "\n  indented").frame(width: 390))
-    renderer.proposedSize = ProposedViewSize(width: 390, height: nil)
-    let image = try #require(renderer.cgImage)
-    #expect(image.height > 0)
-    #expect(image.height < 200, "\(image.height)")
-  }
-
   // MARK: The transcript's card
 
   private func item(

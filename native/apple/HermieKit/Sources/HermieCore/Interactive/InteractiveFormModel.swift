@@ -89,11 +89,37 @@ public final class InteractiveFormModel {
 
     // A person picks minutes: no hidden seconds ride along with the picker's own clock.
     if case .datetime(let instant?) = input {
-      inputs[id] = .datetime(Self.wholeMinute(instant))
+      var value = Self.wholeMinute(instant)
+
+      // Flooring must not drop a pick that was at or after a `min` with seconds under it: the next whole minute then,
+      // when it still fits under `max`.
+      if case .datetime(let datetime)? = self.field(id), let min = datetime.min.flatMap(FormInstant.parse), value < min, instant >= min {
+        let up = Self.wholeMinute(min).addingTimeInterval(Self.wholeMinute(min) < min ? 60 : 0)
+        let max = datetime.max.flatMap(FormInstant.parse)
+
+        if max.map({ up <= $0 }) ?? true {
+          value = up
+        }
+      }
+
+      inputs[id] = .datetime(value)
       return
     }
 
     inputs[id] = input
+  }
+
+  /// The range a datetime picker offers: `min` rounded UP to a whole minute and `max` rounded DOWN,
+  /// so every minute the picker lets through is a value of the field (a picked 09:37 is not below a
+  /// `min` of 09:37:12, which no minute-picker could reach). `nil` ends are open.
+  public func pickerBounds(for id: String) -> (min: Date?, max: Date?) {
+    guard case .datetime(let field)? = self.field(id) else {
+      return (nil, nil)
+    }
+
+    let min = field.min.flatMap(FormInstant.parse).map { Self.wholeMinute($0).addingTimeInterval(Self.wholeMinute($0) < $0 ? 60 : 0) }
+    let max = field.max.flatMap(FormInstant.parse).map(Self.wholeMinute)
+    return (min, max)
   }
 
   /// The instant at the start of its minute.
@@ -150,7 +176,7 @@ public final class InteractiveFormModel {
       var chosen = Self.wholeMinute(current)
 
       if let min = field.min.flatMap(FormInstant.parse), chosen < min {
-        chosen = Self.wholeMinute(min) < min ? Self.wholeMinute(min).addingTimeInterval(60) : min
+        chosen = Self.wholeMinute(min).addingTimeInterval(Self.wholeMinute(min) < min ? 60 : 0)
       }
 
       if let max = field.max.flatMap(FormInstant.parse), chosen > max {

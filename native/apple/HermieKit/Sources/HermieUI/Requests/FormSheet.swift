@@ -548,7 +548,7 @@ struct FormDateTimeControl: View {
           selection: Binding(
             get: { chosen ?? Date() },
             set: { form.set(.datetime($0), for: id) }),
-          in: PickerBounds.range(field.min.flatMap(FormInstant.parse), field.max.flatMap(FormInstant.parse)),
+          in: PickerBounds.range(form.pickerBounds(for: id).min, form.pickerBounds(for: id).max),
           displayedComponents: [.date, .hourAndMinute]
         )
         .labelsHidden()

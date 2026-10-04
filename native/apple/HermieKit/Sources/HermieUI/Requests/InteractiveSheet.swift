@@ -35,6 +35,8 @@ struct InteractiveSheetModifier: ViewModifier {
     let next: String?
     let locked: Bool
     let blocked: Bool
+    /// An answer or an upload is on its way: the sheet does not step aside until it is done.
+    let working: Bool
   }
 
   /// The app lock's plate is up, or its setting not read yet.
@@ -61,7 +63,7 @@ struct InteractiveSheetModifier: ViewModifier {
             .frame(minWidth: 460, idealWidth: 520, minHeight: 420, idealHeight: 640)
           #endif
       }
-      .onChange(of: Raise(next: model.nextToPresent, locked: locked, blocked: blocked), initial: true) { _, raise in
+      .onChange(of: Raise(next: model.nextToPresent, locked: locked, blocked: blocked, working: !model.canYield), initial: true) { _, raise in
         // An approval or a secure prompt is time-critical: the sheet steps aside for it (it comes back by
         // itself once the screen is free), and none comes up while one waits.
         if raise.blocked {

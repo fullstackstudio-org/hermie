@@ -210,9 +210,14 @@ struct FileSheetView: View {
         .ignoresSafeArea()
       }
     #endif
+    // An approval waits for an upload to finish rather than cutting it off (`InteractiveModel.yield`).
+    .onChange(of: files.phase) { _, phase in
+      model.setWorking(phase == .uploading)
+    }
     .onDisappear {
       sending?.cancel()
       files.discardAll()
+      model.setWorking(false)
     }
   }
 

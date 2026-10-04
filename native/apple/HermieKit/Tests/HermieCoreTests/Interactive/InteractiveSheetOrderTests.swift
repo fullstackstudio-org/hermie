@@ -115,7 +115,7 @@ struct InteractiveSheetOrderTests {
     #expect(chat.interactive.nextToPresent == "srq-f")
   }
 
-  @Test("yielding does nothing for a sheet that already ended, and keeps its outcome")
+  @Test("a sheet that already ended closes for an approval, and its outcome stays as the chat's notice")
   func yieldOfAnEndedRequest() async throws {
     let chat = try await Chat.open()
     try await chat.h.raiseOpen("srq-f")
@@ -125,9 +125,34 @@ struct InteractiveSheetOrderTests {
       payload: ["id": "srq-f", "method": "input.form", "reason": "timeout"])
     let center = chat.h.center
     try await eventually("srq-f to close") { await !center.isOpen("srq-f") }
-    chat.interactive.yield()
-    #expect(chat.interactive.presentedID == "srq-f", "the sheet still says how it ended")
     #expect(chat.interactive.presentedOutcome == .expired)
+    #expect(chat.order.holdForInteractive, "an ended sheet would still hold an approval back")
+
+    chat.interactive.yield()
+    #expect(chat.interactive.presentedID == nil)
+    #expect(!chat.order.holdForInteractive)
+    #expect(chat.interactive.notice?.notice == .expired, "the outcome is kept as the chat banner")
+  }
+
+  @Test("an upload or an answer on its way is not cut off: the sheet yields once it is done")
+  func noYieldWhileWorking() async throws {
+    let chat = try await Chat.open()
+    try await chat.h.raiseOpen("srq-u", "input.file", params: InteractiveFrames.file())
+    chat.interactive.present("srq-u")
+    chat.interactive.setWorking(true)
+    #expect(!chat.interactive.canYield)
+
+    try await chat.raiseApproval()
+    #expect(chat.order.interactiveBlocked)
+    chat.interactive.yield()
+    #expect(chat.interactive.presentedID == "srq-u", "the upload goes on; the approval waits")
+    #expect(chat.order.holdForInteractive)
+
+    chat.interactive.setWorking(false)
+    #expect(chat.interactive.canYield)
+    chat.interactive.yield()
+    #expect(chat.interactive.presentedID == nil)
+    #expect(chat.h.center.isOpen("srq-u"), "stepping aside is never an answer")
   }
 }
 

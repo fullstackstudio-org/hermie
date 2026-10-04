@@ -219,7 +219,7 @@ struct DraftSheetView: View {
                 .font(.footnote.monospaced())
                 .fixedSize(horizontal: false, vertical: true)
               // The text with those characters in view, as it would be sent.
-              NoWrapText(text: DraftText.reveal(draft.text), font: .footnote.monospaced(), identifier: "draft.revealed")
+              NoWrapText(text: DraftText.reveal(draft.text), compact: true, identifier: "draft.revealed")
             }
           }
         }

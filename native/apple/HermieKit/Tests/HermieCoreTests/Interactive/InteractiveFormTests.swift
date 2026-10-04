@@ -371,6 +371,42 @@ struct InteractiveFormTests {
     #expect(form.values()["kept"] == .datetime(instant: "2026-10-07T14:30:15+02:00", zone: "Europe/Amsterdam"))
   }
 
+  @Test("a picked minute is never under a min that has seconds, and the picker's bounds are whole minutes")
+  func boundsWithSeconds() throws {
+    let form = InteractiveFormModel(
+      params: params([
+        "id": "c", "kind": "datetime", "label": "c", "tz": "Europe/Amsterdam", "min": "2026-10-07T09:37:12+02:00",
+        "max": "2026-10-07T09:39:30+02:00"
+      ]))
+    let bounds = form.pickerBounds(for: "c")
+    #expect(bounds.min == FormInstant.parse("2026-10-07T09:38:00+02:00"), "rounded up")
+    #expect(bounds.max == FormInstant.parse("2026-10-07T09:39:00+02:00"), "rounded down")
+
+    // The person picks 09:37 (the picker reports it with the clock's own seconds): not below min.
+    form.set(.datetime(try #require(FormInstant.parse("2026-10-07T09:37:40+02:00") as Date?)), for: "c")
+    #expect(form.input("c") == .datetime(try #require(FormInstant.parse("2026-10-07T09:38:00+02:00") as Date?)))
+    #expect(form.problem(of: "c") == nil)
+
+    // Every minute the picker offers is a value; the max's own minute too.
+    form.set(.datetime(try #require(FormInstant.parse("2026-10-07T09:39:10+02:00") as Date?)), for: "c")
+    #expect(form.problem(of: "c") == nil)
+
+    // No minute fits between a min and a max within one minute: the pick stays a whole minute.
+    let tight = InteractiveFormModel(
+      params: params([
+        "id": "t", "kind": "datetime", "label": "t", "tz": "Europe/Amsterdam", "min": "2026-10-07T09:37:12+02:00",
+        "max": "2026-10-07T09:37:50+02:00"
+      ]))
+    tight.set(.datetime(try #require(FormInstant.parse("2026-10-07T09:37:30+02:00") as Date?)), for: "t")
+    #expect(tight.input("t") == .datetime(try #require(FormInstant.parse("2026-10-07T09:37:00+02:00") as Date?)))
+
+    // An exact minute stays what it is, and an open end stays open.
+    let open = InteractiveFormModel(
+      params: params(["id": "o", "kind": "datetime", "label": "o", "min": "2026-10-07T09:37:00+02:00"]))
+    #expect(open.pickerBounds(for: "o").min == FormInstant.parse("2026-10-07T09:37:00+02:00"))
+    #expect(open.pickerBounds(for: "o").max == nil)
+  }
+
   @Test("a date range with one end is no value; an end before the start is an order problem")
   func ranges() throws {
     let form = InteractiveFormModel(

@@ -140,13 +140,30 @@ public final class InteractiveModel {
     dismiss()
   }
 
+  /// The sheet is doing work that must not be cut off: files are on their way (set by the file sheet).
+  public private(set) var isWorking = false
+
+  public func setWorking(_ working: Bool) {
+    isWorking = working
+  }
+
+  /// The sheet is not in the middle of anything: no answer is on its way and no upload is running.
+  public var canYield: Bool {
+    !isWorking && !isSending
+  }
+
   /// Something time-critical wants the screen (an approval, a confirmation, a secure prompt): the
   /// sheet steps aside without putting the request away, so it comes back by itself once the screen
-  /// is free (`nextToPresent`). What was typed in it is gone, as with Later.
+  /// is free (`nextToPresent`). What was typed in it is gone, as with Later. Not while an answer or an
+  /// upload is on its way (`canYield`): the approval then waits until that is done. A sheet that
+  /// already says how its request ended closes, and the outcome stays as the chat's notice.
   public func yield() {
-    if presented != nil {
-      dismiss()
+    guard presentedID != nil, canYield else {
+      return
     }
+
+    presentedID = nil
+    presentedPrompt = nil
   }
 
   /// Where an `input.file` request's files are uploaded to.
