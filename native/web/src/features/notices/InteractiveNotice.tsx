@@ -41,7 +41,9 @@ export function interactiveNoticeText(notice: InteractiveNoticeKind, name: strin
           ? words.whatFile
           : notice.method === 'review.draft'
             ? words.whatDraft
-            : words.whatForm
+            : notice.method === 'review.diff'
+              ? words.whatDiff
+              : words.whatForm
 
       // The person's own choice (`4041 declined`) is said as theirs, not as the page's failure.
       return notice.reason === 'declined'

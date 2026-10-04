@@ -31,7 +31,7 @@ import {
   REFUSED_CODE,
   showableMethods
 } from './interactive'
-import type { DraftAnswer, FileAnswer, FormAnswer } from './interactive-types'
+import type { DiffAnswer, DraftAnswer, FileAnswer, FormAnswer } from './interactive-types'
 
 /** A value nobody would type by accident: if it shows up anywhere but the call, it leaked. */
 const SECRET = 'hunter2-\u00E9-ZQ7xK-do-not-keep'
@@ -129,6 +129,28 @@ const draftParams = (extra: Record<string, unknown> = {}): Record<string, unknow
   ...extra
 })
 
+const diffParams = (extra: Record<string, unknown> = {}): Record<string, unknown> => ({
+  ...envelope(),
+  optional: false,
+  title: 'Changes to settings.py',
+  summary: 'Approve or reject each hunk.',
+  kind: 'modify',
+  path: 'app/settings.py',
+  hunks: [
+    {
+      id: 'h1',
+      header: '@@ -3,3 +3,3 @@ class Settings:',
+      lines: ['     name = "booking"', '-    currency = "USD"', '+    currency = "EUR"', '     locale = "nl-NL"']
+    },
+    {
+      id: 'h2',
+      header: '@@ -20,3 +20,3 @@ def retry():',
+      lines: ['     attempts = 0', '-    limit = 3', '+    limit = 5', '     return attempts']
+    }
+  ],
+  ...extra
+})
+
 const requests = () => store.getState().requests
 const notice = (bot: string) => store.getState().notices[bot]?.notice
 const answerCalls = () => gw.calls.filter(call => call.method === 'request.answer')
@@ -170,7 +192,8 @@ describe('arrival', () => {
   it.each([
     ['input.form', formParams()],
     ['input.file', fileParams()],
-    ['review.draft', draftParams()]
+    ['review.draft', draftParams()],
+    ['review.diff', diffParams()]
   ])('opens %s on the chat that holds its session', (method, params) => {
     expect(gw.deliver('srq-1', method, params)).toBe(true)
     expect(requests()).toEqual([
@@ -298,11 +321,42 @@ describe('answering', () => {
   it('does not skip what is not optional, and never a review (there is no skip: the person rejects)', async () => {
     gw.deliver('srq-1', 'input.form', formParams({ optional: false }))
     gw.deliver('srq-2', 'review.draft', draftParams({ optional: true }))
+    gw.deliver('srq-3', 'review.diff', diffParams({ optional: true }))
 
     await expect(model.skip('srq-1')).resolves.toEqual({ kind: 'not_optional' })
     await expect(model.skip('srq-2')).resolves.toEqual({ kind: 'not_optional' })
+    await expect(model.skip('srq-3')).resolves.toEqual({ kind: 'not_optional' })
     expect(gw.calls).toEqual([])
-    expect(requests()).toHaveLength(2)
+    expect(requests()).toHaveLength(3)
+  })
+
+  it('answers a diff with the decision of every hunk, and tells the engine two counts and nothing else', async () => {
+    gw.deliver('srq-1', 'review.diff', diffParams())
+    gw.deliver('srq-2', 'review.diff', diffParams())
+    engine.calls.length = 0
+
+    const some: DiffAnswer = { decision: 'approved', hunks: { h1: 'approved', h2: 'rejected' } }
+    const none: DiffAnswer = { decision: 'rejected', hunks: { h1: 'rejected', h2: 'rejected' } }
+
+    await expect(model.answer('srq-1', some)).resolves.toEqual({ kind: 'sent' })
+    await expect(model.answer('srq-2', none)).resolves.toEqual({ kind: 'sent' })
+    expect(answerCalls()[0]?.params).toEqual({ id: 'srq-1', result: some })
+    expect(engine.calls).toEqual([
+      {
+        call: 'answered',
+        bot: 'researcher',
+        id: 'srq-1',
+        summary: { decision: 'approved', approvedHunks: 1, rejectedHunks: 1 }
+      },
+      {
+        call: 'answered',
+        bot: 'researcher',
+        id: 'srq-2',
+        summary: { decision: 'rejected', approvedHunks: 0, rejectedHunks: 2 }
+      }
+    ])
+    expect(JSON.stringify(engine.calls)).not.toContain('settings')
+    expect(JSON.stringify(engine.calls)).not.toContain('currency')
   })
 
   it('answers a draft with the decision', async () => {
@@ -1455,11 +1509,9 @@ describe('stopping (sign-out)', () => {
 
 describe('advertising', () => {
   it('lists the methods of the gateway’s list that this page can show', () => {
-    expect(showableMethods(['approval', 'input.form', 'input.file', 'review.draft', 'device.scan'])).toEqual([
-      'input.form',
-      'input.file',
-      'review.draft'
-    ])
+    expect(
+      showableMethods(['approval', 'input.form', 'input.file', 'review.draft', 'review.diff', 'device.scan'])
+    ).toEqual(['input.form', 'input.file', 'review.draft', 'review.diff'])
     expect(showableMethods(['approval', 'clarify'])).toEqual([])
     expect(showableMethods(['review.draft'])).toEqual(['review.draft'])
   })
@@ -1472,11 +1524,11 @@ describe('advertising', () => {
   })
 
   it('advertises the methods the sheets can show, and nothing when the switch is off', () => {
-    const list = ['approval', 'input.form', 'input.file', 'review.draft']
+    const list = ['approval', 'input.form', 'input.file', 'review.draft', 'review.diff']
 
     expect(ADVERTISE_INTERACTIVE_REQUESTS).toBe(true)
     expect(interactiveAdvert(model, { enabled: false }).methods(list)).toEqual([])
-    expect(interactiveAdvert(model).methods(list)).toEqual(['input.form', 'input.file', 'review.draft'])
+    expect(interactiveAdvert(model).methods(list)).toEqual(['input.form', 'input.file', 'review.draft', 'review.diff'])
   })
 })
 

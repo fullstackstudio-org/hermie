@@ -159,6 +159,37 @@ export const fileFrame = (extra: Record<string, unknown> = {}): Record<string, u
   ...extra
 })
 
+/** A diff review: two hunks of `app/settings.py`, neither pinned (the contract's own example); anything else is laid over it. */
+export const diffFrame = (extra: Record<string, unknown> = {}): Record<string, unknown> => ({
+  session_id: 'rt-1',
+  v: 1,
+  title: 'Changes to settings.py',
+  summary: 'I changed the default currency and the retry limit.',
+  expires_at: NOW_SECONDS + 300,
+  optional: false,
+  kind: 'modify',
+  path: 'app/settings.py',
+  hunks: [
+    {
+      id: 'h1',
+      header: '@@ -3,4 +3,4 @@ class Settings:',
+      lines: [
+        '     name = "booking"',
+        '-    currency = "USD"',
+        '+    currency = "EUR"',
+        '     locale = "nl-NL"',
+        '     debug = False'
+      ]
+    },
+    {
+      id: 'h2',
+      header: '@@ -20,3 +20,4 @@ def retry():',
+      lines: ['     attempts = 0', '-    limit = 3', '+    limit = 5', '+    backoff = 2', '     return attempts']
+    }
+  ],
+  ...extra
+})
+
 export const draftFrame = (extra: Record<string, unknown> = {}): Record<string, unknown> => ({
   session_id: 'rt-1',
   v: 1,

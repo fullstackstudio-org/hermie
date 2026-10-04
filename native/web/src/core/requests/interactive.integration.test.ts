@@ -180,13 +180,13 @@ const raise = (gateway: FakeGateway, method: string, params: Record<string, unkn
 const requests = (page: Page) => page.store.getState().requests
 
 describe('the interactive model against the fake gateway', () => {
-  it('advertises the three methods in the second capabilities call, which the gateway accepts', async () => {
+  it('advertises the four methods in the second capabilities call, which the gateway accepts', async () => {
     const page = await openPage()
     const calls = (await fakeState(page.gateway)).clientCapabilities as Json[]
 
     expect(calls.at(-1)).toMatchObject({
       server_requests: true,
-      requests: ['input.form', 'input.file', 'review.draft']
+      requests: ['input.form', 'input.file', 'review.draft', 'review.diff']
     })
     // The passkey level is not on offer here: the second call carries the methods alone.
     expect(calls.at(-1)?.confirm ?? []).toEqual([])

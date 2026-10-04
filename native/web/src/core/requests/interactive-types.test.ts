@@ -47,14 +47,9 @@ interface Examples {
 
 const examples = JSON.parse(examplesSource) as Examples
 
-/** The contract's methods this client does not read yet: `review.diff` lands with its sheet (P2-W1). */
-const NOT_YET_READ = ['review.diff']
-
-const readMethods = Object.fromEntries(
-  Object.entries(examples.methods).filter(([method]) => !NOT_YET_READ.includes(method))
+const frames = Object.entries(examples.methods).flatMap(([method, entry]) =>
+  entry.frames.map(frame => ({ method, frame }))
 )
-
-const frames = Object.entries(readMethods).flatMap(([method, entry]) => entry.frames.map(frame => ({ method, frame })))
 
 const form = (params: Record<string, unknown>): ReturnType<typeof readInteractiveParams> =>
   readInteractiveParams('input.form', params)
@@ -81,7 +76,7 @@ const ask = (result: ReturnType<typeof readInteractiveParams>): InteractiveAsk =
 describe('the methods', () => {
   it('are the contract’s three, and nothing else is read', () => {
     expect(examples.methods).toBeDefined()
-    expect(Object.keys(examples.methods).sort()).toEqual([...INTERACTIVE_METHODS, ...NOT_YET_READ].sort())
+    expect(Object.keys(examples.methods).sort()).toEqual([...INTERACTIVE_METHODS].sort())
     expect(isInteractiveMethod('input.form')).toBe(true)
     expect(isInteractiveMethod('confirm')).toBe(false)
     expect(readInteractiveParams('confirm', formWith({ id: 'a', kind: 'toggle', label: 'A' }))).toEqual({
@@ -209,7 +204,7 @@ describe('every valid frame of the examples', () => {
 })
 
 describe('every frame the gateway never sends', () => {
-  const invalid = Object.entries(readMethods).flatMap(([method, entry]) =>
+  const invalid = Object.entries(examples.methods).flatMap(([method, entry]) =>
     entry.invalid_frames.map(frame => ({ method, ...frame }))
   )
 

@@ -137,6 +137,11 @@ const SAMPLE = {
   what: MARKER,
   line: MARKER,
   title: MARKER,
+  // A diff review: which hunk, and how many of them are decided which way.
+  n: MARKER,
+  approved: MARKER,
+  rejected: MARKER,
+  undecided: MARKER,
   // The Crons and Activity pages: a schedule's words, an action named for its cron.
   days: MARKER,
   day: MARKER,

@@ -295,6 +295,20 @@ export const WEB_STRINGS_SOURCE = {
         nl: 'Concept om na te kijken',
         de: 'Entwurf zur Prüfung'
       },
+      kindDiff: {
+        en: 'Changes to review',
+        nl: 'Wijzigingen om na te kijken',
+        de: 'Änderungen zur Prüfung'
+      },
+      /** A diff review that was answered: how many hunks were approved of all of them (`approved` is at least 1). */
+      hunksApproved: {
+        en: ({ approved, total }: { approved: number; total: number }) =>
+          `${approved} of ${total} ${total === 1 ? 'hunk' : 'hunks'} approved`,
+        nl: ({ approved, total }: { approved: number; total: number }) =>
+          `${approved} van ${total} ${total === 1 ? 'wijziging' : 'wijzigingen'} goedgekeurd`,
+        de: ({ approved, total }: { approved: number; total: number }) =>
+          `${approved} von ${total} ${total === 1 ? 'Änderung' : 'Änderungen'} freigegeben`
+      },
       /** The line under the bot's heading while the question waits. */
       open: {
         en: 'Waiting for your answer',
@@ -395,6 +409,11 @@ export const WEB_STRINGS_SOURCE = {
         en: 'a draft to review',
         nl: 'een concept om na te kijken',
         de: 'einen Entwurf zur Prüfung'
+      },
+      whatDiff: {
+        en: 'changes to review',
+        nl: 'wijzigingen om na te kijken',
+        de: 'Änderungen zur Prüfung'
       },
       /** The chat's line when this page told the gateway it could not show a request: the bot was told. */
       noticeCannotShow: {

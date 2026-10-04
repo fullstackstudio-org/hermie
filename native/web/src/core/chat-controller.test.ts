@@ -2541,6 +2541,18 @@ describe('what a reconnect tells the requests answered beside the engine', () =>
       method: 'review.draft',
       params: { session_id: 'runtime-1', v: 1, title: 'Reply', summary: 'Approve it.', text: 'DRAFT-TEXT-MARKER' }
     }
+    const diff = {
+      id: 'srq-10',
+      method: 'review.diff',
+      params: {
+        session_id: 'runtime-1',
+        v: 1,
+        title: 'Changes',
+        summary: 'Approve each hunk.',
+        path: 'DIFF-PATH-MARKER.py',
+        hunks: [{ id: 'h1', header: '@@ -1 +1 @@', lines: ['-DIFF-LINE-MARKER', '+x'] }]
+      }
+    }
     const handed: unknown[] = []
     const dispatch = chatsStore.getState().dispatchServerRequest
     const apply = chatsStore.getState().applySnapshot
@@ -2561,7 +2573,7 @@ describe('what a reconnect tells the requests answered beside the engine', () =>
       message_count: 2,
       messages: [],
       info: { desktop_contract: 7 },
-      open_requests: [form, draft]
+      open_requests: [form, draft, diff]
     })
     gateway.reply('session.events.since', {
       events: [],
@@ -2569,7 +2581,7 @@ describe('what a reconnect tells the requests answered beside the engine', () =>
       truncated: false,
       count: 0,
       epoch: 'e1',
-      open_requests: [form, draft]
+      open_requests: [form, draft, diff]
     })
     controller.start()
     await controller.openChat(RESEARCHER)
@@ -2588,6 +2600,14 @@ describe('what a reconnect tells the requests answered beside the engine', () =>
         id: 'srq-9',
         method: 'review.draft',
         params: { title: 'Reply', summary: 'Approve it.', optional: false }
+      })
+    )
+    // A diff review carries its envelope and nothing of the file's path or a single line of a hunk.
+    expect(handed).toContainEqual(
+      expect.objectContaining({
+        id: 'srq-10',
+        method: 'review.diff',
+        params: { title: 'Changes', summary: 'Approve each hunk.', optional: false }
       })
     )
     expect(JSON.stringify(chatOf())).not.toContain('MARKER')

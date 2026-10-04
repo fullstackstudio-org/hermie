@@ -1,6 +1,6 @@
 /**
  * The interactive requests a bot sends a client (`input.form`, `input.file`,
- * `review.draft`; `contract/requests/`), from the moment they arrive until they are
+ * `review.draft`, `review.diff`; `contract/requests/`), from the moment they arrive until they are
  * answered, skipped, expired, withdrawn or declined.
  *
  * The secure input model's sibling (`secure-input.ts`, the native apps' `SecureInputCenter`),
@@ -161,8 +161,8 @@ export interface InteractiveEngine {
 }
 
 /**
- * Whether the page lists the interactive methods in its advert. On: the sheets for all three exist (`FormSheet`,
- * `FileSheet`, `DraftSheet`), so the page can show what it advertises. It is the switch to turn the advert off again
+ * Whether the page lists the interactive methods in its advert. On: the sheets for all four exist (`FormSheet`,
+ * `FileSheet`, `DraftSheet`, `DiffSheet`), so the page can show what it advertises. It is the switch to turn the advert off again
  * should a sheet ever be withdrawn: a page advertises only what it can really show, because a gateway that knows this
  * page can show a form sends it here instead of answering the agent `no_capable_client`.
  */
@@ -523,7 +523,7 @@ export class InteractiveModel {
       return Promise.resolve({ kind: 'closed' })
     }
 
-    if (!request.ask.optional || request.ask.method === 'review.draft') {
+    if (!request.ask.optional || request.ask.method === 'review.draft' || request.ask.method === 'review.diff') {
       return Promise.resolve({ kind: 'not_optional' })
     }
 
@@ -796,6 +796,18 @@ export class InteractiveModel {
 
   /** `{status | decision, count?, edited?}` of an answer: keys and numbers, never a value. */
   private summaryOf(entry: Entry, result: InteractiveAnswer): RequestAnswerSummary {
+    if (entry.ask.method === 'review.diff') {
+      const decisions = 'hunks' in result && result.hunks ? Object.values(result.hunks) : []
+      const approvedHunks = decisions.filter(decision => decision === 'approved').length
+
+      // How many hunks went which way: two whole numbers, never a hunk, a path or a line.
+      return {
+        decision: 'decision' in result && result.decision === 'approved' ? 'approved' : 'rejected',
+        approvedHunks,
+        rejectedHunks: decisions.length - approvedHunks
+      }
+    }
+
     if (entry.ask.method === 'review.draft') {
       const approved = 'decision' in result && result.decision === 'approved'
 

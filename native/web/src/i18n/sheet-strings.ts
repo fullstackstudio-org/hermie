@@ -1985,6 +1985,170 @@ export const SHEET_STRINGS_SOURCE = {
         nl: 'Dit concept kan niet worden aangepast. Keur het goed zoals het is, of wijs het af.',
         de: 'Dieser Entwurf lässt sich nicht ändern. Gib ihn so frei, wie er ist, oder lehne ihn ab.'
       }
+    },
+    /** `review.diff`: the changes to one file, approved or rejected hunk by hunk (`DiffSheet`). */
+    diff: {
+      title: {
+        en: 'Changes to review',
+        nl: 'Wijzigingen om na te kijken',
+        de: 'Änderungen zur Prüfung'
+      },
+      /** Who receives the decision, and what becomes of it. */
+      receiver: {
+        en: 'Hermie sends your decision for each change to the gateway, where the bot reads it. The text of the changes stays with the gateway. Hermie does not keep your decision.',
+        nl: 'Hermie stuurt je besluit per wijziging naar de gateway, waar de bot het leest. De tekst van de wijzigingen blijft bij de gateway. Hermie bewaart je besluit niet.',
+        de: 'Hermie sendet deine Entscheidung zu jeder Änderung an das Gateway, wo der Bot sie liest. Der Text der Änderungen bleibt beim Gateway. Hermie speichert deine Entscheidung nicht.'
+      },
+      /** The label over the file's path. */
+      file: {
+        en: 'File',
+        nl: 'Bestand',
+        de: 'Datei'
+      },
+      kindModify: {
+        en: 'Changed file',
+        nl: 'Gewijzigd bestand',
+        de: 'Geänderte Datei'
+      },
+      kindNew: {
+        en: 'New file',
+        nl: 'Nieuw bestand',
+        de: 'Neue Datei'
+      },
+      kindDelete: {
+        en: 'Delete file',
+        nl: 'Bestand verwijderen',
+        de: 'Datei löschen'
+      },
+      /** A rename: the path line then reads "old path → new path". */
+      kindRename: {
+        en: 'Renamed file',
+        nl: 'Hernoemd bestand',
+        de: 'Umbenannte Datei'
+      },
+      /** The heading of one hunk: its place in the list. */
+      hunk: {
+        en: ({ n, total }: { n: number; total: number }) => `Change ${n} of ${total}`,
+        nl: ({ n, total }: { n: number; total: number }) => `Wijziging ${n} van ${total}`,
+        de: ({ n, total }: { n: number; total: number }) => `Änderung ${n} von ${total}`
+      },
+      /** Where the gateway says the hunk lands, whatever its header's line numbers say. */
+      anchorStart: {
+        en: 'Start of the file',
+        nl: 'Begin van het bestand',
+        de: 'Anfang der Datei'
+      },
+      anchorEnd: {
+        en: 'End of the file',
+        nl: 'Einde van het bestand',
+        de: 'Ende der Datei'
+      },
+      anchorBoth: {
+        en: 'Whole file',
+        nl: 'Heel het bestand',
+        de: 'Ganze Datei'
+      },
+      /** The scrolling box with a hunk's lines: its accessible name. */
+      lines: {
+        en: ({ n }: { n: number }) => `Lines of change ${n}`,
+        nl: ({ n }: { n: number }) => `Regels van wijziging ${n}`,
+        de: ({ n }: { n: number }) => `Zeilen von Änderung ${n}`
+      },
+      /** What a line is, for a reader that does not see the marker or the colour. */
+      lineAdded: {
+        en: 'Added line',
+        nl: 'Toegevoegde regel',
+        de: 'Hinzugefügte Zeile'
+      },
+      lineRemoved: {
+        en: 'Removed line',
+        nl: 'Verwijderde regel',
+        de: 'Entfernte Zeile'
+      },
+      lineContext: {
+        en: 'Unchanged line',
+        nl: 'Ongewijzigde regel',
+        de: 'Unveränderte Zeile'
+      },
+      lineNote: {
+        en: 'Note from git',
+        nl: 'Opmerking van git',
+        de: 'Hinweis von git'
+      },
+      /** Under a hunk that has a row wider than the view: nothing is cut off, the box scrolls sideways. */
+      wide: {
+        en: 'Some lines are wider than the view. Scroll sideways to read all of them.',
+        nl: 'Sommige regels zijn breder dan het beeld. Scrol opzij om ze helemaal te lezen.',
+        de: 'Manche Zeilen sind breiter als die Ansicht. Scrolle zur Seite, um sie ganz zu lesen.'
+      },
+      approve: {
+        en: 'Approve',
+        nl: 'Goedkeuren',
+        de: 'Freigeben'
+      },
+      reject: {
+        en: 'Reject',
+        nl: 'Afwijzen',
+        de: 'Ablehnen'
+      },
+      /** The accessible names of one hunk's two buttons (they start with the visible word). */
+      approveHunk: {
+        en: ({ n, total }: { n: number; total: number }) => `Approve change ${n} of ${total}`,
+        nl: ({ n, total }: { n: number; total: number }) => `Wijziging ${n} van ${total} goedkeuren`,
+        de: ({ n, total }: { n: number; total: number }) => `Änderung ${n} von ${total} freigeben`
+      },
+      rejectHunk: {
+        en: ({ n, total }: { n: number; total: number }) => `Reject change ${n} of ${total}`,
+        nl: ({ n, total }: { n: number; total: number }) => `Wijziging ${n} van ${total} afwijzen`,
+        de: ({ n, total }: { n: number; total: number }) => `Änderung ${n} von ${total} ablehnen`
+      },
+      approveAll: {
+        en: 'Approve all',
+        nl: 'Alles goedkeuren',
+        de: 'Alle freigeben'
+      },
+      rejectAll: {
+        en: 'Reject all',
+        nl: 'Alles afwijzen',
+        de: 'Alle ablehnen'
+      },
+      /** What is decided so far; every hunk must be decided before anything is sent. */
+      progress: {
+        en: ({ approved, rejected, undecided }: { approved: number; rejected: number; undecided: number }) =>
+          `${approved} approved, ${rejected} rejected, ${undecided} undecided`,
+        nl: ({ approved, rejected, undecided }: { approved: number; rejected: number; undecided: number }) =>
+          `${approved} goedgekeurd, ${rejected} afgewezen, ${undecided} nog niet bepaald`,
+        de: ({ approved, rejected, undecided }: { approved: number; rejected: number; undecided: number }) =>
+          `${approved} freigegeben, ${rejected} abgelehnt, ${undecided} offen`
+      },
+      /** Why Send is off. */
+      decideAll: {
+        en: ({ count }: { count: number }) => `Approve or reject every change before you send (${count} left).`,
+        nl: ({ count }: { count: number }) => `Keur elke wijziging goed of af voordat je verstuurt (nog ${count}).`,
+        de: ({ count }: { count: number }) =>
+          `Gib jede Änderung frei oder lehne sie ab, bevor du sendest (noch ${count}).`
+      },
+      /** Send, before every change is decided. */
+      send: {
+        en: 'Send decision',
+        nl: 'Besluit versturen',
+        de: 'Entscheidung senden'
+      },
+      /** Send, with at least one change approved: the bot applies those. */
+      sendApproved: {
+        en: ({ approved, total }: { approved: number; total: number }) =>
+          `Apply ${approved} of ${total} ${total === 1 ? 'change' : 'changes'}`,
+        nl: ({ approved, total }: { approved: number; total: number }) =>
+          `${approved} van ${total} ${total === 1 ? 'wijziging' : 'wijzigingen'} doorvoeren`,
+        de: ({ approved, total }: { approved: number; total: number }) =>
+          `${approved} von ${total} ${total === 1 ? 'Änderung' : 'Änderungen'} übernehmen`
+      },
+      /** Send, with every change rejected: nothing is applied. */
+      sendRejected: {
+        en: 'Reject everything and send',
+        nl: 'Alles afwijzen en versturen',
+        de: 'Alles ablehnen und senden'
+      }
     }
   },
   connections: {

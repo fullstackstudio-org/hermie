@@ -51,7 +51,7 @@
  * that ends without the reader's answer closes, is said politely, and leaves a
  * notice on its chat saying why (`features/notices/SecureInputNotice.tsx`).
  *
- * **A form, a file request, a draft to review** (`InteractiveRequestEntry`) is held by the interactive model
+ * **A form, a file request, a draft or a diff to review** (`InteractiveRequestEntry`) is held by the interactive model
  * (`core/requests/interactive.ts`) and answered through it (`answer`, `skip`, `cannotShow`), each in a sheet of its
  * own (`FormSheet`, `FileSheet`, `DraftSheet`). A file request also uploads, through the controller
  * (`uploadFileTo`): the sheet puts the files on the gateway and answers with their references.
@@ -325,6 +325,8 @@ function InteractiveSheetFor({
       )
     case 'review.draft':
       return <sheets.DraftSheet request={{ ...request, ask }} {...rest} />
+    case 'review.diff':
+      return <sheets.DiffSheet request={{ ...request, ask }} {...rest} />
   }
 }
 

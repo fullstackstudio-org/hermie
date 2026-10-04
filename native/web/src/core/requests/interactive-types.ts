@@ -1,5 +1,5 @@
 /**
- * The interactive requests (`input.form`, `input.file`, `review.draft`) as the page
+ * The interactive requests (`input.form`, `input.file`, `review.draft`, `review.diff`) as the page
  * reads them: hand-written types for their params and their answers, and one
  * reader per method that turns a frame's params into those types.
  *
@@ -30,8 +30,8 @@
  */
 import { displayText } from './secure-input'
 
-/** The methods this page can read; the contract's three (phase 1). */
-export const INTERACTIVE_METHODS = ['input.form', 'input.file', 'review.draft'] as const
+/** The methods this page can read: the contract's three of phase 1 and `review.diff` of phase 2. */
+export const INTERACTIVE_METHODS = ['input.form', 'input.file', 'review.draft', 'review.diff'] as const
 
 export type InteractiveMethod = (typeof INTERACTIVE_METHODS)[number]
 
@@ -251,7 +251,7 @@ export interface DraftAsk extends InteractiveEnvelope {
   editable: boolean
 }
 
-export type InteractiveAsk = FormAsk | FileAsk | DraftAsk
+export type InteractiveAsk = FormAsk | FileAsk | DraftAsk | DiffAsk
 
 export type ReadResult = { ok: true; ask: InteractiveAsk } | { ok: false; reason: CannotShowReason }
 
@@ -275,7 +275,46 @@ export type FileAnswer = { status: 'answered'; files: readonly UploadedFile[]; t
 
 export type DraftAnswer = { decision: 'approved'; text: string } | { decision: 'rejected'; comment?: string }
 
-export type InteractiveAnswer = FormAnswer | FileAnswer | DraftAnswer
+/** What the person decided about one hunk. */
+export type HunkDecision = 'approved' | 'rejected'
+
+/**
+ * A diff review's answer (README §7.2): the decision, and one entry for EVERY hunk of the request. `approved` means
+ * "apply what I approved" (some or all), `rejected` "apply nothing". It carries no text and no line.
+ */
+export interface DiffAnswer {
+  decision: 'approved' | 'rejected'
+  hunks: Readonly<Record<string, HunkDecision>>
+}
+
+export type InteractiveAnswer = FormAnswer | FileAnswer | DraftAnswer | DiffAnswer
+
+/**
+ * The answer for `decisions` (a hunk id to what the person decided), or `null` while a hunk of `ask` is still undecided
+ * (a hunk is never answered for the person). The entries follow the request's order, ids the request does not have are
+ * left out, and the decision follows from them: `approved` when at least one hunk is approved, else `rejected`.
+ */
+export function composeDiffAnswer(
+  ask: Pick<DiffAsk, 'hunks'>,
+  decisions: Readonly<Record<string, HunkDecision | undefined>>
+): DiffAnswer | null {
+  const hunks: Record<string, HunkDecision> = {}
+
+  for (const hunk of ask.hunks) {
+    const decision = decisions[hunk.id]
+
+    if (decision !== 'approved' && decision !== 'rejected') {
+      return null
+    }
+
+    hunks[hunk.id] = decision
+  }
+
+  return {
+    decision: Object.values(hunks).includes('approved') ? 'approved' : 'rejected',
+    hunks
+  }
+}
 
 // ── reading ──────────────────────────────────────────────────────────────────────────────────────
 
@@ -1124,6 +1163,349 @@ export function verbatimIssue(text: string, allow: { tab?: boolean; layout?: boo
 export const verbatimProblem = (text: string, allow: { tab?: boolean; layout?: boolean } = {}): boolean =>
   verbatimIssue(text, allow) !== null
 
+/**
+ * Whether ONE line of text breaks the gateway's character rule (`contract/requests` §6.2) exactly as it is: nothing is
+ * stripped first, so a space or a no-break space at its end counts. A line break of any kind, a control, format,
+ * surrogate, private-use or unassigned character, a space other than U+0020, a blank letter, a default-ignorable code
+ * point, and more than four combining marks in a row all break it. `tab` lets U+0009 through (a diff line and a hunk
+ * header's section text); `blankMarks` also refuses a combining mark at the start or right after a space or a tab (a
+ * diff's rule, because it would only keep two runs of whitespace apart).
+ */
+export function lineCharProblem(text: string, { tab = false, blankMarks = false } = {}): boolean {
+  let marks = 0
+  let blank = true
+
+  for (const char of text) {
+    if (char === ' ' || (tab && char === '\t')) {
+      marks = 0
+      blank = true
+
+      continue
+    }
+
+    const code = char.codePointAt(0) ?? 0
+
+    if (
+      NOT_VERBATIM.test(char) ||
+      INVISIBLE_LETTERS.has(code) ||
+      IGNORABLE.some(([low, high]) => code >= low && code <= high)
+    ) {
+      return true
+    }
+
+    const mark = COMBINING.test(char)
+
+    if (mark && blank && blankMarks) {
+      return true
+    }
+
+    marks = mark ? marks + 1 : 0
+
+    if (marks > MAX_COMBINING_MARKS) {
+      return true
+    }
+
+    blank = false
+  }
+
+  return false
+}
+
+// ── review.diff (README §7) ──────────────────────────────────────────────────────────────────────
+
+/** The limits of a diff (README §7, §7.1). */
+export const DIFF_LIMITS = Object.freeze({
+  hunks: 200,
+  hunkLines: 400,
+  lineChars: 500,
+  header: 200,
+  path: 300,
+  /** Columns of indent (twelve tab levels), of any other run of spaces and tabs, and of all of them in a line. */
+  indent: 96,
+  spaceRun: 32,
+  whitespace: 160,
+  /** A tab advances to the next multiple of this many columns. */
+  tabStop: 8
+})
+
+export type DiffKind = 'modify' | 'new' | 'delete' | 'rename'
+
+/** Where `git apply` is guaranteed to put a hunk, whatever its header says (README §7). */
+export type DiffAnchor = 'start' | 'end' | 'both'
+
+/** One line of a hunk. A `note` is git's "\ No newline at end of file", which belongs to the line before it. */
+export type DiffLine = { type: 'context' | 'added' | 'removed'; text: string } | { type: 'note' }
+
+export interface DiffHunk {
+  /** `h1`, `h2`, …: the answer's key. */
+  id: string
+  /** `@@ -a,b +c,d @@`, optionally followed by a space and the section text; one line. */
+  header: string
+  lines: readonly DiffLine[]
+  /** What the gateway pinned it to, together with what the lines themselves pin (`hunkAnchor`). */
+  anchor?: DiffAnchor
+}
+
+export interface DiffAsk extends InteractiveEnvelope {
+  method: 'review.diff'
+  kind: DiffKind
+  /** The file's relative path (the new one for a rename), display only. */
+  path: string
+  /** A rename's previous path. */
+  oldPath?: string
+  hunks: readonly DiffHunk[]
+}
+
+const HUNK_ID = /^h[1-9][0-9]{0,2}$/u
+const HUNK_HEADER = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@(?: (.+))?$/u
+const NO_NEWLINE_NOTE = '\\ No newline at end of file'
+
+/** The numbers and the section text of a hunk header; `null` for text that is not one. A count left out is 1. */
+export function parseHunkHeader(
+  header: string
+): { oldStart: number; oldCount: number; newStart: number; newCount: number; section: string } | null {
+  const match = HUNK_HEADER.exec(header)
+
+  if (!match) {
+    return null
+  }
+
+  return {
+    oldStart: Number(match[1]),
+    oldCount: match[2] === undefined ? 1 : Number(match[2]),
+    newStart: Number(match[3]),
+    newCount: match[4] === undefined ? 1 : Number(match[4]),
+    section: match[5] ?? ''
+  }
+}
+
+/**
+ * Whether the layout of a diff line's text (after its marker) breaks the contract's limits (README §7.1), counted in
+ * COLUMNS: a space advances one, a tab to the next multiple of 8, every other character one. An indent above 96
+ * columns, any other run of spaces and tabs above 32, or all of them together above 160 would push text out of view.
+ */
+export function diffLayoutProblem(text: string): boolean {
+  let column = 0
+  let total = 0
+  let runStart = -1
+  let leading = true
+
+  const endRun = (): boolean => {
+    if (runStart < 0) {
+      return false
+    }
+
+    const width = column - runStart
+
+    runStart = -1
+
+    return width > (leading ? DIFF_LIMITS.indent : DIFF_LIMITS.spaceRun)
+  }
+
+  for (const char of text) {
+    if (char === ' ' || char === '\t') {
+      const next = char === ' ' ? column + 1 : column + DIFF_LIMITS.tabStop - (column % DIFF_LIMITS.tabStop)
+
+      if (runStart < 0) {
+        runStart = column
+      }
+
+      total += next - column
+      column = next
+
+      continue
+    }
+
+    if (endRun()) {
+      return true
+    }
+
+    leading = false
+    column += 1
+  }
+
+  return endRun() || total > DIFF_LIMITS.whitespace
+}
+
+/** A diff line's text, or a header, that is not shown as it is: a hidden character, bad layout, whitespace at its end. */
+const diffTextProblem = (text: string): boolean =>
+  lineCharProblem(text, { tab: true, blankMarks: true }) ||
+  diffLayoutProblem(text) ||
+  text.endsWith(' ') ||
+  text.endsWith('\t')
+
+/**
+ * Where a hunk is pinned by what it says, whatever the gateway reported: `start` when its old side starts at line 0 or 1,
+ * `end` when no context line follows its last change (the no-newline note aside; `git apply` then requires it to match
+ * at the END of the file, wherever the header's line number points), `both` when both. `undefined` for a hunk that is
+ * not pinned.
+ */
+export function hunkAnchor(hunk: Pick<DiffHunk, 'header' | 'lines'>): DiffAnchor | undefined {
+  const numbers = parseHunkHeader(hunk.header)
+  const start = numbers !== null && numbers.oldStart <= 1
+  let lastChange = -1
+  let lastContext = -1
+
+  hunk.lines.forEach((line, index) => {
+    if (line.type === 'added' || line.type === 'removed') {
+      lastChange = index
+    } else if (line.type === 'context') {
+      lastContext = index
+    }
+  })
+
+  const end = lastChange >= 0 && lastContext < lastChange
+
+  return start && end ? 'both' : start ? 'start' : end ? 'end' : undefined
+}
+
+function readDiffLine(raw: unknown): DiffLine {
+  if (!isStr(raw) || raw === '' || lengthOf(raw) > DIFF_LIMITS.lineChars) {
+    return refuse()
+  }
+
+  if (raw === NO_NEWLINE_NOTE) {
+    return { type: 'note' }
+  }
+
+  const marker = raw.charAt(0)
+  const text = raw.slice(1)
+
+  if ((marker !== ' ' && marker !== '+' && marker !== '-') || diffTextProblem(text)) {
+    return refuse()
+  }
+
+  return { type: marker === '+' ? 'added' : marker === '-' ? 'removed' : 'context', text }
+}
+
+function readHunk(raw: unknown, last: boolean): DiffHunk {
+  if (
+    !isRec(raw) ||
+    Object.keys(raw).some(key => key !== 'id' && key !== 'header' && key !== 'lines' && key !== 'anchor')
+  ) {
+    return refuse()
+  }
+
+  const { id, header, lines, anchor } = raw
+
+  if (!isStr(id) || !HUNK_ID.test(id) || !isStr(header) || lengthOf(header) > DIFF_LIMITS.header) {
+    return refuse()
+  }
+
+  const numbers = parseHunkHeader(header)
+
+  if (numbers === null || diffTextProblem(header)) {
+    return refuse()
+  }
+
+  if (anchor !== undefined && anchor !== 'start' && anchor !== 'end' && anchor !== 'both') {
+    return refuse()
+  }
+
+  if (!Array.isArray(lines) || lines.length < 1 || lines.length > DIFF_LIMITS.hunkLines) {
+    return refuse()
+  }
+
+  const read = (lines as unknown[]).map(readDiffLine)
+
+  // The note belongs to a `+` or `-` line before it, and only the last hunk of a request can end a file.
+  read.forEach((line, index) => {
+    if (
+      line.type === 'note' &&
+      (!last || index === 0 || read[index - 1]?.type === 'context' || read[index - 1]?.type === 'note')
+    ) {
+      refuse()
+    }
+  })
+
+  // The header's counts say how many old and new lines the hunk has: a hunk that disagrees is not one the gateway built.
+  const old = read.filter(line => line.type === 'context' || line.type === 'removed').length
+  const added = read.filter(line => line.type === 'context' || line.type === 'added').length
+
+  if (old !== numbers.oldCount || added !== numbers.newCount) {
+    return refuse()
+  }
+
+  const hunk: DiffHunk = { id, header, lines: read }
+  // What the frame says is checked against what the lines say, so a label never claims more than the hunk does; and
+  // what the lines pin is shown whether or not the gateway said so.
+  const computed = hunkAnchor(hunk)
+  const declared = anchor as DiffAnchor | undefined
+  const holds = (name: 'start' | 'end'): boolean => computed === name || computed === 'both'
+
+  if (
+    (declared === 'start' && !holds('start')) ||
+    (declared === 'end' && !holds('end')) ||
+    (declared === 'both' && computed !== 'both') ||
+    (!last && (holds('end') || declared === 'end' || declared === 'both'))
+  ) {
+    return refuse()
+  }
+
+  return { ...hunk, ...(computed === undefined ? {} : { anchor: computed }) }
+}
+
+const PATH_PROBLEM = (path: string): boolean =>
+  path === '' ||
+  lengthOf(path) > DIFF_LIMITS.path ||
+  path.startsWith('/') ||
+  path.split('/').some(segment => segment === '..' || segment === '.git') ||
+  lineCharProblem(path)
+
+function readDiff(params: Rec): DiffAsk {
+  const envelope = readEnvelope(params, false)
+  const { kind, path, old_path: oldPath, hunks } = params
+
+  if (kind !== 'modify' && kind !== 'new' && kind !== 'delete' && kind !== 'rename') {
+    refuse()
+  }
+
+  if (!isStr(path) || PATH_PROBLEM(path)) {
+    refuse()
+  }
+
+  // `old_path` is a rename's previous path and only that.
+  if (kind === 'rename' ? !isStr(oldPath) || PATH_PROBLEM(oldPath) : oldPath !== undefined) {
+    refuse()
+  }
+
+  if (!Array.isArray(hunks) || hunks.length < 1 || hunks.length > DIFF_LIMITS.hunks) {
+    refuse()
+  }
+
+  const ids = new Set<string>()
+  const read = (hunks as unknown[]).map((entry, index) => {
+    const hunk = readHunk(entry, index === hunks.length - 1)
+
+    if (ids.has(hunk.id)) {
+      refuse()
+    }
+
+    ids.add(hunk.id)
+
+    return hunk
+  })
+
+  // A new file's hunks hold only added lines and a deleted file's only removed ones: nothing else could be true of them.
+  const foreign = kind === 'new' ? 'removed' : kind === 'delete' ? 'added' : null
+
+  if (
+    foreign !== null &&
+    read.some(hunk => hunk.lines.some(line => line.type === foreign || line.type === 'context'))
+  ) {
+    refuse()
+  }
+
+  return {
+    ...envelope,
+    method: 'review.diff',
+    kind: kind as DiffKind,
+    path: path as string,
+    ...(kind === 'rename' ? { oldPath: oldPath as string } : {}),
+    hunks: read
+  }
+}
+
 function readDraft(params: Rec): DraftAsk {
   const envelope = readEnvelope(params, false)
   const { kind, text } = params
@@ -1185,6 +1567,8 @@ export function readInteractiveParams(method: string, params: unknown): ReadResu
         return { ok: true, ask: readFile(params) }
       case 'review.draft':
         return { ok: true, ask: readDraft(params) }
+      case 'review.diff':
+        return { ok: true, ask: readDiff(params) }
       default:
         return { ok: false, reason: 'not_supported_on_device' }
     }

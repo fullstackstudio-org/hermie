@@ -1,0 +1,253 @@
+/*
+ * The diff sheet (`DiffSheet.tsx`): one file's changes, hunk by hunk. Colours, radii and gutters are the theme's; the
+ * policy forbids inline styles, so every variation is a class or a data attribute. Loaded with the sheets' chunk, not
+ * with the first screen.
+ *
+ * A row is never wrapped and never cut short: it scrolls sideways inside its hunk (`.hm-review__lines`), the hunk shows
+ * an edge fade on the side that has more and a scroll bar that stays on screen, and the sheet says so in words. A tab is
+ * a stop of 8 columns (`tab-size: 8`), the contract's, never collapsed; an added and a removed line differ from a
+ * context line by their marker in the gutter, not by colour alone.
+ */
+.hm-review__path {
+  margin: 0;
+  font-family: var(--hm-mono);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.hm-review__bulk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+
+.hm-review__progress {
+  flex: 1 1 12rem;
+  margin: 0;
+}
+
+.hm-review__hunks {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.hm-review__hunk {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-bg);
+}
+
+.hm-review__hunk[data-decision='approved'] {
+  border-color: var(--hm-presence-online);
+}
+
+.hm-review__hunk[data-decision='rejected'] {
+  border-color: var(--hm-danger-text);
+}
+
+.hm-review__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+  min-width: 0;
+}
+
+.hm-review__hunk-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Where the change lands, in words: next to the header, never replaced by its line numbers. */
+.hm-review__anchor {
+  padding: 1px 8px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius-pill);
+  background: var(--hm-surface);
+  color: var(--hm-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.hm-review__header {
+  min-width: 0;
+  color: var(--hm-text-muted);
+  font-family: var(--hm-mono);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* The frame carries the edge fades; the box inside it scrolls. */
+.hm-review__frame {
+  position: relative;
+  min-width: 0;
+}
+
+.hm-review__frame::before,
+.hm-review__frame::after {
+  position: absolute;
+  top: 1px;
+  bottom: 13px;
+  z-index: 1;
+  width: 28px;
+  content: '';
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms;
+}
+
+.hm-review__frame::before {
+  left: 1px;
+  background: linear-gradient(to right, var(--hm-surface), transparent);
+}
+
+.hm-review__frame::after {
+  right: 1px;
+  background: linear-gradient(to left, var(--hm-surface), transparent);
+}
+
+.hm-review__frame[data-more-start]::before,
+.hm-review__frame[data-more-end]::after {
+  opacity: 1;
+}
+
+.hm-review__lines {
+  box-sizing: border-box;
+  max-height: 24rem;
+  overflow: auto;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+  color: var(--hm-text);
+  font-family: var(--hm-mono);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+.hm-review__lines:focus-visible {
+  outline: var(--hm-focus-width) solid var(--hm-focus);
+  outline-offset: 2px;
+}
+
+/* Scroll bars that do not fade (see the confirm sheet's detail): a reader can see there is more. */
+.hm-review__lines::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.hm-review__lines::-webkit-scrollbar-track {
+  background: var(--hm-surface);
+}
+
+.hm-review__lines::-webkit-scrollbar-thumb {
+  min-width: 24px;
+  min-height: 24px;
+  border: 3px solid var(--hm-surface);
+  border-radius: 6px;
+  background: var(--hm-text-faint);
+}
+
+.hm-review__lines::-webkit-scrollbar-corner {
+  background: var(--hm-surface);
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  .hm-review__lines {
+    scrollbar-width: auto;
+    scrollbar-color: var(--hm-text-faint) var(--hm-surface);
+  }
+}
+
+/* As wide as its widest row, so every row's background reaches the end of the scroll. */
+.hm-review__rows {
+  display: grid;
+  width: max-content;
+  min-width: 100%;
+}
+
+.hm-review__row {
+  display: grid;
+  position: relative;
+  grid-template-columns: 2.5ch max-content;
+}
+
+.hm-review__row[data-type='added'] {
+  background: color-mix(in srgb, var(--hm-presence-online) 18%, var(--hm-bg));
+}
+
+.hm-review__row[data-type='removed'] {
+  background: color-mix(in srgb, var(--hm-danger-text) 16%, var(--hm-bg));
+}
+
+.hm-review__row[data-type='note'] {
+  color: var(--hm-text-muted);
+  font-style: italic;
+}
+
+/* The marker stays in view while the text scrolls under it. */
+.hm-review__marker {
+  position: sticky;
+  left: 0;
+  box-sizing: content-box;
+  padding: 0 4px;
+  background: inherit;
+  color: var(--hm-text);
+  font-weight: 700;
+  text-align: center;
+  user-select: none;
+  white-space: pre;
+}
+
+.hm-review__row[data-type='context'] .hm-review__marker {
+  color: var(--hm-text-muted);
+}
+
+/* Said to a screen reader, not drawn. */
+.hm-review__kind-word {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip-path: inset(50%);
+  user-select: none;
+  white-space: nowrap;
+}
+
+/* Verbatim: a tab is a stop of 8 columns, every space is kept, and nothing wraps. */
+.hm-review__text {
+  padding-right: 14px;
+  white-space: pre;
+  overflow-wrap: normal;
+  tab-size: 8;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.hm-review__text:empty::before {
+  content: '\200b';
+}
+
+.hm-review__decision {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hm-review__choice[aria-pressed='true'] {
+  background: var(--hm-selected);
+  border-color: var(--hm-text);
+  font-weight: 700;
+}

@@ -54,6 +54,14 @@ function requestState(item: RequestItem, away: boolean): string {
   }
 
   if (summary?.decision === 'approved') {
+    // A reviewed diff says how many hunks went through, two whole numbers (never a hunk, a path or a line).
+    if (summary.approvedHunks !== undefined && summary.rejectedHunks !== undefined) {
+      return words.hunksApproved({
+        approved: summary.approvedHunks,
+        total: summary.approvedHunks + summary.rejectedHunks
+      })
+    }
+
     return summary.edited ? words.approvedEdited : words.approved
   }
 
@@ -88,7 +96,9 @@ function plainOf(item: TranscriptItem, away: boolean): Plain | null {
             ? webStrings.chat.request.kindFile
             : item.method === 'review.draft'
               ? webStrings.chat.request.kindDraft
-              : webStrings.chat.request.kindForm,
+              : item.method === 'review.diff'
+                ? webStrings.chat.request.kindDiff
+                : webStrings.chat.request.kindForm,
         text: `${item.title}\n${requestState(item, away)}`
       }
 

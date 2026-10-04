@@ -53,7 +53,8 @@ describe('a request in the transcript', () => {
   it.each([
     ['input.form', 'Form'],
     ['input.file', 'File request'],
-    ['review.draft', 'Draft to review']
+    ['review.draft', 'Draft to review'],
+    ['review.diff', 'Changes to review']
   ])('tells %s apart', (method, eyebrow) => {
     expect(draw(item({ method })).querySelector('.hm-aside__eyebrow')?.textContent).toBe(eyebrow)
   })
@@ -66,6 +67,15 @@ describe('a request in the transcript', () => {
     [{ state: 'answered', answerSummary: { decision: 'approved' } }, 'Approved'],
     [{ state: 'answered', answerSummary: { decision: 'approved', edited: true } }, 'Approved with changes'],
     [{ state: 'answered', answerSummary: { decision: 'rejected' } }, 'Rejected'],
+    [
+      { state: 'answered', answerSummary: { decision: 'approved', approvedHunks: 1, rejectedHunks: 2 } },
+      '1 of 3 hunks approved'
+    ],
+    [
+      { state: 'answered', answerSummary: { decision: 'approved', approvedHunks: 1, rejectedHunks: 0 } },
+      '1 of 1 hunk approved'
+    ],
+    [{ state: 'answered', answerSummary: { decision: 'rejected', approvedHunks: 0, rejectedHunks: 2 } }, 'Rejected'],
     [{ state: 'answered' }, 'Answered'],
     [{ state: 'cancelled', cancelReason: 'timeout' }, 'Timed out'],
     [{ state: 'cancelled', cancelReason: 'cannot_show' }, 'Could not be shown here'],

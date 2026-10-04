@@ -19,6 +19,7 @@ import { applyTheme } from '../../platform/theme-target'
 import {
   button,
   dialog,
+  diffFrame,
   draftFrame,
   fileFrame,
   formFrame,
@@ -220,6 +221,38 @@ describe.each(['light', 'dark'] as const)('in the %s scheme', scheme => {
     expect(within(dialog()).queryByRole('textbox', { name: 'Draft' })).toBeNull()
     expect(await violations()).toEqual([])
   })
+
+  it('has no violation with a diff: undecided, decided, with a rename, a tab and a row wider than the view', async () => {
+    mount(harness)
+    raise(harness, 'srq-1', 'review.diff', diffFrame())
+    expect(await violations()).toEqual([])
+
+    fireEvent.click(button(/^Approve change 1 of 2/u))
+    fireEvent.click(button(/^Reject change 2 of 2/u))
+    fireEvent.click(button('Approve all'))
+    expect(await violations()).toEqual([])
+
+    act(() => harness.gw.cancel('srq-1', 'interrupted'))
+    raise(
+      harness,
+      'srq-2',
+      'review.diff',
+      diffFrame({
+        kind: 'rename',
+        path: 'app/accounts.py',
+        old_path: 'app/users.py',
+        hunks: [
+          {
+            id: 'h1',
+            header: '@@ -1,3 +1,3 @@',
+            lines: [' import db', '-TABLE = "users"', `+\tTABLE = "accounts"${'x'.repeat(300)}`, ' '],
+            anchor: 'start'
+          }
+        ]
+      })
+    )
+    expect(await violations()).toEqual([])
+  })
 })
 
 describe.each(['nl', 'de'] as const)('in %s', locale => {
@@ -240,6 +273,10 @@ describe.each(['nl', 'de'] as const)('in %s', locale => {
 
     act(() => harness.gw.cancel('srq-2', 'interrupted'))
     raise(harness, 'srq-3', 'review.draft', draftFrame())
+    expect(await violations()).toEqual([])
+
+    act(() => harness.gw.cancel('srq-3', 'interrupted'))
+    raise(harness, 'srq-4', 'review.diff', diffFrame())
     expect(await violations()).toEqual([])
   })
 })
