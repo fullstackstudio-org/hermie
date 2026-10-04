@@ -50,6 +50,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of the file, end of the file or the whole file), every line verbatim with its marker and tabs, and Approve or
   Reject for each hunk before anything is sent; the agent receives exactly the approved hunks (`contract/requests`,
   `contract/confirm-passkey`, `docs/native.md`).
+- **The web client reviews changes to a file hunk by hunk, and shows the key facts of a passkey confirmation.**
+  An agent's `review.diff` opens as a sheet with the file, every hunk monospaced (the marker in a gutter, a tab a
+  stop of 8 columns, never a link) and **Approve** or **Reject** on each, plus **Approve all** and **Reject all**;
+  nothing is sent until every hunk is decided. The sheet says where a hunk lands (start, end or whole file) instead of
+  trusting the header's line numbers, and a row wider than the view scrolls and says so. A passkey confirmation with
+  `fields` (an amount, a recipient, a model, ...) draws them apart from the summary, the amount large and bold, and the
+  passkey signs a digest of exactly those fields (version 2); a request whose fields break the contract is refused
+  and none of it is shown.
 - **An agent can ask for a form, a file or a review of a draft, in the native Apple apps (0.2.9) and in the
   web client.** Beside an approval and a question, the gateway can now send `input.form` (one to twelve typed
   fields: text, number, amount, date, time, datetime, date range, choice, toggle), `input.file` (one or more

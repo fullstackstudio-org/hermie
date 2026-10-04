@@ -1055,7 +1055,7 @@ browser"):
 
 ### Interactive requests
 
-`input.form`, `input.file` and `review.draft` (`contract/requests/`, plan `request-types-v2`) are answered beside the
+`input.form`, `input.file`, `review.draft` and `review.diff` (`contract/requests/`, plan `request-types-v2`) are answered beside the
 transcript engine too, by the interactive model (`core/requests/interactive.ts`, `state/interactive.ts`), on the rules
 of the secure input model: what a person fills in, picks or edits never reaches a store the page keeps, only the
 `request.answer` call that carries it.
@@ -1139,14 +1139,32 @@ of the secure input model: what a person fills in, picks or edits never reaches 
     because the gateway refuses them. Approve, Approve with
     changes (once the text differs from the original, which stays on screen for comparison) and Reject with an optional
     comment of at most 1,000 characters; there is no Skip.
+  - **`DiffSheet`** (`review.diff`, contract §7) shows the changes to ONE file hunk by hunk. The reader
+    (`readDiff` in `interactive-types.ts`, held to the contract's examples by `interactive-types.test.ts` and
+    `interactive-diff.test.ts`) refuses what the gateway never builds: a line with no marker, a hidden character, a
+    carriage return, whitespace at its end, an indent or run wider than §7.1's limits (counted in columns, a tab to the
+    next multiple of 8), a header whose counts are not the lines', a no-newline note out of place, a path that is
+    absolute or holds `..` or `.git`, and an anchor the lines contradict (an `end` with a context line after the change,
+    `start` for a hunk at line 40, an `end` on a hunk that is not the last). What the lines pin is shown whether or not the
+    gateway said so (`hunkAnchor`). The sheet draws a hunk monospaced with the marker in a gutter, `+` and `-` told apart
+    from context by the marker and a word for a screen reader as well as the colour, a tab as a stop of 8 columns, and
+    says **Start of the file**, **End of the file** or **Whole file** next to the header; for the end it does not draw
+    the header's line numbers at all, because the change goes after the last line wherever they point. A row wider than
+    the view scrolls sideways inside its hunk (the box takes the keyboard) and the hunk says so: an edge fade on the side
+    with more, a scroll bar that stays on screen and a line of words (§7.1's overflow indicator). **Approve** and
+    **Reject** are toggles on each hunk, with **Approve all** and **Reject all**; nothing is sent until every hunk is
+    decided (a hunk starts undecided), and the answer is `{decision, hunks}` and nothing else (`composeDiffAnswer`):
+    `approved` when at least one hunk is approved, else `rejected`. The engine is told two counts
+    (`approvedHunks`, `rejectedHunks`), and a resume's snapshot hands it the envelope keys alone, never a path or a line.
 
 `core/requests/interactive.test.ts`, `interactive-types.test.ts`, `form-values.test.ts`, `sha256.test.ts`,
-`features/requests/FormSheet.test.tsx`, `FileSheet.test.tsx`, `DraftSheet.test.tsx`, `file-prepare.test.ts`,
+`features/requests/FormSheet.test.tsx`, `FileSheet.test.tsx`, `DraftSheet.test.tsx`, `DiffSheet.test.tsx`, `file-prepare.test.ts`,
 `interactive-sheets.axe.test.tsx` and `state/requests.test.ts` cover it in jsdom;
 `core/requests/interactive.integration.test.ts` runs the model against the fake gateway, which validates every answer;
 `e2e/interactive-model.spec.ts` raises each method through `/__fake/request` against the built client, and
 `e2e/requests-interactive.spec.ts` answers each through its sheet in a real browser (a refusal round trip, a file that
-lands in `upload.dir` with its SHA-256, axe with contrast).
+lands in `upload.dir` with its SHA-256, axe with contrast); `e2e/review-diff.spec.ts` reviews a diff hunk by hunk
+against the fake, which writes the patch of the approved hunks from its own copy (chromium and WebKit).
 
 ### Session gaps
 
@@ -1296,7 +1314,16 @@ says so (a notice, and the settings page's state) and does not advertise; a gate
 not held to it. The channel already sends the first
 call on `gateway.ready` and throws its answer away, so the model sends it again after every arrival at `ready` and reads
 it, then sends the second: `{server_requests: true, confirm: ["passkey"], confirm_passkey: {v: 1, kind: "web", rp_id}}`.
-`plain` is not advertised: this client has no sheet for it yet. Unlike the native apps, the page does not wait until it
+`plain` is not advertised: this client has no sheet for it yet, so a `confirm` at `plain` (with fields or without) never
+reaches this page. **Structured fields** (§4.1): when the first result carries the key `confirm_fields` the second call
+adds `confirm_fields: true`, and `confirm_passkey: {v: 2, ...}` when `versions` lists 2 too (a page sends 2 only with the
+fields); a gateway that knows neither is never sent a request with fields. A frame with `fields` is version 2: the sheet
+draws them (`ConfirmFields`: an amount large and bold with its currency, a recipient and a domain monospaced, never a
+link, nothing truncated: it wraps), the challenge commits to `text_digest_v2` over that very list
+(`core/passkey/challenge.ts`, held to the contract's `text_digest_v2_vectors` and `assertion_vectors_v2`), and the
+answer repeats `passkey.v: 2`. A frame whose fields break §4.1 (the count, a key, an `id`, a `kind`, a length, a
+`currency` off an `amount`, a refused character), a version 2 without fields or a version 1 with them is answered 4040
+and none of it is shown (`core/passkey/confirm-fields.ts`). Unlike the native apps, the page does not wait until it
 knows a passkey of its own before advertising: the gateway decides per request whether the person has one for this RP,
 and a browser can hold a synced passkey this page never enrolled. Once `passkey` is newly accepted on a socket the open
 requests of every session the page holds are read again (`session.events.since`), because the gateway hides a gated

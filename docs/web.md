@@ -96,9 +96,10 @@ passed again and is bound to the browser that asked.
 
 ## Forms, files and drafts the agent asks for
 
-Beside the approval and the clarify question, an agent can ask the person for three more things: **a form**
-(`input.form`: one to twelve typed fields), **a file** (`input.file`: one or more files, uploaded) and **a draft to
-review** (`review.draft`: a mail, a post or a message, to approve, change or reject). The wire is
+Beside the approval and the clarify question, an agent can ask the person for more: **a form**
+(`input.form`: one to twelve typed fields), **a file** (`input.file`: one or more files, uploaded), **a draft to
+review** (`review.draft`: a mail, a post or a message, to approve, change or reject) and **changes to a file** (`review.diff`, hunk
+by hunk). The wire is
 [contract/requests](../contract/requests/README.md), which is normative; this section is how the page behaves. The
 agent's side lives in the gateway: the tools `ask_form`, `ask_file` and `review_draft` are in the toolset
 `interactive`, which is off by default (switch it on with `hermes tools`, for the platform `cli`).
@@ -136,6 +137,12 @@ cannot style the frame around it.
   and the line instead of rewriting anything, so **Approve** waits until the person has taken it out. When the draft
   is editable it can be changed before approving (**Approve with changes**), with the original kept on screen for
   comparison. **Reject** takes an optional comment for the agent. A draft has no Skip.
+
+- **The diff sheet** (`review.diff`: the changes to one file) shows every hunk monospaced, with the marker in a gutter and
+  `+` and `-` told apart by more than colour, and says whether a hunk lands at the start of the file, at its end or is the
+  whole file (never the header's line numbers for the end: `git apply` puts it after the last line wherever they point). A
+  row wider than the view scrolls sideways and the hunk says so. **Approve** or **Reject** each hunk, or all at once; the
+  answer is sent only when every hunk is decided, and carries the decisions, never a line.
 
 **Skip** is offered only when the request is `optional`. A countdown runs to the gateway's deadline; at that time the
 sheet goes, nothing is sent, and the chat says so.
