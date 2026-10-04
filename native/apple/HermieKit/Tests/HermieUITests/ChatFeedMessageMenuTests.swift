@@ -93,6 +93,30 @@ import Testing
     #expect(feed.messageMenu(for: .assistant(Self.answer)).entry(.branch) == nil)
   }
 
+  @Test func selectTextIsOfferedOnATouchScreenOnlyAndOpensTheMessagesWords() throws {
+    let owner = ChatFeedOwner<ChatFeed>()
+    let feed = try #require(makeFeed(owner))
+    show(feed)
+
+    // The platform decides: a Mac selects in the bubble, a touch screen has a long press for the menu.
+    #expect(feed.offersSelectText == !ChatFeed.selectsInPlace)
+
+    feed.offersSelectText = false
+    #expect(feed.messageMenu(for: .assistant(Self.answer)).entry(.selectText) == nil)
+    feed.chooseMessageAction(.selectText, .assistant(Self.answer))
+    #expect(feed.selectTextRequest == nil, "a line that is not offered does nothing when chosen")
+
+    feed.offersSelectText = true
+    #expect(feed.messageMenu(for: .assistant(Self.answer)).entry(.selectText)?.enabled == true)
+    #expect(feed.messageMenu(for: .user(Self.ask)).entry(.selectText)?.enabled == true)
+
+    feed.chooseMessageAction(.selectText, .assistant(Self.answer))
+    #expect(feed.selectTextRequest == SelectTextRequest(id: "a1", text: "Autumn moonlight"))
+
+    feed.chooseMessageAction(.selectText, .user(Self.ask))
+    #expect(feed.selectTextRequest == SelectTextRequest(id: "u1", text: "write a haiku"))
+  }
+
   @Test func editAndResendPutsTheWordsInTheComposerAndOnlyWhenItMay() throws {
     let owner = ChatFeedOwner<ChatFeed>()
     let feed = try #require(makeFeed(owner))

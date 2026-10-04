@@ -259,6 +259,11 @@ struct ChatSessionView<Composer: View>: View {
     .quickLookPreview(
       Binding(get: { owner.feed?.attachmentPreview }, set: { owner.feed?.attachmentPreview = $0 })
     )
+    // The words of a message, to select in part (Select text in its menu).
+    .selectTextSheet(
+      Binding(get: { owner.feed?.selectTextRequest }, set: { owner.feed?.selectTextRequest = $0 }),
+      copyAll: { owner.feed?.itemActions.copy($0) ?? TranscriptItemActions.copyToPasteboard($0) }
+    )
     // The pictures of the messages, opened full screen from their thumbnails.
     .imageGalleryHost(owner.feed?.itemActions.images)
     .modifier(ChatTitle(session: session, chat: chat, feed: feed, diagnostics: diagnostics))

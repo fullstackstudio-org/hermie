@@ -93,6 +93,11 @@ final class ChatFeed: ChatScreenFeed {
   @ObservationIgnored private(set) var itemActions = TranscriptItemActions.none
   /// The attachment Quick Look shows, while it does.
   var attachmentPreview: URL?
+  /// The message whose words the select-text sheet shows, while it does (HERM-254).
+  var selectTextRequest: SelectTextRequest?
+  /// The message menu offers Select text: where a bubble's words cannot be selected in place, which
+  /// is a touch screen (a long press there is the menu). Settable for the tests.
+  var offersSelectText = !ChatFeed.selectsInPlace
   /// Why the last attachment could not be opened, for a line over the chat.
   private(set) var attachmentNotice: AttachmentOpenResult?
   /// What the last Retry did, for the tests and a line over the chat when it sent nothing.
@@ -239,7 +244,7 @@ final class ChatFeed: ChatScreenFeed {
       for: item,
       context: model.menuContext(
         authors: session.retryAuthors, blocked: requestUp || composer.held, canEdit: true, canBranch: true,
-        canReadAloud: canReadAloud, reading: readAloud?.readingIDs ?? []))
+        canSelectText: offersSelectText, canReadAloud: canReadAloud, reading: readAloud?.readingIDs ?? []))
   }
 
   /// A line of the menu other than the copies was chosen. The menu is worked out again first: it was
@@ -260,9 +265,23 @@ final class ChatFeed: ChatScreenFeed {
       branch(item.id)
     case .readAloud, .stopReading:
       toggleReadAloud(item)
+    case .selectText:
+      if let words = MessageMenu.selectableText(of: item) {
+        selectTextRequest = SelectTextRequest(id: item.id, text: words)
+      }
     case .copyText, .copyMarkdown:
       break
     }
+  }
+
+  /// A bubble's words are selectable where they are (a pointer: the Mac), so its menu has no line
+  /// for it; on a touch screen a long press is the menu, so the words are offered apart.
+  static var selectsInPlace: Bool {
+    #if os(iOS)
+      false
+    #else
+      true
+    #endif
   }
 
   /// Regenerate on the newest reply: its prompt goes out again, as Retry does on a failed one.

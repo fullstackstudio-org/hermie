@@ -12,6 +12,11 @@ import HermieTranscript
    reply IS Markdown, and copying it into a terminal wants the words while copying it into a document
    wants the syntax. When the two would be the same string only Copy text is shown. The reader's own
    turn is what they typed, so it has the one Copy, as typed.
+ - **Select text is offered where the bubble cannot be selected in place** (iOS and iPadOS, where a
+   long press opens this menu instead of starting a selection: `MessageMenuContext.canSelectText`).
+   It opens the same words Copy text puts on the pasteboard (`selectableText`) in a view that is
+   selectable but not editable, for the person who wants half a message (HERM-254). On the Mac the
+   words are selectable in the bubble and the line is not offered.
  - **Regenerate only on the newest reply** (`MessageMenuContext.regenerateTarget`), the rule of
    Retry on a failed reply (`ChatModel.retryTurn`): an older reply would answer a question the chat
    has moved on from.
@@ -36,6 +41,9 @@ public struct MessageMenu: Sendable, Equatable {
     case copyText
     /// The Markdown source of a reply.
     case copyMarkdown
+    /// Open the message's words as text a finger can select in part (iOS, where the bubble itself
+    /// is not selectable so that a long press opens this menu).
+    case selectText
     /// Put the reader's own words back in the composer.
     case editResend
     /// Ask for the newest reply again.
@@ -105,6 +113,10 @@ public struct MessageMenu: Sendable, Equatable {
         entries.append(Entry(.copyMarkdown))
       }
 
+      if context.canSelectText {
+        entries.append(Entry(.selectText))
+      }
+
       if context.canReadAloud, !reply.streaming {
         entries.append(Entry(context.reading.contains(reply.id) ? .stopReading : .readAloud))
       }
@@ -127,6 +139,10 @@ public struct MessageMenu: Sendable, Equatable {
 
     if words {
       entries.append(Entry(.copyText))
+
+      if context.canSelectText {
+        entries.append(Entry(.selectText))
+      }
     }
 
     // Only the reader's own words go back out as theirs: a colleague's turn in a shared chat does not.
@@ -153,6 +169,12 @@ public struct MessageMenu: Sendable, Equatable {
     default:
       nil
     }
+  }
+
+  /// The words `Select text` shows: the same as `Copy text` puts on the pasteboard, so what is
+  /// selected and what a whole copy gives read alike. Nil where there are none.
+  public static func selectableText(of item: TranscriptItem) -> String? {
+    copyText(of: item)
   }
 
   /// The Markdown source `Copy as Markdown` puts on the pasteboard, or nil where there is none.
@@ -217,6 +239,9 @@ public struct MessageMenuContext: Sendable, Equatable {
   public var canEdit: Bool
   /// This screen can fork the conversation.
   public var canBranch: Bool
+  /// The bubble's words cannot be selected in place on this screen (a touch screen, where a long press
+  /// is this menu), so the menu offers them as text to select.
+  public var canSelectText: Bool
   /// This screen can speak: a synthesiser is there and nothing else has the audio (the microphone).
   public var canReadAloud: Bool
   /// The replies being read now or waiting to be (`ReadAloudModel.has`).
@@ -229,6 +254,7 @@ public struct MessageMenuContext: Sendable, Equatable {
     blocked: Bool = false,
     canEdit: Bool = false,
     canBranch: Bool = false,
+    canSelectText: Bool = false,
     canReadAloud: Bool = false,
     reading: Set<String> = []
   ) {
@@ -238,6 +264,7 @@ public struct MessageMenuContext: Sendable, Equatable {
     self.blocked = blocked
     self.canEdit = canEdit
     self.canBranch = canBranch
+    self.canSelectText = canSelectText
     self.canReadAloud = canReadAloud
     self.reading = reading
   }

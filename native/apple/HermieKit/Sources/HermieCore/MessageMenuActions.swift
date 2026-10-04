@@ -62,7 +62,7 @@ extension ChatModel {
   /// What the chat says for a message's menu, as it is now.
   public func menuContext(
     authors: RetryAuthors, blocked: Bool, canEdit: Bool, canBranch: Bool,
-    canReadAloud: Bool = false, reading: Set<String> = []
+    canSelectText: Bool = false, canReadAloud: Bool = false, reading: Set<String> = []
   ) -> MessageMenuContext {
     MessageMenuContext(
       regenerateTarget: regenerateTarget(authors: authors),
@@ -71,6 +71,7 @@ extension ChatModel {
       blocked: blocked,
       canEdit: canEdit,
       canBranch: canBranch && canSend,
+      canSelectText: canSelectText,
       canReadAloud: canReadAloud,
       reading: reading
     )

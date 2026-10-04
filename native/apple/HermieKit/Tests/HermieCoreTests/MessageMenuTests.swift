@@ -150,6 +150,55 @@ import Testing
     #expect(MessageMenu.menu(for: Self.turn("u1", "hi"), context: .readOnly).entries.map(\.action) == [.copyText])
   }
 
+  @Test("Select text sits after the copies on a reply and on the reader's own turn, where the screen asks for it (HERM-254)")
+  func selectText() {
+    var touch = live
+    touch.canSelectText = true
+
+    let reply = MessageMenu.menu(for: Self.reply("a1", "**bold** words"), context: touch)
+    #expect(reply.entries.map(\.action) == [.copyText, .copyMarkdown, .selectText, .regenerate, .branch])
+
+    let plain = MessageMenu.menu(for: Self.reply("a1", "just words"), context: touch)
+    #expect(plain.entries.map(\.action) == [.copyText, .selectText, .regenerate, .branch])
+
+    let own = MessageMenu.menu(for: Self.turn("u1", "my words"), context: touch)
+    #expect(own.entries.map(\.action) == [.copyText, .selectText, .editResend, .branch])
+  }
+
+  @Test("Select text is not offered where the words are selectable in place, in a read-only transcript, or with no words")
+  func selectTextAvailability() {
+    #expect(MessageMenu.menu(for: Self.reply("a1", "words"), context: live).entry(.selectText) == nil)
+    #expect(MessageMenu.menu(for: Self.reply("a1", "words"), context: .readOnly).entry(.selectText) == nil)
+
+    var touch = live
+    touch.canSelectText = true
+    #expect(MessageMenu.menu(for: Self.reply("a1", " \n "), context: touch).entry(.selectText) == nil)
+    #expect(MessageMenu.menu(for: Self.turn("u1", ""), context: touch).entry(.selectText) == nil)
+  }
+
+  @Test("Select text is enabled while a turn runs or a request has the composer: it only reads")
+  func selectTextWhileBusy() {
+    var context = live
+    context.canSelectText = true
+    context.turnActive = true
+    context.blocked = true
+
+    #expect(MessageMenu.menu(for: Self.reply("a1", "words"), context: context).entry(.selectText)?.enabled == true)
+  }
+
+  @Test("the words to select are the words Copy text copies, and nothing for a row without words")
+  func selectableText() {
+    let item = Self.reply("a1", "# Title\n\nSome **bold** and a [link](https://example.com).")
+
+    #expect(MessageMenu.selectableText(of: item) == MessageMenu.copyText(of: item))
+    #expect(MessageMenu.selectableText(of: item) == "Title\n\nSome bold and a link.")
+    #expect(MessageMenu.selectableText(of: Self.turn("u1", "typed *as is*")) == "typed *as is*")
+    #expect(MessageMenu.selectableText(of: Self.reply("a1", "  ")) == nil)
+
+    let status = TranscriptItem.status(StatusItem(base: Self.base("s1"), statusKind: "model", text: "model changed"))
+    #expect(MessageMenu.selectableText(of: status) == nil)
+  }
+
   @Test("rows that are neither a person's turn nor the bot's words have no menu")
   func otherRows() {
     let status = TranscriptItem.status(StatusItem(base: Self.base("s1"), statusKind: "model", text: "model changed"))

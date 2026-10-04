@@ -56,7 +56,7 @@ struct MessageMenuItems: View {
       if let text = MessageMenu.copyText(of: item) { actions.copy(text) }
     case .copyMarkdown:
       if let text = MessageMenu.copyMarkdown(of: item) { actions.copy(text) }
-    case .editResend, .regenerate, .branch, .readAloud, .stopReading:
+    case .editResend, .regenerate, .branch, .readAloud, .stopReading, .selectText:
       actions.chooseMessageAction(action, item)
     }
   }
@@ -65,6 +65,7 @@ struct MessageMenuItems: View {
     switch action {
     case .copyText: Strings.Chat.Menu.copyText
     case .copyMarkdown: Strings.Chat.Menu.copyMarkdown
+    case .selectText: Strings.Chat.Menu.selectText
     case .editResend: Strings.Chat.Menu.editResend
     case .regenerate: Strings.Chat.Menu.regenerate
     case .branch: Strings.Chat.Sessions.branch
@@ -77,6 +78,7 @@ struct MessageMenuItems: View {
     switch action {
     case .copyText: "doc.on.doc"
     case .copyMarkdown: "chevron.left.forwardslash.chevron.right"
+    case .selectText: "text.cursor"
     case .editResend: "pencil"
     case .regenerate: "arrow.clockwise"
     case .branch: "arrow.triangle.branch"
