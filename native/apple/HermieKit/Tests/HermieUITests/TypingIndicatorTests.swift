@@ -37,6 +37,7 @@ private func runningTool(_ id: String, presentation: Presentation = .hiddenPlace
 
 /// When the typing row is wanted (from the turn's activity and the rows), the debounce between that
 /// and the row, the row as the transcript lays it out, and how the dots move.
+@MainActor
 @Suite struct TypingIndicatorTests {
   // MARK: Wanted
 

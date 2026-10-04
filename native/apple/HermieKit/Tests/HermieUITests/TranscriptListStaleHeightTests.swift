@@ -10,6 +10,7 @@ import Testing
 
 /// Heights that go stale (a row changed off screen, a text size change, a reused cell) and an
 /// anchor whose row is gone.
+@MainActor
 @Suite struct TranscriptListStaleHeightTests {
   private func model(_ count: Int, height: CGFloat = 50, spacing: CGFloat = 10) -> TranscriptListLayoutModel<String> {
     var model = TranscriptListLayoutModel<String>()

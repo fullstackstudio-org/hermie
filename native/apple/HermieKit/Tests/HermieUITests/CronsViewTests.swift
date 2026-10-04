@@ -8,6 +8,7 @@ import Testing
 /// The parts of the Crons and Activity screens that are plain functions: their words, their sentences in
 /// all three languages, and the router's way into a cron. (The views themselves are not driven by UI
 /// tests.)
+@MainActor
 struct CronsViewTests {
   private let now = Date(timeIntervalSince1970: 1_791_100_000)
   private let utc: Calendar = {

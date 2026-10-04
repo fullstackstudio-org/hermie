@@ -9,6 +9,7 @@ import UniformTypeIdentifiers
 
 /// How a message's pictures are laid out, the gallery's state, the zoom arithmetic, and the store
 /// behind them. All of it is plain values and one small file on disk: nothing is drawn.
+@MainActor
 struct MediaImageLayoutTests {
   @Test func columnsFollowTheCount() {
     #expect([0, 1, 2, 3, 4, 5, 6, 9].map(MediaImageLayout.columns(forCount:)) == [1, 1, 2, 3, 2, 3, 3, 3])
@@ -108,6 +109,7 @@ struct MediaImageLayoutTests {
   }
 }
 
+@MainActor
 struct ImageGalleryModelTests {
   private func images(_ count: Int) -> [MessageImage] {
     (0..<count).map { MessageImage(reference: "/api/files/\($0).png", name: "\($0).png") }
@@ -157,6 +159,7 @@ struct ImageGalleryModelTests {
   }
 }
 
+@MainActor
 struct ImageZoomTests {
   @Test func startsAtRest() {
     let zoom = ImageZoom()

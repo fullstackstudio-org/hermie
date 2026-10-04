@@ -9,6 +9,7 @@ import Testing
 /// The parts of the bot settings screen that are plain functions: the picture a photo becomes, which
 /// models a search lets through, the words for a failure, and the router's way in. (The views
 /// themselves are not driven by UI tests.)
+@MainActor
 struct BotSettingsViewTests {
   // MARK: The picture
 

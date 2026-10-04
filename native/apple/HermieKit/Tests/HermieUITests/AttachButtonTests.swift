@@ -4,6 +4,7 @@ import Testing
 
 /// The plus beside the composer's field is a flat grey disc with a white plus (as Messages draws
 /// it), because a dark glass disc vanished on the black page.
+@MainActor
 struct AttachButtonTests {
   private static let white = (0xFF, 0xFF, 0xFF)
   private static let black = (0, 0, 0)

@@ -46,6 +46,7 @@ import Testing
 }
 
 /// Where the state bead sits on an avatar, and how big.
+@MainActor
 @Suite struct PresenceGeometryTests {
   @Test(arguments: [28, 36, 44, 60, 70] as [CGFloat])
   func theBeadIsCentredOnTheAvatarsCircleAtTheBottomRight(side: CGFloat) {

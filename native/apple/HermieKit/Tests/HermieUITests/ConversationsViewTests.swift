@@ -7,6 +7,7 @@ import Testing
 /// The parts of the Conversations page and the viewer that are plain functions: the words of the
 /// page, its sentences in all three languages, and the router's way in. (The views themselves are
 /// not driven by UI tests.)
+@MainActor
 struct ConversationsViewTests {
   // MARK: The words
 

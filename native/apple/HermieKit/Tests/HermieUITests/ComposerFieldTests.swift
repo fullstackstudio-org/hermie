@@ -5,6 +5,7 @@ import Testing
 @testable import HermieUI
 
 /// How the composer's field is measured.
+@MainActor
 @Suite struct ComposerFieldMetricsTests {
   @Test(arguments: [16, 17, 20.3, 22, 27.6, 40] as [CGFloat])
   func oneLineMakesExactlyTheControlHeightWithTheSameRoomAboveAndBelow(lineHeight: CGFloat) {

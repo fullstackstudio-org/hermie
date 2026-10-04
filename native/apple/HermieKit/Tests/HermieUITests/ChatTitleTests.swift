@@ -5,6 +5,7 @@ import Testing
 
 @testable import HermieUI
 
+@MainActor
 struct ChatTitleTests {
   @Test func aRunningToolIsNamedWithoutItsMCPPrefix() {
     #expect(ToolLabel.activityName("mcp__terminal") == "Terminal")

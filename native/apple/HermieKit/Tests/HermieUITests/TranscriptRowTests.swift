@@ -31,6 +31,7 @@ private func assistant(_ id: String, _ text: String, version: Int = 1) -> Visibl
     presentation: .full)
 }
 
+@MainActor
 @Suite struct TranscriptRowBuilderTests {
   @Test func moreThanThreeBotToBotRowsRollUp() {
     var builder = TranscriptRowBuilder()
@@ -105,6 +106,7 @@ private func assistant(_ id: String, _ text: String, version: Int = 1) -> Visibl
   }
 }
 
+@MainActor
 @Suite struct ItemFormatTests {
   @Test func durationsReadAsTheExpoAppWritesThem() {
     #expect(ItemFormat.duration(nil) == "")

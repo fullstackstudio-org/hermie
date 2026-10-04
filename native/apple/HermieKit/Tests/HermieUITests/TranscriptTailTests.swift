@@ -3,6 +3,7 @@ import Testing
 
 @testable import HermieUI
 
+@MainActor
 struct TranscriptTailTests {
   @Test func theTailIsAddedToTheBottomInsetAndNothingElse() {
     let safeArea = EdgeInsets(top: 50, leading: 3, bottom: 90, trailing: 4)

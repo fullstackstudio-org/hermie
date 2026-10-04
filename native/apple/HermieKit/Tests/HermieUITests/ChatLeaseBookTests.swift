@@ -3,6 +3,7 @@ import Testing
 @testable import HermieUI
 
 /// Each chat screen holds a lease of its own on the bot's model, and gives back only that one.
+@MainActor
 @Suite struct ChatLeaseBookTests {
   private final class Token: Sendable {
     static let shared = Token()

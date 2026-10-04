@@ -265,6 +265,7 @@ import Testing
 
 /// The collection-view list's rules (`ListPinning`): the same as the SwiftUI list's, in UIKit's
 /// events.
+@MainActor
 @Suite struct ListPinningTests {
   @Test func theListsOwnScrollToTheBottomKeepsFollowingWhereverItEnds() {
     var pinning = ListPinning()

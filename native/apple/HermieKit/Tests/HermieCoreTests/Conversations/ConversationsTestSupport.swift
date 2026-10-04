@@ -129,12 +129,14 @@ enum ConversationFixture {
   /// REST-shaped history rows with ids `start ..< start + count`.
   static func restRows(_ count: Int, from start: Int = 1) -> [TranscriptRow] {
     (start..<(start + count)).map { id in
-      TranscriptRow(json: [
-        "id": .number(Double(id)),
-        "role": .string(id % 2 == 1 ? "user" : "assistant"),
-        "content": .string("row \(id)"),
-        "timestamp": .number(Double(1_789_999_000 + id))
-      ])
+      let role: String = id % 2 == 1 ? "user" : "assistant"
+      let timestamp: Double = 1_789_999_000 + Double(id)
+      var json: [String: JSONValue] = [:]
+      json["id"] = .number(Double(id))
+      json["role"] = .string(role)
+      json["content"] = .string("row \(id)")
+      json["timestamp"] = .number(timestamp)
+      return TranscriptRow(json: json)
     }
   }
 }

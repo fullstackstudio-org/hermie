@@ -3,6 +3,7 @@ import Testing
 
 @testable import HermieUI
 
+@MainActor
 @Suite struct TranscriptListLayoutModelTests {
   private func model(_ count: Int, height: CGFloat = 50, spacing: CGFloat = 10) -> TranscriptListLayoutModel<String> {
     var model = TranscriptListLayoutModel<String>()

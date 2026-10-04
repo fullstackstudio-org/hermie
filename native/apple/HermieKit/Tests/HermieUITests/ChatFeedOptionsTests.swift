@@ -266,6 +266,7 @@ import Testing
 
 /// The export's file: both formats from the one serialisation, a name a file system takes, and the
 /// device's own clock for the stamps.
+@MainActor
 @Suite struct TranscriptFileTests {
   private func items() -> [TranscriptItem] {
     [
