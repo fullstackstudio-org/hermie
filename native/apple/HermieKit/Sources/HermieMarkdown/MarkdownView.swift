@@ -76,7 +76,7 @@ public struct MarkdownBlockView: View, Equatable {
     case .code(let code):
       MarkdownCodeView(
         label: code.language ?? "", accessibilityLabel: MarkdownStrings.code(language: code.language),
-        copyLabel: MarkdownStrings.copyCode, source: code.text)
+        copyLabel: MarkdownStrings.copyCode, source: code.text, language: code.language)
     case .math(let source):
       MarkdownCodeView(
         label: MarkdownStrings.mathematics, accessibilityLabel: MarkdownStrings.mathematics,
@@ -230,7 +230,10 @@ struct MarkdownCodeView: View {
   let accessibilityLabel: String
   let copyLabel: String
   let source: String
+  /// The fence's language: when the highlighter knows it, the listing is coloured.
+  var language: String?
 
+  @Environment(\.markdownCodeHighlighting) private var highlights
   @State private var copied = false
   @ScaledMetric(relativeTo: .body) private var padding: CGFloat = 10
 
@@ -261,7 +264,7 @@ struct MarkdownCodeView: View {
       .padding(.top, padding * 0.6)
 
       ScrollView(.horizontal) {
-        Text(source)
+        listing
           .font(.body.monospaced())
           .fixedSize(horizontal: true, vertical: false)
           .padding(padding)
@@ -275,7 +278,23 @@ struct MarkdownCodeView: View {
   }
 }
 
+extension MarkdownCodeView {
+  /// The listing: coloured when it has a language the highlighter knows and the surface is one the
+  /// colours were chosen for, the plain text otherwise.
+  @ViewBuilder fileprivate var listing: some View {
+    if highlights, CodeLanguage.isKnown(language) {
+      Text(CodeHighlighter.cachedTokens(source, language: language).attributedString())
+    } else {
+      Text(source)
+    }
+  }
+}
+
 extension EnvironmentValues {
+  /// Whether code is drawn in colours. The colours are tuned for the grey of a code block on the page
+  /// or in an incoming bubble; a bubble with a fill of its own (the owner's blue) turns it off.
+  @Entry public var markdownCodeHighlighting = true
+
   /// Whether a reply's lines take the whole width they are offered (a page, the default) or only
   /// what their words need (a message bubble that should be no wider than its text).
   @Entry public var markdownFillsWidth = true
