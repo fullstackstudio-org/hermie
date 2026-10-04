@@ -247,6 +247,24 @@ import Testing
     #expect(NativeStrings.Chat.Reasoning.label("none") != nil)
   }
 
+  @Test func theReasoningSubmenuListsTheLevelsDirectlyWithTheCurrentOneMarked() {
+    let menu = ReasoningEffortMenu(current: "high")
+
+    #expect(menu.entries.map(\.choice.value) == ReasoningEffortChoice.known)
+    #expect(menu.entries.filter(\.isCurrent).map(\.choice.value) == ["high"], "exactly one level carries the checkmark")
+    #expect(menu.title == "\(Strings.Chat.Options.reasoning): \(ReasoningEffortChoice.label("high"))")
+
+    // A level the gateway made up is listed, and is the marked one.
+    let own = ReasoningEffortMenu(current: "auto")
+    #expect(own.entries.map(\.choice.value) == ReasoningEffortChoice.known + ["auto"])
+    #expect(own.entries.filter(\.isCurrent).map(\.choice.value) == ["auto"])
+
+    // No level known yet: the line is the bare name and nothing is marked.
+    let none = ReasoningEffortMenu(current: nil)
+    #expect(none.title == Strings.Chat.Options.reasoning)
+    #expect(none.entries.allSatisfy { !$0.isCurrent })
+  }
+
   @Test func theModelsAreGroupedByProviderInTheGatewaysOrderAndSearched() {
     let choices = [
       BotModelChoice(provider: "a", providerName: "Alpha", model: "alpha-1"),

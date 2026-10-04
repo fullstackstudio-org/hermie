@@ -39,6 +39,34 @@ enum ReasoningEffortChoice: Equatable, Identifiable {
   }
 }
 
+/// The reasoning effort's line in the chat's `…` menu, as data: one submenu that lists the levels
+/// directly, the session's own marked, and nothing nested inside it (HERM-257: the line opened a
+/// submenu whose only child was another "Reasoning effort" submenu).
+struct ReasoningEffortMenu: Equatable {
+  /// One level the submenu lists.
+  struct Entry: Equatable, Identifiable {
+    let choice: ReasoningEffortChoice
+    /// The session's level: drawn with a checkmark.
+    let isCurrent: Bool
+
+    var id: String { choice.id }
+  }
+
+  /// The submenu's line: the name, and the session's level after it when it has one.
+  let title: String
+  /// The levels, in the order they are listed.
+  let entries: [Entry]
+
+  init(current: String?) {
+    title =
+      current.map { "\(Strings.Chat.Options.reasoning): \(ReasoningEffortChoice.label($0))" }
+      ?? Strings.Chat.Options.reasoning
+    entries = ReasoningEffortChoice.choices(including: current).map { choice in
+      Entry(choice: choice, isCurrent: current == choice.value)
+    }
+  }
+}
+
 /// How a token count reads on the context row: thousands past a thousand and millions past a
 /// million, one decimal only where it changes the reading (`formatTokens` of the Expo app).
 enum ContextFormat {
@@ -87,21 +115,24 @@ struct ChatSessionOptionItems: View {
     .accessibilityHint(Strings.Chat.Options.fastHint)
     .accessibilityIdentifier("hermie.chat.options.fast")
 
+    // One submenu with the levels listed in it directly: an inline picker draws them as the menu's
+    // own lines with a checkmark on the current one, where a plain picker here is a second submenu.
+    let reasoning = ReasoningEffortMenu(current: options.reasoningEffort)
+
     Menu {
       Picker(
         Strings.Chat.Options.reasoning,
         selection: Binding<String?>(
           get: { options.reasoningEffort }, set: { if let effort = $0 { feed.setReasoningEffort(effort) } })
       ) {
-        ForEach(ReasoningEffortChoice.choices(including: options.reasoningEffort)) { choice in
-          Text(choice.label).tag(Optional(choice.value))
+        ForEach(reasoning.entries) { entry in
+          Text(entry.choice.label).tag(Optional(entry.choice.value))
         }
       }
+      .pickerStyle(.inline)
+      .labelsHidden()
     } label: {
-      Label(
-        options.reasoningEffort.map { "\(Strings.Chat.Options.reasoning): \(ReasoningEffortChoice.label($0))" }
-          ?? Strings.Chat.Options.reasoning,
-        systemImage: "brain")
+      Label(reasoning.title, systemImage: "brain")
     }
     .accessibilityIdentifier("hermie.chat.options.reasoning")
 
