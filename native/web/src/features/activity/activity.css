@@ -1,0 +1,123 @@
+/* The Activity timeline (`ActivityPage.tsx`). Colours are the theme's (`ui/theme.css`). */
+
+.hm-activity {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 48rem;
+  color: var(--hm-text);
+}
+
+.hm-activity p {
+  margin: 0;
+}
+
+.hm-activity__lead,
+.hm-activity__state {
+  color: var(--hm-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.hm-activity [data-tone='danger'] {
+  color: var(--hm-danger-text);
+}
+
+.hm-activity__counters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-activity__counter {
+  padding: 6px 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius-pill);
+  background: var(--hm-surface);
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+}
+
+.hm-activity__counter-value {
+  color: var(--hm-text);
+  font-weight: 700;
+}
+
+.hm-activity__counter[data-active='true'] .hm-activity__counter-value {
+  color: var(--hm-tint-text);
+}
+
+.hm-activity__day {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hm-activity__day-title {
+  margin: 0;
+  color: var(--hm-text-faint);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hm-activity__rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-activity__row {
+  border-bottom: 1px solid var(--hm-line);
+}
+
+.hm-activity__link {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 44px;
+  padding-block: 10px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.hm-activity__link:hover {
+  background: var(--hm-surface-hover);
+}
+
+.hm-activity__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hm-activity__heading {
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.hm-activity__time {
+  flex: none;
+  color: var(--hm-text-faint);
+  font-size: 0.8125rem;
+}
+
+.hm-activity__text {
+  color: var(--hm-text-muted);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.hm-activity__status {
+  color: var(--hm-text-faint);
+  font-size: 0.8125rem;
+}
+
+.hm-activity__status[data-tone='working'] {
+  color: var(--hm-tint-text);
+}

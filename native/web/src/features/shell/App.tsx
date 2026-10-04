@@ -18,6 +18,8 @@
  * | `#/settings`                  | Settings             | the home of Settings (`SettingsHost`)  |
  * | `#/settings/<section>`        | Settings             | that section, under a way back (`SettingsHost`): account, gateway, passkeys, mcp, chats, chat-list, appearance, about |
  * | `#/settings/<anything else>`  | Settings             | the home; the address is rewritten to `#/settings` |
+ * | `#/crons`, `#/crons/new`, `#/crons/<job>`, `#/crons/<job>/edit`, `#/crons/<job>/runs/<run>` | Crons | the crons list, the editor, one cron or one of its runs (`CronsPage`, a chunk) |
+ * | `#/activity`                  | Activity             | the timeline of what the bots said to each other (`ActivityPage`, a chunk) |
  * | anything else                 | sent to `#/`         |                                  |
  *
  * The request layer (a bot's approval or question, one at a time, over everything) is a
@@ -51,8 +53,11 @@ import { botsStore } from '../../state/bots'
 import { pluginStore } from '../../state/plugin'
 import { botLabel } from '../bots/bot-label'
 import { ChatList } from '../bots/ChatList'
+import { loadActivityPage } from '../activity/load'
 import { loadChatScreen, preloadChatScreen } from '../chat/load'
 import { ChatRuntimeContext, type ChatSessionRuntime } from '../chat/chat-runtime'
+import { type CronRuntime, CronRuntimeContext } from '../cron/cron-runtime'
+import { loadCronsPage } from '../cron/load'
 import { loadSettingsHost } from '../settings/load'
 import { type McpActions, McpRuntimeContext } from '../settings/mcp-runtime'
 import { type SettingsRuntime, SettingsRuntimeContext } from '../settings/settings-runtime'
@@ -85,6 +90,10 @@ const ConversationsPage = lazy(() =>
   import('../sessions/ConversationsPage').then(module => ({ default: module.ConversationsPage }))
 )
 
+/** The Crons pages and the Activity timeline are chunks of their own, fetched when their route is opened (`features/cron/load.ts`, `features/activity/load.ts`). */
+const CronsPage = lazy(() => loadCronsPage().then(module => ({ default: module.CronsPage })))
+const ActivityPage = lazy(() => loadActivityPage().then(module => ({ default: module.ActivityPage })))
+
 export interface AppProps {
   /** Who is signed in: display name, else email, else id; empty when the gateway named nobody. */
   user: string
@@ -110,6 +119,8 @@ export interface AppProps {
   passkeys?: PasskeyActions
   /** The MCP model's actions (Settings › MCP); absent in a test of the frame. */
   mcp?: McpActions
+  /** What the Crons pages talk to the gateway with (`features/cron/cron-runtime.ts`); absent in a test of the frame. */
+  cron?: CronRuntime
   /**
    * What Settings needs of the page that no store holds: the gateway's address and Hermes version, who
    * was named, where the licence list is, and how to clear the transcript cache. Absent in a test of the
@@ -138,6 +149,7 @@ export function App({
   chat,
   passkeys,
   mcp,
+  cron,
   settings,
   secureInput,
   interactive,
@@ -166,7 +178,11 @@ export function App({
         ? strings.chat.sessions.conversations
         : route.name === 'settings'
           ? strings.app.settings.title
-          : appName
+          : route.name === 'crons'
+            ? strings.app.tabs.routines
+            : route.name === 'activity'
+              ? strings.app.activity.title
+              : appName
 
   // Once the frame has been drawn, fetch the chat screen's chunk if no route has asked for it yet.
   useEffect(() => {
@@ -191,54 +207,65 @@ export function App({
     <ChatRuntimeContext.Provider value={chat ?? null}>
       <PasskeyRuntimeContext.Provider value={passkeys ?? null}>
         <McpRuntimeContext.Provider value={mcp ?? null}>
-          <SettingsRuntimeContext.Provider value={settingsRuntime}>
-            <SecureInputRuntimeContext.Provider value={secureInput ?? null}>
-              <InteractiveRuntimeContext.Provider value={interactive ?? null}>
-                <SessionSignalsRuntimeContext.Provider value={signals ?? null}>
-                  <Layout
-                    route={route}
-                    heading={heading}
-                    status={<ConnectionLine onSignIn={onSignIn} gated={gated} />}
-                    sidebar={<ChatList selectedBot={bot} />}
-                    footer={
-                      <SidebarFooter
-                        user={user}
-                        {...(pictureUrl ? { pictureUrl } : {})}
-                        onSignOut={onSignOut}
-                        gated={gated}
-                      />
-                    }
-                  >
-                    {route.name === 'chat' ? (
-                      <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
-                        <ChatScreen
-                          key={formatRoute(route)}
-                          bot={route.bot}
-                          router={router}
-                          {...(route.session ? { session: route.session } : {})}
+          <CronRuntimeContext.Provider value={cron ?? null}>
+            <SettingsRuntimeContext.Provider value={settingsRuntime}>
+              <SecureInputRuntimeContext.Provider value={secureInput ?? null}>
+                <InteractiveRuntimeContext.Provider value={interactive ?? null}>
+                  <SessionSignalsRuntimeContext.Provider value={signals ?? null}>
+                    <Layout
+                      route={route}
+                      heading={heading}
+                      status={<ConnectionLine onSignIn={onSignIn} gated={gated} />}
+                      sidebar={<ChatList selectedBot={bot} />}
+                      footer={
+                        <SidebarFooter
+                          user={user}
+                          {...(pictureUrl ? { pictureUrl } : {})}
+                          onSignOut={onSignOut}
+                          gated={gated}
+                          current={route.name}
                         />
-                      </Suspense>
-                    ) : route.name === 'conversations' ? (
-                      <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
-                        <ConversationsPage key={formatRoute(route)} bot={route.bot} router={router} />
-                      </Suspense>
-                    ) : route.name === 'settings' ? (
-                      <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
-                        <SettingsHost
-                          {...(route.section === undefined ? {} : { section: route.section })}
-                          router={router}
-                        />
-                      </Suspense>
-                    ) : (
-                      <p className="hm-main__body">{strings.app.chat.pickBot}</p>
-                    )}
-                  </Layout>
-                  {/* Over the whole page, whichever route: a bot's question is never behind a screen. */}
-                  <RequestLayer />
-                </SessionSignalsRuntimeContext.Provider>
-              </InteractiveRuntimeContext.Provider>
-            </SecureInputRuntimeContext.Provider>
-          </SettingsRuntimeContext.Provider>
+                      }
+                    >
+                      {route.name === 'chat' ? (
+                        <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
+                          <ChatScreen
+                            key={formatRoute(route)}
+                            bot={route.bot}
+                            router={router}
+                            {...(route.session ? { session: route.session } : {})}
+                          />
+                        </Suspense>
+                      ) : route.name === 'conversations' ? (
+                        <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
+                          <ConversationsPage key={formatRoute(route)} bot={route.bot} router={router} />
+                        </Suspense>
+                      ) : route.name === 'settings' ? (
+                        <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
+                          <SettingsHost
+                            {...(route.section === undefined ? {} : { section: route.section })}
+                            router={router}
+                          />
+                        </Suspense>
+                      ) : route.name === 'crons' ? (
+                        <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
+                          <CronsPage route={route} router={router} />
+                        </Suspense>
+                      ) : route.name === 'activity' ? (
+                        <Suspense fallback={<div className="hm-main__body" aria-busy="true" />}>
+                          <ActivityPage />
+                        </Suspense>
+                      ) : (
+                        <p className="hm-main__body">{strings.app.chat.pickBot}</p>
+                      )}
+                    </Layout>
+                    {/* Over the whole page, whichever route: a bot's question is never behind a screen. */}
+                    <RequestLayer />
+                  </SessionSignalsRuntimeContext.Provider>
+                </InteractiveRuntimeContext.Provider>
+              </SecureInputRuntimeContext.Provider>
+            </SettingsRuntimeContext.Provider>
+          </CronRuntimeContext.Provider>
         </McpRuntimeContext.Provider>
       </PasskeyRuntimeContext.Provider>
     </ChatRuntimeContext.Provider>

@@ -130,7 +130,14 @@
   overflow-wrap: anywhere;
 }
 
-.hm-sidebar__settings {
+/* The ways to the Activity timeline, the Crons and Settings: one row that wraps rather than three stacked links. */
+.hm-sidebar__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 20px;
+}
+
+.hm-sidebar__link {
   display: inline-flex;
   align-items: center;
   align-self: flex-start;
@@ -141,7 +148,8 @@
   text-decoration: none;
 }
 
-.hm-sidebar__settings:hover {
+.hm-sidebar__link:hover,
+.hm-sidebar__link[aria-current='page'] {
   text-decoration: underline;
 }
 

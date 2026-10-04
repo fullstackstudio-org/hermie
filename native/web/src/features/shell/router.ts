@@ -8,6 +8,12 @@
  * #/chat/<bot>/conversations  the list of its conversations (W-22)
  * #/settings                  settings
  * #/settings/<section>        one section of it
+ * #/crons                     the crons list (HERM-259)
+ * #/crons/new                 a new cron
+ * #/crons/<job>               one cron: what it does, and its run history
+ * #/crons/<job>/edit          that cron's editor
+ * #/crons/<job>/runs/<run>    one run of it, read-only
+ * #/activity                  the timeline of what the bots said to each other
  * ```
  *
  * Anything else is unknown, and an unknown route is sent to `#/` by rewriting
@@ -29,6 +35,9 @@ export type Route =
   | { name: 'chat'; bot: string; session?: string }
   | { name: 'conversations'; bot: string }
   | { name: 'settings'; section?: string }
+  /** The crons list, a new cron (`view: 'new'`), one cron, its editor, or one of its runs. A job id and a run id are gateway ids. */
+  | { name: 'crons'; job?: string; view?: 'new' | 'edit' | 'run'; run?: string }
+  | { name: 'activity' }
 
 export const HOME: Route = { name: 'home' }
 
@@ -102,6 +111,38 @@ export function parseRoute(hash: string): Route | null {
       return parts.length === 3 && section !== undefined && SECTION.test(section) ? { name: 'settings', section } : null
     }
 
+    case 'crons': {
+      if (parts.length === 2) {
+        return { name: 'crons' }
+      }
+
+      // `new` is the editor of a new cron, and is not a job's id: nothing hangs off it.
+      if (parts[2] === 'new') {
+        return parts.length === 3 ? { name: 'crons', view: 'new' } : null
+      }
+
+      const job = segment(parts[2])
+
+      if (job === null) {
+        return null
+      }
+
+      if (parts.length === 3) {
+        return { name: 'crons', job }
+      }
+
+      if (parts.length === 4 && parts[3] === 'edit') {
+        return { name: 'crons', job, view: 'edit' }
+      }
+
+      const run = segment(parts[4])
+
+      return parts.length === 5 && parts[3] === 'runs' && run !== null ? { name: 'crons', job, view: 'run', run } : null
+    }
+
+    case 'activity':
+      return parts.length === 2 ? { name: 'activity' } : null
+
     default:
       return null
   }
@@ -120,6 +161,25 @@ export function formatRoute(route: Route): string {
       return `#/chat/${encodeURIComponent(route.bot)}/conversations`
     case 'settings':
       return route.section === undefined ? '#/settings' : `#/settings/${route.section}`
+    case 'crons': {
+      if (route.view === 'new') {
+        return '#/crons/new'
+      }
+
+      if (route.job === undefined) {
+        return '#/crons'
+      }
+
+      const job = `#/crons/${encodeURIComponent(route.job)}`
+
+      if (route.view === 'edit') {
+        return `${job}/edit`
+      }
+
+      return route.view === 'run' && route.run !== undefined ? `${job}/runs/${encodeURIComponent(route.run)}` : job
+    }
+    case 'activity':
+      return '#/activity'
   }
 }
 
@@ -128,6 +188,16 @@ export const chatHref = (bot: string): string => formatRoute({ name: 'chat', bot
 
 /** The fragment of one of a bot's conversations that is not its chat (the read-only viewer). */
 export const conversationHref = (bot: string, session: string): string => formatRoute({ name: 'chat', bot, session })
+
+/** The fragment of the crons list, and of one cron (`job`), its editor, a new one and one of its runs. */
+export const cronsHref = (): string => formatRoute({ name: 'crons' })
+export const cronHref = (job: string): string => formatRoute({ name: 'crons', job })
+export const cronEditHref = (job: string): string => formatRoute({ name: 'crons', job, view: 'edit' })
+export const cronNewHref = (): string => formatRoute({ name: 'crons', view: 'new' })
+export const cronRunHref = (job: string, run: string): string => formatRoute({ name: 'crons', job, view: 'run', run })
+
+/** The fragment of the activity timeline. */
+export const activityHref = (): string => formatRoute({ name: 'activity' })
 
 /** The fragment of the list of a bot's conversations. */
 export const conversationsHref = (bot: string): string => formatRoute({ name: 'conversations', bot })

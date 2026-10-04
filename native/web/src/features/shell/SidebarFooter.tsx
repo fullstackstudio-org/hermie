@@ -1,7 +1,7 @@
 /**
  * The foot of the sidebar: who is signed in (and, when the gateway did not say,
  * that it did not: `IdentityNote`; on a gateway without sign-in, that there is
- * none), the way to Settings, the way out (there: forgetting the session token),
+ * none), the ways to the Activity timeline, the Crons and Settings, the way out (there: forgetting the session token),
  * and which client this is. Signing out is the entry module's business (stop the chats, stop the
  * client, end the gateway's session, clear this person's stored state, go to
  * the sign-in page); this only asks for it, once.
@@ -22,8 +22,10 @@ import { Icon } from '../../ui/icons'
 import { Button } from '../../ui/primitives'
 import { PersonAvatar } from '../chat/PersonAvatar'
 import { IdentityNote } from '../notices/IdentityNote'
+import { preloadActivityPage } from '../activity/load'
+import { preloadCronsPage } from '../cron/load'
 import { preloadSettingsHost } from '../settings/load'
-import { formatRoute } from './router'
+import { activityHref, cronsHref, formatRoute, type Route } from './router'
 
 export interface SidebarFooterProps {
   /** Who is signed in: the display name, else the email, else the id; empty when the gateway named nobody. */
@@ -34,9 +36,17 @@ export interface SidebarFooterProps {
   onSignOut: () => void
   /** False on a gateway without sign-in: nobody is named, and the way out forgets the token. */
   gated?: boolean
+  /** The route on screen, so the link to its page can say it is the current one. */
+  current?: Route['name']
 }
 
-export function SidebarFooter({ user, pictureUrl = '', onSignOut, gated = true }: SidebarFooterProps): ReactElement {
+export function SidebarFooter({
+  user,
+  pictureUrl = '',
+  onSignOut,
+  gated = true,
+  current
+}: SidebarFooterProps): ReactElement {
   useLocale()
 
   const [leaving, setLeaving] = useState(false)
@@ -56,16 +66,39 @@ export function SidebarFooter({ user, pictureUrl = '', onSignOut, gated = true }
       </div>
       {/* Without sign-in the line above already says nobody is named; the note would say it twice. */}
       {gated ? <IdentityNote /> : null}
-      {/* The Settings chunk is asked for as soon as a pointer or the focus reaches the link. */}
-      <a
-        className="hm-sidebar__settings"
-        href={formatRoute({ name: 'settings' })}
-        onPointerEnter={preloadSettingsHost}
-        onFocus={preloadSettingsHost}
-      >
-        <Icon name="settings" size={18} />
-        {strings.app.settings.title}
-      </a>
+      {/* Each page's chunk is asked for as soon as a pointer or the focus reaches the link to it. */}
+      <div className="hm-sidebar__links">
+        <a
+          className="hm-sidebar__link"
+          href={activityHref()}
+          aria-current={current === 'activity' ? 'page' : undefined}
+          onPointerEnter={preloadActivityPage}
+          onFocus={preloadActivityPage}
+        >
+          <Icon name="activity" size={18} />
+          {strings.app.tabs.activity}
+        </a>
+        <a
+          className="hm-sidebar__link"
+          href={cronsHref()}
+          aria-current={current === 'crons' ? 'page' : undefined}
+          onPointerEnter={preloadCronsPage}
+          onFocus={preloadCronsPage}
+        >
+          <Icon name="clock" size={18} />
+          {strings.app.tabs.routines}
+        </a>
+        <a
+          className="hm-sidebar__link"
+          href={formatRoute({ name: 'settings' })}
+          aria-current={current === 'settings' ? 'page' : undefined}
+          onPointerEnter={preloadSettingsHost}
+          onFocus={preloadSettingsHost}
+        >
+          <Icon name="settings" size={18} />
+          {strings.app.settings.title}
+        </a>
+      </div>
       <Button
         variant="quiet"
         disabled={leaving}

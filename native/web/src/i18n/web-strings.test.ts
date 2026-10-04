@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { LOCALES, resetActiveLocale, setActiveLocale, TRANSLATED_LOCALES, type Locale } from './active-locale'
+import { CRON_STRINGS_SOURCE, cronWebStrings } from './cron-strings'
 import { SHEET_STRINGS_SOURCE, sheetStrings } from './sheet-strings'
 import { WEB_STRINGS_SOURCE, webStrings } from './web-strings'
 
@@ -41,7 +42,9 @@ const SAME_AS_ENGLISH: Readonly<Record<string, readonly Locale[]>> = {
   // "Minimal" is the German word too; "Max" and "Ultra" are the same word in all three.
   'sheets.chatSettings.reasoning.minimal': ['de'],
   'sheets.chatSettings.reasoning.max': ['nl', 'de'],
-  'sheets.chatSettings.reasoning.ultra': ['nl', 'de']
+  'sheets.chatSettings.reasoning.ultra': ['nl', 'de'],
+  // `{action}: {name}` is the same two placeholders and a colon in every language.
+  'cron.actionFor': ['nl', 'de']
 }
 
 type Source = Record<string, unknown>
@@ -70,7 +73,8 @@ function leaves(
 /** Both tables: the entry's, and the one only the sheets' chunk reads (`sheet-strings.ts`), under `sheets.`. */
 const all = [
   ...leaves(WEB_STRINGS_SOURCE as unknown as Source),
-  ...leaves(SHEET_STRINGS_SOURCE as unknown as Source, 'sheets')
+  ...leaves(SHEET_STRINGS_SOURCE as unknown as Source, 'sheets'),
+  ...leaves(CRON_STRINGS_SOURCE as unknown as Source, 'cron')
 ]
 
 /** Sample arguments for the function leaves: every parameter is a recognisable string. */
@@ -120,7 +124,12 @@ const SAMPLE = {
   current: MARKER,
   what: MARKER,
   line: MARKER,
-  title: MARKER
+  title: MARKER,
+  // The Crons and Activity pages: a schedule's words, an action named for its cron.
+  days: MARKER,
+  day: MARKER,
+  when: MARKER,
+  action: MARKER
 }
 
 describe('the web-only strings', () => {
@@ -131,7 +140,10 @@ describe('the web-only strings', () => {
   it('says each thing in one table only, so the two cannot drift apart', () => {
     const entry = new Set(leaves(WEB_STRINGS_SOURCE as unknown as Source).map(([key]) => key))
 
-    for (const [key] of leaves(SHEET_STRINGS_SOURCE as unknown as Source)) {
+    for (const [key] of [
+      ...leaves(SHEET_STRINGS_SOURCE as unknown as Source),
+      ...leaves(CRON_STRINGS_SOURCE as unknown as Source)
+    ]) {
       expect(entry.has(key), key).toBe(false)
     }
   })
@@ -189,6 +201,18 @@ describe('sheetStrings', () => {
 
     setActiveLocale('nl')
     expect(sheetStrings.requests.skip).toBe('Overslaan')
+  })
+})
+
+describe('cronWebStrings', () => {
+  it('reads in the language that is active when it is read', () => {
+    expect(cronWebStrings.schedule.everyDayAt({ time: '09:00' })).toBe('Every day at 09:00')
+
+    setActiveLocale('nl')
+    expect(cronWebStrings.schedule.everyDayAt({ time: '09:00' })).toBe('Elke dag om 09:00')
+
+    setActiveLocale('de')
+    expect(cronWebStrings.schedule.everyDayAt({ time: '09:00' })).toBe('Jeden Tag um 09:00')
   })
 })
 

@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest'
 import { createHashRouter } from '../../platform/hash-router'
 import {
   chatHref,
+  cronHref,
+  cronRunHref,
   conversationHref,
   conversationsHref,
   formatRoute,
@@ -26,7 +28,14 @@ describe('parseRoute', () => {
     ['#/settings', { name: 'settings' }],
     ['#/settings/', { name: 'settings' }],
     ['#/settings/notifications', { name: 'settings', section: 'notifications' }],
-    ['#/settings/gateway-info', { name: 'settings', section: 'gateway-info' }]
+    ['#/settings/gateway-info', { name: 'settings', section: 'gateway-info' }],
+    ['#/crons', { name: 'crons' }],
+    ['#/crons/', { name: 'crons' }],
+    ['#/crons/new', { name: 'crons', view: 'new' }],
+    ['#/crons/job-1', { name: 'crons', job: 'job-1' }],
+    ['#/crons/job-1/edit', { name: 'crons', job: 'job-1', view: 'edit' }],
+    ['#/crons/job-1/runs/cron_job-1_17', { name: 'crons', job: 'job-1', view: 'run', run: 'cron_job-1_17' }],
+    ['#/activity', { name: 'activity' }]
   ])('reads %j', (hash, route) => {
     expect(parseRoute(hash)).toEqual(route)
   })
@@ -53,6 +62,14 @@ describe('parseRoute', () => {
     '#/settings/Not-Lower',
     '#/settings/a/b',
     '#/settings/1x',
+    '#/crons/a/b',
+    '#/crons/a/edit/x',
+    '#/crons/a/runs',
+    '#/crons/a/runs/',
+    '#/crons/a/runs/b/c',
+    '#/crons//edit',
+    '#/crons/new/edit',
+    '#/activity/x',
     '#chat/a',
     '/chat/a',
     '#//',
@@ -75,7 +92,13 @@ describe('formatRoute', () => {
     { name: 'chat', bot: 'a/b?c#d', session: 'x y/z' },
     { name: 'conversations', bot: 'a/b?c#d' },
     { name: 'settings' },
-    { name: 'settings', section: 'notifications' }
+    { name: 'settings', section: 'notifications' },
+    { name: 'crons' },
+    { name: 'crons', view: 'new' },
+    { name: 'crons', job: 'a/b?c#d' },
+    { name: 'crons', job: 'a/b', view: 'edit' },
+    { name: 'crons', job: 'a/b', view: 'run', run: 'cron_x y' },
+    { name: 'activity' }
   ]
 
   it('is the inverse of parseRoute for every route', () => {
@@ -89,6 +112,8 @@ describe('formatRoute', () => {
     expect(chatHref('writer')).toBe('#/chat/writer')
     expect(conversationHref('writer', 'a/b')).toBe('#/chat/writer/s/a%2Fb')
     expect(conversationsHref('a/b')).toBe('#/chat/a%2Fb/conversations')
+    expect(cronHref('a/b')).toBe('#/crons/a%2Fb')
+    expect(cronRunHref('a', 'b c')).toBe('#/crons/a/runs/b%20c')
   })
 })
 

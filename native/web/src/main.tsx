@@ -391,6 +391,7 @@ async function startApp(page: Page, ready: Ready): Promise<void> {
       }}
       passkeys={session.passkeys}
       mcp={session.mcp}
+      cron={{ transport: { gateway: session.client.gateway, http: session.client.http } }}
       settings={{
         gatewayBaseUrl: basePath.baseUrl,
         hermesVersion: ready.probe.version,

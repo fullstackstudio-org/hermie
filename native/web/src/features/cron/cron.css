@@ -1,0 +1,490 @@
+/*
+ * The Crons pages (`CronsPage.tsx` and what it holds). Colours and sizes are the theme's (`ui/theme.css`); nothing
+ * here can force a horizontal scroll: every flex child that holds text has `min-width: 0` and long words wrap.
+ */
+
+.hm-cron-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 48rem;
+  color: var(--hm-text);
+}
+
+.hm-cron-page p,
+.hm-cron-list p,
+.hm-cron p,
+.hm-cron-form p {
+  margin: 0;
+}
+
+.hm-cron-page__notice,
+.hm-cron-page__state {
+  color: var(--hm-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.hm-cron-page [data-tone='danger'] {
+  color: var(--hm-danger-text);
+}
+
+.hm-cron-page [data-tone='warn'] {
+  color: var(--hm-warn-text);
+}
+
+.hm-cron-page a:not(.hm-button) {
+  color: var(--hm-link);
+}
+
+/* A link that is a button: the same box as `Button`, without the underline. */
+.hm-cron-page a.hm-button {
+  text-decoration: none;
+}
+
+.hm-cron-page a.hm-button[data-variant='quiet'] {
+  background: transparent;
+  border-color: var(--hm-line);
+  color: var(--hm-tint-text);
+}
+
+.hm-cron-page a.hm-button[data-variant='quiet']:hover {
+  background: var(--hm-surface-hover);
+}
+
+/* The one destructive button: the danger ink as an outline, never a fill the theme does not hold to contrast. */
+.hm-cron-page .hm-button.hm-button--danger {
+  border-color: currentcolor;
+  background: transparent;
+  color: var(--hm-danger-text);
+}
+
+/* The list. */
+
+.hm-cron-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hm-cron-list__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.hm-cron-list__lead {
+  min-width: 0;
+  color: var(--hm-text-muted);
+}
+
+.hm-cron-list__group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hm-cron-list__group-title {
+  margin: 0;
+  color: var(--hm-text-faint);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hm-cron-list__rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-cron-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-block: 12px;
+  border-bottom: 1px solid var(--hm-line);
+}
+
+.hm-cron-row__main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.hm-cron-row__name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.hm-cron-row__name a {
+  display: inline-block;
+  padding-block: 2px;
+  text-decoration: none;
+}
+
+.hm-cron-row__name a:hover {
+  text-decoration: underline;
+}
+
+.hm-cron-row__schedule,
+.hm-cron-row__meta {
+  color: var(--hm-text-muted);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.hm-cron-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 12px;
+}
+
+.hm-cron-row__error {
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.hm-cron-row__profile {
+  color: var(--hm-text-faint);
+  font-size: 0.8125rem;
+}
+
+.hm-cron-row > .hm-button {
+  flex: none;
+}
+
+/* A status: a dot, and always the word beside it. */
+.hm-cron-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--hm-text);
+  font-size: 0.9375rem;
+}
+
+.hm-cron-status__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--hm-presence-offline);
+}
+
+.hm-cron-status[data-status='ok'] .hm-cron-status__dot {
+  background: var(--hm-presence-online);
+}
+
+.hm-cron-status[data-status='failed'] .hm-cron-status__dot {
+  background: var(--hm-danger-text);
+}
+
+.hm-cron-status[data-status='pending'] .hm-cron-status__dot {
+  background: var(--hm-presence-needs-input);
+}
+
+/* One cron. */
+
+.hm-cron {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hm-cron__title {
+  margin: 0;
+  font-size: 1.375rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.hm-cron__schedule {
+  color: var(--hm-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.hm-cron__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+}
+
+.hm-cron__eyebrow {
+  color: var(--hm-text-faint);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hm-cron__next {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.hm-cron__error {
+  overflow-wrap: anywhere;
+}
+
+.hm-cron__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hm-cron__heading {
+  margin: 0;
+  color: var(--hm-text-faint);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hm-cron__prompt {
+  padding: 12px 14px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.hm-cron__facts {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.hm-cron__fact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 16px;
+  padding-block: 8px;
+  border-bottom: 1px solid var(--hm-line);
+}
+
+.hm-cron__fact dt {
+  flex: 0 0 9rem;
+  color: var(--hm-text-muted);
+}
+
+.hm-cron__fact dd {
+  display: flex;
+  flex: 1 1 12rem;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.hm-cron__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hm-cron__confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* The run history. */
+
+.hm-cron__runs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-cron-run {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-block: 10px;
+  border-bottom: 1px solid var(--hm-line);
+}
+
+.hm-cron-run__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 12px;
+}
+
+.hm-cron-run__preview {
+  color: var(--hm-text-muted);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.hm-cron-run__meta {
+  color: var(--hm-text-faint);
+  font-size: 0.8125rem;
+}
+
+.hm-cron-run__link {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  min-height: 44px;
+  text-decoration: none;
+}
+
+.hm-cron-run__link:hover {
+  text-decoration: underline;
+}
+
+.hm-cron-transcript {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The editor. */
+
+.hm-cron-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.hm-fieldset {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.hm-fieldset__legend {
+  padding: 0;
+  margin-bottom: 8px;
+  color: var(--hm-text-faint);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hm-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hm-field__label {
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+}
+
+.hm-field__input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+  color: var(--hm-text);
+  font: inherit;
+}
+
+.hm-field__input--short {
+  width: 9rem;
+}
+
+.hm-field__input--mono {
+  font-family: var(--hm-mono);
+}
+
+.hm-field__input--area {
+  min-height: 8rem;
+  resize: vertical;
+}
+
+.hm-field__input[aria-invalid='true'] {
+  border-color: var(--hm-danger-text);
+}
+
+.hm-field__input:focus-visible {
+  outline: var(--hm-focus-width) solid var(--hm-focus);
+  outline-offset: 1px;
+}
+
+.hm-field__hint {
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+}
+
+.hm-field__error {
+  color: var(--hm-danger-text);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.hm-schedule {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hm-schedule__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.hm-schedule__modes,
+.hm-schedule__days {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 0 20px;
+}
+
+.hm-schedule__preview {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hm-schedule__raw {
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.hm-cron-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.hm-cron-choice input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--hm-tint);
+}
