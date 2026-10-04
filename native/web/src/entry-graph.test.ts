@@ -52,8 +52,11 @@ const ON_DEMAND = [
   'i18n/cron-strings.ts',
   // The gateway-management pages (Memory, Skills, MCP servers, Connectors, Boards), what they share, and their words.
   'features/settings/Memory.tsx',
+  'features/settings/Skills.tsx',
   'features/settings/manage-parts.tsx',
   'core/manage/memory.ts',
+  'core/manage/skills.ts',
+  'core/manage/transport.ts',
   'core/manage/route-error.ts',
   'i18n/manage-strings.ts',
   // Web Push is loaded once the session has started; only the launch click's reader is in the first load.

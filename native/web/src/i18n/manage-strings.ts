@@ -78,6 +78,99 @@ export const MANAGE_STRINGS_SOURCE = {
       nl: 'Verwijderd.',
       de: 'Entfernt.'
     }
+  },
+  skillsPage: {
+    /** The gateway files an installed skill under a category; these are the two it uses. */
+    bundled: {
+      en: 'Bundled',
+      nl: 'Meegeleverd',
+      de: 'Mitgeliefert'
+    },
+    added: {
+      en: 'Added',
+      nl: 'Toegevoegd',
+      de: 'Hinzugefügt'
+    },
+    /** The names of the controls on one hub row, so that several rows are told apart. */
+    detailsOf: {
+      en: ({ name }: { name: string }) => `Details of ${name}`,
+      nl: ({ name }: { name: string }) => `Details van ${name}`,
+      de: ({ name }: { name: string }) => `Details zu ${name}`
+    },
+    hideDetailsOf: {
+      en: ({ name }: { name: string }) => `Hide the details of ${name}`,
+      nl: ({ name }: { name: string }) => `De details van ${name} verbergen`,
+      de: ({ name }: { name: string }) => `Die Details zu ${name} ausblenden`
+    },
+    installName: {
+      en: ({ name }: { name: string }) => `Install ${name}`,
+      nl: ({ name }: { name: string }) => `${name} installeren`,
+      de: ({ name }: { name: string }) => `${name} installieren`
+    },
+    details: {
+      en: 'Details',
+      nl: 'Details',
+      de: 'Details'
+    },
+    hideDetails: {
+      en: 'Hide details',
+      nl: 'Details verbergen',
+      de: 'Details ausblenden'
+    },
+    loadingDetails: {
+      en: 'Reading the details…',
+      nl: 'De details worden gelezen…',
+      de: 'Die Details werden gelesen…'
+    },
+    noDetails: {
+      en: 'The hub has no details for this skill.',
+      nl: 'De hub heeft geen details over deze skill.',
+      de: 'Der Hub hat keine Details zu diesem Skill.'
+    },
+    detailsFailed: {
+      en: ({ message }: { message: string }) => `Could not read the details: ${message}`,
+      nl: ({ message }: { message: string }) => `De details konden niet worden gelezen: ${message}`,
+      de: ({ message }: { message: string }) => `Die Details konnten nicht gelesen werden: ${message}`
+    },
+    /** Under a hub row: where the skill comes from. */
+    source: {
+      en: ({ source }: { source: string }) => `Source: ${source}`,
+      nl: ({ source }: { source: string }) => `Bron: ${source}`,
+      de: ({ source }: { source: string }) => `Quelle: ${source}`
+    },
+    trust: {
+      en: ({ trust }: { trust: string }) => `Trust: ${trust}`,
+      nl: ({ trust }: { trust: string }) => `Vertrouwen: ${trust}`,
+      de: ({ trust }: { trust: string }) => `Vertrauen: ${trust}`
+    },
+    tags: {
+      en: ({ tags }: { tags: string }) => `Tags: ${tags}`,
+      nl: ({ tags }: { tags: string }) => `Labels: ${tags}`,
+      de: ({ tags }: { tags: string }) => `Schlagwörter: ${tags}`
+    },
+    /** The label of the box that holds the skill's own instructions, which scrolls. */
+    previewOf: {
+      en: ({ name }: { name: string }) => `Instructions of ${name}`,
+      nl: ({ name }: { name: string }) => `Instructies van ${name}`,
+      de: ({ name }: { name: string }) => `Anleitung von ${name}`
+    },
+    showMore: {
+      en: 'Show more',
+      nl: 'Meer tonen',
+      de: 'Mehr anzeigen'
+    },
+    /** What the page says it cannot do: the gateway has no action that removes a skill. */
+    noUninstall: {
+      en: 'Hermes has no way to remove a skill from here. Remove it on the machine that hosts the gateway.',
+      nl: 'Hermes kan hier geen skill verwijderen. Verwijder hem op de machine waarop de gateway draait.',
+      de: 'Hermes kann hier keinen Skill entfernen. Entferne ihn auf dem Rechner, auf dem das Gateway läuft.'
+    },
+    /** Under an installed skill's switch: the category the gateway filed it under. */
+    switchHint: {
+      en: ({ category }: { category: string }) => `Category: ${category}`,
+      nl: ({ category }: { category: string }) => `Categorie: ${category}`,
+      de: ({ category }: { category: string }) => `Kategorie: ${category}`
+    }
   }
 } as const satisfies Branch
 

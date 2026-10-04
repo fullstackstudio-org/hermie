@@ -46,6 +46,8 @@ const SAME_AS_ENGLISH: Readonly<Record<string, readonly Locale[]>> = {
   'sheets.chatSettings.reasoning.ultra': ['nl', 'de'],
   // `{action}: {name}` is the same two placeholders and a colon in every language.
   'cron.actionFor': ['nl', 'de'],
+  // "Details" is the Dutch and German word too.
+  'manage.skillsPage.details': ['nl', 'de'],
   // "Name" is the German word too; "Toolsets" and "Skills" are loan words in Dutch and German.
   'sheets.botProfile.nameHeading': ['de'],
   'sheets.botProfile.toolsetsHeading': ['nl', 'de'],
@@ -152,7 +154,12 @@ const SAMPLE = {
   when: MARKER,
   action: MARKER,
   // The management pages: a file's name in an entry's control.
-  file: MARKER
+  file: MARKER,
+  // The skills page: where a skill comes from, how far it is trusted, what it is tagged with.
+  source: MARKER,
+  trust: MARKER,
+  tags: MARKER,
+  category: MARKER
 }
 
 describe('the web-only strings', () => {

@@ -4,7 +4,7 @@
  * violation. jsdom does not load the stylesheets, so colour contrast is measured elsewhere (the theme's
  * contrast test, and `e2e/manage.spec.ts` in a real browser); this checks names, roles, labels and headings.
  */
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import axe from 'axe-core'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
@@ -16,8 +16,10 @@ import { pluginStore } from '../../state/plugin'
 import { aSettingsRuntime } from '../../test-support/settings-runtime'
 import { aBot, resetShellStores, seedRoster } from '../../test-support/shell-stores'
 import { aMemoryPlugin } from '../../test-support/memory-plugin'
+import { aSkillsGateway } from '../../test-support/skills-gateway'
 import type { ManageTransport } from './manage-runtime'
 import { Memory } from './Memory'
+import { Skills } from './Skills'
 import { SettingsRuntimeContext } from './settings-runtime'
 
 beforeEach(() => {
@@ -83,6 +85,16 @@ describe.each(['light', 'dark'] as const)('the management pages in the %s scheme
 
     expect(await violations()).toEqual([])
   })
+
+  it('has no violation on Skills, loaded, with a hub row’s details open', async () => {
+    mount(aSkillsGateway().transport, <Skills />)
+    await screen.findByRole('list', { name: 'CATALOGUE' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Details of xlsx' }))
+    await waitFor(() => expect(document.querySelector('pre.hm-manage__scroll')).toBeTruthy())
+
+    expect(await violations()).toEqual([])
+  })
 })
 
 describe.each(['nl', 'de'] as const)('the management pages in %s', locale => {
@@ -91,6 +103,16 @@ describe.each(['nl', 'de'] as const)('the management pages in %s', locale => {
     act(() => setActiveLocale(locale))
     mount(aMemoryPlugin().transport, <Memory />)
     await screen.findByText('Prefers footnotes.')
+
+    expect(await violations()).toEqual([])
+  })
+
+  it('has no violation on Skills', async () => {
+    await loadCatalogue(locale)
+    act(() => setActiveLocale(locale))
+    mount(aSkillsGateway().transport, <Skills />)
+    await screen.findAllByRole('checkbox')
+    await screen.findAllByRole('listitem')
 
     expect(await violations()).toEqual([])
   })

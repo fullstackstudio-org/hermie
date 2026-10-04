@@ -7,15 +7,10 @@
  * Optional, like every runtime: a screen rendered with none (a test of the shell) draws what it can and acts on
  * nothing.
  */
-import type { GatewayHttp } from '@hermie/gateway-client'
-
-import type { ChatGateway } from '../../core/link'
+import type { ManageTransport } from '../../core/manage/transport'
 import { useSettingsRuntime } from './settings-runtime'
 
-export interface ManageTransport {
-  gateway: Pick<ChatGateway, 'request'>
-  http: Pick<GatewayHttp, 'get' | 'post' | 'patch' | 'delete'>
-}
+export type { ManageTransport }
 
 export interface ManageRuntime {
   transport: ManageTransport

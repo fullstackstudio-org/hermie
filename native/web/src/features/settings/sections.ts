@@ -21,6 +21,7 @@ export const SETTINGS_SECTIONS = [
   'passkeys',
   'mcp',
   'memory',
+  'skills',
   'chats',
   'notifications',
   'chat-list',
@@ -54,6 +55,8 @@ export function sectionTitle(section: SettingsSection): string {
       return webStrings.mcp.settings.title
     case 'memory':
       return strings.memory.botsTitle
+    case 'skills':
+      return strings.skills.settings.row
     case 'chats':
       return strings.app.settings.categories.chats
     case 'notifications':
@@ -83,6 +86,8 @@ export function sectionBlurb(section: SettingsSection): string {
       return blurb.mcp
     case 'memory':
       return strings.memory.botsHint
+    case 'skills':
+      return strings.skills.settings.hint
     case 'chats':
       return blurb.chats
     case 'notifications':
@@ -108,6 +113,7 @@ export const SECTION_LOADERS = {
   passkeys: () => import('./Passkeys'),
   mcp: () => import('./MCP'),
   memory: () => import('./Memory'),
+  skills: () => import('./Skills'),
   chats: () => import('./Chats'),
   notifications: () => import('./Notifications'),
   'chat-list': () => import('./Arrangement'),
