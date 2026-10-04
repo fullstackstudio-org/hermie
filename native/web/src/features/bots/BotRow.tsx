@@ -34,6 +34,7 @@ import { type ChatsState, chatsStore } from '../../state/chats'
 import type { AccentName } from '../../state/folders'
 import { Icon } from '../../ui/icons'
 import { Avatar, PresenceBead, UnreadBadge, VisuallyHidden } from '../../ui/primitives'
+import { botLabel } from './bot-label'
 import { chatHref } from '../shell/router'
 import { formatListTime } from './list-time'
 import { presenceOf } from './presence'
@@ -124,6 +125,8 @@ export const BotRow = memo(function BotRow({
       : live.previewText || bot.description || strings.app.bots.noPreview
   const systemLine = offlineSince === undefined && live.previewSystem && Boolean(live.previewText)
   const stamp = formatListTime(offlineSince ?? lastActive)
+  // The bot's own words: cleaned and bounded, and isolated where it stands in a line of its own.
+  const name = botLabel(bot.displayName, bot.name)
 
   return (
     <li className="hm-row-item">
@@ -140,7 +143,7 @@ export const BotRow = memo(function BotRow({
         data-pinned={pinned ? 'true' : undefined}
       >
         <span className="hm-row__avatar">
-          <Avatar name={bot.displayName} uri={avatarUri} />
+          <Avatar name={name} uri={avatarUri} />
           <span className="hm-row__bead">
             <PresenceBead state={presence.state} />
           </span>
@@ -148,7 +151,9 @@ export const BotRow = memo(function BotRow({
 
         <span className="hm-row__body">
           <span className="hm-row__top">
-            <span className="hm-row__name">{bot.displayName}</span>
+            <span className="hm-row__name">
+              <bdi>{name}</bdi>
+            </span>
             <VisuallyHidden>
               {`, ${strings.app.presence[presence.state]}`}
               {pinned ? `, ${strings.app.layout.pinnedRow}` : ''}

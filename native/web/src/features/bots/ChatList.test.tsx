@@ -63,6 +63,23 @@ describe('the chat list', () => {
       expect(row('researcher').querySelector('.hm-row__time')?.textContent).toBe(LONG_AGO_STAMP)
     })
 
+    it('cleans and isolates the bot’s own name: no invisible or direction-override characters, bounded, in a bdi', () => {
+      seedRoster([
+        aBot('evil', { displayName: '\u202EEvil\u2060\u2066 name\u2069' }),
+        aBot('long', { displayName: 'x'.repeat(500) }),
+        aBot('ghost', { displayName: '\u2060\u202E' })
+      ])
+      render(<ChatList selectedBot={undefined} />)
+
+      const nameOf = (bot: string): Element | null => row(bot).querySelector('.hm-row__name > bdi')
+
+      expect(nameOf('evil')?.textContent).toBe('Evil name')
+      expect(nameOf('long')?.textContent?.length).toBeLessThan(500)
+      expect(nameOf('long')?.textContent?.endsWith('…')).toBe(true)
+      // Nothing left to show: the route name.
+      expect(nameOf('ghost')?.textContent).toBe('ghost')
+    })
+
     it('prefers the last real message of the open transcript to the gateway’s string', () => {
       seedRoster([aBot('researcher', { canonical: { ...aBot('x').canonical!, preview: 'old gateway text' } })])
       chatsStore.getState().ensure('researcher', { storedSessionId: 'stored-researcher', resolvedSessionId: 'x' })
