@@ -201,6 +201,7 @@ extension GatewaySession {
       resumeProgress[chat] = nil
       models[chat]?.resumeProgress = nil
     case .sessionsChanged:
+      sessionsChangedCount += 1
       onSessionsChanged?()
     case .requestCancelReplayed(let id, let reason):
       secureInput.withdraw(id, reason: reason)

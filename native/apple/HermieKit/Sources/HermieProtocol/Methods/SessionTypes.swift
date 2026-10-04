@@ -489,6 +489,47 @@ public struct SessionTitleResult: JSONObjectBacked {
   public var pending: Bool? { get { json[field: "pending"] } set { json[field: "pending"] = newValue } }
 }
 
+/// `session.branch` params: start a new stored child from a LIVE session. `session_id` is the RUNTIME
+/// id (a stored id answers 4001). `count` is how many of the parent's messages the child starts
+/// with, counted from the start; absent, the whole history.
+public struct SessionBranchParams: JSONObjectBacked {
+  public var json: JSONObject
+  public init(json: JSONObject) { self.json = json }
+
+  public init(sessionID: String, profile: String? = nil, name: String? = nil, count: Int? = nil) {
+    self.init()
+    self.sessionID = sessionID
+    self.profile = profile
+    self.name = name
+    self.count = count
+  }
+
+  public var sessionID: String? { get { json[field: "session_id"] } set { json[field: "session_id"] = newValue } }
+  public var profile: String? { get { json[field: "profile"] } set { json[field: "profile"] = newValue } }
+  public var name: String? { get { json[field: "name"] } set { json[field: "name"] = newValue } }
+  public var count: Int? { get { json[field: "count"] } set { json[field: "count"] = newValue } }
+}
+
+/// `session.branch` result: the child, live (`session_id`, runtime) and stored (`stored_session_id`,
+/// the durable row a listing hands out). `title` is the one the gateway settled on, which is not the
+/// one asked for when that name was already worn.
+public struct SessionBranchResult: JSONObjectBacked {
+  public var json: JSONObject
+  public init(json: JSONObject) { self.json = json }
+
+  public var sessionID: String? { get { json[field: "session_id"] } set { json[field: "session_id"] = newValue } }
+  public var storedSessionID: String? {
+    get { json[field: "stored_session_id"] }
+    set { json[field: "stored_session_id"] = newValue }
+  }
+  public var title: String? { get { json[field: "title"] } set { json[field: "title"] = newValue } }
+  /// The stored id of the session it was taken from.
+  public var parent: String? { get { json[field: "parent"] } set { json[field: "parent"] = newValue } }
+  public var messageCount: Int? { get { json[field: "message_count"] } set { json[field: "message_count"] = newValue } }
+  public var messages: [TranscriptRow]? { get { json[field: "messages"] } set { json[field: "messages"] = newValue } }
+  public var info: SessionLiveInfo? { get { json[field: "info"] } set { json[field: "info"] = newValue } }
+}
+
 /// `session.set_hidden` params.
 public struct SessionSetHiddenParams: JSONObjectBacked {
   public var json: JSONObject

@@ -101,6 +101,9 @@ public final class GatewaySession {
   public internal(set) var uiMetaUser: String?
   /// Told after every `sessions.changed` sweep (debounced): the ui_meta bridge reconciles on it.
   @ObservationIgnored public var onSessionsChanged: (@MainActor () -> Void)?
+  /// How many `sessions.changed` sweeps this session has heard (debounced, once per burst). A view
+  /// that shows a list of sessions (the Conversations page) reads it again when this moves.
+  public internal(set) var sessionsChangedCount = 0
   /// The person a session-token gateway's app section is kept under (`OWNER_USER_ID`).
   public nonisolated static let sessionTokenUser = "owner"
 

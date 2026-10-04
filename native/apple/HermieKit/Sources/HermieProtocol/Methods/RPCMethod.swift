@@ -87,8 +87,8 @@ public enum RPC {
 
   public enum SessionBranch: RPCMethod {
     public static let name = "session.branch"
-    public typealias Params = JSONValue
-    public typealias Result = JSONValue
+    public typealias Params = SessionBranchParams
+    public typealias Result = SessionBranchResult
   }
 
   public enum SessionUsage: RPCMethod {
