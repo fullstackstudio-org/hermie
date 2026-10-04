@@ -518,18 +518,120 @@ configured entirely through `docker run -e ...` or a Kubernetes `env`/`envFrom`,
 
 ## Forms, files and drafts the agent asks for
 
-The page can show the agent's interactive questions (`input.form`, `input.file`, `review.draft`; the contract is
-[contract/requests](../contract/requests/README.md)) and advertises them, so a gateway that knows them sends them here.
-Each is a sheet over the page; **Later** (or Escape) puts it away with what was typed so the page is usable, and the
-transcript's record of the request offers **Open**. **Don't share** on a form or a file request tells the agent the
-person chose not to (`4041 cannot_show`, reason `declined`).
+Beside the approval and the clarify question, an agent can ask the person for three more things: **a form**
+(`input.form`: one to twelve typed fields), **a file** (`input.file`: one or more files, uploaded) and **a draft to
+review** (`review.draft`: a mail, a post or a message, to approve, change or reject). The wire is
+[contract/requests](../contract/requests/README.md), which is normative; this section is how the page behaves. The
+agent's side lives in the gateway: the tools `ask_form`, `ask_file` and `review_draft` are in the toolset
+`interactive`, which is off by default (switch it on with `hermes tools`, for the platform `cli`).
 
-One thing to know about files: a file is uploaded to the request's `upload.dir` **before** the answer is sent, one
-after another, and the page cannot take an upload back. An upload that is never answered stays there: the person
-cancelled mid-way, gave up after a later file failed, put the sheet away and the request ran out, or the gateway
-withdrew the request. Nothing deletes those files; they are named `<16 hex>-<name>` and sit flat in the directory, so
-they can be cleared by age like any other upload. (With `strip_metadata` a picture is re-encoded in the page before it
-goes, so what is left behind carries no location data.)
+### What the page advertises, and when
+
+A gateway sends one of these requests only to a connection that said it can show it. So the page lists the methods in
+the **second** `client.capabilities` call, and only after the first call's answer named them under `server_requests`
+(a gateway that does not know them would refuse the unknown key and the whole call with it). It lists a method only
+if this browser can do what it takes: `input.file` needs `File` and `FormData`, which every current browser has. A
+request the gateway parked for a device that can show it is delivered as soon as the advert is accepted.
+
+The page advertises what it can really show, because a gateway that knows a page can show a form sends it there
+instead of telling the agent that no client is available. A single request the page cannot show (a version or a form
+field kind it does not know, a frame that is not the contract's, too many waiting) is answered `4041 cannot_show` with
+a reason, never with a made-up skip, and leaves one short notice on its chat.
+
+### The three sheets
+
+Each is a modal sheet over the page, in a frame that is the page's own: the heading, the gateway's host, who receives
+the answer and the buttons are fixed words, and everything the agent wrote (its title, its summary, its detail) is
+plain text in a quoted box under a label that says it is the agent's. It is never Markdown and never a link, and it
+cannot style the frame around it.
+
+- **The form** draws the agent's fields with the browser's own inputs: text, number, amount, date, time, datetime,
+  date range, choice and toggle. The page checks a field the way the gateway does and says what is wrong next to the
+  field, in the gateway's own terms, before anything is sent; a refusal from the gateway comes back next to the field
+  it names and leaves everything typed in place. An amount goes out as a decimal string with at most the currency's
+  minor unit, and a datetime with its offset and its zone.
+- **The file sheet** offers the browser's picker, filtered by what the agent accepts, and a camera button where the
+  device probably has one. It enforces the request's `max_files`, `max_bytes` and `max_total_bytes` as files are
+  added and again on the prepared files, before the first byte moves. A picture gets a preview.
+- **The draft sheet** shows the text verbatim: monospaced, never wrapped, never rendered. Every character the gateway
+  refuses (zero-width characters, direction overrides, a tab) is shown by its code point, and the page names the rule
+  and the line instead of rewriting anything, so **Approve** waits until the person has taken it out. When the draft
+  is editable it can be changed before approving (**Approve with changes**), with the original kept on screen for
+  comparison. **Reject** takes an optional comment for the agent. A draft has no Skip.
+
+**Skip** is offered only when the request is `optional`. A countdown runs to the gateway's deadline; at that time the
+sheet goes, nothing is sent, and the chat says so.
+
+### Later, Open and Don't share
+
+**Later** (or Escape) puts a sheet away without answering: the request stays open at the gateway, the page is usable,
+and what was typed or picked stays in the sheet. The transcript's record of the request offers **Open** to bring it
+back. Later is not an answer. It is also the one place Escape closes a question sheet: an approval or a clarify
+question has no dismiss.
+
+**Don't share**, on a form or a file request, tells the agent the person chose not to provide it (`4041` with reason
+`declined`). The gateway passes that on as the person's choice, which is neither a skip nor a failure, and the agent is
+told not to ask again at once. On a draft the refusal is Reject.
+
+### Taps, order and several at once
+
+For 400 ms after a sheet is shown its controls are off, so a click or a keystroke meant for what was under it never
+answers. The guard starts when the sheet is **shown**, not when it is built: a sheet queued behind another, or opened
+again after Later, starts over.
+
+One sheet is on screen at a time, from one queue, oldest first, in the order the page first saw each request. Requests
+that arrive in the same moment (a resume that restores several) are ordered approvals and clarify questions first,
+then confirmations, secure prompts and these. The page does not take the screen away from a sheet that is open: a
+request that arrives meanwhile waits behind it, and a sheet put away with Later no longer holds the queue.
+
+### Uploads
+
+A file is uploaded to the request's `upload.dir` **before** the answer is sent, one after another, through the page's
+own upload route and with the credentials it already uses for attachments. It goes **flat** into that directory as
+`<16 hex>-<safe name>`: the gateway refuses a subdirectory. The answer carries the path, the name, the type, the size
+and the SHA-256 of the bytes **as uploaded**, never the bytes themselves; the page hashes the prepared file, so the
+figures are those of the file on the gateway. Each upload shows its progress and can be cancelled, and a file that is
+already up is not sent again when the person tries once more. A failed upload is said in the sheet: **Try again**, or
+**Give up**, which tells the agent `4041 upload_failed`, not an answer.
+
+With `strip_metadata`, a JPEG or PNG is decoded and drawn again on a canvas, which writes none of its EXIF or location
+data (the camera's rotation is applied to the pixels first). Any other picture the browser can read becomes a JPEG, and
+one the browser cannot read is refused rather than sent with its metadata. Documents and audio go up untouched.
+
+The page cannot take an upload back. One that is never answered stays on the gateway: the person cancelled mid-way,
+gave up after a later file failed, put the sheet away and the request ran out, or the gateway withdrew the request.
+Nothing deletes those files; they sit flat in the directory under their `<16 hex>-<name>` names, so they can be cleared
+by age like any other upload. What is left behind carries no location data when `strip_metadata` was asked.
+
+### What is never stored
+
+What a person types, the files they pick and the text they edit a draft into live in the sheet's own state for as long
+as the sheet exists and go into the one `request.answer` call. They never reach the transcript, the chat store, the
+cache, a draft, a log or a diagnostics export. The transcript is told only that a question was asked and how it ended:
+the heading, the agent's words and a summary such as `answered` with a count of files, or `approved` with whether the
+text was edited, never a value. Nothing is kept across a reload either: which sheets were put away is in memory only,
+and a request that is still open is delivered again.
+
+### Reconnects
+
+The page answers through `request.answer`, so the gateway's refusal comes back to the sheet. A request stays open
+across a dropped socket and a reconnect. A gateway lists these requests only to a connection that advertised them, and
+a reconnect's resume runs before the new socket's advert, so the page reads the gateway's list again once the advert
+was accepted.
+
+- A request that ended while the page was not listening (withdrawn, timed out, answered on another device) closes with
+  a notice that says so, and nothing is sent.
+- A re-delivered copy of a request the page already answered or let go is the proof that the answer never arrived: it
+  opens again and says so. A copy of one the gateway withdrew, that expired, or that the page declined never opens.
+- **An answer on its way is not overruled.** The gateway also sends `request.cancel` with reason `resolved` to the
+  device that answered, and it can arrive before the reply to the answer. While an answer is in flight, a cancel and
+  the local deadline wait for the call's result, which decides. A call that failed without the gateway's word leaves
+  the request open for another try, and a later "no longer waiting" says the answer may not have arrived rather than
+  that it expired.
+- A request for a session no chat holds yet waits, at most sixteen at once, until a chat holds it or its deadline
+  passes. The page does not decline for waiting: a chat the reader is about to open may still answer it.
+- The deadline is the request's own `expires_at`, on the page's clock. A request that arrives already past it is not
+  shown, and none is answered after it.
 
 ## What it cannot do
 

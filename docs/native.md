@@ -404,6 +404,40 @@ gone with what was typed or chosen in it, by design: the values live only in the
 which are wiped when it disappears, and the staged copies of chosen files are deleted. A request that
 was put away stays open, and its transcript card opens it again.
 
+**Advertising.** The second `client.capabilities` call carries `requests` only after the first call's
+result lists at least one `input.*`, `review.*` or `device.*` method under `server_requests`
+(`RequestsAdvertisement.methods(after:device:)`): a gateway that does not know the key refuses it and the whole
+call, `confirm` levels included. The list is the device's own (`InteractiveCapabilities.deviceMethods()`),
+at most 32 names, and a build that cannot draw a method does not list it
+(`InteractiveCapabilities.advertisedByDefault`). A request the gateway parked for a capable device can arrive
+before the answer to that call, so frames are handled from the moment it is sent. Only methods the connection
+advertised are taken in; any other is refused `-32601` below the center.
+
+**Reconnects.** A request stays open across a reconnect. The gateway lists these requests only to a connection
+that advertised them, so `open_requests` of a new socket mean nothing until its advert was accepted, and the
+center reconciles only against a list read after that (`OpenRequestList`: `listed`, `askedAt`, `index`). One the
+list no longer holds ended while the app was away and closes with a notice that says so ("lapsed", or "may not
+have arrived" if an answer was on its way), and nothing is sent. A re-delivered copy of a request the center
+closed without the gateway's `request.cancel` is the proof that the answer never arrived: it opens again and
+says so. An answer on its way is not overruled: the `request.cancel {reason: resolved}` the gateway sends to
+the device that answered can overtake the verdict, so a cancel, a list and the deadline wait for it. A request
+for a session no chat holds yet is parked for 15 seconds (`parkLimit`, at most 16) while a resume binds the
+session, and is then declined `4041`; one whose chat let go of its session is declined the same way. The web
+client never declines for waiting.
+
+**The app lock.** A sheet is never raised over the lock's plate, and the lock covers a sheet that is up (the
+sheet's binding reads as closed while the app is locked or its setting is not read yet). That is not Later and
+not an answer: the request stays open and the next sheet comes up after unlocking, with an empty form, since the
+sheet's models were wiped when it went. While locked, nothing is sent and the countdown runs on.
+
+**The Mac.** The same sheets, in a window of at least 460 × 420 points (520 × 640 ideal), with Esc as Later.
+The Mac has no camera sheet and no document scanner, so a file request offers the photo library and Files, and a
+`capture: photo` or `capture: scan` request is answered by whatever the person picks (the contract's capture is
+a preference, never a forced camera). On an iPhone or iPad the file sheet adds the camera where there is one and
+the document scanner (`DocumentScanner`, VisionKit; iOS only, and only where
+`VNDocumentCameraViewController.isSupported`), which hands back JPEGs written from the pixels, so no metadata of
+the camera goes with them; `accept: document` assembles a scan into one PDF.
+
 `LiveGateway` (`HermieCore/LiveGateway.swift`) is the app's one live session (ADR-0024). The app
 shell builds it next to `GatewayAccounts`; it follows the registry's active gateway once
 `AppLaunch.start()` has finished (`AppLaunch.ready`), shuts the old session down before it builds
