@@ -178,7 +178,13 @@ test.describe('Copy links', () => {
     await expect(bubble(page, 'assistant', 'Try')).toContainText('today.')
     await expect(app.transcript).not.toHaveAttribute('aria-busy', 'true')
 
-    await bubble(page, 'assistant', 'Try').click({ button: 'right', position: { x: 4, y: 4 } })
+    // On the first words ("Try"), away from both links (a link keeps the browser's own menu). Not at the
+    // bubble's own corner: (4, 4) is outside its 18px rounding, where a browser may give the click to the
+    // message around the bubble (Firefox does, and Playwright then waits for the bubble for ever).
+    await bubble(page, 'assistant', 'Try')
+      .locator('p')
+      .first()
+      .click({ button: 'right', position: { x: 4, y: 4 } })
 
     const menu = page.getByRole('menu', { name: 'Message actions' })
     const parent = menu.getByRole('menuitem', { name: 'Copy links' })
