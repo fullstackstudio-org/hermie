@@ -352,6 +352,9 @@ private struct ComposerHarness {
     link.fail(hide, GatewayRPCError(.rejected, "no"))
     let title = try await link.pendingCall(RPC.SessionTitle.name)
     link.fail(title, GatewayRPCError(.rejected, "no"))
+    // The stamp's name is tried once more with the seconds in it (a name worn in the same minute).
+    let again = try await link.pendingCall(RPC.SessionTitle.name) { $0.id != title.id }
+    link.fail(again, GatewayRPCError(.rejected, "no"))
     link.respond(to: RPC.SessionSetHidden.name, with: [:])
     await starting.value
     await opened.shutdown()
