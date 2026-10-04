@@ -9,6 +9,8 @@ import Testing
 private let bot = Fixture.profile
 /// A value nobody else in the test writes, so finding it anywhere is a leak.
 private let typed = "reconnect-7f3a-never-anywhere"
+/// A list that holds every interactive method in full.
+private let all = Set(InteractiveCapabilities.deviceMethods())
 
 /// The center hears the live socket only. What the gateway said while the socket was down (a
 /// `request.cancel`, a request that timed out) reaches it through what the reconnect reads: the
@@ -27,7 +29,7 @@ struct InteractiveReconnectTests {
     model.present("srq-1")
     await h.clock.advance(by: .seconds(1))
 
-    h.center.reconcile(session: Fixture.runtime, open: ["srq-2"], askedAt: h.clock.now)
+    h.center.reconcile(session: Fixture.runtime, open: ["srq-2"], askedAt: h.clock.now, listed: all)
 
     #expect(h.center.prompts.map(\.id) == ["srq-2"])
     #expect(h.center.notices[bot]?.notice == .lapsed)
@@ -43,13 +45,29 @@ struct InteractiveReconnectTests {
     #expect(card.state == .cancelled)
     #expect(card.cancelReason == "lapsed")
 
-    // The gateway stopped waiting for it: a copy that turns up later is not opened again.
-    var params = InteractiveFrames.form()
-    params["session_id"] = .string(Fixture.runtime)
-    h.link.raise(id: "srq-1", method: "input.form", params: params, replayed: true)
-    try await h.harness.frame()
-    try await Task.sleep(for: .milliseconds(30))
-    #expect(!h.center.isOpen("srq-1"))
+    // A copy the gateway re-delivers later says it still waits after all: it opens again.
+    let again = try await h.raiseOpen("srq-1", replayed: true)
+    #expect(!again.earlierAnswerLost, "nothing was answered")
+    #expect(await h.card("srq-1")?.state == .open)
+  }
+
+  @Test("a list that does not hold a method in full closes none of its requests")
+  func onlyTheMethodsListedInFull() async throws {
+    let h = InteractiveHarness()
+    try await h.open()
+    try await h.raiseOpen("form")
+    try await h.raiseOpen("draft", "review.draft", params: InteractiveFrames.draft())
+    await h.clock.advance(by: .seconds(1))
+
+    // Read before this socket's methods were accepted: it says nothing about them.
+    h.center.reconcile(session: Fixture.runtime, open: [], askedAt: h.clock.now, listed: [])
+    #expect(h.center.prompts.map(\.id) == ["form", "draft"])
+    #expect(h.center.notices.isEmpty)
+
+    // Only `input.form` was accepted when this one was read.
+    h.center.reconcile(session: Fixture.runtime, open: [], askedAt: h.clock.now, listed: ["input.form"])
+    #expect(h.center.prompts.map(\.id) == ["draft"])
+    #expect(h.center.notices[bot]?.requestID == "form")
   }
 
   @Test("a request first seen at or after the call went out is kept: it may be newer than the list")
@@ -61,7 +79,7 @@ struct InteractiveReconnectTests {
     let askedAt = h.clock.now
     try await h.raiseOpen("after")
 
-    h.center.reconcile(session: Fixture.runtime, open: [], askedAt: askedAt)
+    h.center.reconcile(session: Fixture.runtime, open: [], askedAt: askedAt, listed: all)
 
     #expect(h.center.prompts.map(\.id) == ["after"])
     #expect(h.center.notices[bot]?.requestID == "before")
@@ -74,8 +92,8 @@ struct InteractiveReconnectTests {
     try await h.raiseOpen("mine")
     await h.clock.advance(by: .seconds(1))
 
-    h.center.reconcile(session: "rt-other", open: [], askedAt: h.clock.now)
-    h.center.reconcile(session: "", open: [], askedAt: h.clock.now)
+    h.center.reconcile(session: "rt-other", open: [], askedAt: h.clock.now, listed: all)
+    h.center.reconcile(session: "", open: [], askedAt: h.clock.now, listed: all)
 
     #expect(h.center.isOpen("mine"))
     #expect(h.center.notices.isEmpty)
@@ -92,7 +110,7 @@ struct InteractiveReconnectTests {
     try await eventually("far to wait for its chat") { await center.parkedCount == 1 }
     await h.clock.advance(by: .seconds(1))
 
-    center.reconcile(session: "rt-9", open: [], askedAt: h.clock.now)
+    center.reconcile(session: "rt-9", open: [], askedAt: h.clock.now, listed: all)
 
     #expect(center.parkedCount == 0)
     #expect(center.prompts.isEmpty)
@@ -105,54 +123,59 @@ struct InteractiveReconnectTests {
     #expect(h.link.declines.isEmpty)
   }
 
-  @Test("a request whose answer is on its way when the list leaves it out says it may not have arrived, once")
-  func listWhileSending() async throws {
+  @Test("a list that leaves out a request whose answer is on its way waits for the verdict: taken is answered")
+  func listWhileSendingTaken() async throws {
     let h = InteractiveHarness()
     try await h.open()
+    try await h.raiseOpen("slow")
     let gate = ReplyGate()
-    var params = InteractiveFrames.form()
-    params["session_id"] = .string(Fixture.runtime)
-    let request = ServerRequest(id: "slow", method: "input.form", params: params)
-    let inbound = InboundRequest(
-      request: request,
-      replayed: false,
-      index: 1,
-      respond: { result in await gate.respond(result) },
-      fail: { _, _ in true }
-    )
-    await h.center.ingest(InteractiveRequestCenter.read(inbound))
-    #expect(h.center.isOpen("slow"))
+    h.link.onRequestAnswer { _, result in
+      _ = await gate.respond(result)
+      return ["status": "ok"]
+    }
     await h.clock.advance(by: .seconds(1))
 
     let center = h.center
     let sending = Task { @MainActor in await center.answer("slow", .form(["name": .text(typed)])) }
     try await eventually("the answer to be on its way") { await center.phases["slow"] == .sending }
-    center.reconcile(session: Fixture.runtime, open: [], askedAt: h.clock.now)
-    #expect(!center.isOpen("slow"))
-    #expect(center.notices[bot]?.notice == .mayNotHaveArrived)
+    // The list may leave it out because this very answer settled it.
+    center.reconcile(session: Fixture.runtime, open: [], askedAt: h.clock.now, listed: all)
+    #expect(center.isOpen("slow"), "the verdict decides")
     gate.open()
-    _ = await sending.value
+    #expect(await sending.value)
 
-    // The frame already handed to the socket is the only one: the re-check after the await neither
-    // records it as answered nor sends anything more.
-    #expect(gate.answers.count == 1)
+    #expect(!center.isOpen("slow"))
+    #expect(center.lastAnswered?.requestID == "slow")
+    #expect(center.notices[bot] == nil)
+    #expect(await h.card("slow")?.state == .answered)
+  }
+
+  @Test("a list that leaves out a request whose answer got no verdict closes it: it may not have arrived")
+  func listWhileSendingNoVerdict() async throws {
+    let h = InteractiveHarness()
+    try await h.open()
+    try await h.raiseOpen("slow")
+    let gate = ReplyGate()
+    h.link.onRequestAnswer { _, result in
+      _ = await gate.respond(result)
+      throw GatewayRPCError(.timeout, "request timed out after 30s: request.answer")
+    }
+    await h.clock.advance(by: .seconds(1))
+
+    let center = h.center
+    let sending = Task { @MainActor in await center.answer("slow", .form(["name": .text(typed)])) }
+    try await eventually("the answer to be on its way") { await center.phases["slow"] == .sending }
+    center.reconcile(session: Fixture.runtime, open: [], askedAt: h.clock.now, listed: all)
+    gate.open()
+    #expect(await sending.value == false)
+
+    #expect(!center.isOpen("slow"))
     #expect(center.lastAnswered == nil)
     #expect(center.phases["slow"] == nil)
     #expect(center.notices[bot]?.notice == .mayNotHaveArrived)
     #expect(await center.answer("slow", .form(["name": .text(typed)])) == false)
     #expect(gate.answers.count == 1)
-
-    // Closed as the gateway's doing: a re-delivered copy is not opened again.
-    await center.ingest(
-      InteractiveRequestCenter.read(
-        InboundRequest(
-          request: request,
-          replayed: true,
-          index: 2,
-          respond: { result in await gate.respond(result) },
-          fail: { _, _ in true }
-        )))
-    #expect(!center.isOpen("slow"))
+    #expect(await h.card("slow")?.cancelReason == "lapsed")
   }
 
   // MARK: Through the store
@@ -177,6 +200,61 @@ struct InteractiveReconnectTests {
     #expect(await model.answer(.approve(text: typed)) == false)
     #expect(h.link.answers.isEmpty)
     #expect(await h.card("srq-r")?.state == .cancelled)
+  }
+
+  @Test("after a reconnect, lists read before this socket's methods were accepted close nothing: the form stays answerable")
+  func earlyListsCloseNothing() async throws {
+    let h = InteractiveHarness()
+    try await h.open()
+    try await h.raiseOpen("srq-k")
+    let model = InteractiveModel(session: h.session, bot: bot)
+    model.present("srq-k")
+
+    // The resume and the replay raced the second `client.capabilities` call: the gateway hid the
+    // form from both lists.
+    h.link.setListed([])
+    try await reconnect(h, resume: Fixture.resume(extra: ["open_requests": []]), since: Fixture.since(latest: 0))
+    try await h.harness.frame()
+    try await Task.sleep(for: .milliseconds(50))
+    #expect(h.center.isOpen("srq-k"))
+    #expect(h.center.notices.isEmpty)
+    #expect(model.presented?.id == "srq-k")
+
+    // Once the methods are accepted the gateway re-delivers it; the answer goes through.
+    h.link.setListed(all)
+    try await h.raiseOpen("srq-k", replayed: true)
+    #expect(await model.answer(.form(["name": .text(typed)])))
+    #expect(h.answers("srq-k").count == 1)
+    #expect(await h.card("srq-k")?.state == .answered)
+  }
+
+  @Test("a resume's request this app cannot show draws no card: it is declined 4041 with a notice, and the chat waits for nothing")
+  func resumeListedCannotShowDrawsNoCard() async throws {
+    let h = InteractiveHarness()
+    try await h.open()
+    var future = InteractiveFrames.form(fields: [["id": "x", "kind": "hologram", "label": "X"]])
+    future["session_id"] = .string(Fixture.runtime)
+    var late = InteractiveFrames.form(expires: 1_789_999_990)
+    late["session_id"] = .string(Fixture.runtime)
+    let listed: JSONValue = [
+      ["id": "srq-u", "method": "input.form", "params": .object(future)],
+      ["id": "srq-late", "method": "input.form", "params": .object(late)]
+    ]
+
+    // As the connection does, the copies are re-delivered before the resume's answer is read.
+    h.link.raise(id: "srq-u", method: "input.form", params: future, replayed: true)
+    h.link.raise(id: "srq-late", method: "input.form", params: late, replayed: true)
+    try await reconnect(h, resume: Fixture.resume(extra: ["open_requests": listed]), since: withoutList(Fixture.since(latest: 0)))
+    let link = h.link
+    try await eventually("the refusal") { link.declines.contains { $0.id == "srq-u" } }
+    try await h.harness.frame()
+
+    #expect(h.cannotShowReason("srq-u") == CannotShowReason.notSupportedOnDevice)
+    #expect(await h.card("srq-u") == nil, "no card waits for an answer that went out as an error")
+    #expect(await h.card("srq-late") == nil)
+    #expect(h.center.prompts.isEmpty)
+    #expect(!h.center.needsInput(bot))
+    #expect(h.session.chat(bot).openRequests.isEmpty, "the chat waits for nothing")
   }
 
   @Test("a resume whose open_requests no longer lists the request closes it, without the replay's list")
@@ -336,18 +414,40 @@ struct InteractiveReconnectTests {
 
   // MARK: An answer that never arrived is asked again
 
-  @Test("a re-delivered copy of an answered request opens it again, saying the answer did not arrive")
+  @Test("an answer the gateway took is never asked again, even by a copy a list read before it re-delivers")
+  func takenIsNotReopened() async throws {
+    let h = InteractiveHarness()
+    try await h.open()
+    try await h.raiseOpen("taken", "review.draft", params: InteractiveFrames.draft())
+    #expect(await h.center.answer("taken", .approve(text: InteractiveFrames.draftText)))
+    #expect(await h.card("taken")?.state == .answered)
+
+    var params = InteractiveFrames.draft()
+    params["session_id"] = .string(Fixture.runtime)
+    h.link.raise(id: "taken", method: "review.draft", params: params, replayed: true)
+    try await h.harness.frame()
+    try await Task.sleep(for: .milliseconds(30))
+    #expect(!h.center.isOpen("taken"))
+    #expect(h.center.notices.isEmpty)
+    #expect(h.answers("taken").count == 1)
+  }
+
+  @Test("a re-delivered copy of a request whose 4041 did not arrive opens it again, saying the answer was lost")
   func reopensWhenTheAnswerWasLost() async throws {
     let h = InteractiveHarness()
     try await h.open()
-    let first = try await h.raiseOpen("lost", "review.draft", params: InteractiveFrames.draft())
-    #expect(await h.center.answer("lost", .approve(text: InteractiveFrames.draftText)))
-    #expect(!h.center.isOpen("lost"))
-    #expect(await h.card("lost")?.state == .answered)
-
-    // A live copy of a done id is not proof of anything; only the gateway's re-delivery is.
     var params = InteractiveFrames.draft()
     params["session_id"] = .string(Fixture.runtime)
+    let request = ServerRequest(id: "lost", method: "review.draft", params: params)
+    // The 4041 is handed to a socket that goes before it is written.
+    await h.center.ingest(
+      InteractiveRequestCenter.read(
+        InboundRequest(request: request, replayed: false, index: 1, respond: { _ in true }, fail: { _, _ in true })))
+    let first = try #require(h.center.prompts.first { $0.id == "lost" })
+    #expect(await h.center.cannotShow("lost", reason: CannotShowReason.permissionDenied))
+    #expect(!h.center.isOpen("lost"))
+
+    // A live copy of a done id is not proof of anything; only the gateway's re-delivery is.
     h.link.raise(id: "lost", method: "review.draft", params: params, replayed: false)
     try await Task.sleep(for: .milliseconds(30))
     #expect(!h.center.isOpen("lost"))
@@ -357,7 +457,7 @@ struct InteractiveReconnectTests {
     #expect(again.deadline == first.deadline, "the deadline its first copy had")
     #expect(await h.card("lost")?.state == .open, "the card asks again")
     #expect(await h.center.answer("lost", .approve(text: InteractiveFrames.draftText)))
-    #expect(h.answers("lost").count == 2)
+    #expect(h.answers("lost").count == 1)
   }
 
   @Test("a withdrawn request is never opened again; an abandoned one whose refusal did not arrive is")
@@ -390,29 +490,103 @@ struct InteractiveReconnectTests {
 
   // MARK: A cancel during the send says what is true
 
-  @Test("a request.cancel while the answer is on its way says it may not have arrived")
+  @Test("a resolved cancel that overtakes the verdict of this device's answer: answered, and the card hears it")
+  func resolvedBeforeTheVerdict() async throws {
+    let h = InteractiveHarness()
+    try await h.open()
+    try await h.raiseOpen("mine")
+    let gate = ReplyGate()
+    h.link.onRequestAnswer { _, result in
+      _ = await gate.respond(result)
+      return ["status": "ok"]
+    }
+    let model = InteractiveModel(session: h.session, bot: bot)
+    model.present("mine")
+
+    let center = h.center
+    let sending = Task { @MainActor in await model.answer(.form(["name": .text("v")])) }
+    try await eventually("the answer to be on its way") { await center.phases["mine"] == .sending }
+    // The gateway's `resolved` goes to every client, this one included, and arrives first. (Told
+    // to the center alone, so the card shows what the center makes of it.)
+    center.withdraw("mine", reason: "resolved")
+    #expect(center.isOpen("mine"), "the verdict decides")
+    // Nor does the deadline close it meanwhile.
+    await h.clock.advance(by: .seconds(400))
+    #expect(center.isOpen("mine"))
+
+    gate.open()
+    #expect(await sending.value)
+    #expect(!center.isOpen("mine"))
+    #expect(center.lastAnswered?.requestID == "mine")
+    #expect(center.notices[bot] == nil)
+    #expect(model.presentedID == nil)
+    let card = try #require(await h.card("mine"))
+    #expect(card.state == .answered)
+    #expect(card.answerSummary?.status == "answered")
+  }
+
+  @Test("a resolved cancel after the verdict changes nothing; one for a request this device did not answer says so")
+  func resolvedAfterTheVerdictAndElsewhere() async throws {
+    let h = InteractiveHarness()
+    try await h.open()
+    try await h.raiseOpen("mine")
+    try await h.raiseOpen("theirs")
+    #expect(await h.center.answer("mine", .form(["name": .text("v")])))
+
+    h.link.emit("request.cancel", session: Fixture.runtime, payload: ["id": "mine", "method": "input.form", "reason": "resolved"])
+    try await h.harness.frame()
+    try await Task.sleep(for: .milliseconds(20))
+    #expect(h.center.notices[bot] == nil)
+    #expect(h.center.lastAnswered?.requestID == "mine")
+
+    h.link.emit("request.cancel", session: Fixture.runtime, payload: ["id": "theirs", "method": "input.form", "reason": "resolved"])
+    let center = h.center
+    try await eventually("theirs to close") { await !center.isOpen("theirs") }
+    #expect(center.notices[bot]?.notice == .answeredElsewhere)
+    #expect(center.notices[bot]?.requestID == "theirs")
+    #expect(h.answers("theirs").isEmpty)
+  }
+
+  @Test("a timeout cancel while the answer is on its way: the gateway's expired verdict closes it as expired")
+  func timeoutWhileSending() async throws {
+    let h = InteractiveHarness()
+    try await h.open()
+    try await h.raiseOpen("late")
+    let gate = ReplyGate()
+    h.link.onRequestAnswer { _, result in
+      _ = await gate.respond(result)
+      return ["status": "expired"]
+    }
+
+    let center = h.center
+    let sending = Task { @MainActor in await center.answer("late", .form(["name": .text("v")])) }
+    try await eventually("the answer to be on its way") { await center.phases["late"] == .sending }
+    center.withdraw("late", reason: "timeout")
+    gate.open()
+    #expect(await sending.value == false)
+
+    #expect(!center.isOpen("late"))
+    #expect(center.notices[bot]?.notice == .expired)
+    #expect(center.lastAnswered == nil)
+  }
+
+  @Test("a cancel while the answer got no verdict says it may not have arrived")
   func cancelWhileSending() async throws {
     let h = InteractiveHarness()
     try await h.open()
+    try await h.raiseOpen("slow")
     let gate = ReplyGate()
-    var params = InteractiveFrames.form()
-    params["session_id"] = .string(Fixture.runtime)
-    let inbound = InboundRequest(
-      request: ServerRequest(id: "slow", method: "input.form", params: params),
-      replayed: false,
-      index: 1,
-      respond: { result in await gate.respond(result) },
-      fail: { _, _ in true }
-    )
-    await h.center.ingest(InteractiveRequestCenter.read(inbound))
-    #expect(h.center.isOpen("slow"))
+    h.link.onRequestAnswer { _, result in
+      _ = await gate.respond(result)
+      throw GatewayRPCError(.closed, "WebSocket closed")
+    }
 
     let center = h.center
     let sending = Task { @MainActor in await center.answer("slow", .form(["name": .text("v")])) }
     try await eventually("the answer to be on its way") { await center.phases["slow"] == .sending }
-    center.withdraw("slow", reason: "timeout")
+    center.withdraw("slow", reason: "interrupted")
     gate.open()
-    _ = await sending.value
+    #expect(await sending.value == false)
 
     #expect(center.notices[bot]?.notice == .mayNotHaveArrived)
     #expect(!center.isOpen("slow"))

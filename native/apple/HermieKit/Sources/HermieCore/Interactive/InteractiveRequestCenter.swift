@@ -7,9 +7,13 @@ import Observation
 public enum InteractivePhase: Sendable, Equatable {
   /// On its way; the sheet's controls are off.
   case sending
-  /// It did not go out (the socket that delivered the request is gone). The request is still
-  /// open; sending again uses the copy the gateway re-delivers after the reconnect.
+  /// It did not reach the gateway, or the gateway's verdict did not come back (the socket went,
+  /// the call timed out). The request is still open, and the answer can be sent again.
   case failed
+  /// The gateway refused the answer (`request.answer` error `4034`) for `reason`, its machine
+  /// string (`field:guests:below_min`, `not_optional`, ...): the request is still open, and the
+  /// sheet shows the reason next to the input so the person can correct it. Never a value.
+  case refused(reason: String)
 }
 
 /// A short line on a chat about a request that ended without the person's answer, or one this app
@@ -22,6 +26,9 @@ public enum InteractiveNotice: Sendable, Equatable {
   case withdrawn
   /// The gateway stopped waiting while the answer was on its way: it may not have arrived in time.
   case mayNotHaveArrived
+  /// The request was answered on another device (the gateway's `request.cancel` with reason
+  /// `resolved` for a request this device did not answer).
+  case answeredElsewhere
   /// The request ended while the connection was down (withdrawn, timed out, or answered
   /// elsewhere): the reconnect found the gateway no longer waits for it, so nothing was sent.
   case lapsed
@@ -48,6 +55,17 @@ public enum InteractiveCapabilities {
   public static func deviceMethods() -> [String] {
     ServerRequestBody.Method.interactive
   }
+
+  /// Whether a session announces `deviceMethods()` unless told otherwise. Off until the sheets that
+  /// show the requests exist (task N3): a build that announces a method it cannot draw leaves the
+  /// bot waiting on a question nobody sees. N3 turns this on.
+  public static let advertisedByDefault = false
+
+  /// The list `GatewaySession.Options.requests` starts with: `deviceMethods()` once
+  /// `advertisedByDefault`, none before.
+  public static func defaultMethods() -> [String]? {
+    advertisedByDefault ? deviceMethods() : nil
+  }
 }
 
 /// The interactive requests of one gateway (`input.form`, `input.file`, `review.draft`), from the
@@ -68,8 +86,16 @@ public enum InteractiveCapabilities {
 ///   upload from the sheet (`cannotShow`). A parked request that no chat claims within the park
 ///   limit, and one whose chat let go of its session, are declined the same way.
 /// - `shutdown` answers every open request `4041 shutting_down`.
-/// - Only the methods the connection advertised are taken in (`Options.methods`); the connection
-///   has already declined the others with `-32601`.
+/// - Only the methods the connection advertised are taken in (`Options.methods`), and only a
+///   delivery the connection did not already decline (`InboundRequest.declined`: a method the
+///   gateway did not accept from this socket was answered `-32601` below this layer).
+/// - An answer goes through `request.answer {id, result}` (the gateway gives no reply to a bare
+///   response frame), and its verdict decides: `ok` answered, `expired` ended, `4034` refused with a
+///   reason and still open (`InteractivePhase.refused`), `too_many_attempts` withdrawn, no verdict
+///   `failed`. A `request.cancel` (`resolved` included: the gateway sends it to the device that
+///   answered too, and it can overtake the verdict), a reconnect's list and the deadline wait for
+///   the verdict of an answer on its way. Only `4041 cannot_show` goes out on the request's own
+///   reply frame.
 ///
 /// # Routing, ending, reconnects
 ///
@@ -154,6 +180,9 @@ public final class InteractiveRequestCenter {
   @ObservationIgnored private var parkTimers: [String: ScheduledTimer] = [:]
   /// Ids that are done and why, oldest first. Bounded.
   @ObservationIgnored private var closed: [String: Closed] = [:]
+  /// Per request whose answer is on its way: how the gateway ended it meanwhile (a `request.cancel`,
+  /// a reconnect's list that left it out). The answer's verdict decides what that means.
+  @ObservationIgnored private var endedWhileSending: [String: EndedWhileSending] = [:]
   @ObservationIgnored private var closedOrder: [String] = []
   @ObservationIgnored private var tasks: [Task<Void, Never>] = []
   @ObservationIgnored private var revalidation: Task<Void, Never>?
@@ -172,6 +201,8 @@ public final class InteractiveRequestCenter {
 
   /// What a request waiting for its chat will be.
   private struct Pending {
+    /// Its newest delivery.
+    var inbound: InboundRequest
     var content: InteractiveContent
     var sessionID: String
     var deadline: Duration?
@@ -187,8 +218,11 @@ public final class InteractiveRequestCenter {
 
   /// Why an id is done.
   private enum CloseReason {
-    /// An answer (a result or an error) went out from here.
+    /// An error answer went out from here on the request's own reply frame.
     case answered
+    /// The gateway took the answer (`request.answer` said `ok`): never opened again, even by a
+    /// copy a list read before the answer re-delivers.
+    case settled
     /// Closed here without the gateway saying so: its deadline, its chat let go of it, or it was
     /// declined.
     case closedHere
@@ -203,6 +237,37 @@ public final class InteractiveRequestCenter {
     /// The deadline it had, for a copy that opens it again.
     var deadline: Duration?
   }
+
+  /// How the gateway ended a request while its answer was on its way.
+  private enum EndedWhileSending {
+    /// `request.cancel` with this reason.
+    case cancelled(reason: String)
+    /// A reconnect's `open_requests` left it out.
+    case lapsed
+
+    var cancelReason: String? {
+      if case .cancelled(let reason) = self {
+        return reason
+      }
+
+      return nil
+    }
+  }
+
+  /// What `request.answer` came back with.
+  private enum Verdict {
+    case accepted
+    case expired
+    case refused(reason: String)
+    case tooManyAttempts
+    case noVerdict
+  }
+
+  /// `request.answer`'s refusal: the answer is not valid (`data.reason` says why).
+  nonisolated static let refusedCode = 4034
+  nonisolated static let tooManyAttempts = "too_many_attempts"
+  /// `request.cancel`'s reason when the request was answered (here or elsewhere).
+  nonisolated static let resolved = "resolved"
 
   private static let closedLimit = 512
 
@@ -357,9 +422,12 @@ public final class InteractiveRequestCenter {
 
   // MARK: - Answering
 
-  /// Answer a request. Answers whether it went out. Nothing is sent for a request that is no
-  /// longer open, whose deadline has passed, whose answer is already on its way, or that `answer`
-  /// cannot answer (another method's answer, a Skip it does not offer, a draft it may not change).
+  /// Answer a request through `request.answer`. Answers whether the gateway took it; when it
+  /// refused it (`InteractivePhase.refused`) or gave no verdict (`.failed`) the request stays open,
+  /// and when it no longer waits the request closes with a notice. Nothing is sent for a request
+  /// that is no longer open, whose deadline has passed, whose answer is already on its way, or that
+  /// `answer` cannot answer (another method's answer, a Skip it does not offer, a draft it may not
+  /// change).
   @discardableResult
   public func answer(_ id: String, _ answer: InteractiveAnswer) async -> Bool {
     guard let prompt = prompts.first(where: { $0.id == id }), phases[id] != .sending else {
@@ -375,10 +443,10 @@ public final class InteractiveRequestCenter {
       return false
     }
 
-    return await deliver(id, Outgoing.result(reply))
+    return await send(id, reply, chatKey: prompt.chatKey)
   }
 
-  /// Skip: for a request that offers it. Answers whether it went out.
+  /// Skip: for a request that offers it. Answers whether the gateway took it.
   @discardableResult
   public func skip(_ id: String) async -> Bool {
     await answer(id, .skip)
@@ -388,7 +456,7 @@ public final class InteractiveRequestCenter {
   /// the error `4041 cannot_show` with `reason`. Answers whether it went out.
   @discardableResult
   public func cannotShow(_ id: String, reason: String) async -> Bool {
-    guard isOpen(id), phases[id] != .sending else {
+    guard let prompt = prompts.first(where: { $0.id == id }), phases[id] != .sending else {
       return false
     }
 
@@ -397,60 +465,125 @@ public final class InteractiveRequestCenter {
       return false
     }
 
-    return await deliver(id, Outgoing.cannotShow(reason: reason))
+    return await sendCannotShow(id, reason: reason, chatKey: prompt.chatKey)
   }
 
-  /// What goes out for an answer.
-  private enum Outgoing {
-    case result(InteractiveReply)
-    case cannotShow(reason: String)
+  /// Send a result through `request.answer` and act on the gateway's verdict. Answers whether the
+  /// gateway took it.
+  private func send(_ id: String, _ reply: InteractiveReply, chatKey: String) async -> Bool {
+    phases[id] = .sending
+    let verdict = await Self.verdict(of: link, id: id, result: reply.result)
 
-    var summary: JSONObject? {
-      switch self {
-      case .result(let reply): reply.summary
-      case .cannotShow: nil
+    // Re-check after the suspension: only shutdown takes a request whose answer is on its way.
+    let ended = endedWhileSending.removeValue(forKey: id)
+
+    guard isOpen(id) else {
+      return false
+    }
+
+    let key = prompts.first { $0.id == id }?.chatKey ?? chatKey
+
+    switch verdict {
+    case .accepted:
+      // Taken, whatever ended it meanwhile: a `resolved` cancel that overtook the verdict was this
+      // answer's own.
+      finish(id, .settled)
+      serial += 1
+      lastAnswered = AnsweredEntry(requestID: id, serial: serial)
+
+      if notices[key]?.requestID == id {
+        notices[key] = nil
       }
+
+      let summary = reply.summary
+      transcript { await $0.interactiveAnswered(key, requestID: id, summary: summary) }
+      return true
+    case .expired:
+      // The gateway no longer waits for it: the answer did not count.
+      let reason = ended.flatMap(\.cancelReason) ?? "timeout"
+      finish(id, .cancelled)
+      show(Self.notice(forCancel: reason), id, on: key)
+      transcript { await $0.interactiveEnded(key, requestID: id, reason: reason) }
+      return false
+    case .tooManyAttempts:
+      finish(id, .cancelled)
+      show(.withdrawn, id, on: key)
+      transcript { await $0.interactiveEnded(key, requestID: id, reason: Self.tooManyAttempts) }
+      return false
+    case .refused(let reason):
+      if let ended {
+        // Refused, and the gateway ended it meanwhile: not this answer's doing.
+        end(id, ended, mayHaveArrived: false, on: key)
+        return false
+      }
+
+      phases[id] = .refused(reason: reason)
+    case .noVerdict:
+      if let ended {
+        end(id, ended, mayHaveArrived: true, on: key)
+        return false
+      }
+
+      phases[id] = .failed
+    }
+
+    // The deadline passed while the answer was on its way: now it can close.
+    if let expiry = expiries[id], clock.now >= expiry {
+      phases[id] = nil
+      expire(id)
+    }
+
+    return false
+  }
+
+  /// What `request.answer {id, result}` came back with.
+  private nonisolated static func verdict(of link: any GatewayLink, id: String, result: JSONObject) async -> Verdict {
+    do {
+      let reply = try await link.requestReply(
+        RPC.RequestAnswer.name, params: RequestAnswerParams(id: id, result: result).jsonValue)
+
+      switch RequestAnswerResult(jsonValue: reply.result)?.status {
+      case .ok?: return .accepted
+      case .expired?: return .expired
+      default: return .noVerdict
+      }
+    } catch let error as GatewayRPCError where error.kind == .rejected && error.code == refusedCode {
+      let reason = error.data?["reason"]?.stringValue ?? ""
+      return reason == tooManyAttempts ? .tooManyAttempts : .refused(reason: reason)
+    } catch {
+      return .noVerdict
     }
   }
 
-  private func deliver(_ id: String, _ outgoing: Outgoing) async -> Bool {
-    guard let handle = handles[id], let prompt = prompts.first(where: { $0.id == id }) else {
-      // Only an open request has a phase; a closed id keeps none.
-      if isOpen(id) {
-        phases[id] = .failed
-      }
+  /// Answer `4041 cannot_show {reason}` on the request's own reply frame. Answers whether it went
+  /// out.
+  private func sendCannotShow(_ id: String, reason: String, chatKey: String) async -> Bool {
+    guard let handle = handles[id] else {
+      phases[id] = .failed
       return false
     }
 
     phases[id] = .sending
-    let sent: Bool
+    let sent = await handle.cannotShow(reason: reason)
+    let ended = endedWhileSending.removeValue(forKey: id)
 
-    switch outgoing {
-    case .result(let reply): sent = await handle.respond(reply.result)
-    case .cannotShow(let reason): sent = await handle.cannotShow(reason: reason)
-    }
-
-    // Re-check after the suspension: the gateway may have withdrawn it, or its chat let go of it,
-    // while the answer was in flight.
     guard isOpen(id) else {
       return sent
     }
+
+    let key = prompts.first { $0.id == id }?.chatKey ?? chatKey
 
     if sent {
       finish(id, .answered)
       serial += 1
       lastAnswered = AnsweredEntry(requestID: id, serial: serial)
-
-      if let summary = outgoing.summary {
-        transcript { await $0.interactiveAnswered(prompt.chatKey, requestID: id, summary: summary) }
-      } else {
-        transcript { await $0.interactiveEnded(prompt.chatKey, requestID: id, reason: "cannot_show") }
-      }
-
+      transcript { await $0.interactiveEnded(key, requestID: id, reason: "cannot_show") }
       return true
     }
 
-    if let expiry = expiries[id], clock.now >= expiry {
+    if let ended {
+      end(id, ended, mayHaveArrived: false, on: key)
+    } else if let expiry = expiries[id], clock.now >= expiry {
       phases[id] = nil
       expire(id)
     } else {
@@ -458,6 +591,31 @@ public final class InteractiveRequestCenter {
     }
 
     return false
+  }
+
+  /// Close a request the gateway ended while its answer was on its way, now that the answer did not
+  /// count (`mayHaveArrived`: nobody knows whether it did).
+  private func end(_ id: String, _ ended: EndedWhileSending, mayHaveArrived: Bool, on key: String) {
+    switch ended {
+    case .cancelled(let reason):
+      // The store applied the cancel to the card already.
+      finish(id, .cancelled)
+      show(mayHaveArrived ? .mayNotHaveArrived : Self.notice(forCancel: reason), id, on: key)
+    case .lapsed:
+      finish(id, .closedHere)
+      show(mayHaveArrived ? .mayNotHaveArrived : .lapsed, id, on: key)
+      transcript { await $0.interactiveEnded(key, requestID: id, reason: "lapsed") }
+    }
+  }
+
+  /// What a chat says about a `request.cancel` with `reason` for a request this device did not
+  /// answer.
+  private static func notice(forCancel reason: String) -> InteractiveNotice {
+    switch reason {
+    case "timeout": .expired
+    case resolved: .answeredElsewhere
+    default: .withdrawn
+    }
   }
 
   // MARK: - Arriving
@@ -470,7 +628,9 @@ public final class InteractiveRequestCenter {
     let inbound = arrival.inbound
     let id = inbound.id
 
-    guard !id.isEmpty, options.methods.contains(inbound.method) else {
+    // One the connection already answered `-32601` (this socket did not have the method accepted)
+    // is no question for anyone here.
+    guard !id.isEmpty, options.methods.contains(inbound.method), !inbound.declined else {
       return
     }
 
@@ -528,7 +688,9 @@ public final class InteractiveRequestCenter {
       return
     }
 
-    if parked[id] != nil {
+    // Waiting for its chat (or for the key its route reads): the newest copy is the one placed.
+    if pending[id] != nil {
+      pending[id]?.inbound = inbound
       parked[id]?.inbound = inbound
       return
     }
@@ -572,6 +734,7 @@ public final class InteractiveRequestCenter {
     }
 
     pending[id] = Pending(
+      inbound: inbound,
       content: content,
       sessionID: sessionID,
       deadline: shown,
@@ -593,7 +756,7 @@ public final class InteractiveRequestCenter {
     }
 
     if let key {
-      place(inbound, on: key)
+      place(id, on: key)
       // The key was read before the suspension: a pass with a fresh one confirms it (a rebind
       // meanwhile found no request to move).
       revalidate()
@@ -632,6 +795,7 @@ public final class InteractiveRequestCenter {
 
     if let key {
       show(notice, id, on: key)
+      endCard(notice, id, on: key)
       return
     }
 
@@ -648,19 +812,33 @@ public final class InteractiveRequestCenter {
     revalidate()
   }
 
+  /// A request this app declined or did not show has no card waiting on the chat: the center puts
+  /// cards up only for what it shows, but one drawn some other way must not wait forever (the
+  /// needs-input marker and the waiting turn read it). A card that is not open is left alone.
+  private func endCard(_ notice: InteractiveNotice, _ id: String, on key: String) {
+    let reason: String
+
+    switch notice {
+    case .cannotShow: reason = "cannot_show"
+    case .expired: reason = "timeout"
+    default: return
+    }
+
+    transcript { await $0.interactiveEnded(key, requestID: id, reason: reason) }
+  }
+
   private func dropNotice(_ id: String) {
     parkedNotices[id] = nil
     parkedNoticeOrder.removeAll { $0 == id }
     timers.removeValue(forKey: id)?.cancel()
   }
 
-  private func place(_ inbound: InboundRequest, on key: String) {
-    let id = inbound.id
-
+  private func place(_ id: String, on key: String) {
     guard let pending = pending.removeValue(forKey: id) else {
       return
     }
 
+    let inbound = pending.inbound
     parked[id] = nil
     parkTimers.removeValue(forKey: id)?.cancel()
     handles[id] = inbound
@@ -741,7 +919,7 @@ public final class InteractiveRequestCenter {
 
       for entry in parked.values where sessions.contains(entry.sessionID) {
         if let key = keys[entry.sessionID] {
-          place(entry.inbound, on: key)
+          place(entry.inbound.id, on: key)
         }
       }
 
@@ -749,6 +927,7 @@ public final class InteractiveRequestCenter {
         if let key = keys[entry.sessionID], let notice = entry.notice {
           dropNotice(id)
           show(notice, id, on: key)
+          endCard(notice, id, on: key)
         }
       }
 
@@ -782,18 +961,23 @@ public final class InteractiveRequestCenter {
   // MARK: - The gateway stopped waiting
 
   /// `request.cancel`: the gateway withdrew a request. One with reason `timeout` reads as
-  /// expired; any other as withdrawn; one whose answer was on its way may not have got there in
-  /// time. The transcript's card hears the same event through the store.
+  /// expired, `resolved` as answered on another device, any other as withdrawn. For one whose
+  /// answer is on its way the answer's verdict decides (the gateway sends `resolved` to the device
+  /// that answered too, and it may come first). The transcript's card hears the same event through
+  /// the store.
   func withdraw(_ id: String, reason: String) {
     guard !id.isEmpty else {
       return
     }
 
     if let prompt = prompts.first(where: { $0.id == id }) {
-      let notice: InteractiveNotice =
-        phases[id] == .sending ? .mayNotHaveArrived : reason == "timeout" ? .expired : .withdrawn
+      if phases[id] == .sending {
+        endedWhileSending[id] = .cancelled(reason: reason)
+        return
+      }
+
       finish(id, .cancelled)
-      show(notice, id, on: prompt.chatKey)
+      show(Self.notice(forCancel: reason), id, on: prompt.chatKey)
       return
     }
 
@@ -807,40 +991,50 @@ public final class InteractiveRequestCenter {
   }
 
   /// A reconnect's `open_requests` for one runtime session (a `session.resume`'s or a
-  /// `session.events.since`'s): every request the gateway still waits for there. A request of that
-  /// session the list does not name ended while the socket was down (withdrawn, timed out,
-  /// answered elsewhere): an open one closes with a "lapsed" notice ("may not have arrived" if its
-  /// answer is on its way), one waiting for its chat goes quietly, and nothing is sent; an answer
-  /// would be dropped. A copy the gateway re-delivers later is ignored.
+  /// `session.events.since`'s): every request the gateway still waits for there, of the methods in
+  /// `methods` (`RPCReply.listedRequests`: the gateway lists an interactive request only to a socket
+  /// that had its method accepted, so a list read before then says nothing about it). A request of
+  /// that session and of those methods the list does not name ended while the socket was down
+  /// (withdrawn, timed out, answered elsewhere): an open one closes with a "lapsed" notice, one
+  /// waiting for its chat goes quietly, and nothing is sent; an answer would be dropped. For one
+  /// whose answer is on its way the answer's verdict decides. A copy the gateway re-delivers later
+  /// opens it again: the gateway still waits for it after all.
   ///
   /// One first seen at or after `askedAt` (the shared clock's reading just before the call went
   /// out) is kept: the gateway may have raised it after it took the list.
-  func reconcile(session sessionID: String, open ids: [String], askedAt: Duration) {
-    guard !isShutDown, !sessionID.isEmpty else {
+  func reconcile(session sessionID: String, open ids: [String], askedAt: Duration, listed methods: Set<String>) {
+    guard !isShutDown, !sessionID.isEmpty, !methods.isEmpty else {
       return
     }
 
     let listed = Set(ids)
-    let ended = { [firstSeen] (id: String, session: String) -> Bool in
-      guard session == sessionID, !listed.contains(id), let seen = firstSeen[id] else {
+    let ended = { [firstSeen] (id: String, session: String, method: String) -> Bool in
+      guard session == sessionID, methods.contains(method), !listed.contains(id), let seen = firstSeen[id] else {
         return false
       }
 
       return seen < askedAt
     }
 
-    for prompt in prompts where ended(prompt.id, prompt.sessionID) {
-      let notice: InteractiveNotice = phases[prompt.id] == .sending ? .mayNotHaveArrived : .lapsed
-      finish(prompt.id, .cancelled)
-      show(notice, prompt.id, on: prompt.chatKey)
+    for prompt in prompts where ended(prompt.id, prompt.sessionID, prompt.method) {
+      if phases[prompt.id] == .sending {
+        if endedWhileSending[prompt.id] == nil {
+          endedWhileSending[prompt.id] = .lapsed
+        }
+        continue
+      }
+
+      finish(prompt.id, .closedHere)
+      show(.lapsed, prompt.id, on: prompt.chatKey)
       transcript { await $0.interactiveEnded(prompt.chatKey, requestID: prompt.id, reason: "lapsed") }
     }
 
     // One waiting for its chat is in `pending` (and in `parked` once parked).
-    let waiting = Set(pending.compactMap { id, entry in ended(id, entry.sessionID) ? id : nil })
+    let waiting = Set(
+      pending.compactMap { id, entry in ended(id, entry.sessionID, entry.content.body.method) ? id : nil })
 
     for id in waiting {
-      finish(id, .cancelled)
+      finish(id, .closedHere)
     }
   }
 
@@ -871,6 +1065,7 @@ public final class InteractiveRequestCenter {
     pending[id] = nil
     expiries[id] = nil
     firstSeen[id] = nil
+    endedWhileSending[id] = nil
     timers.removeValue(forKey: id)?.cancel()
     parkTimers.removeValue(forKey: id)?.cancel()
     close(id, reason, deadline: deadline)

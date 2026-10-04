@@ -229,6 +229,10 @@ final class ScriptedLink: GatewayLink, Sendable {
     var pictureAnswer: @Sendable (String) -> PictureFetchOutcome = { _ in .missing }
     var pictureCalls: [String] = []
     var declineData: [String: JSONValue] = [:]
+    /// What every answer says it lists in full (`RPCReply.listedRequests`).
+    var listed: Set<String> = Set(ServerRequestBody.Method.interactive)
+    /// The gateway's side of `request.answer`: its result, or the error it refuses with.
+    var answerHandler: (@Sendable (String, JSONObject) async throws -> JSONValue)?
   }
 
   private let state = Mutex(State())
@@ -436,6 +440,7 @@ final class ScriptedLink: GatewayLink, Sendable {
     method: String,
     params: JSONObject,
     replayed: Bool = false,
+    declined: Bool = false,
     index: UInt64? = nil
   ) -> UInt64 {
     let index = index ?? nextIndex()
@@ -452,6 +457,7 @@ final class ScriptedLink: GatewayLink, Sendable {
       request: request,
       replayed: replayed,
       index: index,
+      declined: declined,
       respond: { [weak self] result in
         guard !answered.done else {
           return false
@@ -507,7 +513,7 @@ final class ScriptedLink: GatewayLink, Sendable {
   /// The `data` of a refusal that carried one, by request id.
   func declineData(_ id: String) -> JSONValue? { state.withLock { $0.declineData[id] } }
 
-  /// Answers that went out on a live reply, in order.
+  /// Answers that went out on a live reply, or that `request.answer` had taken, in order.
   var answers: [(id: String, result: JSONObject)] { state.withLock { $0.answers } }
 
   /// While false, a live reply's `respond` answers `false`, as for a dropped socket.
@@ -575,8 +581,14 @@ final class ScriptedLink: GatewayLink, Sendable {
       return (id, state.responders[method])
     }
 
+    let listed = state.withLock { $0.listed }
+
     if let responder {
-      return RPCReply(index: nextIndex(), result: responder(params))
+      return RPCReply(index: nextIndex(), result: responder(params), listedRequests: listed)
+    }
+
+    if method == RPC.RequestAnswer.name, let handler = state.withLock({ $0.answerHandler }) {
+      return try await requestAnswer(params, listed: listed, handler: handler)
     }
 
     // Like the real connection, a call nobody answers times out, so a test that
@@ -622,8 +634,49 @@ final class ScriptedLink: GatewayLink, Sendable {
     let index = index ?? nextIndex()
     state.withLock { $0.wireIndex = max($0.wireIndex, index) }
     let continuation = state.withLock { $0.waiting.removeValue(forKey: call.id) }
-    continuation?.resume(returning: RPCReply(index: index, result: result))
+    let listed = state.withLock { $0.listed }
+    continuation?.resume(returning: RPCReply(index: index, result: result, listedRequests: listed))
     return index
+  }
+
+  /// The interactive methods every answer from now on says it lists in full.
+  func setListed(_ methods: Set<String>) {
+    state.withLock { $0.listed = methods }
+  }
+
+  /// How the gateway answers `request.answer` from now on: `handler`'s result (an answer it says
+  /// `ok` to is recorded in `answers`) or its error. Without one, a `request.answer` call waits for
+  /// the test like any other.
+  func onRequestAnswer(_ handler: (@Sendable (String, JSONObject) async throws -> JSONValue)?) {
+    state.withLock { $0.answerHandler = handler }
+  }
+
+  /// `request.answer` takes every answer (`{status: "ok"}`).
+  func takeEveryAnswer() {
+    onRequestAnswer { _, _ in ["status": "ok"] }
+  }
+
+  /// `request.answer`: refused while the socket is down; otherwise the handler's verdict, and an
+  /// answer the gateway took is recorded with the ones that went out on a live reply.
+  private func requestAnswer(
+    _ params: JSONValue,
+    listed: Set<String>,
+    handler: @Sendable (String, JSONObject) async throws -> JSONValue
+  ) async throws -> RPCReply<JSONValue> {
+    let id = params["id"]?.stringValue ?? ""
+    let result = params["result"]?.objectValue ?? [:]
+
+    guard state.withLock({ $0.socketOpen }) else {
+      throw GatewayRPCError(.closed, "WebSocket closed")
+    }
+
+    let reply = try await handler(id, result)
+
+    if reply["status"] == "ok" {
+      state.withLock { $0.answers.append((id, result)) }
+    }
+
+    return RPCReply(index: nextIndex(), result: reply, listedRequests: listed)
   }
 
   private func timeOut(_ id: Int, _ method: String) {

@@ -3,6 +3,7 @@ import HermieGateway
 import HermieProtocol
 import HermieStore
 import HermieTranscript
+import Synchronization
 import Testing
 
 @testable import HermieCore
@@ -100,8 +101,13 @@ struct InteractiveHarness {
   var session: GatewaySession { harness.session }
   var center: InteractiveRequestCenter { harness.session.interactive }
 
-  init(cache: (any ChatCaching)? = nil, keyValues: KeyValueStore? = nil, requests: [String]? = nil) {
+  init(
+    cache: (any ChatCaching)? = nil,
+    keyValues: KeyValueStore? = nil,
+    requests: [String]? = InteractiveCapabilities.deviceMethods()
+  ) {
     harness = SessionHarness(cache: cache, keyValues: keyValues, requests: requests)
+    harness.link.takeEveryAnswer()
   }
 
   func open() async throws {
@@ -749,5 +755,213 @@ struct InteractiveTests {
       return hits
     }
     #expect(leaked.isEmpty, "found in \(leaked)")
+  }
+
+  // MARK: The gateway's verdict
+
+  @Test("an answer goes through request.answer, never on the request's own reply frame")
+  func answersThroughRequestAnswer() async throws {
+    let h = InteractiveHarness()
+    try await h.open()
+    try await h.raiseOpen("srq-ra")
+
+    #expect(await h.center.answer("srq-ra", .form(["name": .text(typed)])))
+    let call = try #require(h.link.calls(RPC.RequestAnswer.name).last)
+    #expect(call.params["id"] == "srq-ra")
+    #expect(call.params["result"] == ["status": "answered", "values": ["name": .string(typed)]])
+  }
+
+  @Test("a refused answer (4034) keeps the request open with the reason only, and a corrected one goes through")
+  func refusedStaysOpen() async throws {
+    let h = InteractiveHarness()
+    try await h.open()
+    try await h.raiseOpen("srq-no")
+    let model = InteractiveModel(session: h.session, bot: bot)
+    model.present("srq-no")
+    h.link.onRequestAnswer { _, result in
+      guard result["values"]?["guests"] != 0 else {
+        throw GatewayRPCError(.rejected, "answer refused", code: 4034, data: ["reason": "field:guests:below_min"])
+      }
+
+      return ["status": "ok"]
+    }
+
+    #expect(await model.answer(.form(["name": .text(typed), "guests": .number(0)])) == false)
+    #expect(h.center.isOpen("srq-no"))
+    #expect(h.center.phases["srq-no"] == .refused(reason: "field:guests:below_min"))
+    #expect(model.refusal == "field:guests:below_min")
+    #expect(model.presented?.id == "srq-no", "the sheet stays up")
+    #expect(!model.hasFailed)
+    #expect(h.link.answers.isEmpty)
+    #expect(await h.card("srq-no")?.state == .open)
+    var text = ""
+    dump(h.center.phases, to: &text)
+    #expect(!text.contains(typed), "the reason, never the value")
+
+    #expect(await model.answer(.form(["name": .text(typed), "guests": .number(2)])))
+    #expect(model.refusal == nil)
+    #expect(!h.center.isOpen("srq-no"))
+    #expect(h.answers("srq-no").count == 1)
+    #expect(await h.card("srq-no")?.state == .answered)
+  }
+
+  @Test("the tenth refusal (too_many_attempts) withdraws the request")
+  func tooManyAttempts() async throws {
+    let h = InteractiveHarness()
+    try await h.open()
+    try await h.raiseOpen("srq-tm")
+    h.link.onRequestAnswer { _, _ in
+      throw GatewayRPCError(.rejected, "answer refused", code: 4034, data: ["reason": "too_many_attempts"])
+    }
+
+    #expect(await h.center.answer("srq-tm", .form(["name": .text("x")])) == false)
+    #expect(!h.center.isOpen("srq-tm"))
+    #expect(h.center.notices[bot]?.notice == .withdrawn)
+    #expect(h.center.phases["srq-tm"] == nil)
+    #expect(await h.card("srq-tm")?.cancelReason == "too_many_attempts")
+    #expect(await h.center.answer("srq-tm", .form(["name": .text("x")])) == false)
+  }
+
+  @Test("request.answer saying expired closes the request as expired; no verdict leaves it open as failed")
+  func expiredAndNoVerdict() async throws {
+    let h = InteractiveHarness()
+    try await h.open()
+    try await h.raiseOpen("srq-ex")
+    try await h.raiseOpen("srq-nv")
+    h.link.onRequestAnswer { id, _ in
+      guard id == "srq-ex" else {
+        throw GatewayRPCError(.timeout, "request timed out after 30s: request.answer")
+      }
+
+      return ["status": "expired"]
+    }
+
+    #expect(await h.center.answer("srq-ex", .form(["name": .text("x")])) == false)
+    #expect(!h.center.isOpen("srq-ex"))
+    #expect(h.center.notices[bot]?.notice == .expired)
+    #expect(await h.card("srq-ex")?.cancelReason == "timeout")
+
+    #expect(await h.center.answer("srq-nv", .form(["name": .text("x")])) == false)
+    #expect(h.center.isOpen("srq-nv"))
+    #expect(h.center.phases["srq-nv"] == .failed)
+
+    // Sent again, the gateway takes it.
+    h.link.takeEveryAnswer()
+    #expect(await h.center.answer("srq-nv", .form(["name": .text("x")])))
+  }
+
+  // MARK: Only what this socket may show
+
+  @Test("a delivery the connection already declined -32601 opens no prompt and no card")
+  func declinedDeliveryIsIgnored() async throws {
+    let h = InteractiveHarness()
+    try await h.open()
+    var params = InteractiveFrames.form()
+    params["session_id"] = .string(Fixture.runtime)
+
+    // The second `client.capabilities` call timed out though the gateway took the methods: the
+    // connection answered the form -32601 and passed it on, marked declined.
+    h.link.raise(id: "srq-dec", method: "input.form", params: params, declined: true)
+    try await h.harness.frame()
+    try await Task.sleep(for: .milliseconds(30))
+
+    #expect(h.center.prompts.isEmpty)
+    #expect(h.center.parkedCount == 0)
+    #expect(h.center.notices.isEmpty)
+    #expect(h.link.declines.isEmpty, "this layer sends nothing for it")
+    #expect(await h.card("srq-dec") == nil)
+    #expect(!h.center.needsInput(bot))
+  }
+
+  @Test("by default a session announces no interactive method, and nothing reaches the center")
+  func offByDefault() async throws {
+    #expect(GatewaySession.Options().requests == nil)
+    #expect(GatewaySession.Options().resolvedRequests.isEmpty)
+    #expect(!InteractiveCapabilities.advertisedByDefault)
+
+    let h = InteractiveHarness(requests: nil)
+    try await h.open()
+    var params = InteractiveFrames.form()
+    params["session_id"] = .string(Fixture.runtime)
+    h.link.raise(id: "srq-off", method: "input.form", params: params)
+    try await h.harness.frame()
+    try await Task.sleep(for: .milliseconds(30))
+
+    #expect(h.center.prompts.isEmpty)
+    #expect(h.center.notices.isEmpty)
+    #expect(h.link.declines.isEmpty)
+    #expect(await h.card("srq-off") == nil)
+  }
+
+  @Test("the session's own list and the connection options' list resolve to one")
+  func oneList() {
+    var options = GatewaySession.Options()
+    options.connection.requests = ["input.form"]
+    #expect(options.resolvedRequests == ["input.form"])
+    options.requests = ["review.draft"]
+    #expect(options.resolvedRequests == ["review.draft"])
+    options.requests = []
+    #expect(options.resolvedRequests.isEmpty)
+  }
+
+  // MARK: Two copies at once
+
+  @Test("a second copy that arrives while the first waits for its chat replaces it: one prompt, the newest reply")
+  func copiesWhileRouting() async throws {
+    let h = InteractiveHarness()
+    try await h.open()
+    let gate = LookupGate([Fixture.runtime: bot])
+    h.center.chatKey = { session in await gate.lookup(session) }
+    gate.hold(Fixture.runtime)
+
+    var params = InteractiveFrames.form()
+    params["session_id"] = .string(Fixture.runtime)
+    let request = ServerRequest(id: "twice", method: "input.form", params: params)
+    let used = Mutex<[String]>([])
+    func copy(_ name: String, replayed: Bool) -> InboundRequest {
+      InboundRequest(
+        request: request, replayed: replayed, index: 1,
+        respond: { _ in true },
+        fail: { _, _ in
+          used.withLock { $0.append(name) }
+          return true
+        })
+    }
+
+    let center = h.center
+    let live = Task { @MainActor in await center.ingest(InteractiveRequestCenter.read(copy("live", replayed: false))) }
+    try await eventually("the route to pause") { gate.waitingCount == 1 }
+    await center.ingest(InteractiveRequestCenter.read(copy("again", replayed: true)))
+    gate.release()
+    await live.value
+    try await eventually("it to open") { await center.isOpen("twice") }
+
+    #expect(center.prompts.filter { $0.id == "twice" }.count == 1)
+    #expect(await center.cannotShow("twice", reason: CannotShowReason.permissionDenied))
+    #expect(used.withLock { $0 } == ["again"], "the newest copy's reply")
+
+    // One deadline, and it does nothing to a request already done.
+    await h.clock.advance(by: .seconds(400))
+    #expect(center.notices[bot] == nil)
+  }
+
+  // MARK: Counted as the gateway counts
+
+  @Test("the draft and comment bounds count code points, not characters")
+  func countsCodePoints() async throws {
+    let h = InteractiveHarness()
+    try await h.open()
+    let prompt = try await h.raiseOpen("srq-cp", "review.draft", params: InteractiveFrames.draft())
+    // One character, two code points.
+    let accented = "e\u{301}"
+    let long = String(repeating: accented, count: InteractivePrompt.draftLimit / 2 + 1)
+    #expect(long.count <= InteractivePrompt.draftLimit)
+    #expect(long.unicodeScalars.count > InteractivePrompt.draftLimit)
+    #expect(prompt.reply(to: .approve(text: long)) == nil)
+    #expect(prompt.reply(to: .approve(text: String(repeating: accented, count: InteractivePrompt.draftLimit / 2))) != nil)
+
+    let comment = String(repeating: accented, count: InteractivePrompt.commentLimit)
+    let reply = try #require(prompt.reply(to: .reject(comment: comment)))
+    #expect(reply.result["comment"]?.stringValue?.unicodeScalars.count == InteractivePrompt.commentLimit)
   }
 }

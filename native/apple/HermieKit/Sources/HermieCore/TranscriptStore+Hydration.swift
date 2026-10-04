@@ -149,7 +149,8 @@ extension TranscriptStore {
     {
       try await local(key, generation: ticket) {
         self.applyHistory(key, rows, .rest, snapshot: snapshot, openRequests: openRequests)
-        self.signalOpenRequests(runtimeID: resume.runtimeID, openRequests, askedAt: askedAt)
+        self.signalOpenRequests(
+          runtimeID: resume.runtimeID, openRequests, askedAt: askedAt, listed: resume.listedRequests)
       }
     } else {
       let params: JSONValue = ["session_id": .string(resume.runtimeID), "profile": .string(key)]
@@ -159,7 +160,8 @@ extension TranscriptStore {
       }) { reply in
         let rows = (reply.result["messages"]?.arrayValue ?? []).map { TranscriptRow(json: $0.objectValue ?? [:]) }
         self.applyHistory(key, rows, .rpc, snapshot: snapshot, openRequests: openRequests)
-        self.signalOpenRequests(runtimeID: resume.runtimeID, openRequests, askedAt: askedAt)
+        self.signalOpenRequests(
+          runtimeID: resume.runtimeID, openRequests, askedAt: askedAt, listed: resume.listedRequests)
       }
     }
 
@@ -185,6 +187,8 @@ extension TranscriptStore {
     var runtimeID: String
     var resolvedID: String
     var result: SessionResumeResult
+    /// The interactive methods its `open_requests` lists in full (`RPCReply.listedRequests`).
+    var listedRequests: Set<String> = []
   }
 
   func resumeCall(_ key: String, storedID: String) -> @Sendable () async throws -> RPCReply<JSONValue> {
@@ -231,7 +235,8 @@ extension TranscriptStore {
       mutateState(key) { applyEvent(into: &$0, event, now) }
     }
 
-    return ResumeOutcome(runtimeID: runtimeID, resolvedID: resolvedID, result: result)
+    return ResumeOutcome(
+      runtimeID: runtimeID, resolvedID: resolvedID, result: result, listedRequests: reply.listedRequests)
   }
 
   /// Steps 3 and 4: the history rows, then the in-flight tail they do not contain yet.
@@ -279,8 +284,18 @@ extension TranscriptStore {
       "queued": record(raw["queued"]),
       "pending_approval": record(raw["pending_approval"]),
       "todo_state": record(raw["todo_state"]),
-      "open_requests": raw["open_requests"].flatMap { $0.isNull ? nil : $0 } ?? .null
+      "open_requests": Self.withoutInteractive(raw["open_requests"].flatMap { $0.isNull ? nil : $0 } ?? .null)
     ])
+  }
+
+  /// An `open_requests` list without the interactive requests (`input.form`, ...): their cards are
+  /// `InteractiveRequestCenter`'s (`registerOpenRequests` says why).
+  nonisolated static func withoutInteractive(_ list: JSONValue) -> JSONValue {
+    guard case .array(let entries) = list else {
+      return list
+    }
+
+    return .array(entries.filter { !isInteractiveMethod($0["method"]?.stringValue) })
   }
 
   /// `ensure`: create the chat, or refresh its durable ids.
@@ -375,7 +390,9 @@ extension TranscriptStore {
       reply in
       let continuity = self.applyReplay(
         key, runtimeID: runtimeID, knownEpoch: knownEpoch, lastSeq: lastSeq, reply.result)
-      self.signalOpenRequests(runtimeID: runtimeID, reply.result["open_requests"]?.arrayValue, askedAt: askedAt)
+      self.signalOpenRequests(
+        runtimeID: runtimeID, reply.result["open_requests"]?.arrayValue, askedAt: askedAt,
+        listed: reply.listedRequests)
       return continuity
     }
   }
@@ -478,9 +495,15 @@ extension TranscriptStore {
 
   /// `registerOpenRequests`: cards for requests the agent is still waiting on.
   /// They have no live handle here; answering one goes out as a call.
+  ///
+  /// Not an interactive request's (`input.form`, ...): its card is `InteractiveRequestCenter`'s,
+  /// which puts it up only once it shows the request, and takes it down however it ends (one this
+  /// app cannot show is answered `4041` at once, and must not leave a card waiting forever).
   func registerOpenRequests(_ key: String, _ entries: [JSONValue]?) {
     for entry in entries ?? [] {
-      guard let id = entry["id"]?.stringValue, let method = entry["method"]?.stringValue else {
+      guard let id = entry["id"]?.stringValue, let method = entry["method"]?.stringValue,
+        !isInteractiveMethod(method)
+      else {
         continue
       }
 
@@ -769,7 +792,9 @@ extension TranscriptStore {
         let snapshot = self.resumeSnapshot(of: result)
         self.mutateState(key) { applyResumeSnapshot(into: &$0, snapshot, now) }
         self.registerOpenRequests(key, reply.result["open_requests"]?.arrayValue)
-        self.signalOpenRequests(runtimeID: runtimeID, reply.result["open_requests"]?.arrayValue, askedAt: askedAt)
+        self.signalOpenRequests(
+          runtimeID: runtimeID, reply.result["open_requests"]?.arrayValue, askedAt: askedAt,
+          listed: reply.listedRequests)
         self.signalConnectionSnapshot(key, runtimeID: runtimeID, reply.result)
         return runtimeID
       }

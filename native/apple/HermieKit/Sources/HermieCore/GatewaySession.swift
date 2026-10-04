@@ -45,9 +45,13 @@ public final class GatewaySession {
     public var interactive = InteractiveRequestCenter.Options()
     /// The interactive request methods this device shows, announced to the gateway in the second
     /// `client.capabilities` call and the only ones `InteractiveRequestCenter` takes in
-    /// (`InteractiveCapabilities.deviceMethods()`: computed once, when the options are made).
-    /// `nil` or empty: none is announced, and every interactive request is answered `-32601`.
-    public var requests: [String]? = InteractiveCapabilities.deviceMethods()
+    /// (`InteractiveCapabilities.defaultMethods()`: none until the sheets ship). `nil`: the
+    /// connection options' own list, if any. `nil` or empty there too: none is announced, and every
+    /// interactive request is answered `-32601`.
+    public var requests: [String]? = InteractiveCapabilities.defaultMethods()
+
+    /// The one list both the connection announces and the center takes in.
+    var resolvedRequests: [String] { requests ?? connection.requests ?? [] }
     /// Passkeys and the `confirm` level `passkey` (`PasskeyModel`). `nil`: the connection announces
     /// no `confirm` level and answers every `confirm` request `-32601`, as before.
     public var passkey: PasskeySetup?
@@ -163,7 +167,7 @@ public final class GatewaySession {
     let source = options.passkey.map { _ in ConfirmCapabilitySource() }
     var connectionOptions = options.connection
     connectionOptions.confirm = source ?? connectionOptions.confirm
-    connectionOptions.requests = options.requests ?? connectionOptions.requests
+    connectionOptions.requests = options.resolvedRequests
     let link = try ConnectionLink(
       baseURL: record.address,
       extraHeaders: extraHeaders,
@@ -250,7 +254,7 @@ public final class GatewaySession {
     )
     // The center takes in what the connection was told to advertise, and nothing else.
     var interactiveOptions = options.interactive
-    interactiveOptions.methods = Set(options.requests ?? [])
+    interactiveOptions.methods = Set(options.resolvedRequests)
     self.interactive = InteractiveRequestCenter(
       link: link,
       store: store,

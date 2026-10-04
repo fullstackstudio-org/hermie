@@ -35,14 +35,15 @@ private struct InteractiveChat {
   let session: GatewaySession
   let model: InteractiveModel
 
-  /// `requests`: the methods this session announces; `nil` for the device's own list.
-  static func open(_ gateway: FakeGateway, requests: [String]? = nil) async throws -> InteractiveChat {
+  /// `requests`: the methods this session announces (the device's own list: a session announces
+  /// none unless told to, until the sheets ship).
+  static func open(
+    _ gateway: FakeGateway,
+    requests: [String] = InteractiveCapabilities.deviceMethods()
+  ) async throws -> InteractiveChat {
     var options = GatewaySession.Options()
     options.connection.backoff = { _ in .milliseconds(100) }
-
-    if let requests {
-      options.requests = requests
-    }
+    options.requests = requests
 
     let record = GatewayRecord(id: "g-interactive", name: "fake", address: gateway.baseURL, authKind: .sessionToken, addedAt: 0)
     let session = try GatewaySession(
@@ -60,11 +61,17 @@ private struct InteractiveChat {
     try await session.open(researcher)
     // The second `client.capabilities` call goes out after `gateway.ready`: wait until the
     // gateway took the methods, as it hides a request from a connection that did not advertise it.
+    try await acceptedAdvertisements(gateway, atLeast: 1)
+    return chat
+  }
+
+  /// Wait until the gateway took the methods from `count` calls (one per socket).
+  static func acceptedAdvertisements(_ gateway: FakeGateway, atLeast count: Int) async throws {
     try await interactiveWait("the methods to be accepted") {
       let state = try await gateway.control("GET", "/__fake/state")
-      return (state["clientCapabilities"]?.arrayValue ?? []).contains { !($0["requests"]?.arrayValue ?? []).isEmpty }
+      return (state["clientCapabilities"]?.arrayValue ?? []).filter { !($0["requests"]?.arrayValue ?? []).isEmpty }
+        .count >= count
     }
-    return chat
   }
 
   /// Raise a request through the fake and wait until the sheet would show it. The id the gateway
@@ -238,6 +245,149 @@ extension Integration {
         try await interactiveWait("the socket") { session.status.phase == .ready && session.chatList.rows[researcher] != nil }
         try await session.open(researcher)
 
+        await #expect(throws: FakeGatewayError.self) {
+          try await gateway.control(
+            "POST", "/__fake/request", body: .object(["profile": .string(researcher), "method": "input.form"]))
+        }
+        #expect(session.interactive.prompts.isEmpty)
+        await session.shutdown()
+      }
+    }
+
+    @Test("a socket that drops while a form is open: after the reconnect the form is still open, and answerable")
+    func formSurvivesAReconnect() async throws {
+      try await withInteractiveGateway { gateway in
+        let chat = try await InteractiveChat.open(gateway)
+        let model = chat.model
+        let session = chat.session
+        let id = try await chat.raise(gateway, "input.form", ["fields": Self.fields])
+
+        _ = try await gateway.control("POST", "/__fake/drop-sockets")
+        try await interactiveWait("the socket to drop") {
+          let state = try await gateway.control("GET", "/__fake/state")
+          return session.status.phase != .ready && state["openSockets"] == 0
+        }
+        await session.retryNow()
+        try await interactiveWait("the socket to come back") { session.status.phase == .ready }
+        try await InteractiveChat.acceptedAdvertisements(gateway, atLeast: 2)
+        // Let the recovery's resume and replay (and the read again after the acceptance) land.
+        try await Task.sleep(for: .milliseconds(500))
+
+        #expect(model.presented?.id == id, "still open: no list read before the acceptance closed it")
+        #expect(model.presentedOutcome == nil)
+        #expect(chat.session.interactive.notices.isEmpty)
+
+        #expect(await model.answer(.form(["name": .text("Ada Lovelace"), "guests": .number(2)])))
+        let view = try await InteractiveChat.view(gateway, id)
+        #expect(view["outcome"] == "answered")
+        #expect(view["answer"]?["values"] == ["name": "Ada Lovelace", "guests": 2])
+        await session.shutdown()
+      }
+    }
+
+    @Test("a reconnect whose capability calls fail: the lists it reads leave the form out, and it stays open and answerable")
+    func formSurvivesFailedAdvertisement() async throws {
+      try await withInteractiveGateway { gateway in
+        let chat = try await InteractiveChat.open(gateway)
+        let model = chat.model
+        let session = chat.session
+        let id = try await chat.raise(gateway, "input.form", ["fields": Self.fields])
+
+        let replays = { () async throws -> Int in
+          let state = try await gateway.control("GET", "/__fake/state")
+          return (state["methodLog"]?.arrayValue ?? []).filter { $0 == "session.events.since" }.count
+        }
+        let before = try await replays()
+
+        // The new socket never gets its methods accepted, so the gateway hides the form from the
+        // resume's and the replay's `open_requests`: those lists say nothing about it.
+        _ = try await gateway.control("POST", "/__fake/deny", body: ["methods": ["client.capabilities"]])
+        _ = try await gateway.control("POST", "/__fake/drop-sockets")
+        try await interactiveWait("the socket to drop") {
+          let state = try await gateway.control("GET", "/__fake/state")
+          return session.status.phase != .ready && state["openSockets"] == 0
+        }
+        await session.retryNow()
+        try await interactiveWait("the socket to come back") { session.status.phase == .ready }
+        try await interactiveWait("the replay") { try await replays() > before }
+        try await Task.sleep(for: .milliseconds(300))
+
+        #expect(model.presented?.id == id, "still open: no list closed it")
+        #expect(model.presentedOutcome == nil)
+
+        // `request.answer` reaches it from any connection.
+        #expect(await model.answer(.form(["name": .text("Ada Lovelace"), "guests": .number(2)])))
+        let view = try await InteractiveChat.view(gateway, id)
+        #expect(view["outcome"] == "answered")
+        await session.shutdown()
+      }
+    }
+
+    @Test("a refused answer (4034) keeps the form open with the gateway's reason; the corrected one is taken")
+    func refusedAnswer() async throws {
+      try await withInteractiveGateway { gateway in
+        let chat = try await InteractiveChat.open(gateway)
+        let model = chat.model
+        let id = try await chat.raise(gateway, "input.form", ["fields": Self.fields])
+
+        #expect(await model.answer(.form(["name": .text("Ada"), "guests": .number(0)])) == false)
+        #expect(model.refusal == "field:guests:below_min")
+        #expect(model.presented?.id == id, "the sheet stays up")
+        let refused = try await InteractiveChat.view(gateway, id)
+        #expect(refused["open"] == true)
+        #expect(refused["refusals"] == ["field:guests:below_min"])
+
+        #expect(await model.answer(.form(["name": .text("Ada"), "guests": .number(2)])))
+        #expect(model.refusal == nil)
+        let taken = try await InteractiveChat.view(gateway, id)
+        #expect(taken["outcome"] == "answered")
+        await chat.session.shutdown()
+      }
+    }
+
+    @Test("the tenth refused answer withdraws the request")
+    func refusalCap() async throws {
+      try await withInteractiveGateway { gateway in
+        let chat = try await InteractiveChat.open(gateway)
+        let model = chat.model
+        let id = try await chat.raise(gateway, "input.form", ["fields": Self.fields])
+
+        for attempt in 1...9 {
+          #expect(await model.answer(.form(["name": .text("Ada"), "guests": .number(0)])) == false)
+          #expect(model.refusal == "field:guests:below_min", "attempt \(attempt)")
+        }
+
+        #expect(await model.answer(.form(["name": .text("Ada"), "guests": .number(0)])) == false)
+        try await interactiveWait("the request to close") { model.presented == nil }
+        #expect(model.presentedOutcome == .withdrawn)
+        #expect(await model.answer(.form(["name": .text("Ada"), "guests": .number(2)])) == false)
+        let view = try await InteractiveChat.view(gateway, id)
+        #expect(view["outcome"] == "too_many_attempts")
+        #expect(view["refusals"]?.arrayValue?.count == 10)
+        await chat.session.shutdown()
+      }
+    }
+
+    @Test("by default a session announces no interactive method: the gateway has no capable client")
+    func offByDefault() async throws {
+      try await withInteractiveGateway { gateway in
+        var options = GatewaySession.Options()
+        options.connection.backoff = { _ in .milliseconds(100) }
+        let record = GatewayRecord(id: "g-default", name: "fake", address: gateway.baseURL, authKind: .sessionToken, addedAt: 0)
+        let session = try GatewaySession(
+          record: record,
+          credentials: SessionTokenCredentials(token: ""),
+          database: try SQLiteStore(.inMemory),
+          options: options
+        )
+        await session.start()
+        try await interactiveWait("the socket") { session.status.phase == .ready && session.chatList.rows[researcher] != nil }
+        try await session.open(researcher)
+        try await Task.sleep(for: .milliseconds(200))
+
+        let state = try await gateway.control("GET", "/__fake/state")
+        let advertised = (state["clientCapabilities"]?.arrayValue ?? []).contains { !($0["requests"]?.arrayValue ?? []).isEmpty }
+        #expect(!advertised)
         await #expect(throws: FakeGatewayError.self) {
           try await gateway.control(
             "POST", "/__fake/request", body: .object(["profile": .string(researcher), "method": "input.form"]))

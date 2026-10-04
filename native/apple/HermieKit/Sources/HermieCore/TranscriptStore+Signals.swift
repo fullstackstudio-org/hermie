@@ -38,8 +38,9 @@ enum SessionSignal: Sendable {
   /// The `open_requests` a `session.resume` or a `session.events.since` answered with
   /// for one runtime session: every request the gateway still waits for there.
   /// `askedAt` is the store clock's reading just before the call went out; a request
-  /// first seen at or after it may be newer than the list.
-  case openRequests(runtimeSessionID: String, ids: [String], askedAt: Duration)
+  /// first seen at or after it may be newer than the list. `listed`: the interactive methods
+  /// the list holds in full (`RPCReply.listedRequests`); for another one it says nothing.
+  case openRequests(runtimeSessionID: String, ids: [String], askedAt: Duration, listed: Set<String>)
 }
 
 extension TranscriptStore {
@@ -134,7 +135,7 @@ extension TranscriptStore {
 
   /// A resume's or a replay's `open_requests`, only when the gateway sent a list:
   /// a missing one says nothing about what is still open.
-  func signalOpenRequests(runtimeID: String, _ entries: [JSONValue]?, askedAt: Duration) {
+  func signalOpenRequests(runtimeID: String, _ entries: [JSONValue]?, askedAt: Duration, listed: Set<String>) {
     guard let entries, !runtimeID.isEmpty else {
       return
     }
@@ -146,7 +147,7 @@ extension TranscriptStore {
 
       return id
     }
-    signalSink.yield(.openRequests(runtimeSessionID: runtimeID, ids: ids, askedAt: askedAt))
+    signalSink.yield(.openRequests(runtimeSessionID: runtimeID, ids: ids, askedAt: askedAt, listed: listed))
   }
 
   /// A resume's `pending_connection`, at the resume's place in the chat's frames.

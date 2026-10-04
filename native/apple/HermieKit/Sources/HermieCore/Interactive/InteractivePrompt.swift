@@ -130,9 +130,9 @@ public struct InteractivePrompt: Sendable, Equatable, Identifiable {
   /// How long a request that names no `expires_at` is shown. The gateway's own wait is bounded the
   /// same way.
   public static let defaultTimeout: Duration = .seconds(300)
-  /// The contract's bound on a comment that rejects a draft.
+  /// The contract's bound on a comment that rejects a draft, in code points.
   public static let commentLimit = 1_000
-  /// The contract's bound on an approved draft.
+  /// The contract's bound on an approved draft, in code points.
   public static let draftLimit = 20_000
 
   /// `raw` as one line of display text: cleaned and bounded like every text of the request
@@ -244,7 +244,8 @@ public struct InteractivePrompt: Sendable, Equatable, Identifiable {
         summary: ["status": .string("answered"), "count": .number(Double(files.count))]
       )
     case (.draft(let params), .approve(let text)):
-      guard !text.isEmpty, text.count <= Self.draftLimit else {
+      // Counted in code points, as the gateway counts.
+      guard !text.isEmpty, text.unicodeScalars.count <= Self.draftLimit else {
         return nil
       }
 
@@ -260,7 +261,9 @@ public struct InteractivePrompt: Sendable, Equatable, Identifiable {
         summary: ["decision": .string("approved"), "edited": .bool(edited)]
       )
     case (.draft, .reject(let comment)):
-      let kept = comment.map { String($0.trimmingCharacters(in: .whitespacesAndNewlines).prefix(Self.commentLimit)) }
+      let kept = comment.map {
+        Self.prefix($0.trimmingCharacters(in: .whitespacesAndNewlines), scalars: Self.commentLimit)
+      }
 
       return InteractiveReply(
         result: ReviewDraftResult.rejected(comment: kept.flatMap { $0.isEmpty ? nil : $0 }).json,
@@ -269,6 +272,14 @@ public struct InteractivePrompt: Sendable, Equatable, Identifiable {
     default:
       return nil
     }
+  }
+
+  /// At most `limit` code points of `text` (the gateway's bounds count code points, not what a
+  /// person sees as one character).
+  static func prefix(_ text: String, scalars limit: Int) -> String {
+    var view = String.UnicodeScalarView()
+    view.append(contentsOf: text.unicodeScalars.prefix(limit))
+    return String(view)
   }
 
   /// A draft with the whitespace at the end of each line removed, as the gateway compares it.

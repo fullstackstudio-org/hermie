@@ -83,8 +83,20 @@ public final class InteractiveModel {
     presentedID.map { center.phases[$0] == .sending } ?? false
   }
 
+  /// The answer did not reach the gateway, or its verdict did not come back: Send again.
   public var hasFailed: Bool {
     presentedID.map { center.phases[$0] == .failed } ?? false
+  }
+
+  /// Why the gateway refused the shown request's last answer (`4034`, its machine reason:
+  /// `field:guests:below_min`, `not_optional`, ...), while the request is still open; the sheet shows
+  /// it next to the input. Nil when nothing was refused, or once the answer is sent again.
+  public var refusal: String? {
+    guard let presentedID, case .refused(let reason)? = center.phases[presentedID] else {
+      return nil
+    }
+
+    return reason
   }
 
   /// Whole seconds before the shown request is hidden; nil when unknown.
@@ -129,8 +141,9 @@ public final class InteractiveModel {
 
   // MARK: - Answering
 
-  /// Send an answer. Answers whether it went out; when it did, the sheet's request is done and
-  /// the sheet closes.
+  /// Send an answer. Answers whether the gateway took it; when it did, the sheet's request is done
+  /// and the sheet closes. A refused answer leaves the sheet up with `refusal`, one without a verdict
+  /// with `hasFailed`, and one the gateway no longer waits for with `presentedOutcome`.
   @discardableResult
   public func answer(_ answer: InteractiveAnswer) async -> Bool {
     guard let id = presentedID else {
@@ -140,7 +153,7 @@ public final class InteractiveModel {
     return finish(id, await center.answer(id, answer))
   }
 
-  /// Skip (the Skip button, Esc), for a request that offers it. Answers whether it went out.
+  /// Skip (the Skip button, Esc), for a request that offers it. Answers whether the gateway took it.
   @discardableResult
   public func skip() async -> Bool {
     await answer(.skip)

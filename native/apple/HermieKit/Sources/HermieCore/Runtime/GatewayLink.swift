@@ -132,6 +132,9 @@ public struct InboundRequest: Sendable {
   public let request: ServerRequest
   public let replayed: Bool
   public let index: UInt64
+  /// Already answered `-32601` by the connection (`ServerRequestDelivery.declined`): passed on so
+  /// the app can say why the bot stalled, never to be shown as a question.
+  public let declined: Bool
   private let respondHandler: @Sendable (JSONObject) async -> Bool
   private let failHandler: @Sendable (Int, String) async -> Bool
   private let failWithDataHandler: (@Sendable (Int, String, JSONValue) async -> Bool)?
@@ -142,6 +145,7 @@ public struct InboundRequest: Sendable {
     request: ServerRequest,
     replayed: Bool,
     index: UInt64,
+    declined: Bool = false,
     respond: @escaping @Sendable (JSONObject) async -> Bool,
     fail: @escaping @Sendable (Int, String) async -> Bool,
     failWithData: (@Sendable (Int, String, JSONValue) async -> Bool)? = nil
@@ -149,6 +153,7 @@ public struct InboundRequest: Sendable {
     self.request = request
     self.replayed = replayed
     self.index = index
+    self.declined = declined
     self.respondHandler = respond
     self.failHandler = fail
     self.failWithDataHandler = failWithData
@@ -159,6 +164,7 @@ public struct InboundRequest: Sendable {
       request: delivery.request,
       replayed: delivery.replayed,
       index: delivery.index,
+      declined: delivery.declined,
       respond: { result in await delivery.respond(result) },
       fail: { code, message in await delivery.fail(code: code, message: message) },
       failWithData: { code, message, data in await delivery.fail(code: code, message: message, data: data) }
@@ -302,6 +308,6 @@ extension GatewayLink {
       throw GatewayRPCError(.unexpectedResult, "The gateway answered \(M.name) with a result of another shape.")
     }
 
-    return RPCReply(index: reply.index, result: result)
+    return RPCReply(index: reply.index, result: result, listedRequests: reply.listedRequests)
   }
 }
