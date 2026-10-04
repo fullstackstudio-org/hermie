@@ -97,7 +97,10 @@ reuse into an error at the call site instead of a puzzling 4401.
 
 The credential for an **ungated** gateway — one with authentication disabled. It is a long-lived
 shared secret sent as the `X-Hermes-Session-Token` header on REST calls and as a query parameter on
-the WebSocket. It is unrelated to the PKCE tokens and does not expire on its own.
+the WebSocket. It is unrelated to the PKCE tokens and does not expire on its own. The browser client
+reads it from the dashboard's own bootstrap (`window.__HERMES_SESSION_TOKEN__` in the gateway's
+`index.html`), so there it is exactly as public as the dashboard on that gateway, and keeps it in
+memory only ([`native/web/README.md`](../native/web/README.md), "Gateways without sign-in").
 
 ## Native PKCE
 

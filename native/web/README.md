@@ -8,7 +8,7 @@ the threat model that follows from it are in
 
 **Status: a chat you can read.** What exists is the build, its checks, the boot, the frame of the app and the chat
 screen: the client refuses to run in a frame, finds its gateway from its own address, probes it, reads who is
-signed in on the gateway's own session, connects, shows the chat list in a two-pane layout with a router and a
+signed in on the gateway's own session (or, on a gateway without sign-in, reads its session token from the dashboard's own page and keeps it in memory only), connects, shows the chat list in a two-pane layout with a router and a
 theme ("The shell" below), and opens a chat in the main pane and streams it ("The chat screen" below): bubbles
 with Markdown, tool calls, notices, date separators, older history, jump to latest. You can send, stop a reply and
 answer a bot's approval or question from it ("The composer" and "Requests" below), and confirm a sensitive action with
@@ -267,8 +267,8 @@ environment variable read at build time is the usual cause.
 3. **Base path** (`boot/base-path.ts`). The page must be at `<prefix>/dashboard-plugins/hermie/app/index.html`
    (or that directory, for an alias); the gateway is the origin plus the prefix. Anywhere else is an error
    screen that names the expected path. A route stashed before a sign-in is put back once.
-4. **Probe** (`boot/auth-mode.ts`): `GET /api/status`. `auth_required: false` is a session-token gateway,
-   which the client does not handle yet; it says so and stops.
+4. **Probe** (`boot/auth-mode.ts`): `GET /api/status`. `auth_required: false` is a gateway without sign-in,
+   which authenticates with one session token; see "Gateways without sign-in" below. Otherwise:
 5. **Identity**: `GET /api/auth/me` on the gateway's `HttpOnly` cookie session, sent `same-origin` and never
    anywhere else. A 401 is "Sign in again", which stashes the route and goes to
    `<prefix>/login?next=<this page>`; a 403 is not (the gateway says 401 for a lapsed session, so a 403 is a proxy
@@ -278,13 +278,49 @@ environment variable read at build time is the usual cause.
    (`claimForOwner`). Sign-out is `POST /auth/logout`, then the transcript cache and every identity-bound
    setting are cleared, then `/login`.
 
-`boot/boot.ts` is that sequence as one function with a typed outcome (`unreachable`, `token_mode`,
-`needs_signin`, `signed_in`); `main.tsx` only renders it. `boot/boot.integration.test.ts` runs it against the
-fake gateway in cookie mode.
+`boot/boot.ts` is that sequence as one function with a typed outcome (`unreachable`, `needs_signin`,
+`signed_in`, and for a gateway without sign-in `needs_token`, `token_ready`); `main.tsx` only renders it.
+`boot/boot.integration.test.ts` runs it against the fake gateway in cookie mode and in token mode.
+
+### Gateways without sign-in
+
+A gateway whose dashboard has no sign-in (`auth_required: false`) lets in whoever has its session token, and
+hands that token to the pages it serves by writing it into the dashboard's own `index.html`
+(`window.__HERMES_SESSION_TOKEN__="<token>";`). The client does what the dashboard does. **It reads the
+dashboard's own bootstrap, so the token is exactly as public as the dashboard on that gateway**: whoever can
+open the dashboard there can read it, and the client adds no exposure and no protection of its own. A gateway
+that wants more puts sign-in in front of the dashboard, and then none of this runs.
+
+1. **Read** (`boot/dashboard-token.ts`): `GET <prefix>/`, same origin, `cache: 'no-store'`, no redirect
+   followed. The value is taken only in one form: a double-quoted string of URL-safe characters (letters,
+   digits, `-`, `.`, `_`, `~`), at most 512, then `;`, the same in every assignment on the page, on a page that
+   does not say `__HERMES_AUTH_REQUIRED__=true`. Anything else is no token.
+2. **Check** (`checkToken`): `GET /api/profiles` with the token, which an ungated gateway answers only with the
+   right one (the native apps' check). `/api/auth/me` is never asked: nobody is signed in on such a gateway.
+3. **The prompt** (`features/shell/TokenPrompt.tsx`), when the page had no token or the gateway refused it: a
+   masked field (`type="password"`, `autocomplete="off"`, the password-manager opt-outs, no `name`, no
+   `<form>`), uncontrolled and emptied the moment Continue reads it. A refused token is one sentence and an
+   empty field; "Read it from the dashboard again" runs the boot from the probe.
+4. **Running**: the app on `SessionTokenCredentials`, `X-Hermes-Session-Token` on every REST call and
+   `?token=` on the socket, which is what the gateway accepts there and what the native apps send. Nobody is
+   named: the sidebar says there is no sign-in, the stored state and `ui_meta` are the owner's (`owner`, as on
+   the other clients), and Settings says plainly that Passkeys and MCP need sign-in. A token the gateway stops
+   taking while the page is open (it restarted) is the connection line's "Read it from the dashboard again".
+5. **The way out** is "Forget the token": the session stops, the token is dropped with it, the transcript
+   cache and the identity-bound settings are cleared as on a sign-out (`forgetToken`), and the prompt is shown.
+   The gateway is not told: it has nothing to end, and its token stays valid until it restarts.
+
+**Where the token is.** In the `SessionTokenCredentials` the boot made, and in the connection built on it:
+memory only, for as long as the tab is open. It is never written to `localStorage`, `sessionStorage`,
+IndexedDB, a cookie, the transcript cache, a log line, an error or the auth timeline, and it appears in no URL
+but the socket's `?token=` (the one place the gateway takes it on a socket; the browser may show that URL in
+its own developer tools, as it does for the dashboard). `e2e/token-mode.spec.ts` checks all of that in a
+browser against the fake gateway in `--auth token`.
 
 ### Browser storage
 
-Nothing in it is a credential: the session is the gateway's `HttpOnly` cookie, which the client cannot read.
+Nothing in it is a credential: the session is the gateway's `HttpOnly` cookie, which the client cannot read,
+and on a gateway without sign-in the session token is held in memory only (above).
 
 | Where                                               | Key or name                                        | What                                                                                    | On sign-out |
 | --------------------------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------- | ----------- |
@@ -329,16 +365,16 @@ own:
 same store shapes, and every deliberate difference noted at the top of the file it is in. None of it imports
 React; screens will read the stores through `useStore`.
 
-| File                                          | What                                                                                      |
-| --------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `core/gateway-client.ts`                      | the connection on the cookie session, its lifecycle, and `connectGateway` (below)         |
-| `core/bots-controller.ts`                     | the roster's round trips: `profiles.list`, avatars, running state, the canonical Bot Chat |
-| `core/link.ts`                                | `ChatGateway`, the slice of the connection the chat layer sees                            |
-| `core/advert.ts`                              | the plugin advert plus the web-only `web`, `webPush.publicKey` and `modules.web`          |
-| `core/rpc-failures.ts`                        | the ring of gateway refusals a screen absorbed                                            |
-| `state/connection.ts`, `bots.ts`, `plugin.ts` | zustand vanilla stores: status, roster and watermarks, advert                             |
+| File                                          | What                                                                                                |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `core/gateway-client.ts`                      | the connection on the boot's session (cookie or token), its lifecycle, and `connectGateway` (below) |
+| `core/bots-controller.ts`                     | the roster's round trips: `profiles.list`, avatars, running state, the canonical Bot Chat           |
+| `core/link.ts`                                | `ChatGateway`, the slice of the connection the chat layer sees                                      |
+| `core/advert.ts`                              | the plugin advert plus the web-only `web`, `webPush.publicKey` and `modules.web`                    |
+| `core/rpc-failures.ts`                        | the ring of gateway refusals a screen absorbed                                                      |
+| `state/connection.ts`, `bots.ts`, `plugin.ts` | zustand vanilla stores: status, roster and watermarks, advert                                       |
 
-`connectGateway({ baseUrl, credentials, storage, cache })` takes the boot's `signed_in` session and keeps one
+`connectGateway({ baseUrl, credentials, storage, cache })` takes the boot's session (`signed_in`, or `token_ready` on a gateway without sign-in) and keeps one
 `GatewayConnection` alive: it dials when the page is first visible, closes the socket after the page has been
 hidden for more than 60 seconds, and on return dials again with a fresh ticket, which replays every session it
 holds a watermark for. Network reports are advice: offline labels the status and takes a live socket down,
@@ -1549,6 +1585,7 @@ of frames in a row with the same answer).
 | `passkey.spec.ts`               | Chromium only (a virtual authenticator over the DevTools `WebAuthn` domain): enrol with a code from `/__fake/passkey/code`; a confirmation raised with `/__fake/request`, confirmed, and read back as `verified: true` from `/__fake/state` `passkey.outcomes`; decline; a key the gateway cannot verify (`signature_invalid`, then `too_many_attempts`); a passkey revoked while open (`verification_failed`); a request still open after a reload; Escape; the detail's `white-space: pre` and sideways scroll; axe in light and dark                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `settings-mcp.spec.ts`          | the fake gateway's `--mcp`: the page lists the endpoint, command, config, instructions and clients as the gateway said them; each Copy button puts exactly that text on the clipboard (read back in Chromium); Revoke asks first, Cancel changes nothing, confirming ends the grant at the gateway (read back from `/__fake/mcp/grants`) and the row goes; an `mcp.changed` from a seeded grant and from a revoke in another tab reloads the open page; a gateway without MCP (routes unknown, or off) says so and shows nothing else; the page is a chunk fetched only when opened; axe in light and dark, with a confirmation open; a turn an agent sent is drawn `You via <client>` and `<name> via <client>`                                                                                                                                                                                                                                                                                                                                                                                                              |
 | `settings.spec.ts`              | the home from the sidebar's link (Settings a chunk fetched when reached, each section its own); a language switch with no reload (a marker on the window survives it) that stays through one; the scheme and tint on the document and kept through a reload, the text size on the words of a message and nothing around them; the chat list reordered with Enter and Space on the Move buttons alone, focus kept on the pressed button, the move reaching the gateway and surviving a reload; a chat's colour and archive read back from the gateway's `ui_meta` and kept through a reload; a folder made, a chat moved into it, a mute; the transcript cache read back from IndexedDB (a copy after leaving a chat, none after Clear now, none while switched off, off through a reload); the default view reaching a chat's options; this gateway's and About's facts; Sign out asking, Cancel changing nothing, confirming ending the session at the gateway (401 afterwards) and clearing this person's state and not the browser's; axe in light and dark on every page, a row's panel and the sign-out question; 320 px |
+| `token-mode.spec.ts`            | the fake gateway's `--auth token`: the app boots from the dashboard's bootstrap with nobody named and never asks `/api/auth/me`; the token is in no `localStorage`, `sessionStorage`, IndexedDB or cookie after use and in no request URL, and every socket URL carries it as `?token=`; a bootstrap token the gateway refuses is the prompt (masked, no form, no name), a wrong token is one sentence, the right one opens the app; a token that stops working while open is read again from the connection line; Forget the token goes back to the prompt and leaves nothing behind; Passkeys, MCP and Account say they need sign-in                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 ```sh
 npx playwright install chromium webkit firefox        # once
