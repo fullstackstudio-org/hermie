@@ -3,7 +3,7 @@
   "scanners": {
     "fork": {
       "repo": "https://github.com/fullstackstudio-org/hermes-agent.git",
-      "commit": "d93fcdae29a411dbd6a30b1f6c994764b1071895",
+      "commit": "212f96cd65fb8273d8819000d41adb7866c4c4a4",
       "gate": "blocking"
     },
     "upstream": {
