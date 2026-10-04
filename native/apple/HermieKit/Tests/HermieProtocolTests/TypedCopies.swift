@@ -564,6 +564,15 @@ enum TypedCopy {
     }
   }
 
+  static func clientCapabilities(_ p: ClientCapabilitiesResult) -> ClientCapabilitiesResult {
+    with(ClientCapabilitiesResult(json: [:])) {
+      $0.serverRequests = p.serverRequests
+      $0.confirm = p.confirm
+      $0.confirmPasskey = p.confirmPasskey
+      $0.requests = p.requests
+    }
+  }
+
   static func promptSubmit(_ p: PromptSubmitResult) -> PromptSubmitResult {
     with(PromptSubmitResult()) {
       $0.status = p.status

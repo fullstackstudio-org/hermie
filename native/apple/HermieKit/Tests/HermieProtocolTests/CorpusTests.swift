@@ -62,7 +62,7 @@ struct CorpusTests {
     var problems: [String] = []
 
     let streams = try contractFiles().filter { $0.path.hasPrefix("transcript/streams/") }
-    #expect(streams.count == 10)
+    #expect(streams.count == 13)
 
     for stream in streams {
       let scenario = try JSONValue(parsing: Data(contentsOf: stream.url))
@@ -149,6 +149,7 @@ struct CorpusTests {
     case history(SessionHistoryResult)
     case eventsSince(SessionEventsSinceResult)
     case promptSubmit(PromptSubmitResult)
+    case clientCapabilities(ClientCapabilitiesResult)
 
     var name: String {
       switch self {
@@ -157,6 +158,7 @@ struct CorpusTests {
       case .history: RPC.SessionHistory.name
       case .eventsSince: RPC.SessionEventsSince.name
       case .promptSubmit: RPC.PromptSubmit.name
+      case .clientCapabilities: RPC.ClientCapabilities.name
       }
     }
 
@@ -167,6 +169,7 @@ struct CorpusTests {
       case .history(let r): TypedCopy.history(r).jsonValue
       case .eventsSince(let r): TypedCopy.eventsSince(r).jsonValue
       case .promptSubmit(let r): TypedCopy.promptSubmit(r).jsonValue
+      case .clientCapabilities(let r): TypedCopy.clientCapabilities(r).jsonValue
       }
     }
   }
@@ -178,6 +181,9 @@ struct CorpusTests {
     if keys.contains("events") { return SessionEventsSinceResult(jsonValue: result).map(TypedResult.eventsSince) }
     if keys.contains("messages") { return SessionHistoryResult(jsonValue: result).map(TypedResult.history) }
     if keys == ["status"] { return PromptSubmitResult(jsonValue: result).map(TypedResult.promptSubmit) }
+    if keys.contains("server_requests") {
+      return ClientCapabilitiesResult(jsonValue: result).map(TypedResult.clientCapabilities)
+    }
     return nil
   }
 
