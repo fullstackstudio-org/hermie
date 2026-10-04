@@ -15,6 +15,22 @@ import { type Branch, localise, type Translated } from './web-strings'
 export const MANAGE_STRINGS_SOURCE = {
   /** Said by more than one of the pages. */
   manageCommon: {
+    /** Signing in to another service from a page: the address is a link the reader opens, because a page may not open a window from the middle of a call. */
+    openSignIn: {
+      en: 'Open the sign-in page',
+      nl: 'De inlogpagina openen',
+      de: 'Die Anmeldeseite öffnen'
+    },
+    signInWaiting: {
+      en: ({ name }: { name: string }) => `Waiting for you to finish signing in to ${name}…`,
+      nl: ({ name }: { name: string }) => `Wachten tot je klaar bent met inloggen bij ${name}…`,
+      de: ({ name }: { name: string }) => `Warte darauf, dass du die Anmeldung bei ${name} abschließt…`
+    },
+    cancelSignIn: {
+      en: 'Cancel',
+      nl: 'Annuleren',
+      de: 'Abbrechen'
+    },
     saved: {
       en: 'Saved.',
       nl: 'Opgeslagen.',
@@ -163,22 +179,6 @@ export const MANAGE_STRINGS_SOURCE = {
       nl: 'Deze server bood geen tools aan.',
       de: 'Dieser Server hat keine Tools angeboten.'
     },
-    /** The authorisation: the address is a link the reader opens, because a page may not open one by itself. */
-    openSignIn: {
-      en: 'Open the sign-in page',
-      nl: 'De inlogpagina openen',
-      de: 'Die Anmeldeseite öffnen'
-    },
-    signInWaiting: {
-      en: ({ name }: { name: string }) => `Waiting for you to finish signing in to ${name}…`,
-      nl: ({ name }: { name: string }) => `Wachten tot je klaar bent met inloggen bij ${name}…`,
-      de: ({ name }: { name: string }) => `Warte darauf, dass du die Anmeldung bei ${name} abschließt…`
-    },
-    cancelSignIn: {
-      en: 'Cancel',
-      nl: 'Annuleren',
-      de: 'Abbrechen'
-    },
     signInCancelled: {
       en: 'The authorisation was cancelled.',
       nl: 'De autorisatie is geannuleerd.',
@@ -285,6 +285,25 @@ export const MANAGE_STRINGS_SOURCE = {
       en: 'Give the server a name and either an address or a command.',
       nl: 'Geef de server een naam en een adres of een opdracht.',
       de: 'Gib dem Server einen Namen und entweder eine Adresse oder einen Befehl an.'
+    }
+  },
+  connectorsPage: {
+    /** The names of one connector's controls, so that several connectors are told apart. */
+    connectName: {
+      en: ({ name }: { name: string }) => `Connect ${name}`,
+      nl: ({ name }: { name: string }) => `${name} koppelen`,
+      de: ({ name }: { name: string }) => `${name} verbinden`
+    },
+    reconnectName: {
+      en: ({ name }: { name: string }) => `Reconnect ${name}`,
+      nl: ({ name }: { name: string }) => `${name} opnieuw koppelen`,
+      de: ({ name }: { name: string }) => `${name} erneut verbinden`
+    },
+    /** The vendor's own word for the state, under the connector's name. */
+    vendorStatus: {
+      en: ({ status }: { status: string }) => `Status: ${status}`,
+      nl: ({ status }: { status: string }) => `Status: ${status}`,
+      de: ({ status }: { status: string }) => `Status: ${status}`
     }
   },
   skillsPage: {

@@ -13,7 +13,7 @@ import {
   OauthCancelled,
   OAUTH_POLL_INTERVAL_MS,
   OAUTH_TIMEOUT_MS,
-  openableUrl
+  signInLink
 } from './mcp-servers'
 
 describe('mergeServers', () => {
@@ -74,21 +74,25 @@ describe('mergeServers', () => {
   })
 })
 
-describe('openableUrl', () => {
-  it('lets a web address through and nothing else', () => {
-    expect(openableUrl('https://auth.example.test/authorize?x=1')).toBe('https://auth.example.test/authorize?x=1')
-    expect(openableUrl('http://localhost:8080/cb')).toBe('http://localhost:8080/cb')
+describe('signInLink', () => {
+  it('lets a plain https address with a host through, and says where it goes, and nothing else', () => {
+    expect(signInLink('https://auth.example.test/authorize?x=1')).toEqual({
+      url: 'https://auth.example.test/authorize?x=1',
+      host: 'auth.example.test'
+    })
 
     for (const bad of [
+      'http://localhost:8080/cb',
       'javascript:alert(1)',
       'data:text/html,<script>1</script>',
       'file:///etc/passwd',
+      'https://trusted.example@elsewhere.example/x',
       'not a url',
       '',
       null,
       4
     ]) {
-      expect(openableUrl(bad), String(bad)).toBeNull()
+      expect(signInLink(bad), String(bad)).toBeNull()
     }
   })
 })

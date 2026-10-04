@@ -16,10 +16,12 @@ import { pluginStore } from '../../state/plugin'
 import { aSettingsRuntime } from '../../test-support/settings-runtime'
 import { aBot, resetShellStores, seedRoster } from '../../test-support/shell-stores'
 import { aMemoryPlugin } from '../../test-support/memory-plugin'
+import { aConnectorsGateway } from '../../test-support/connectors-gateway'
 import { anMcpServersGateway } from '../../test-support/mcp-servers-gateway'
 import { aSkillsGateway } from '../../test-support/skills-gateway'
 import type { ManageTransport } from './manage-runtime'
 import { Memory } from './Memory'
+import { Connectors } from './Connectors'
 import { McpServers } from './McpServers'
 import { Skills } from './Skills'
 import { SettingsRuntimeContext } from './settings-runtime'
@@ -114,6 +116,21 @@ describe.each(['light', 'dark'] as const)('the management pages in the %s scheme
 
     expect(await violations()).toEqual([])
   })
+
+  it('has no violation on Connectors, loaded, with a sign-in under way', async () => {
+    mount(aConnectorsGateway({ reads: 1000 }).transport, <Connectors />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Connect notion' }))
+    await screen.findByRole('link', { name: 'Open the sign-in page' })
+
+    expect(await violations()).toEqual([])
+  })
+
+  it('has no violation on Connectors for a bot whose connections are switched off', async () => {
+    mount(aConnectorsGateway({ unavailable: true }).transport, <Connectors />)
+    await screen.findByText('Connectors are switched off for this bot.')
+
+    expect(await violations()).toEqual([])
+  })
 })
 
 describe.each(['nl', 'de'] as const)('the management pages in %s', locale => {
@@ -147,6 +164,15 @@ describe.each(['nl', 'de'] as const)('the management pages in %s', locale => {
     details.open = true
     fireEvent(details, new Event('toggle'))
     await waitFor(() => expect(details.querySelector('select')).toBeTruthy())
+
+    expect(await violations()).toEqual([])
+  })
+
+  it('has no violation on Connectors', async () => {
+    await loadCatalogue(locale)
+    act(() => setActiveLocale(locale))
+    mount(aConnectorsGateway().transport, <Connectors />)
+    await screen.findAllByRole('listitem')
 
     expect(await violations()).toEqual([])
   })

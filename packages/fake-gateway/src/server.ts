@@ -8214,6 +8214,15 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
             if (target.state === 'initiated') {
               target.state = target.resolvesTo
               target.detail = target.resolvesTo === 'failed' ? 'the workspace refused the grant' : null
+
+              // The account watcher is what moves the vendor's row: a list read after this says so too.
+              const row = state.connectors.find(entry => entry.connector === target.name)
+
+              if (row && target.state === 'connected') {
+                row.connected = true
+                row.connectionStatus = 'active'
+                row.statusReason = null
+              }
             }
           }
 

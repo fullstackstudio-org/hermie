@@ -52,6 +52,8 @@ const SAME_AS_ENGLISH: Readonly<Record<string, readonly Locale[]>> = {
   'manage.mcpServersPage.transportValue': ['nl', 'de'],
   // "Name" is the German word too.
   'manage.mcpServersPage.addName': ['de'],
+  // `Status: {status}` is the same word in all three languages.
+  'manage.connectorsPage.vendorStatus': ['nl', 'de'],
   // "Name" is the German word too; "Toolsets" and "Skills" are loan words in Dutch and German.
   'sheets.botProfile.nameHeading': ['de'],
   'sheets.botProfile.toolsetsHeading': ['nl', 'de'],

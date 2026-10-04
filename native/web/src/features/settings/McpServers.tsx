@@ -208,7 +208,7 @@ function Reload({
               requestAnimationFrame(() => trigger.current?.focus())
             }}
           >
-            {words.cancelSignIn}
+            {manageStrings.manageCommon.cancelSignIn}
           </Button>
         </div>
       </div>
@@ -244,7 +244,9 @@ function ServerRow({
 }): ReactElement {
   const name = displayText(server.name, 64)
   const [probing, setProbing] = useState<Probing | null>(null)
-  const [flow, setFlow] = useState<{ authUrl: string; cancel: () => void } | { starting: true } | null>(null)
+  const [flow, setFlow] = useState<
+    { authUrl: string; authHost: string; cancel: () => void } | { starting: true } | null
+  >(null)
   const [signIn, setSignIn] = useState<Outcome | null>(null)
   const live = useRef<OauthFlow | null>(null)
 
@@ -274,7 +276,7 @@ function ServerRow({
       const started = await client.authorise(server.name, profile)
 
       live.current = started
-      setFlow({ authUrl: started.authUrl, cancel: started.cancel })
+      setFlow({ authUrl: started.authUrl, authHost: started.authHost, cancel: started.cancel })
 
       const probe = await started.done
 
@@ -363,14 +365,15 @@ function ServerRow({
 
       {flow && 'authUrl' in flow ? (
         <div className="hm-manage__form" role="status">
-          <p className="hm-manage__text">{words.signInWaiting({ name })}</p>
+          <p className="hm-manage__text">{manageStrings.manageCommon.signInWaiting({ name })}</p>
           <p className="hm-manage__hint">{strings.mcp.authoriseHint}</p>
           <div className="hm-manage__actions">
             <a className="hm-manage__link" href={flow.authUrl} target="_blank" rel="noopener noreferrer">
-              {words.openSignIn}
+              {manageStrings.manageCommon.openSignIn}
             </a>
+            <span className="hm-manage__meta">{flow.authHost}</span>
             <Button variant="quiet" onClick={flow.cancel}>
-              {words.cancelSignIn}
+              {manageStrings.manageCommon.cancelSignIn}
             </Button>
           </div>
         </div>

@@ -24,6 +24,7 @@
 import type { McpCatalogEntry, McpServerRuntimeRow, McpServerSummary } from '@hermes/shared/gateway-contract'
 
 import { reloadAnswer, reloadMcpParams, type ReloadAnswer } from '../bot-profile/params'
+import { authorisationLink } from '../connections'
 import type { ManageTransport } from './transport'
 
 /** How often `oauth.poll` is asked, as the desktop's own driver does. */
@@ -131,26 +132,20 @@ export const catalogueOf = (entries: readonly McpCatalogEntry[] | undefined): Ca
     }))
 
 /**
- * An address the page will hand to the reader to open: `http` and `https` only. What the gateway sends is not
- * trusted to be a web address, and a `javascript:` or `data:` URL in a link is a script.
+ * An address the page will hand to the reader to open, as the connection cards already treat one
+ * (`core/connections.ts`, `authorisationLink`): plain `https`, a host, no user name or password before it. What
+ * the gateway sends is not trusted to be a web address, and a `javascript:` or `data:` URL in a link is a script.
+ * The host is kept so the page can say where the link goes before it is pressed.
  */
-export function openableUrl(value: unknown): string | null {
-  if (typeof value !== 'string') {
-    return null
-  }
-
-  try {
-    const url = new URL(value)
-
-    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null
-  } catch {
-    return null
-  }
+export function signInLink(value: unknown): { url: string; host: string } | null {
+  return authorisationLink(value)
 }
 
 /** The flow under way: where the reader goes, and the way to end it. */
 export interface OauthFlow {
   authUrl: string
+  /** Where the address goes, for the page to say before it is pressed. */
+  authHost: string
   /** Resolves when the flow settles; rejects with the gateway's reason, or on a timeout or a cancel. */
   done: Promise<McpProbe>
   /** Tell the gateway the flow is over (it holds a verifier and a listener) and stop polling. */
@@ -225,9 +220,9 @@ export function createMcpServersClient(
       // `client_redirect_uri` is NOT sent: it is for a client that can host a loopback listener, which a page
       // cannot, and sending it without one behind it would break the flow.
       const started = await gateway.request('mcp.servers.oauth.start', { name, profile })
-      const authUrl = openableUrl(started.auth_url)
+      const link = signInLink(started.auth_url)
 
-      if (!authUrl || !started.session_id) {
+      if (!link || !started.session_id) {
         throw new Error('The gateway started an authorisation but did not say where to send you.')
       }
 
@@ -284,7 +279,8 @@ export function createMcpServersClient(
       })()
 
       return {
-        authUrl,
+        authUrl: link.url,
+        authHost: link.host,
         done,
         cancel: () => {
           cancelled = true

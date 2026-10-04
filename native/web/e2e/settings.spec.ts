@@ -119,6 +119,7 @@ test.describe('the home', () => {
       'Memory',
       'Skills',
       'MCP servers',
+      'Connectors',
       'Chats & messages',
       'Notifications',
       'Chat list',
