@@ -49,6 +49,12 @@
  * field ahead of whatever was typed, which stays after it (`mergeIntoDraft`), and
  * the field takes focus with the caret at the end. Sending it starts a new turn.
  *
+ * **Dictation** is a microphone beside the field, drawn only where the browser has a recogniser (`canDictate`) and
+ * fetched then (`features/voice/DictationButton`, a chunk of its own). What is heard goes into the field at the caret as it
+ * is heard; the field is the reader's to read, change and send. A change to the field that dictation did not make
+ * ends the session, so a result that arrives after a send cannot put the sentence back. Where it listens, what it
+ * says about it (listening, or why it did not work) is the line under the field.
+ *
  * Nothing here talks to the gateway except through the controller, and the text
  * the bot or the reader wrote is never Markdown in this component.
  */
@@ -57,7 +63,9 @@ import {
   type ChangeEvent,
   type ClipboardEvent,
   type KeyboardEvent,
+  lazy,
   type ReactElement,
+  Suspense,
   useCallback,
   useEffect,
   useId,
@@ -78,6 +86,9 @@ import { hasFinePointer } from '../../platform/input-kind'
 import { chatsStore, type QueuedMessage } from '../../state/chats'
 import { connectionStore } from '../../state/connection'
 import { Button } from '../../ui/primitives'
+import { canDictate } from '../../platform/voice-capabilities'
+import type { DictationSnapshot } from '../voice/dictation'
+import { noticeFor } from '../voice/dictation-notice'
 import { AttachMenu } from './AttachMenu'
 import { AttachmentChips } from './AttachmentChips'
 import { useChatRuntime } from './chat-runtime'
@@ -87,6 +98,11 @@ import { decideKey } from './send-key'
 import { useStagedAttachments } from './use-attachment-tray'
 import { usePageVisible } from './use-page-visible'
 import './composer.css'
+
+/** The microphone: a chunk of its own, fetched only where the browser can dictate. */
+const DictationButton = lazy(() =>
+  import('../voice/DictationButton').then(module => ({ default: module.DictationButton }))
+)
 
 /** How long after the last keystroke the draft is written down. */
 const DRAFT_WRITE_MS = 300
@@ -172,6 +188,8 @@ export function Composer({ chatKey, botName, onSent, tray = null, prefill = null
   const [text, setText] = useState(() => drafts?.read(chatKey) ?? '')
   const [failure, setFailure] = useState<string | OwnedElsewhere | null>(null)
   const [startingNew, setStartingNew] = useState(false)
+  const [dictation, setDictation] = useState<DictationSnapshot | null>(null)
+  const dictates = canDictate()
   const field = useRef<HTMLTextAreaElement>(null)
   const textRef = useRef(text)
 
@@ -656,6 +674,17 @@ export function Composer({ chatKey, botName, onSent, tray = null, prefill = null
 
       {tray ? <AttachmentChips tray={tray} attachments={staged} waitingId={waitingId} /> : null}
 
+      {dictation?.phase === 'listening' ? (
+        <p className="hm-composer__listening" role="status">
+          {strings.chat.voice.listening}
+        </p>
+      ) : null}
+      {dictation?.phase === 'error' && noticeFor(dictation.failure) ? (
+        <p className="hm-composer__failure" role={dictation.failure === 'no-speech' ? 'status' : 'alert'}>
+          {noticeFor(dictation.failure)}
+        </p>
+      ) : null}
+
       <div className="hm-composer__row">
         {tray ? <AttachMenu onFiles={attach} disabled={!canAttach} /> : null}
         <label className="hm-sr" htmlFor={`${listId}-field`}>
@@ -679,6 +708,11 @@ export function Composer({ chatKey, botName, onSent, tray = null, prefill = null
           onPaste={onPaste}
           onBlur={closeCompletions}
         />
+        {dictates ? (
+          <Suspense fallback={null}>
+            <DictationButton field={field} value={text} onValue={put} onState={setDictation} />
+          </Suspense>
+        ) : null}
         {running ? (
           <Button variant="quiet" className="hm-composer__stop" onClick={stop}>
             {strings.app.chat.stop}

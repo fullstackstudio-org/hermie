@@ -151,7 +151,8 @@ test.describe('Branch from here', () => {
 
     const menu = page.getByRole('menu', { name: 'Message actions' })
 
-    await expect(menu.getByRole('menuitem')).toHaveText(['Copy text', 'Regenerate', 'Branch from here'])
+    // Every engine this suite runs in can speak, so a reply has Read aloud under its copy.
+    await expect(menu.getByRole('menuitem')).toHaveText(['Copy text', 'Read aloud', 'Regenerate', 'Branch from here'])
     await page.keyboard.press('End')
     await expect(menu.getByRole('menuitem', { name: 'Branch from here' })).toBeFocused()
     await page.keyboard.press('Enter')

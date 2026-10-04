@@ -28,9 +28,9 @@ import { Icon } from '../../ui/icons'
 import { formatRoute } from '../shell/router'
 import {
   isSettingsSection,
+  listedSections,
   preloadSection,
   SECTION_LOADERS,
-  SETTINGS_SECTIONS,
   sectionBlurb,
   sectionTitle
 } from './sections'
@@ -47,6 +47,7 @@ const Chats = lazy(() => SECTION_LOADERS.chats().then(module => ({ default: modu
 const Notifications = lazy(() => SECTION_LOADERS.notifications().then(module => ({ default: module.Notifications })))
 const Arrangement = lazy(() => SECTION_LOADERS['chat-list']().then(module => ({ default: module.Arrangement })))
 const Appearance = lazy(() => SECTION_LOADERS.appearance().then(module => ({ default: module.Appearance })))
+const Voice = lazy(() => SECTION_LOADERS.voice().then(module => ({ default: module.Voice })))
 const About = lazy(() => SECTION_LOADERS.about().then(module => ({ default: module.About })))
 
 const sectionHref = (section: SettingsSection): string => formatRoute({ name: 'settings', section })
@@ -54,7 +55,7 @@ const sectionHref = (section: SettingsSection): string => formatRoute({ name: 's
 function Home(): ReactElement {
   return (
     <ul className="hm-settings-home">
-      {SETTINGS_SECTIONS.map(section => {
+      {listedSections().map(section => {
         const blurb = `hm-settings-blurb-${section}`
 
         return (
@@ -113,6 +114,8 @@ function Page({ section, gated }: { section: SettingsSection; gated: boolean }):
       return <Arrangement />
     case 'appearance':
       return <Appearance />
+    case 'voice':
+      return <Voice />
     case 'about':
       return <About />
   }

@@ -1,6 +1,6 @@
 /**
- * The transcript's one message menu: Copy text, Copy as Markdown, Edit and
- * resend, Regenerate, Branch from here and Copy link(s), for whichever message
+ * The transcript's one message menu: Copy text, Copy as Markdown, Read aloud, Edit
+ * and resend, Regenerate, Branch from here and Copy link(s), for whichever message
  * the reader points at, presses on or has focused.
  *
  * What a menu offers is `message-menu.ts`. This is how it is reached, and the
@@ -191,7 +191,9 @@ function entriesFor(host: ItemHost, id: string, item: TranscriptItem | undefined
         canRegenerate: host.regenerateTarget() === id,
         canEditResend: host.editTarget() === id,
         canBranch: host.canBranch(),
-        turnActive: host.turnActive()
+        turnActive: host.turnActive(),
+        canReadAloud: host.canReadAloud?.() ?? false,
+        reading: host.readingIds?.().includes(id) ?? false
       })
     : []
 }
@@ -262,6 +264,13 @@ export function MessageMenuLayer({ container, host }: MessageMenuLayerProps): Re
 
       if (action.kind === 'regenerate') {
         host.regenerate()
+
+        return
+      }
+
+      // The words are read off the item now, not when the menu was built: a reply can still have been growing.
+      if (action.kind === 'readAloud') {
+        host.toggleReadAloud?.(closing?.id ?? '', action.text)
 
         return
       }

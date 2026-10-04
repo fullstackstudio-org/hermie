@@ -68,6 +68,8 @@ test.describe('a message’s menu', () => {
     await expect(menu.getByRole('menuitem')).toHaveText([
       'Copy text',
       'Copy as Markdown',
+      // Every engine this suite runs in can speak.
+      'Read aloud',
       'Regenerate',
       'Branch from here'
     ])

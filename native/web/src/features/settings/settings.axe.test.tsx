@@ -98,6 +98,7 @@ const SECTIONS: (SettingsSection | undefined)[] = [
   'chats',
   'chat-list',
   'appearance',
+  'voice',
   'about'
 ]
 

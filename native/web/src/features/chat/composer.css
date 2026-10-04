@@ -237,6 +237,25 @@
   padding: 0;
 }
 
+/* ── dictation ───────────────────────────────────────────────────────────── */
+
+.hm-composer__row .hm-composer__mic {
+  width: 44px;
+  padding: 0;
+}
+
+/* The microphone is open: the button is held down, and says so by more than a colour. */
+.hm-composer__mic[aria-pressed='true'] {
+  border-color: var(--hm-danger-text);
+  color: var(--hm-danger-text);
+}
+
+.hm-composer__listening {
+  margin: 0;
+  color: var(--hm-text-muted);
+  font-size: 0.9375rem;
+}
+
 .hm-attach {
   display: flex;
   flex-direction: column;

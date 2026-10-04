@@ -50,7 +50,7 @@
  * **What it shows** is the reader's choice for this chat (`ChatOptions`, kept in
  * `state/chat-view.ts`), unless a test hands in a `view`.
  *
- * **A message's actions** (copy, copy as Markdown, edit and resend, regenerate,
+ * **A message's actions** (copy, copy as Markdown, read aloud, edit and resend, regenerate,
  * branch from here, copy link) are one menu for the whole transcript (`MessageMenuLayer`), reached by pointer, long press and
  * the keyboard's roving focus over messages; no message holds a control of its
  * own. What a row and that menu ask the screen for (a message by id, a picture
@@ -94,6 +94,9 @@ import { requestsStore } from '../../state/requests'
 import { Button } from '../../ui/primitives'
 import { botLabel } from '../bots/bot-label'
 import { ResumeProgressLine } from '../notices/ResumeProgressLine'
+import { voiceActivityStore } from '../voice/activity'
+import { canSpeak } from '../../platform/voice-capabilities'
+import { useReadAloud } from '../voice/use-read-aloud'
 import { InteractiveNotice } from '../notices/InteractiveNotice'
 import { SecureInputNotice } from '../notices/SecureInputNotice'
 import { useFindRequest } from '../search/find-request'
@@ -251,6 +254,14 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
   /** Stable, so every row is memoised on its own `(id, version)` and not on this function. */
   const renderItem = useCallback((row: VisibleItem) => <ChatItem row={row} />, [])
 
+  // Reading replies aloud: the menu's line, and the chat's own automatic read. Its code is fetched only when used.
+  const readAloud = useReadAloud({
+    bot,
+    items: shown,
+    turnRunning: turnActive,
+    live: chat?.hydration === 'live'
+  })
+
   // ── where the reader is ─────────────────────────────────────────────────────
   const listRef = useRef<TranscriptListHandle>(null)
   const stage = useRef<HTMLDivElement>(null)
@@ -289,6 +300,7 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
     target: null as string | null,
     edit: null as string | null,
     branch: false,
+    reading: [] as readonly string[],
     listeners: new Set<() => void>()
   })
   // What the host's stable methods call: replaced every render, read when they run.
@@ -296,10 +308,12 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
     regenerate: () => void
     editResend: (text: string, attachments: readonly string[]) => void
     branch: (id: string, text: string) => void
+    readAloud: (id: string, markdown: string) => void
   }>({
     regenerate: () => undefined,
     editResend: () => undefined,
-    branch: () => undefined
+    branch: () => undefined,
+    readAloud: () => undefined
   })
   const [prefill, setPrefill] = useState<ComposerPrefill | null>(null)
   const [branchFailure, setBranchFailure] = useState<string | null>(null)
@@ -346,7 +360,11 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
       turnActive: () => menuLive.current.turnActive,
       regenerateTarget: () => menuLive.current.target,
       editTarget: () => menuLive.current.edit,
-      canBranch: () => menuLive.current.branch
+      canBranch: () => menuLive.current.branch,
+      // Where the browser can speak, and not while the microphone is open (a person is talking or listening).
+      canReadAloud: () => canSpeak() && !voiceActivityStore.getState().dictating,
+      readingIds: () => menuLive.current.reading,
+      toggleReadAloud: (id, markdown) => act.current.readAloud(id, markdown)
     }),
     [hasFiles]
   )
@@ -396,7 +414,8 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
       state.turnActive === turnActive &&
       state.target === regenerateTarget &&
       state.edit === editTarget &&
-      state.branch === branchable
+      state.branch === branchable &&
+      state.reading === readAloud.readingIds
     ) {
       return
     }
@@ -405,11 +424,14 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
     state.target = regenerateTarget
     state.edit = editTarget
     state.branch = branchable
+    state.reading = readAloud.readingIds
 
     for (const listener of state.listeners) {
       listener()
     }
-  }, [branchable, editTarget, regenerateTarget, turnActive])
+  }, [branchable, editTarget, readAloud.readingIds, regenerateTarget, turnActive])
+
+  act.current.readAloud = readAloud.toggle
 
   act.current.regenerate = () => {
     if (!runtime || key === undefined) {
@@ -626,6 +648,7 @@ export function ChatScreen({ bot, session, view: pinned, router = pageHashRouter
             runtime={runtime}
             viewer={viewer}
             exportChat={shown.length > 0 ? exportChat : undefined}
+            voice={{ reading: readAloud.readingIds.length > 0, stop: readAloud.stop }}
           />
         </div>
       </div>

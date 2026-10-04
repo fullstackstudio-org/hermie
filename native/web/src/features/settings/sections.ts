@@ -12,6 +12,7 @@
 import { strings } from '../../generated/strings'
 import { sheetStrings } from '../../i18n/sheet-strings'
 import { webStrings } from '../../i18n/web-strings'
+import { hasVoice } from '../../platform/voice-capabilities'
 
 /** In the order the home lists them: who you are and where, then how chats behave, then how it looks. */
 export const SETTINGS_SECTIONS = [
@@ -23,10 +24,19 @@ export const SETTINGS_SECTIONS = [
   'notifications',
   'chat-list',
   'appearance',
+  'voice',
   'about'
 ] as const
 
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number]
+
+/**
+ * The sections the home lists: all of them, but Voice only where the browser can do either half of it (read aloud,
+ * or take dictation). A browser with neither has nothing there to set, and a section that only says so is noise;
+ * the address still opens a page that says it, for a link that was shared.
+ */
+export const listedSections = (): readonly SettingsSection[] =>
+  SETTINGS_SECTIONS.filter(section => section !== 'voice' || hasVoice())
 
 export const isSettingsSection = (value: string | undefined): value is SettingsSection =>
   (SETTINGS_SECTIONS as readonly (string | undefined)[]).includes(value)
@@ -49,6 +59,8 @@ export function sectionTitle(section: SettingsSection): string {
       return sheetStrings.settings.title.chatList
     case 'appearance':
       return strings.app.settings.categories.appearance
+    case 'voice':
+      return strings.app.settings.categories.voice
     case 'about':
       return strings.app.settings.categories.about
   }
@@ -74,6 +86,8 @@ export function sectionBlurb(section: SettingsSection): string {
       return blurb.chatList
     case 'appearance':
       return blurb.appearance
+    case 'voice':
+      return strings.app.settings.categories.blurb.voice
     case 'about':
       return blurb.about
   }
@@ -92,6 +106,7 @@ export const SECTION_LOADERS = {
   notifications: () => import('./Notifications'),
   'chat-list': () => import('./Arrangement'),
   appearance: () => import('./Appearance'),
+  voice: () => import('./Voice'),
   about: () => import('./About')
 } as const satisfies Record<SettingsSection, () => Promise<unknown>>
 

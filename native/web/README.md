@@ -175,7 +175,7 @@ draw is kept out of the entry instead. These do that today.
 - **Settings** is one chunk (`features/settings/SettingsHost.tsx`: the home, the way back, the section a route names),
   fetched when a settings route is opened or when the sidebar's link to it is pointed at or focused
   (`features/settings/load.ts`, the only part the entry imports), and each section is a chunk inside it (`Account`,
-  `Gateway`, `Passkeys`, `MCP`, `Chats`, `Arrangement`, `Appearance`, `About`, each with its styles), fetched when it is
+  `Gateway`, `Passkeys`, `MCP`, `Chats`, `Arrangement`, `Appearance`, `Voice`, `About`, each with its styles), fetched when it is
   opened or when its link on the home is reached. The pages' words are in `sheet-strings.ts` with the rest of what a
   chunk says; the catalogue's words they read (the Expo app's titles for Account, Chats, Appearance and About, the
   layout words of the chat list) are the entry's English and a chunk per other language, as every catalogue read is.
@@ -1527,7 +1527,7 @@ the worker through the DevTools protocol. A real notification from the plugin is
 ## Settings
 
 `features/settings/` is the main pane of `#/settings` and `#/settings/<section>`: a home that links to each section and says
-what is in it, and nine sections under a way back to the home. The sidebar's foot links to it (and asks for its chunk
+what is in it, and ten sections under a way back to the home (Voice only where the browser can do either half of it). The sidebar's foot links to it (and asks for its chunk
 when the link is pointed at or focused). The native apps' Settings pages are the reference for what each one shows; the
 Dutch and German wording is the catalogue's wherever the Expo and Swift apps already have the word, and the web client's
 own (`sheet-strings.ts`) where they do not. **No operator settings** (which modules run, who may use the gateway: those are
@@ -1545,6 +1545,7 @@ the plugin's configuration on the gateway).
 | `Notifications.tsx`                                          | Web Push for this browser: what is missing, the switch, the types, the preview, "Register again", the test ("Web Push")                                                              |
 | `Arrangement.tsx`, `arrangement-model.ts`, `arrangement.css` | the chat list: reorder, folders, colour, mute, archive                                                                                                                               |
 | `Appearance.tsx`                                             | scheme, accent colour, language, text size                                                                                                                                           |
+| `Voice.tsx`                                                  | the speaking rate, stop on background, the dictation language, and who does the transcribing ("Voice")                                                                               |
 | `About.tsx`, `core/licences.ts`                              | version and commit of this build, the licences from `licenses.json`                                                                                                                  |
 | `Passkeys.tsx`, `MCP.tsx`                                    | the pages of their own sections ("Passkeys", "MCP"), unchanged                                                                                                                       |
 
@@ -1618,6 +1619,50 @@ arithmetic (`arrangement-model.test.ts`, `gateway-facts.test.ts`, `core/licences
 `state/settings.test.ts`, `state/text-size.test.ts`), and `settings.axe.test.tsx`: axe on the home and every section in both
 schemes and in Dutch and German, with a row's panel, a folder's panel, an archived chat's panel, the sign-out question and an opened
 licence. `e2e/settings.spec.ts` runs the built client ("The browser suite").
+
+## Voice
+
+Dictation in the composer, reading a reply aloud, and Settings, Voice: the same machines as the Expo app's
+`features/voice` and the native apps' (`docs/native.md`, "Voice"), in `features/voice` and `platform/speech-*.ts`. **Every
+byte of it is lazy** (the first load is the same size as before it): the composer draws the microphone only where the
+browser has a recogniser (`platform/voice-capabilities.ts`, a few lines) and fetches it then
+(`features/voice/DictationButton.tsx`); a reply is read through `use-read-aloud.ts`, which imports `read-aloud.ts` the
+first time something is read; the Settings section is a chunk of its own. `src/entry-graph.test.ts` fails when the entry
+reaches any of them.
+
+| File                                                    | What                                                                                                              |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `platform/voice-capabilities.ts`                        | `canSpeak`, `canDictate`, `hasVoice`: asked of the page's window, never subscribed to                             |
+| `platform/speech-recognition.ts`, `speech-synthesis.ts` | the two engines over the Web Speech API (`SpeechRecognition` or `webkitSpeechRecognition`; `speechSynthesis`)     |
+| `features/voice/dictation.ts`                           | the state machine and the anchor: where the words go (at the caret, a selection replaced), what each failure says |
+| `features/voice/DictationButton.tsx`                    | the microphone: press, press again; ends when the field is changed by anything else                               |
+| `features/voice/reader.ts`, `auto-read.ts`              | the queue of replies being read, and the automatic read's arithmetic                                              |
+| `features/voice/read-aloud.ts`, `use-read-aloud.ts`     | one reader per chat screen, made on first use                                                                     |
+| `features/voice/speech-text.ts`                         | Markdown to the words worth saying (a code block is `Code block, 12 lines`; maths as written)                     |
+| `state/voice-settings.ts`                               | the rate, language and switches, one blob under `device.voice`: this browser's, kept on sign-out                  |
+
+- **Controls appear by capability and hide where there is none.** No `SpeechRecognition`, no microphone (Firefox);
+  no `speechSynthesis`, no "Read aloud", no chat option for it; neither, no Voice section in Settings (the address
+  still opens a page that says so). `e2e/voice.spec.ts` runs it both ways in a real browser with a fake recogniser and
+  a fake synthesiser.
+- **Who hears the audio.** Reading uses the browser's own voices on this device and sends nothing. **Dictation does not
+  stay on the device**: Chrome sends the audio to Google and Safari to Apple to be turned into text, and there is no
+  switch to stop that. The Apple apps refuse a language with no on-device model (ADR-0022); a browser cannot, so the
+  page says so in words beside the choice of language, and the microphone is the browser's own prompt. A browser cannot
+  list the languages it recognises, so the choice is the browser's own language or one of the three Hermie speaks.
+- **Nothing is sent by the microphone.** What is heard is a draft in the field. A change to the field that dictation did
+  not make (typing, a send, words put back) ends the session, so a late result cannot put a sent sentence back; a modal
+  layer over the page (`inert`) ends it too, and nothing is written while it is up. The tab going to the background
+  closes the microphone.
+- **The queue.** `reader.ts` is a port of the Expo app's: a second reply waits instead of talking over the first, a stop
+  is not a completion (a generation counter drops the end of the utterance it cut), a failure moves on, and the same
+  reply is never queued twice. The automatic read is seeded by the first transcript it sees while the chat is live, reads
+  only what stands after the newest reply seen (older history paged in is not new), and reads nothing while a turn runs.
+- **"Confirm before sending"** is stored (`confirmBeforeSending`) and not offered: it belongs to a hands-free voice mode
+  this client does not have.
+- **Tests.** `speech-text`, `dictation`, `reader`, `read-aloud`, `DictationButton` (`features/voice`), `platform/speech.test.ts`
+  (the engines against a window with a mocked `SpeechRecognition` and `speechSynthesis`), `state/voice-settings.test.ts`,
+  `Composer.voice.test.tsx`, `ChatScreen.voice.test.tsx` and `settings/Voice.test.tsx`.
 
 ## Markdown
 

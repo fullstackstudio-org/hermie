@@ -3051,6 +3051,42 @@ export const SHEET_STRINGS_SOURCE = {
         de: 'Das Gateway war nicht erreichbar.'
       }
     }
+  },
+  /**
+   * Settings, Voice (`features/settings/Voice.tsx`): what only the browser has to say. The rate, the language and
+   * the switches are the catalogue's (`chat.voice`), shared with the apps.
+   */
+  voice: {
+    reading: {
+      en: 'Reading aloud',
+      nl: 'Voorlezen',
+      de: 'Vorlesen'
+    },
+    readingHint: {
+      en: 'Replies are read by this browser’s own voices, on this device. Nothing is sent anywhere.',
+      nl: 'Antwoorden worden voorgelezen door de eigen stemmen van deze browser, op dit apparaat. Er wordt niets verstuurd.',
+      de: 'Antworten werden von den eigenen Stimmen dieses Browsers auf diesem Gerät vorgelesen. Es wird nichts gesendet.'
+    },
+    dictation: {
+      en: 'Dictation',
+      nl: 'Dicteren',
+      de: 'Diktieren'
+    },
+    dictationHint: {
+      en: 'A browser cannot list the languages it recognises, so these are the ones Hermie is written in; the browser’s own language is the default.',
+      nl: 'Een browser kan de talen die hij herkent niet opsommen, dus dit zijn de talen waarin Hermie is geschreven; de eigen taal van de browser is de standaard.',
+      de: 'Ein Browser kann die Sprachen, die er erkennt, nicht auflisten, deshalb sind das die Sprachen, in denen Hermie geschrieben ist; die eigene Sprache des Browsers ist der Standard.'
+    },
+    privacy: {
+      en: 'Dictation is done by your browser’s own speech service, which sends the audio to the browser’s maker (Google for Chrome, Apple for Safari) to be turned into text, and Hermie cannot change that. The Hermie apps for iPhone, iPad and Mac do it on the device and never send it anywhere. What you dictate waits in the message field until you send it.',
+      nl: 'Dicteren wordt gedaan door de eigen spraakdienst van je browser, die de audio naar de maker van de browser stuurt (Google voor Chrome, Apple voor Safari) om er tekst van te maken, en Hermie kan dat niet veranderen. De Hermie-apps voor iPhone, iPad en Mac doen het op het apparaat en sturen het nergens heen. Wat je dicteert wacht in het berichtveld tot je het verstuurt.',
+      de: 'Das Diktieren übernimmt der eigene Sprachdienst deines Browsers, der das Audio an den Hersteller des Browsers sendet (Google bei Chrome, Apple bei Safari), damit Text daraus wird, und Hermie kann das nicht ändern. Die Hermie-Apps für iPhone, iPad und Mac erledigen das auf dem Gerät und senden es nirgendwohin. Was du diktierst, wartet im Nachrichtenfeld, bis du es sendest.'
+    },
+    unavailable: {
+      en: 'This browser can neither read aloud nor take dictation.',
+      nl: 'Deze browser kan niet voorlezen en niet dicteren.',
+      de: 'Dieser Browser kann weder vorlesen noch Diktat annehmen.'
+    }
   }
 } as const satisfies Branch
 

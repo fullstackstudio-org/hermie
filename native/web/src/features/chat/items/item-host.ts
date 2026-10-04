@@ -57,7 +57,7 @@ export interface ItemHost {
   editResend(text: string, attachments: readonly string[]): void
   /** Fork the conversation at this row, named after `text`, and open the branch (`core/chats/branch-here.ts`). */
   branch(id: string, text: string): void
-  /** Called when `turnActive`, `regenerateTarget`, `editTarget` or `canBranch` may have changed. */
+  /** Called when `turnActive`, `regenerateTarget`, `editTarget`, `canBranch` or `readingIds` may have changed. */
   subscribe(listener: () => void): () => void
   /** Whether a turn runs on this chat right now. */
   turnActive(): boolean
@@ -67,6 +67,15 @@ export interface ItemHost {
   editTarget(): string | null
   /** Whether this chat can be forked at a row: not a past conversation or a branch, not while a request is open. */
   canBranch(): boolean
+  /**
+   * Whether a reply can be read aloud here: the browser can speak and the microphone is not open. Absent where the
+   * host has no speaker (a gallery): the menu has no such line.
+   */
+  canReadAloud?(): boolean
+  /** The rows being read aloud or waiting to be, speaking one first; the same array until it changes. */
+  readingIds?(): readonly string[]
+  /** "Read aloud" and "Stop reading" in one: say this row's Markdown, or stop saying it. */
+  toggleReadAloud?(id: string, markdown: string): void
 }
 
 const NOTHING = (): void => undefined

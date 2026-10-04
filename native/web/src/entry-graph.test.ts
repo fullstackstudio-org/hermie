@@ -57,6 +57,17 @@ const ON_DEMAND = [
   'core/push/row.ts',
   'platform/web-push.ts',
   'state/push.ts',
+  // Voice: the microphone, the reader and their engines are fetched only where a browser can use them and a reader
+  // does; the Settings section and the voice choices come with the pages that read them.
+  'features/voice/DictationButton.tsx',
+  'features/voice/dictation.ts',
+  'features/voice/read-aloud.ts',
+  'features/voice/use-read-aloud.ts',
+  'features/voice/speech-text.ts',
+  'features/voice/recognition.ts',
+  'features/voice/synthesis.ts',
+  'features/settings/Voice.tsx',
+  'state/voice-settings.ts',
   // A chat row's menu and a bot's profile page are chunks of their own, with the model and the picture code they use.
   'features/bots/RowMenuLayer.tsx',
   'features/bots/RowMenu.tsx',

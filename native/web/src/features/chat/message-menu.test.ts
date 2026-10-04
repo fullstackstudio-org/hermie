@@ -97,6 +97,57 @@ describe('the lines per message', () => {
   })
 })
 
+describe('Read aloud', () => {
+  it('is under the copies of what a bot said, and absent where the browser cannot speak', () => {
+    expect(ids({ item: assistantItem('some **bold**'), canReadAloud: true })).toEqual([
+      'copyText',
+      'copyMarkdown',
+      'readAloud'
+    ])
+    expect(ids({ item: botDmInItem('hello from another bot'), canReadAloud: true })).toEqual(['copyText', 'readAloud'])
+    // Dropped, not disabled: there is no later in which a browser without a synthesiser gets one.
+    expect(ids({ item: assistantItem('words') })).toEqual(['copyText'])
+  })
+
+  it('is the bot’s words only: not the reader’s turn, a card, or a reply with none', () => {
+    expect(ids({ item: userItem('my own words'), canReadAloud: true })).toEqual(['copyText'])
+    expect(ids({ item: cronDeliveryItem('all quiet'), canReadAloud: true })).toEqual(['copyText'])
+    expect(ids({ item: toolItem('web_search'), canReadAloud: true })).toEqual([])
+    expect(ids({ item: assistantItem('   '), canReadAloud: true })).toEqual([])
+  })
+
+  it('says Stop reading for a row that is being read or waits its turn, and is never disabled by a running turn', () => {
+    expect(ids({ item: assistantItem('words'), canReadAloud: true, reading: true })).toEqual([
+      'copyText',
+      'stopReading'
+    ])
+    expect(
+      messageMenuEntries(model({ item: assistantItem('words'), canReadAloud: true, turnActive: true }))
+    ).toContainEqual({ id: 'readAloud', disabled: false })
+  })
+
+  it('sits before the turn lines and the links, in the one order', () => {
+    expect(
+      ids({
+        item: assistantItem('some **bold** at https://a.example'),
+        canReadAloud: true,
+        canRegenerate: true,
+        canBranch: true
+      })
+    ).toEqual(['copyText', 'copyMarkdown', 'readAloud', 'regenerate', 'branch', 'copyLink:0'])
+  })
+
+  it('is read off the reply as it is now, and the same line serves both labels', () => {
+    expect(messageMenuAction('readAloud', assistantItem('**now** longer'))).toEqual({
+      kind: 'readAloud',
+      text: '**now** longer'
+    })
+    expect(messageMenuAction('stopReading', assistantItem('words'))).toEqual({ kind: 'readAloud', text: 'words' })
+    expect(messageMenuAction('readAloud', userItem('mine'))).toBeNull()
+    expect(messageMenuAction('readAloud', assistantItem(' '))).toBeNull()
+  })
+})
+
 describe('the links of a message', () => {
   it('finds Markdown links, angle links and bare addresses, in the order they appear, once each', () => {
     expect(

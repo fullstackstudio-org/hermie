@@ -95,7 +95,9 @@ test.describe('the home', () => {
       const path = new URL(request.url()).pathname
 
       if (
-        /\/assets\/(?:SettingsHost|Arrangement|Appearance|Chats|Account|Gateway|About)-[\w-]+\.(?:js|css)$/u.test(path)
+        /\/assets\/(?:SettingsHost|Arrangement|Appearance|Chats|Account|Gateway|About|Voice)-[\w-]+\.(?:js|css)$/u.test(
+          path
+        )
       ) {
         fetched.push(path.split('/').pop() ?? path)
       }
@@ -118,6 +120,8 @@ test.describe('the home', () => {
       'Notifications',
       'Chat list',
       'Appearance',
+      // Every engine this suite runs in can speak, which is what puts Voice in the list.
+      'Voice',
       'About'
     ])
     expect(fetched.some(name => name.startsWith('SettingsHost-'))).toBe(true)
@@ -525,6 +529,8 @@ test.describe('accessibility', () => {
         ['gateway', 'This gateway'],
         ['chats', 'Chats & messages'],
         ['appearance', 'Appearance'],
+        // Where the browser can speak or listen it has a page of choices; where it can do neither, one sentence.
+        ['voice', 'Voice'],
         ['about', 'About']
       ] as const) {
         await goTo(page, `#/settings/${hash}`)

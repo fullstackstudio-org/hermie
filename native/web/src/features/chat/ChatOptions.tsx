@@ -40,6 +40,7 @@ import { useLocale } from '../../i18n/use-locale'
 import type { ExportFormat } from './chat-export'
 import type { ChatSessionRuntime } from './chat-runtime'
 import type { YoloControl } from './use-yolo'
+import type { VoiceControl } from './ChatOptionsPanel'
 import './chat-options.css'
 
 export interface ChatOptionsProps {
@@ -53,6 +54,8 @@ export interface ChatOptionsProps {
   viewer?: boolean
   /** Write the conversation to a file (`chat-export.ts`); absent where there is nothing on screen to write. */
   exportChat?: (format: ExportFormat) => void
+  /** What is being read aloud in this chat, and the way to stop it (`use-read-aloud.ts`). */
+  voice?: VoiceControl
 }
 
 const loadPanel = () => import('./ChatOptionsPanel')
@@ -63,7 +66,14 @@ const preloadPanel = (): void => {
   void loadPanel().catch(() => undefined)
 }
 
-export function ChatOptions({ bot, yolo, runtime = null, viewer = false, exportChat }: ChatOptionsProps): ReactElement {
+export function ChatOptions({
+  bot,
+  yolo,
+  runtime = null,
+  viewer = false,
+  exportChat,
+  voice
+}: ChatOptionsProps): ReactElement {
   useLocale()
 
   const panelId = useId()
@@ -147,6 +157,7 @@ export function ChatOptions({ bot, yolo, runtime = null, viewer = false, exportC
               runtime={runtime}
               viewer={viewer}
               exportChat={exportChat}
+              voice={voice}
             />
           </Suspense>
         </div>

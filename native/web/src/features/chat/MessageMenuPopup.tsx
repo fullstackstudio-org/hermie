@@ -41,6 +41,10 @@ function titleOf(id: MessageMenuId): string {
       return strings.chat.menu.copyMarkdown
     case 'editResend':
       return strings.chat.menu.editResend
+    case 'readAloud':
+      return strings.chat.menu.readAloud
+    case 'stopReading':
+      return strings.chat.menu.stopReading
     case 'regenerate':
       return strings.chat.menu.regenerate
     case 'branch':
@@ -52,6 +56,10 @@ function titleOf(id: MessageMenuId): string {
       return strings.chat.menu.copyLink
   }
 }
+
+/** What a host that cannot speak answers: nothing is being read. */
+const NOT_READING: readonly string[] = []
+const NOT_READING_NOW = (): readonly string[] => NOT_READING
 
 export interface PopupProps {
   host: ItemHost
@@ -68,6 +76,11 @@ export function MenuPopup({ host, menu, menuId, onClose, onChoose }: PopupProps)
   const regenerateTarget = useSyncExternalStore(host.subscribe, host.regenerateTarget, host.regenerateTarget)
   const editTarget = useSyncExternalStore(host.subscribe, host.editTarget, host.editTarget)
   const canBranch = useSyncExternalStore(host.subscribe, host.canBranch, host.canBranch)
+  const readingIds = useSyncExternalStore(
+    host.subscribe,
+    host.readingIds ?? NOT_READING_NOW,
+    host.readingIds ?? NOT_READING_NOW
+  )
   const [linksOpen, setLinksOpen] = useState(false)
   const item = host.itemById(menu.id)
   const entries = item
@@ -76,7 +89,9 @@ export function MenuPopup({ host, menu, menuId, onClose, onChoose }: PopupProps)
         canRegenerate: regenerateTarget === menu.id,
         canEditResend: editTarget === menu.id,
         canBranch,
-        turnActive
+        turnActive,
+        canReadAloud: host.canReadAloud?.() ?? false,
+        reading: readingIds.includes(menu.id)
       })
     : []
 

@@ -24,9 +24,17 @@ import { ExportOptions, SessionOptions } from './ConversationOptions'
 import type { ChatSessionRuntime } from './chat-runtime'
 import { useSessionOptions } from './use-session-options'
 import { pluginStore } from '../../state/plugin'
+import { autoReadFor, ensureVoiceSettings, voiceSettingsStore } from '../../state/voice-settings'
+import { canSpeak } from '../../platform/voice-capabilities'
 import { botPushTypes, pushStore } from '../../state/push'
 import { pushTypeLabel } from '../push/type-labels'
 import type { YoloControl } from './use-yolo'
+
+/** What a chat says about reading aloud: whether a read is going, and how to stop it. */
+export interface VoiceControl {
+  reading: boolean
+  stop: () => void
+}
 
 export interface ChatOptionsPanelProps {
   /** The bot whose chat this is: the key its own view is kept under. */
@@ -42,6 +50,50 @@ export interface ChatOptionsPanelProps {
   viewer?: boolean
   /** Write the conversation to a file; absent where there is nothing on screen to write. */
   exportChat?: (format: ExportFormat) => void
+  /** What is being read aloud in this chat; absent where the chat cannot read (a gallery). */
+  voice?: VoiceControl
+}
+
+/**
+ * Whether this chat reads each finished reply aloud without being asked, on this browser (`state/voice-settings.ts`:
+ * device-local, per chat), and a way to stop a read that is going. Drawn only where the browser can speak. The rate,
+ * the language and the rest are the whole browser's, in Settings, Voice.
+ */
+function VoiceOptions({ bot, voice }: { bot: string; voice: VoiceControl | undefined }): ReactElement | null {
+  const hintId = useId()
+
+  // Read from the store the page already opened, before the first read of the choice below.
+  useState(() => ensureVoiceSettings())
+
+  const on = useStore(voiceSettingsStore, state => autoReadFor(state, bot))
+
+  if (!canSpeak()) {
+    return null
+  }
+
+  return (
+    <div className="hm-chat-options__option">
+      <p className="hm-chat-options__heading">{strings.chat.voice.header}</p>
+      <label className="hm-chat-options__choice">
+        <input
+          type="checkbox"
+          checked={on}
+          aria-describedby={hintId}
+          onChange={event => voiceSettingsStore.getState().setAutoRead(bot, event.currentTarget.checked)}
+        />
+        <span>{strings.chat.voice.autoRead}</span>
+      </label>
+      <p className="hm-chat-options__hint" id={hintId}>
+        {strings.chat.voice.autoReadHint}
+      </p>
+      {/* Only while there is something to stop: a Stop that does nothing almost all of the time is a control to skip. */}
+      {voice?.reading ? (
+        <button type="button" className="hm-chat-options__reset" onClick={voice.stop}>
+          {strings.chat.menu.stopReading}
+        </button>
+      ) : null}
+    </div>
+  )
 }
 
 /**
@@ -144,7 +196,8 @@ export function ChatOptionsPanel({
   yolo,
   runtime = null,
   viewer = false,
-  exportChat
+  exportChat,
+  voice
 }: ChatOptionsPanelProps): ReactElement {
   useLocale()
 
@@ -237,6 +290,8 @@ export function ChatOptionsPanel({
           </p>
         </>
       ) : null}
+
+      <VoiceOptions bot={bot} voice={voice} />
 
       {yoloControl || sessionControl || sessionError || exportChat ? (
         <div className="hm-chat-options__conversation" role="group" aria-labelledby={conversationId}>

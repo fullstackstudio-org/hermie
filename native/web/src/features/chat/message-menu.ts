@@ -3,9 +3,9 @@
  *
  * Ported from the Expo app's `chat-ui/message-menu.ts`, cut to the lines the web
  * client has: Copy text, Copy as Markdown, Edit and resend, Regenerate, Branch
- * from here and the links a message holds (HERM-255). Select text, Read aloud,
+ * from here, Read aloud and the links a message holds (HERM-255). Select text,
  * Open chat and Show details are the native apps' (a pointer selects text in a
- * browser, and the web client has no speech or card disclosure of its own). The
+ * browser, and the web client has no card disclosure of its own). The
  * rules that came with the lines are unchanged:
  *
  *  - **Copy text and Copy as Markdown differ, and both are offered** when they
@@ -24,6 +24,11 @@
  *  - **Branch from here** is on a turn and on a reply, and on nothing else (a
  *    tool card is structure, not a fork in the road). It does not start a turn,
  *    so a running one does not disable it.
+ *  - **Read aloud is the bot's words only**, under the copies ("I want these
+ *    words", one step further: a copy takes them elsewhere, this one says them
+ *    here), and it is DROPPED, not disabled, where the browser cannot speak:
+ *    there is no later in which it becomes available. A reply that is being
+ *    read, or waits its turn, shows "Stop reading" instead.
  *  - **Links are enumerated**, not collapsed into one line: one link is one
  *    `Copy link`, several are a `Copy links` submenu of them, capped.
  *  - **The text is read off the item when the line is chosen**, not when the
@@ -35,7 +40,15 @@ import type { TranscriptItem } from '@hermie/transcript'
 
 /** A line of the menu, or one link of the `Copy links` submenu (`copyLink:<index into the message's links>`). */
 export type MessageMenuId =
-  'copyText' | 'copyMarkdown' | 'editResend' | 'regenerate' | 'branch' | 'copyLinks' | `copyLink:${number}`
+  | 'copyText'
+  | 'copyMarkdown'
+  | 'readAloud'
+  | 'stopReading'
+  | 'editResend'
+  | 'regenerate'
+  | 'branch'
+  | 'copyLinks'
+  | `copyLink:${number}`
 
 export interface MessageMenuEntry {
   id: MessageMenuId
@@ -49,6 +62,8 @@ export type MessageMenuAction =
   | { kind: 'copyText'; text: string }
   | { kind: 'copyMarkdown'; text: string }
   | { kind: 'copyLink'; href: string }
+  /** The Markdown the reader flattens for the ear: "Read aloud" and "Stop reading" are the same gesture. */
+  | { kind: 'readAloud'; text: string }
   /** The words and the attachment references of the turn, for the composer. */
   | { kind: 'editResend'; text: string; attachments: string[] }
   | { kind: 'regenerate' }
@@ -139,6 +154,10 @@ export interface MessageMenuModel {
   canBranch?: boolean
   /** A turn runs on this chat right now. */
   turnActive: boolean
+  /** This browser can speak and the microphone is not open (`ItemHost.canReadAloud`). */
+  canReadAloud?: boolean
+  /** This row is being read, or is waiting its turn: one flag for both, because the line it makes is the same. */
+  reading?: boolean
 }
 
 export function messageMenuEntries({
@@ -146,7 +165,9 @@ export function messageMenuEntries({
   canRegenerate,
   canEditResend = false,
   canBranch = false,
-  turnActive
+  turnActive,
+  canReadAloud = false,
+  reading = false
 }: MessageMenuModel): MessageMenuEntry[] {
   const text = messageText(item)
   const entries: MessageMenuEntry[] = []
@@ -157,6 +178,14 @@ export function messageMenuEntries({
     if (MARKUP.test(text) && plainTextBlock(text) !== text) {
       entries.push({ id: 'copyMarkdown', disabled: false })
     }
+  }
+
+  // On what a BOT said, and only that: a reply and a message from another bot are somebody else's words arriving,
+  // the case where hearing them is worth a line. The reader's own turn is not (they wrote it), and a tool card or a
+  // delegation is structure rather than prose. Not on a reply still being written: its words will be different in a
+  // moment.
+  if (canReadAloud && text.trim() && ((item.kind === 'assistant' && !item.streaming) || item.kind === 'bot_dm_in')) {
+    entries.push({ id: reading ? 'stopReading' : 'readAloud', disabled: false })
   }
 
   // Directly under the copies, because both are about the message itself, and above the links, which are about
@@ -202,6 +231,11 @@ export function messageMenuAction(id: MessageMenuId, item: TranscriptItem): Mess
     case 'editResend':
       return item.kind === 'user' && item.text.trim()
         ? { kind: 'editResend', text: item.text, attachments: item.attachments ?? [] }
+        : null
+    case 'readAloud':
+    case 'stopReading':
+      return text.trim() && (item.kind === 'assistant' || item.kind === 'bot_dm_in')
+        ? { kind: 'readAloud', text }
         : null
     case 'regenerate':
       return item.kind === 'assistant' ? { kind: 'regenerate' } : null
