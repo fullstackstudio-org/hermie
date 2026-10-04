@@ -145,6 +145,82 @@ struct AppLockCeremonyTests {
     #expect(lock.machine.locked, "the lifecycle is not held")
   }
 
+  // MARK: A resign under a long prompt (a sign-in sheet)
+
+  @Test("away under the sheet and still away when it ends: the return judges the absence from the resign")
+  func resignUnderTheSheetCounts() async throws {
+    let clock = TestClock()
+    let lock = try await openLock("immediately", clock: clock)
+
+    lock.ceremonyBegan()
+    // The Mac app loses the front (another app), and the sheet times out minutes later.
+    lock.appWentAway()
+    clock.advance(5 * 60_000)
+    lock.ceremonyEnded()
+    #expect(!lock.machine.locked, "nothing is decided while the app is still away")
+
+    clock.advance(10_000)
+    lock.appCameBack()
+    #expect(lock.machine.locked)
+    #expect(lock.consumeAutoPrompt())
+  }
+
+  @Test("with a grace period, the absence is measured from the resign under the sheet")
+  func graceFromTheResign() async throws {
+    let clock = TestClock()
+    let lock = try await openLock("1m", clock: clock)
+
+    lock.ceremonyBegan()
+    lock.appWentAway()
+    clock.advance(50_000)
+    lock.ceremonyEnded()
+    clock.advance(20_000)
+    lock.appCameBack()
+    #expect(lock.machine.locked, "70 s away in all, 20 s of it after the sheet")
+
+    let short = try await openLock("1m", clock: clock)
+
+    short.ceremonyBegan()
+    short.appWentAway()
+    clock.advance(20_000)
+    short.ceremonyEnded()
+    clock.advance(10_000)
+    short.appCameBack()
+    #expect(!short.machine.locked, "30 s is inside the minute")
+  }
+
+  @Test("the sheet handing the app back just after it ended is the sheet's own return")
+  func sheetReturnAfterItsEnd() async throws {
+    let clock = TestClock()
+    let lock = try await openLock("immediately", clock: clock)
+
+    lock.ceremonyBegan()
+    lock.appWentAway()
+    clock.advance(3_000)
+    lock.ceremonyEnded()
+    clock.advance(200)
+    lock.appCameBack()
+
+    #expect(!lock.machine.locked)
+    #expect(!lock.consumeAutoPrompt())
+  }
+
+  @Test("hidden after the sheet ended away: the absence still began at the resign")
+  func hiddenAfterTheSheet() async throws {
+    let clock = TestClock()
+    let lock = try await openLock("5m", clock: clock)
+
+    lock.ceremonyBegan()
+    lock.appWentAway()
+    clock.advance(4 * 60_000)
+    lock.ceremonyEnded()
+    lock.appWentAway(entirely: true)
+    clock.advance(2 * 60_000)
+    lock.appCameBack()
+
+    #expect(lock.machine.locked, "6 minutes since the resign")
+  }
+
   // MARK: The wrapper
 
   @Test("the guarded authenticator holds the lock exactly while an assertion runs")

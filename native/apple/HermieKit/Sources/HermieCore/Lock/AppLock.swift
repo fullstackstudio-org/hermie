@@ -71,6 +71,17 @@ public final class AppLock {
   private var autoPromptArmed = false
   /// The app came back from the background while a prompt was up.
   private var returnedDuringPrompt = false
+  /// When the app resigned active while a prompt was up, and has not been active since. Usually the
+  /// prompt's own resign; but a prompt can stay up for minutes (a sign-in sheet), and the person may
+  /// have gone to another app under it.
+  private var resignedDuringPromptAt: Double?
+  /// The prompt ended while the app was still inactive since `since`: the next return judges that
+  /// absence, unless it comes within `promptSettleMilliseconds` of `settledAt` (the sheet closing
+  /// hands the app back a moment after its prompt ends).
+  private var departureUnderPrompt: (since: Double, settledAt: Double)?
+
+  /// How long after a prompt ends a return still counts as the prompt's own.
+  public nonisolated static let promptSettleMilliseconds: Double = 2_000
 
   /**
    - Parameters:
@@ -152,14 +163,24 @@ public final class AppLock {
    even then: leaving in the middle of a settings prompt must still start the clock.
    */
   public func appWentAway(entirely: Bool = false) {
-    guard !isPrompting || entirely, !away else {
+    if isPrompting, !entirely, !away {
+      // Most likely the prompt's own resign; remembered in case the prompt ends with the app still away.
+      resignedDuringPromptAt = resignedDuringPromptAt ?? clock()
+      return
+    }
+
+    guard !away else {
       return
     }
 
     let before = machine
+    // An absence carried past a prompt began when the app resigned under it, not now.
+    let since = departureUnderPrompt?.since ?? clock()
 
+    departureUnderPrompt = nil
+    resignedDuringPromptAt = nil
     away = true
-    machine = machine.background(now: clock())
+    machine = machine.background(now: since)
 
     // `immediately` locks on the way out; the return should ask without a tap.
     if machine.locked && !before.locked {
@@ -172,13 +193,25 @@ public final class AppLock {
     guard !isPrompting else {
       // Back from a real departure while a prompt was still settling: judged once it has.
       returnedDuringPrompt = returnedDuringPrompt || away
+      // Active again: whatever resign came under the prompt is over.
+      resignedDuringPromptAt = nil
       return
     }
 
     let before = machine
+    let now = clock()
+
+    if !away, let departure = departureUnderPrompt {
+      departureUnderPrompt = nil
+
+      // Back well after the prompt ended: the app was away from the resign under the prompt until now.
+      if now - departure.settledAt > Self.promptSettleMilliseconds, machine.threshold != .off, !machine.locked {
+        machine.sinceBackground = departure.since
+      }
+    }
 
     away = false
-    machine = machine.foreground(now: clock())
+    machine = machine.foreground(now: now)
 
     if machine.locked && !before.locked {
       autoPromptArmed = true
@@ -216,6 +249,8 @@ public final class AppLock {
 
     machine = machine.unlocked()
     away = false
+    resignedDuringPromptAt = nil
+    departureUnderPrompt = nil
     autoPromptArmed = false
 
     return true
@@ -314,7 +349,16 @@ public final class AppLock {
 
     if returnedDuringPrompt {
       returnedDuringPrompt = false
+      resignedDuringPromptAt = nil
       appCameBack()
+    } else if let since = resignedDuringPromptAt {
+      // The prompt is gone and the app has not been active since it resigned under it: either the
+      // sheet is handing the app back right now, or the person left meanwhile. The next return decides.
+      resignedDuringPromptAt = nil
+
+      if !away {
+        departureUnderPrompt = (since, clock())
+      }
     }
   }
 
