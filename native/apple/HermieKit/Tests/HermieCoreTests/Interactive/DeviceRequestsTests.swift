@@ -797,8 +797,12 @@ struct InteractiveCalendarModelTests {
     #expect(store.saved.isEmpty, "the system's sheet saves, not the app")
 
     #expect(model.editorFinished(saved: true) == .answer(.calendarSaved))
-    #expect(model.phase == .ready && !model.isBusy)
+    #expect(model.phase == .saved && model.isSaved && !model.isBusy)
     #expect(model.editorFinished(saved: true) == nil, "once")
+
+    // The answer did not go out and Try again presses Add: only the answer, the system's sheet stays shut.
+    #expect(await model.add() == .answer(.calendarSaved))
+    #expect(!model.isEditing && store.saved.isEmpty)
   }
 
   @Test("cancelling the system's sheet is a skip, and where there is no skip the sheet is back with Add")
@@ -823,7 +827,9 @@ struct InteractiveCalendarModelTests {
     #expect(reminder.route == .directSave, "there is no system sheet for a reminder")
     #expect(await reminder.add() == .answer(.calendarSaved))
     #expect(store.saved.count == 1 && store.saved[0].1 == .reminder && store.saved[0].0.title == "Renew passport")
-    #expect(reminder.phase == .ready)
+    #expect(reminder.phase == .saved)
+    #expect(await reminder.add() == .answer(.calendarSaved), "Add after a failed send answers again")
+    #expect(store.saved.count == 1, "and never writes a second entry")
 
     let mac = InteractiveCalendarModel(request: try calendarRequest(), store: store, hasEventEditor: false, offersSkip: true)
     #expect(mac.route == .directSave)

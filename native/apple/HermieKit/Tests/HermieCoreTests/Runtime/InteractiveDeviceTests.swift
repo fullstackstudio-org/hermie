@@ -199,6 +199,38 @@ struct InteractiveDeviceTests {
     #expect(!"\(card.jsonValue)".contains("Tandarts"))
   }
 
+  @Test("an entry that was saved but whose answer did not go out is answered again, never written twice")
+  func calendarRetryDoesNotSaveAgain() async throws {
+    let h = try await harness()
+    let prompt = try await h.raiseOpen(
+      "srq-cal", "device.calendar", params: try frame("device.calendar", "req_cal_reminder"))
+    guard case .calendar(let request) = prompt.body else {
+      Issue.record("not a calendar request")
+      return
+    }
+
+    let model = InteractiveModel(session: h.session, bot: bot)
+    model.present("srq-cal")
+    let store = CountingCalendarStore()
+    let sheet = InteractiveCalendarModel(request: request, store: store, hasEventEditor: false, offersSkip: true)
+    h.link.onRequestAnswer { _, _ in throw GatewayRPCError(.timeout, "request timed out after 30s: request.answer") }
+
+    // Add writes the entry; the answer does not reach the gateway.
+    let first = try #require(await sheet.add())
+    #expect(first == .answer(.calendarSaved))
+    #expect(await model.perform(first) == false)
+    #expect(model.hasFailed && sheet.isSaved && !sheet.isBusy)
+    #expect(store.saves == 1)
+
+    // Try again: only the answer is sent, the store is not asked a second time.
+    h.link.takeEveryAnswer()
+    let retry = try #require(await sheet.add())
+    #expect(retry == .answer(.calendarSaved))
+    #expect(await model.perform(retry))
+    #expect(store.saves == 1, "one entry in the calendar, not two")
+    #expect(h.answers("srq-cal") == [["status": "done"]])
+  }
+
   @Test("cancelling the system's calendar sheet is a skip where the request offers one, and not where it does not")
   func calendarSkip() async throws {
     let h = try await harness()
@@ -241,6 +273,16 @@ struct InteractiveDeviceTests {
     let all = try await harness()
     try await all.raiseOpen("srq-y", "device.location", params: try frame("device.location", "req_loc_approx"))
     #expect(all.center.isOpen("srq-y"))
+  }
+}
+
+@MainActor
+private final class CountingCalendarStore: DeviceCalendarStore {
+  private(set) var saves = 0
+
+  func save(_ item: CalendarItem, kind: CalendarKind) async -> CalendarSaveOutcome {
+    saves += 1
+    return .saved
   }
 }
 

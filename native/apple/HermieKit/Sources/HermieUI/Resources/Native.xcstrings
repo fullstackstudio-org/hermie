@@ -9537,6 +9537,30 @@
         }
       }
     },
+    "native.interactive.calendar.savedNotSent" : {
+      "comment" : "Said on the calendar sheet when the entry is saved but the answer to the agent did not go out: Try again sends only the answer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es ist gespeichert. Nur die Antwort an den Agenten wurde nicht gesendet; „Erneut versuchen“ sendet sie und fügt den Eintrag nicht noch einmal hinzu."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It is saved. Only the reply to the agent did not go out; Try again sends that, and does not add it a second time."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het is bewaard. Alleen het antwoord aan de agent is niet verstuurd; Opnieuw proberen verstuurt dat, en voegt het niet nog een keer toe."
+          }
+        }
+      }
+    },
     "native.interactive.calendar.saving" : {
       "comment" : "Shown while the entry is being saved.",
       "extractionState" : "manual",

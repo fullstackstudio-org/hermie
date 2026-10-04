@@ -796,6 +796,8 @@
 	<string>Toevoegen bewaart dit in je standaardlijst in Herinneringen. Het systeem vraagt eerst of Hermie Herinneringen mag gebruiken.</string>
 	<key>native.interactive.calendar.notes</key>
 	<string>Notities</string>
+	<key>native.interactive.calendar.savedNotSent</key>
+	<string>Het is bewaard. Alleen het antwoord aan de agent is niet verstuurd; Opnieuw proberen verstuurt dat, en voegt het niet nog een keer toe.</string>
 	<key>native.interactive.calendar.saving</key>
 	<string>Bewaren…</string>
 	<key>native.interactive.calendar.when</key>

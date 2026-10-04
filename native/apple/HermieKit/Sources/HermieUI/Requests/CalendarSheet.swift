@@ -66,7 +66,7 @@ struct CalendarSheetView: View {
           LaterButton(model: model)
 
           if prompt.offersSkip {
-            SkipButton(model: model, armed: armed, disabled: calendar.isBusy)
+            SkipButton(model: model, armed: armed, disabled: calendar.isBusy || calendar.isSaved)
           }
 
           addButton
@@ -179,6 +179,12 @@ struct CalendarSheetView: View {
       }
       .accessibilityElement(children: .combine)
       .accessibilityIdentifier("calendar.saving")
+    } else if calendar.isSaved {
+      Label(NativeStrings.Interactive.Calendar.savedNotSent, systemImage: "checkmark.circle")
+        .font(.callout)
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+        .accessibilityIdentifier("calendar.savedNotSent")
     } else if calendar.phase == .failed {
       Label(NativeStrings.Interactive.Calendar.failed, systemImage: "exclamationmark.triangle")
         .font(.callout)

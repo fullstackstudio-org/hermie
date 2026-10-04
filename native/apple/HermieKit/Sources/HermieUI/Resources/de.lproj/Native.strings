@@ -796,6 +796,8 @@
 	<string>„Hinzufügen“ speichert dies in deiner Standardliste in Erinnerungen. Das System fragt zuerst, ob Hermie Erinnerungen verwenden darf.</string>
 	<key>native.interactive.calendar.notes</key>
 	<string>Notizen</string>
+	<key>native.interactive.calendar.savedNotSent</key>
+	<string>Es ist gespeichert. Nur die Antwort an den Agenten wurde nicht gesendet; „Erneut versuchen“ sendet sie und fügt den Eintrag nicht noch einmal hinzu.</string>
 	<key>native.interactive.calendar.saving</key>
 	<string>Wird gespeichert …</string>
 	<key>native.interactive.calendar.when</key>

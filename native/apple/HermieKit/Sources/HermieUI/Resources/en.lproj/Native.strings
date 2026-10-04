@@ -796,6 +796,8 @@
 	<string>Add saves this to your default Reminders list. The system asks first whether Hermie may use your Reminders.</string>
 	<key>native.interactive.calendar.notes</key>
 	<string>Notes</string>
+	<key>native.interactive.calendar.savedNotSent</key>
+	<string>It is saved. Only the reply to the agent did not go out; Try again sends that, and does not add it a second time.</string>
 	<key>native.interactive.calendar.saving</key>
 	<string>Saving…</string>
 	<key>native.interactive.calendar.when</key>

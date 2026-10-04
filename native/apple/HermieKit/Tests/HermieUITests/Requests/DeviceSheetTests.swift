@@ -149,7 +149,7 @@ struct DeviceSheetTests {
       I.Calendar.notes, I.Calendar.alert, I.Calendar.allDay, I.Calendar.noTimeEvent, I.Calendar.noTimeReminder,
       I.Calendar.alertAtStart, I.Calendar.alertBefore("A"), I.Calendar.addEvent, I.Calendar.addReminder,
       I.Calendar.noteEditor, I.Calendar.noteDirectEvent, I.Calendar.noteReminder, I.Calendar.saving,
-      I.Calendar.failed, I.Calendar.notSaved
+      I.Calendar.failed, I.Calendar.notSaved, I.Calendar.savedNotSent
     ]
     let cards = [
       I.Card.location, I.Card.contact, I.Card.calendar, I.Card.sharedApproximate, I.Card.sharedPrecise,

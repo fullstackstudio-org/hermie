@@ -203,6 +203,8 @@ extension NativeStrings.Interactive {
     static var failed: String { string("native.interactive.calendar.failed") }
     /// It was not saved. Add it again, or choose not to share.
     static var notSaved: String { string("native.interactive.calendar.notSaved") }
+    /// It is saved. Only the answer to the agent did not go out: Try again sends that, it does not add it again.
+    static var savedNotSent: String { string("native.interactive.calendar.savedNotSent") }
   }
 }
 

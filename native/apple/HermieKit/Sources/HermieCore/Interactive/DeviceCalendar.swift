@@ -433,6 +433,10 @@ public final class InteractiveCalendarModel {
     case saving
     /// Writing failed; the person can press Add again.
     case failed
+    /// The entry is in the system's calendar (saved by this app, or in the system's edit sheet).
+    /// Only the answer to the agent is left: Add from here sends that again and never writes (or
+    /// opens the system's sheet) a second time, so a failed send cannot make a duplicate.
+    case saved
   }
 
   public let request: DeviceCalendarRequest
@@ -457,10 +461,19 @@ public final class InteractiveCalendarModel {
     phase == .editing || phase == .saving
   }
 
+  /// The entry is saved and only the answer is left to send.
+  public var isSaved: Bool {
+    phase == .saved
+  }
+
   /// The person pressed Add. For the system editor route the sheet then presents it
   /// (`isEditing`) and reports back with `editorFinished(saved:)`; otherwise the entry is written
-  /// now and the step to take is answered.
+  /// now and the step to take is answered. Once saved, Add only gives the answer again.
   public func add() async -> DeviceStep? {
+    if phase == .saved {
+      return .answer(.calendarSaved)
+    }
+
     guard phase == .ready || phase == .failed else {
       return nil
     }
@@ -475,7 +488,7 @@ public final class InteractiveCalendarModel {
 
       switch outcome {
       case .saved:
-        phase = .ready
+        phase = .saved
         return .answer(.calendarSaved)
       case .denied:
         phase = .ready
@@ -500,12 +513,12 @@ public final class InteractiveCalendarModel {
       return nil
     }
 
-    phase = .ready
-
     if saved {
+      phase = .saved
       return .answer(.calendarSaved)
     }
 
+    phase = .ready
     return offersSkip ? .answer(.skip) : nil
   }
 }
