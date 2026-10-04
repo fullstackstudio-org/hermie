@@ -28,15 +28,15 @@ struct RequestSheetModifier: ViewModifier {
 
   func body(content: Content) -> some View {
     content
-      .sheet(item: presented) { presented in
+      .chatSheet(item: presented) { presented in
         RequestSheetView(requests: requests, requestID: presented.id)
           .presentationDetents([.large])
           // Opaque at every detent: a command to approve is read against a
           // plain background, never against the transcript showing through.
           .presentationBackground(.background)
-          // A passkey confirmation is answered by Confirm or Decline, or it ends: Esc and a swipe
-          // never close it while it is open.
-          .interactiveDismissDisabled(requests.presentedConfirmation?.isOpen == true)
+          // Esc and a swipe are Later, which answers nothing, for a passkey confirmation too; only
+          // while its answer is on its way does the sheet stay.
+          .interactiveDismissDisabled(requests.presentedConfirmation.map(RequestsModel.inFlight) == true)
           #if os(macOS)
             .frame(minWidth: 420, idealWidth: 480, minHeight: 320)
           #endif

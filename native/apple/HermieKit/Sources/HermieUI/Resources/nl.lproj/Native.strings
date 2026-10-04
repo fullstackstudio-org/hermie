@@ -86,6 +86,10 @@
 	<string>Deze schakelaars bepalen wat de bot kan gebruiken in chats in Hermie. Dezelfde bot via een berichtenapp, en zijn geplande taken, houden hun eigen lijsten op de gateway.</string>
 	<key>native.botSettings.unsupported</key>
 	<string>Deze gateway biedt deze instellingen niet aan.</string>
+	<key>native.chat.attachment.failed</key>
+	<string>“%@” kon niet van de gateway worden opgehaald.</string>
+	<key>native.chat.attachment.unavailable</key>
+	<string>Het bestand “%@” staat op de schijf van de gateway en kan op dit apparaat niet worden geopend.</string>
 	<key>native.chat.copyDiagnostics</key>
 	<string>Diagnose kopiëren</string>
 	<key>native.chat.diagnosticsCopied</key>
@@ -1028,6 +1032,12 @@
 	<string>Opnieuw proberen</string>
 	<key>native.requests.sending</key>
 	<string>Je antwoord wordt verstuurd…</string>
+	<key>native.requests.waiting.one</key>
+	<string>Er wacht een verzoek op je antwoord.</string>
+	<key>native.requests.waiting.open</key>
+	<string>Openen</string>
+	<key>native.requests.waiting.other</key>
+	<string>Er wachten %lld verzoeken op je antwoord.</string>
 	<key>native.search.failed</key>
 	<string>Berichten konden niet worden doorzocht. Controleer de verbinding en probeer het opnieuw.</string>
 	<key>native.search.found</key>

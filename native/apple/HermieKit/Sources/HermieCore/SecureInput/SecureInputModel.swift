@@ -7,12 +7,18 @@ import Observation
 ///
 /// It holds what was asked, never what is answered: the typed value lives in the
 /// sheet's state and goes straight from there to `send(_:)`.
+///
+/// A prompt can be put away (`later()`, and leaving the chat while its sheet is up: `leave()`). That
+/// answers nothing: the gateway keeps waiting until Send, Skip or its own deadline, and the sheet does
+/// not come back by itself, not even when the chat is opened again (`waiting` lists it).
 @MainActor
 @Observable
 public final class SecureInputModel {
   public let center: SecureInputCenter
   /// The bot's name, which is also its chat's key.
   public let bot: String
+  /// What the person put away, kept by the session so it outlives this chat screen.
+  @ObservationIgnored public let shelf: RequestShelf
 
   /// The prompt the sheet shows, by request id; nil when no sheet is up. It
   /// stays set after the prompt ends without the person's answer, so the sheet
@@ -21,13 +27,14 @@ public final class SecureInputModel {
   /// The prompt last shown, kept for the sheet's chrome while it says how it ended.
   public private(set) var presentedPrompt: SecurePrompt?
 
-  public init(center: SecureInputCenter, bot: String) {
+  public init(center: SecureInputCenter, bot: String, shelf: RequestShelf = RequestShelf()) {
     self.center = center
     self.bot = bot
+    self.shelf = shelf
   }
 
   public convenience init(session: GatewaySession, bot: String) {
-    self.init(center: session.secureInput, bot: bot)
+    self.init(center: session.secureInput, bot: bot, shelf: session.requestShelf)
   }
 
   // MARK: - What the views read
@@ -41,9 +48,18 @@ public final class SecureInputModel {
   /// The prompts still waiting, oldest first.
   public var openPrompts: [SecurePrompt] { center.prompts(for: bot) }
 
-  /// The oldest open prompt the sheet is not showing yet.
+  /// The oldest open prompt the sheet is not showing yet and the person has not put away.
   public var nextToPresent: String? {
-    presentedID == nil ? openPrompts.first?.id : nil
+    presentedID == nil ? openPrompts.first { !isPutAway($0.id) }?.id : nil
+  }
+
+  /// The prompts the person put away that are still open, oldest first.
+  public var waiting: [String] {
+    openPrompts.filter { isPutAway($0.id) }.map(\.id)
+  }
+
+  private func isPutAway(_ id: String) -> Bool {
+    shelf.contains(id, chat: bot, kind: .secure)
   }
 
   /// The prompt the sheet shows while it is open.
@@ -107,12 +123,44 @@ public final class SecureInputModel {
       return
     }
 
+    shelf.bringBack(id, chat: bot, kind: .secure)
     presentedID = id
     presentedPrompt = prompt
   }
 
+  /// Later (the button, Esc): the person puts the sheet away. Not an answer, and nothing is sent: the
+  /// prompt stays open at the gateway until its deadline, and the sheet does not come back for it by
+  /// itself (`present(_:)` opens it again). Once the prompt has ended it is Close.
+  public func later() {
+    guard let presentedID, presented != nil else {
+      dismiss()
+      return
+    }
+
+    // Not while the answer is on its way: the sheet says how that went.
+    guard !isSending else {
+      return
+    }
+
+    shelf.keep(only: Set(openPrompts.map(\.id)), chat: bot, kind: .secure)
+    shelf.putAway(presentedID, chat: bot, kind: .secure)
+    self.presentedID = nil
+    presentedPrompt = nil
+  }
+
+  /// The chat screen goes (another chat was chosen, the chat was closed): the prompt it showed is put
+  /// away, as with Later, and nothing is sent.
+  public func leave() {
+    if let presentedID, presented != nil {
+      shelf.putAway(presentedID, chat: bot, kind: .secure)
+    }
+
+    presentedID = nil
+    presentedPrompt = nil
+  }
+
   /// The sheet went away after the prompt ended. Not an answer: while the
-  /// prompt is open the sheet only goes by Send or Skip.
+  /// prompt is open the sheet goes by Send, Skip or Later.
   public func dismiss() {
     if let presentedID, center.notices[bot]?.requestID == presentedID {
       center.dismissNotice(bot)

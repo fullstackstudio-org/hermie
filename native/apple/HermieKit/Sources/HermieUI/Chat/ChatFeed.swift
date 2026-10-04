@@ -83,7 +83,13 @@ final class ChatFeed: ChatScreenFeed {
   @ObservationIgnored let expansion = TranscriptExpansion()
   /// The rows' actions other than the answers (which `requests` adds), built once: rows compare on
   /// their item alone, so the actions must not change while open.
-  @ObservationIgnored let itemActions: TranscriptItemActions
+  @ObservationIgnored private(set) var itemActions = TranscriptItemActions.none
+  /// The attachment Quick Look shows, while it does.
+  var attachmentPreview: URL?
+  /// Why the last attachment could not be opened, for a line over the chat.
+  private(set) var attachmentNotice: AttachmentOpenResult?
+  /// What the last Retry did, for the tests and a line over the chat when it sent nothing.
+  private(set) var lastRetry: RetryOutcome?
 
   @ObservationIgnored private let pipeline = ChatRowPipeline()
   @ObservationIgnored private var tasks: [Task<Void, Never>] = []
@@ -132,7 +138,15 @@ final class ChatFeed: ChatScreenFeed {
   @ObservationIgnored let tag: Int
   private static var tags = 0
 
-  init(chat: ChatRef, session: GatewaySession, actions: @MainActor (ChatModel) -> TranscriptItemActions) {
+  /// - Parameter standardActions: give the rows the chat's own Retry (send the failed reply's prompt
+  ///   again) and attachment opening (Quick Look), over what `actions` built. The shipped app's chat
+  ///   screen does; a caller with actions of its own does not.
+  init(
+    chat: ChatRef,
+    session: GatewaySession,
+    standardActions: Bool = false,
+    actions: @MainActor (ChatModel) -> TranscriptItemActions
+  ) {
     Self.tags += 1
     self.tag = Self.tags
     self.chat = chat
@@ -146,11 +160,77 @@ final class ChatFeed: ChatScreenFeed {
     self.secureInput = secureInput
     self.interactive = interactive
     self.sheets = ChatSheetOrder(requests: requests, secureInput: secureInput, interactive: interactive)
-    self.itemActions = actions(model)
+    var built = actions(model)
+
+    if standardActions {
+      built.retry = { [weak self] item in self?.retry(item) }
+      built.openAttachment = { [weak self] reference in self?.openAttachment(reference) }
+    }
+
+    self.itemActions = built
     ChatLifecycleLog.note("feed f\(tag) made for \(chat.bot) (lease \(lease.id))")
   }
 
+  // MARK: Row actions
+
+  /// Retry on a failed reply: its prompt goes out again (`ChatModel.retryTurn`). A turn running, or
+  /// no prompt of the reader's to repeat, sends nothing.
+  func retry(_ item: AssistantItem) {
+    let model = self.model
+    let own = session.ownAuthorID
+
+    Task {
+      lastRetry = await model.retryTurn(of: item.id, ownAuthorID: own)
+    }
+  }
+
+  /// Open an attachment a message names: in Quick Look when this device can have it, otherwise a
+  /// line over the chat says why not (`AttachmentOpening`).
+  func openAttachment(_ reference: String) {
+    let session = self.session
+
+    Task {
+      let result = await session.prepareAttachment(reference)
+
+      if case .preview(let url) = result {
+        attachmentNotice = nil
+        attachmentPreview = url
+      } else {
+        attachmentNotice = result
+      }
+    }
+  }
+
+  /// The line about an attachment that could not be opened, or a Retry that sent nothing, goes.
+  func dismissActionNotices() {
+    attachmentNotice = nil
+    lastRetry = nil
+  }
+
   var name: String { chat.bot }
+
+  /// A request of this chat has the screen (approval, clarify, confirm, secure prompt, form, file
+  /// request or draft review).
+  var requestUp: Bool {
+    requests.presentedRequestID != nil || secureInput.presentedID != nil || interactive.presentedID != nil
+  }
+
+  /// The requests the person put away that are still open, oldest kind first: what the chat says is
+  /// waiting. Each opens through its own model.
+  var waitingRequests: [WaitingRequest] {
+    requests.waiting.map { WaitingRequest(id: $0, kind: .answer) }
+      + secureInput.waiting.map { WaitingRequest(id: $0, kind: .secure) }
+      + interactive.waiting.map { WaitingRequest(id: $0, kind: .interactive) }
+  }
+
+  /// Open a request that was put away again, in its sheet.
+  func open(_ waiting: WaitingRequest) {
+    switch waiting.kind {
+    case .answer: requests.present(waiting.id)
+    case .secure: secureInput.present(waiting.id)
+    case .interactive: interactive.present(waiting.id)
+    }
+  }
 
   // MARK: Lifecycle
 
@@ -199,6 +279,11 @@ final class ChatFeed: ChatScreenFeed {
 
     stopped = true
     ChatLifecycleLog.note("feed f\(tag) stopped for \(name) (lease \(lease.id))")
+    // Leaving the chat puts away the request its sheet showed, as Later does: the chat, opened
+    // again, says it is waiting instead of raising it over the screen once more. Nothing is answered.
+    requests.leave()
+    secureInput.leave()
+    interactive.leave()
 
     for task in tasks {
       task.cancel()

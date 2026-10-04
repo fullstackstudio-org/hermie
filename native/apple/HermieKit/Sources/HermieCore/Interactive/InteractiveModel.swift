@@ -23,13 +23,17 @@ public final class InteractiveModel {
   /// The request last shown, kept for the sheet's chrome while it says how it ended.
   public private(set) var presentedPrompt: InteractivePrompt?
 
-  public init(center: InteractiveRequestCenter, bot: String) {
+  /// What the person put away, kept by the session so it outlives this chat screen.
+  @ObservationIgnored public let shelf: RequestShelf
+
+  public init(center: InteractiveRequestCenter, bot: String, shelf: RequestShelf = RequestShelf()) {
     self.center = center
     self.bot = bot
+    self.shelf = shelf
   }
 
   public convenience init(session: GatewaySession, bot: String) {
-    self.init(center: session.interactive, bot: bot)
+    self.init(center: session.interactive, bot: bot, shelf: session.requestShelf)
   }
 
   // MARK: - What the views read
@@ -43,13 +47,21 @@ public final class InteractiveModel {
   /// The requests still waiting, oldest first.
   public var openPrompts: [InteractivePrompt] { center.prompts(for: bot) }
 
-  /// The requests the person put away with Later: still open, in the transcript, and not raised
-  /// again by themselves.
-  public private(set) var putAway: Set<String> = []
+  /// The requests the person put away with Later or by leaving the chat: still open, in the
+  /// transcript, and not raised again by themselves, not even when the chat is opened again. The
+  /// session's (`RequestShelf`), so a chat screen made again still knows them.
+  public var putAway: Set<String> { shelf.ids(chat: bot, kind: .interactive) }
 
   /// The oldest open request the sheet is not showing yet and the person has not put away.
   public var nextToPresent: String? {
-    presentedID == nil ? openPrompts.first { !putAway.contains($0.id) }?.id : nil
+    let shelved = putAway
+    return presentedID == nil ? openPrompts.first { !shelved.contains($0.id) }?.id : nil
+  }
+
+  /// The requests the person put away that are still open, oldest first.
+  public var waiting: [String] {
+    let shelved = putAway
+    return openPrompts.filter { shelved.contains($0.id) }.map(\.id)
   }
 
   /// The request the sheet shows while it is open.
@@ -124,7 +136,7 @@ public final class InteractiveModel {
       return
     }
 
-    putAway.remove(id)
+    shelf.bringBack(id, chat: bot, kind: .interactive)
     presentedID = id
     presentedPrompt = prompt
   }
@@ -133,11 +145,23 @@ public final class InteractiveModel {
   /// transcript, and the sheet does not come back for it by itself (`present(_:)` opens it again).
   public func later() {
     if let presentedID, presented != nil {
-      putAway.insert(presentedID)
+      shelf.putAway(presentedID, chat: bot, kind: .interactive)
     }
 
-    putAway.formIntersection(openPrompts.map(\.id))
+    shelf.keep(only: Set(openPrompts.map(\.id)), chat: bot, kind: .interactive)
     dismiss()
+  }
+
+  /// The chat screen goes (another chat was chosen, the chat was closed): the request its sheet
+  /// showed is put away, as with Later. Nothing is answered.
+  public func leave() {
+    if let presentedID, presented != nil {
+      shelf.putAway(presentedID, chat: bot, kind: .interactive)
+    }
+
+    presentedID = nil
+    presentedPrompt = nil
+    isWorking = false
   }
 
   /// The sheet is doing work that must not be cut off: files are on their way (set by the file sheet).

@@ -86,6 +86,10 @@
 	<string>These switches decide what the bot can use in chats in Hermie. The same bot reached through a messaging app, and its scheduled jobs, keep their own lists on the gateway.</string>
 	<key>native.botSettings.unsupported</key>
 	<string>This gateway does not offer these settings.</string>
+	<key>native.chat.attachment.failed</key>
+	<string>“%@” could not be fetched from the gateway.</string>
+	<key>native.chat.attachment.unavailable</key>
+	<string>“%@” is on the gateway's disk and cannot be opened on this device.</string>
 	<key>native.chat.copyDiagnostics</key>
 	<string>Copy diagnostics</string>
 	<key>native.chat.diagnosticsCopied</key>
@@ -1028,6 +1032,12 @@
 	<string>Try again</string>
 	<key>native.requests.sending</key>
 	<string>Sending your answer…</string>
+	<key>native.requests.waiting.one</key>
+	<string>A request is waiting for your answer.</string>
+	<key>native.requests.waiting.open</key>
+	<string>Open</string>
+	<key>native.requests.waiting.other</key>
+	<string>%lld requests are waiting for your answer.</string>
 	<key>native.search.failed</key>
 	<string>Messages could not be searched. Check the connection and try again.</string>
 	<key>native.search.found</key>

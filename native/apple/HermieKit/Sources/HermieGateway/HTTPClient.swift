@@ -154,6 +154,25 @@ public struct HTTPClient: Sendable {
     return Self.outcome(of: try await attemptBinary(path, timeoutMs: timeoutMs, auth: AuthHeaderOptions(forceRefresh: false)))
   }
 
+  /// `GET` a file the gateway serves (`/api/files/…`), with the same 401-then-retry as every other
+  /// call and no redirect followed. Nil when the gateway refused it, does not have it, or could not
+  /// be reached; throws only what the credential provider throws.
+  public func fetchFile(_ path: String, timeoutMs: Int? = nil) async throws -> Data? {
+    var attempt = try await attemptBinary(path, timeoutMs: timeoutMs, auth: AuthHeaderOptions())
+
+    if attempt.status == 401 {
+      timeline?.record(AuthEvent(.restUnauthorized, status: 401, kind: .auth))
+
+      if try await credentials.onRejected(rejectedToken: attempt.usedToken) == .reauth {
+        return nil
+      }
+
+      attempt = try await attemptBinary(path, timeoutMs: timeoutMs, auth: AuthHeaderOptions(forceRefresh: false))
+    }
+
+    return attempt.ok ? attempt.data : nil
+  }
+
   /// The headers a fetch this client does NOT make would still need (an
   /// image in a reply). Mints and refreshes nothing beyond what the provider does.
   public func requestHeaders() async throws -> [String: String] {

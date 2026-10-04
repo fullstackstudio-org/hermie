@@ -58,8 +58,12 @@ public struct AnsweredEntry: Sendable, Equatable {
 /// A `confirm` at level `passkey` (`PasskeyModel`) is one more request of the same area: it
 /// belongs to the chat that holds its runtime session, comes up in the same sheet one at a time
 /// with the approvals and questions (the oldest first), and is answered by the passkey model,
-/// never from here. Unlike an approval it cannot be put away while it is open: only Confirm,
-/// Decline or its own end closes it.
+/// never from here. It is put away like an approval (Later, Esc), which answers nothing: the gateway
+/// keeps waiting for it until Confirm, Decline or its own end. Only while an answer is on its way (the
+/// system's passkey sheet, the reply) does its sheet stay.
+///
+/// What was put away is the session's (`RequestShelf`), not this model's: a chat opened again does not
+/// raise it by itself, and says it is waiting instead (`waiting`).
 @MainActor
 @Observable
 public final class RequestsModel {
@@ -85,7 +89,8 @@ public final class RequestsModel {
   /// Which chat holds a confirmation's session, by request id; filled by `routeConfirmations()`.
   public private(set) var confirmRoutes: [String: String] = [:]
   @ObservationIgnored private var serial = 0
-  @ObservationIgnored private var dismissed: Set<String> = []
+  /// What the person put away, kept by the session so it outlives this chat screen.
+  @ObservationIgnored public let shelf: RequestShelf
   /// Confirmations whose ending the person has seen and closed.
   @ObservationIgnored private var acknowledged: Set<String> = []
   /// Which chat holds a runtime session: the store's routes, or a test's.
@@ -95,11 +100,13 @@ public final class RequestsModel {
     chat: ChatModel,
     passkeys: PasskeyModel? = nil,
     gatewayName: String = "",
+    shelf: RequestShelf = RequestShelf(),
     confirmRoute: (@Sendable (String) async -> String?)? = nil
   ) {
     self.chat = chat
     self.passkeys = passkeys
     self.gatewayName = gatewayName
+    self.shelf = shelf
     let store = chat.store
     self.confirmRoute = confirmRoute ?? { await store.chatKey(forRuntime: $0) }
   }
@@ -108,7 +115,8 @@ public final class RequestsModel {
     self.init(
       chat: session.chat(bot),
       passkeys: session.passkeys,
-      gatewayName: session.secureInput.gatewayName
+      gatewayName: session.secureInput.gatewayName,
+      shelf: session.requestShelf
     )
   }
 
@@ -225,25 +233,31 @@ public final class RequestsModel {
       return true
     }
 
-    return confirmation.isOpen && !dismissed.contains(confirmation.id)
+    return confirmation.isOpen && !isPutAway(confirmation.id)
+  }
+
+  private func isPutAway(_ id: String) -> Bool {
+    shelf.contains(id, chat: bot, kind: .answer)
   }
 
   // MARK: - The sheet
 
   /// Show the sheet for a request (from a card, a notification, the list).
   public func present(_ requestID: String) {
-    dismissed.remove(requestID)
+    shelf.bringBack(requestID, chat: bot, kind: .answer)
     presentedRequestID = requestID
   }
 
-  /// The reader put the sheet away. Not an answer: the question stays open in
-  /// the transcript, and the sheet does not come back for it by itself.
+  /// The reader put the sheet away (Later, Close, Esc, a swipe). Not an answer: the question stays
+  /// open in the transcript and at the gateway, and the sheet does not come back for it by itself,
+  /// not even when the chat is opened again (`waiting` lists it).
   ///
-  /// A confirmation that is still open stays: Esc and a swipe never answer it, never close it.
+  /// A confirmation goes the same way and nothing is answered, except while its answer is on its way
+  /// (the system's passkey sheet is up, or the reply is out): its sheet then stays until that is done.
   public func dismissSheet() {
     if let id = presentedRequestID {
       if let confirmation = confirmations.first(where: { $0.id == id }) {
-        guard !confirmation.isOpen else {
+        guard !Self.inFlight(confirmation) else {
           return
         }
 
@@ -253,17 +267,59 @@ public final class RequestsModel {
         }
       }
 
-      dismissed.insert(id)
+      putAway(id)
     }
 
     presentedRequestID = nil
+  }
+
+  /// The chat screen goes (another chat was chosen, the chat was closed): its sheet goes with it and
+  /// the request it showed is put away, as with Later. Nothing is answered; a confirmation whose
+  /// answer is on its way carries on without its sheet.
+  public func leave() {
+    if let id = presentedRequestID, confirmations.first(where: { $0.id == id })?.phase != .ended(.verificationFailed) {
+      putAway(id)
+    }
+
+    presentedRequestID = nil
+  }
+
+  /// The requests the person put away that are still open, oldest first: what the chat says is
+  /// waiting, with a way to open it again (`present(_:)`).
+  public var waiting: [String] {
+    let items = openRequests.compactMap { item -> (String, Date)? in
+      guard let id = item.requestID, isPutAway(id) else { return nil }
+      return (id, item.arrival ?? .distantPast)
+    }
+    let confirms = confirmations.filter { $0.isOpen && isPutAway($0.id) }.map { ($0.id, $0.receivedAt) }
+
+    return (items + confirms).sorted { $0.1 < $1.1 }.map(\.0)
+  }
+
+  /// Put `id` away on the session's shelf, and let the shelf forget what is no longer open. The
+  /// transcript holds every open approval and question of the chat at this moment (the one just put
+  /// away is among them), so the list is complete.
+  private func putAway(_ id: String) {
+    let open = Set(openRequests.compactMap(\.requestID)).union(confirmations.filter(\.isOpen).map(\.id))
+
+    shelf.keep(only: open.union([id]), chat: bot, kind: .answer)
+    shelf.putAway(id, chat: bot, kind: .answer)
+  }
+
+  /// An answer to the confirmation is on its way: the system's passkey sheet is up, or the reply is out.
+  public static func inFlight(_ confirmation: PasskeyConfirmation) -> Bool {
+    inFlight(phase: confirmation.phase)
+  }
+
+  public static func inFlight(phase: PasskeyConfirmPhase) -> Bool {
+    phase == .signing || phase == .sending
   }
 
   /// The oldest open request the reader has not put away, for a screen that
   /// raises the sheet as questions arrive. An approval, a question and a passkey confirmation
   /// share one line: the one that arrived first comes first.
   public var nextToPresent: String? {
-    let item = openRequests.first { !dismissed.contains($0.requestID ?? "") }
+    let item = openRequests.first { !isPutAway($0.requestID ?? "") }
     let confirmation = confirmations.first(where: isPresentable)
 
     switch (item, confirmation) {

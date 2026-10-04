@@ -89,6 +89,11 @@ public protocol GatewayLink: Sendable {
   /// a picture that could not be loaded is `.error`, and one the gateway holds none of is `.missing`.
   func fetchPicture(_ path: String) async -> PictureFetchOutcome
 
+  /// A file the gateway serves (`/api/files/…`), through the link's own credentials, only ever from
+  /// this gateway. Never throws: nil when it could not be had. A link without a REST side has none
+  /// (the default).
+  func fetchFile(_ path: String) async -> Data?
+
   /// Wait until every frame queued so far has been handed to the socket, or
   /// `limit` has passed: the last answers before a shutdown.
   func flushWrites(within limit: Duration) async
@@ -282,6 +287,10 @@ extension GatewayLink {
   /// A link that cannot fetch a picture has none to show.
   public func fetchPicture(_ path: String) async -> PictureFetchOutcome {
     .error
+  }
+
+  public func fetchFile(_ path: String) async -> Data? {
+    nil
   }
 
   /// A link with no writer of its own has nothing to wait for.

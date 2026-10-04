@@ -20,8 +20,8 @@ import SwiftUI
  spaces of a command stay where they are.
 
  Nothing answers by itself: for 400 ms after the sheet appears nothing can be pressed, Esc and a
- swipe do not close it while it is open (`RequestsModel.dismissSheet()` refuses), and Return is
- not Confirm. Confirm starts the ceremony (the system's passkey sheet, over this one); dismissing
+ swipe are Later (the sheet goes, nothing is answered, the gateway keeps waiting; refused while an
+ answer is on its way), and Return is not Confirm. Confirm starts the ceremony (the system's passkey sheet, over this one); dismissing
  that returns here. A refused answer is a state with its reason in plain words and the same
  buttons, so the person can try again.
 
@@ -463,12 +463,14 @@ struct ConfirmActions: View {
 
         ViewThatFits(in: .horizontal) {
           HStack(spacing: 10) {
+            laterButton
             declineButton(enabled: enabled)
             confirmButton(enabled: enabled && !detailUnread)
           }
           VStack(spacing: 10) {
             confirmButton(enabled: enabled && !detailUnread)
             declineButton(enabled: enabled)
+            laterButton
           }
         }
       }
@@ -485,6 +487,24 @@ struct ConfirmActions: View {
       .controlSize(.large)
       .accessibilityIdentifier("confirm.close")
     }
+  }
+
+  /// Later (Esc): the sheet goes and nothing is answered; the gateway keeps waiting until Confirm,
+  /// Decline or its deadline, and the chat says it is waiting. Off while an answer is on its way.
+  private var laterButton: some View {
+    Button {
+      requests.dismissSheet()
+    } label: {
+      Text(Strings.Chat.Clarify.later)
+        .font(.title3.weight(.semibold))
+        .frame(maxWidth: .infinity)
+    }
+    .buttonStyle(.bordered)
+    .tint(.primary)
+    .controlSize(.large)
+    .keyboardShortcut(.cancelAction)
+    .disabled(RequestsModel.inFlight(confirmation))
+    .accessibilityIdentifier("confirm.later")
   }
 
   private func confirmButton(enabled: Bool) -> some View {

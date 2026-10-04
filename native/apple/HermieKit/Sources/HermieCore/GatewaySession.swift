@@ -77,6 +77,9 @@ public final class GatewaySession {
   /// The interactive requests (`input.form`, `input.file`, `review.draft`): a consumer of the
   /// server requests of its own, so a value typed into a sheet never reaches the store.
   @ObservationIgnored public let interactive: InteractiveRequestCenter
+  /// The requests the person put away with Later or by leaving their chat, per chat, so a chat
+  /// opened again does not raise them by itself.
+  @ObservationIgnored public let requestShelf = RequestShelf()
   /// The pictures of the people in the group chat and the reader's own, as the gateway serves them.
   @ObservationIgnored public let people: PeoplePictures
   /// The gateway's out-of-band notices (`notification.show` / `.clear`).
@@ -723,6 +726,11 @@ public struct ConnectionLink: GatewayLink {
   /// same 401 handling as every other call, and only ever to this gateway.
   public func fetchPicture(_ path: String) async -> PictureFetchOutcome {
     (try? await http.fetchAuthenticatedPicture(path)) ?? .error
+  }
+
+  /// Through this link's HTTP client, as `fetchPicture`: this gateway's credentials, this gateway only.
+  public func fetchFile(_ path: String) async -> Data? {
+    (try? await http.fetchFile(path)) ?? nil
   }
 
   public func uploadFile(

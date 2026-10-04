@@ -67,8 +67,8 @@ import Testing
     #expect(model.nextToPresent == "srq-1")
   }
 
-  @Test("an open confirmation cannot be put away; once it is over, Close does, and it does not come back")
-  func dismissing() async throws {
+  @Test("Later puts an open confirmation away and answers nothing; it waits, and opens again on request")
+  func later() async throws {
     let f = await T.fixture()
     f.link.respond(to: "request.answer", with: ["status": "ok"])
     let model = requests(f)
@@ -79,7 +79,15 @@ import Testing
     #expect(model.presentedConfirmation?.id == "srq-1")
 
     model.dismissSheet()
-    #expect(model.presentedRequestID == "srq-1", "Esc and a swipe never close an open confirmation")
+    #expect(model.presentedRequestID == nil, "Later (Esc, a swipe) puts it away")
+    #expect(f.model.confirmation("srq-1")?.phase == .waiting, "still open at the gateway")
+    #expect(f.link.calls("request.answer").isEmpty, "nothing was answered")
+    #expect(model.nextToPresent == nil, "not raised again by itself")
+    #expect(model.waiting == ["srq-1"], "the chat says it waits")
+
+    model.present("srq-1")
+    #expect(model.presentedConfirmation?.id == "srq-1")
+    #expect(model.waiting.isEmpty)
 
     await f.model.decline("srq-1")
     #expect(f.model.confirmation("srq-1")?.phase == .declined)
@@ -87,6 +95,41 @@ import Testing
     model.dismissSheet()
     #expect(model.presentedRequestID == nil)
     #expect(model.nextToPresent == nil, "over: nothing to raise again")
+    #expect(model.waiting.isEmpty)
+  }
+
+  @Test("a confirmation put away stays put away for a chat screen made again; leaving puts it away too")
+  func putAwayOutlivesTheScreen() async throws {
+    let f = await T.fixture()
+    let harness = SessionHarness()
+    let shelf = RequestShelf()
+    let owner = Self.bot
+    let route: @Sendable (String) async -> String? = { $0 == "sess-1" ? owner : nil }
+    let first = RequestsModel(
+      chat: harness.session.chat(Self.bot), passkeys: f.model, gatewayName: "Home", shelf: shelf, confirmRoute: route)
+    try await PasskeyModelTests().raise(f)
+    await first.routeConfirmations()
+
+    // Raised, then the person chose another chat: the screen goes.
+    first.present("srq-1")
+    first.leave()
+    #expect(first.presentedRequestID == nil)
+
+    let again = RequestsModel(
+      chat: harness.session.chat(Self.bot), passkeys: f.model, gatewayName: "Home", shelf: shelf, confirmRoute: route)
+    await again.routeConfirmations()
+    #expect(again.nextToPresent == nil, "re-entering does not raise it")
+    #expect(again.waiting == ["srq-1"])
+    #expect(f.link.calls("request.answer").isEmpty)
+  }
+
+  @Test("while an answer is on its way the sheet stays")
+  func inFlightStays() {
+    #expect(RequestsModel.inFlight(phase: .signing))
+    #expect(RequestsModel.inFlight(phase: .sending))
+    #expect(!RequestsModel.inFlight(phase: .waiting))
+    #expect(!RequestsModel.inFlight(phase: .refused(reason: "x")))
+    #expect(!RequestsModel.inFlight(phase: .notSent("x")))
   }
 
   @Test("a verification the gateway could not commit raises the sheet again after it closed")

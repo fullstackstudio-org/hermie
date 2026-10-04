@@ -433,6 +433,25 @@ gone with what was typed or chosen in it, by design: the values live only in the
 which are wiped when it disappears, and the staged copies of chosen files are deleted. A request that
 was put away stays open, and its transcript card opens it again.
 
+**Putting a request away (HERM-251).** Every request sheet can be put away without answering: the
+approval and clarify sheet, a passkey confirmation, a secure prompt and the interactive sheets all have
+Later, and Esc and a swipe are Later. For a secure prompt and a confirmation Later sends nothing at all
+(never the `''` of Skip): the gateway keeps waiting until Send, Skip, Confirm, Decline or the deadline. Only
+while an answer is on its way (a confirmation's system passkey sheet or its reply, a secure prompt's send)
+does a sheet stay. Leaving the chat while its sheet is up (another chat chosen, the chat closed) puts the
+request away too (`ChatFeed.stop` → `leave()`). What was put away is the session's (`RequestShelf`, keyed
+by chat and request id, forgetting a request once it is no longer open), not the chat screen's, so a chat
+opened again does not raise it by itself: a line over the chat says how many requests wait and opens the
+oldest (`WaitingRequestsBanner`). A new request that arrives while the person is in the chat still comes
+up at once.
+
+**On the Mac the requests do not block the window.** A `.sheet` is window-modal on the Mac: it blocked the
+sidebar, so a request in one chat kept the person from every other chat. The chat screen therefore hosts
+its request sheets in its own pane (`ChatSheetHost`, `chatSheet(item:)`): the request comes up on a card
+over the chat it belongs to, the chat under it dimmed and disabled (so typing never lands in the
+composer), while the sidebar, the search and the other chats stay usable. Choosing another chat takes the
+pane away with its chat and puts the request away. iPhone and iPad keep the system sheet.
+
 **Advertising.** The second `client.capabilities` call carries `requests` only after the first call's
 result lists at least one `input.*`, `review.*` or `device.*` method under `server_requests`
 (`RequestsAdvertisement.methods(after:device:)`): a gateway that does not know the key refuses it and the whole
@@ -459,7 +478,8 @@ sheet's binding reads as closed while the app is locked or its setting is not re
 not an answer: the request stays open and the next sheet comes up after unlocking, with an empty form, since the
 sheet's models were wiped when it went. While locked, nothing is sent and the countdown runs on.
 
-**The Mac.** The same sheets, in a window of at least 460 × 420 points (520 × 640 ideal), with Esc as Later.
+**The Mac.** The same sheets, on a card in the chat's own pane (at most 560 × 720 points; see "On the Mac the
+requests do not block the window"), with Esc as Later.
 The Mac has no camera sheet and no document scanner, so a file request offers the photo library and Files, and a
 `capture: photo` or `capture: scan` request is answered by whatever the person picks (the contract's capture is
 a preference, never a forced camera). On an iPhone or iPad the file sheet adds the camera where there is one and
@@ -660,9 +680,10 @@ button or a heading, and the gateway's `reason` words only pick one of the app's
 (`ConfirmSheetText`). The names of passkeys the gateway holds go through `SecurePrompt.displayText`
 as one bounded line, in the notices and in the list.
 
-For 400 ms after it appears nothing can be pressed, Return is not Confirm, and Esc and a swipe do
-not close an open confirmation (`RequestsModel.dismissSheet()` refuses; the sheet is
-`interactiveDismissDisabled`). Confirm runs the ceremony; dismissing the system's sheet returns to
+For 400 ms after it appears nothing can be pressed and Return is not Confirm. Later, Esc and a swipe
+put an open confirmation away without answering it (the gateway keeps waiting; the chat says it waits),
+except while its answer is on its way, when `RequestsModel.dismissSheet()` refuses and the sheet is
+`interactiveDismissDisabled`. Confirm runs the ceremony; dismissing the system's sheet returns to
 this one, because the model puts the phase back. The states: waiting, signing ("Waiting for your
 passkey…"), sending, received (a check, "Answer received. The gateway is verifying it": never
 "confirmed", and the sheet closes by itself after 2.5 s: a view that exists only in those two

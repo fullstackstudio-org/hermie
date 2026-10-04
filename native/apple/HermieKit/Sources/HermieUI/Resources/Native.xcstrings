@@ -967,6 +967,54 @@
         }
       }
     },
+    "native.chat.attachment.failed" : {
+      "comment" : "Above a chat, after a file the gateway serves could not be fetched to open it. The argument is the file's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%@“ konnte nicht vom Gateway geladen werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” could not be fetched from the gateway."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” kon niet van de gateway worden opgehaald."
+          }
+        }
+      }
+    },
+    "native.chat.attachment.unavailable" : {
+      "comment" : "Above a chat, after the person tried to open a file a message names that only exists on the gateway's own disk. The argument is the file's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Datei „%@“ liegt auf dem Speicher des Gateways und kann auf diesem Gerät nicht geöffnet werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” is on the gateway's disk and cannot be opened on this device."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het bestand “%@” staat op de schijf van de gateway en kan op dit apparaat niet worden geopend."
+          }
+        }
+      }
+    },
     "native.chat.copyDiagnostics" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12106,6 +12154,78 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Je antwoord wordt verstuurd…"
+          }
+        }
+      }
+    },
+    "native.requests.waiting.one" : {
+      "comment" : "Above a chat: one request the person put away (Later, or by leaving the chat) still waits for an answer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine Anfrage wartet auf deine Antwort."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A request is waiting for your answer."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er wacht een verzoek op je antwoord."
+          }
+        }
+      }
+    },
+    "native.requests.waiting.open" : {
+      "comment" : "Button above a chat: opens the oldest request that was put away, in its sheet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Openen"
+          }
+        }
+      }
+    },
+    "native.requests.waiting.other" : {
+      "comment" : "Above a chat: several requests the person put away still wait for an answer. The argument is how many.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Anfragen warten auf deine Antwort."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld requests are waiting for your answer."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er wachten %lld verzoeken op je antwoord."
           }
         }
       }

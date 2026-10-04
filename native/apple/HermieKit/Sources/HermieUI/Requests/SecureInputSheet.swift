@@ -45,13 +45,13 @@ struct SecureInputModifier: ViewModifier {
       .safeAreaInset(edge: .top, spacing: 0) {
         SecureInputNoticeView(model: model)
       }
-      .sheet(item: presented) { _ in
+      .chatSheet(item: presented) { _ in
         SecureInputSheetView(model: model)
           .presentationDetents([.large])
           // Opaque: what is asked is read against a plain background.
           .presentationBackground(.background)
-          // While the prompt is open the sheet goes by Send or Skip only.
-          .interactiveDismissDisabled(model.presented != nil)
+          // A swipe is Later, as Esc is; only while the answer is on its way does the sheet stay.
+          .interactiveDismissDisabled(model.isSending)
           #if os(macOS)
             .frame(minWidth: 420, idealWidth: 480, minHeight: 360)
           #endif
@@ -84,9 +84,11 @@ struct SecureInputModifier: ViewModifier {
     Binding(
       get: { locked ? nil : model.presentedID.map(Presented.init(id:)) },
       set: { value in
-        // Only a sheet whose prompt has ended goes away by itself.
-        if value == nil, model.presentedID != nil, model.presented == nil {
-          model.dismiss()
+        // Put away (a swipe, Esc): Later while the prompt is open, which sends nothing; Close once
+        // it ended.
+        // The lock taking the sheet down is not the person's doing: the prompt comes back after the unlock.
+        if value == nil, model.presentedID != nil, !locked {
+          model.later()
         }
       }
     )
@@ -346,18 +348,20 @@ struct SecureInputSheetView: View {
     }
   }
 
-  /// Send and Skip while the prompt is open; Close once it ended.
+  /// Later, Skip and Send while the prompt is open; Close once it ended.
   @ViewBuilder private var actions: some View {
     if let prompt = model.presentedPrompt, model.presented != nil {
       // Side by side when they fit, so the pinned bottom stays short.
       ViewThatFits(in: .horizontal) {
         HStack(spacing: 10) {
+          laterButton
           skipButton
           sendButton(prompt)
         }
         VStack(spacing: 10) {
           sendButton(prompt)
           skipButton
+          laterButton
         }
       }
     } else {
@@ -410,10 +414,27 @@ struct SecureInputSheetView: View {
     .buttonStyle(.bordered)
     .tint(.primary)
     .controlSize(.large)
-    // Esc answers '' as Skip does.
-    .keyboardShortcut(.cancelAction)
     .disabled(model.isSending)
     .accessibilityIdentifier("secureInput.skip")
+  }
+
+  /// Later: the sheet goes and nothing is sent; the prompt stays open at the gateway and the chat says
+  /// it is waiting. Esc does the same (never Skip: Esc must not answer anything).
+  private var laterButton: some View {
+    Button {
+      clear()
+      model.later()
+    } label: {
+      Text(Strings.Chat.Clarify.later)
+        .font(.title3.weight(.semibold))
+        .frame(maxWidth: .infinity)
+    }
+    .buttonStyle(.bordered)
+    .tint(.primary)
+    .controlSize(.large)
+    .keyboardShortcut(.cancelAction)
+    .disabled(model.isSending)
+    .accessibilityIdentifier("secureInput.later")
   }
 
   private func sendTitle(_ prompt: SecurePrompt) -> String {

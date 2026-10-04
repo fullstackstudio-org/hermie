@@ -86,6 +86,10 @@
 	<string>Diese Schalter bestimmen, was der Bot in Chats in Hermie nutzen kann. Derselbe Bot über eine Messaging-App und seine geplanten Aufgaben behalten ihre eigenen Listen auf dem Gateway.</string>
 	<key>native.botSettings.unsupported</key>
 	<string>Dieses Gateway bietet diese Einstellungen nicht an.</string>
+	<key>native.chat.attachment.failed</key>
+	<string>„%@“ konnte nicht vom Gateway geladen werden.</string>
+	<key>native.chat.attachment.unavailable</key>
+	<string>Die Datei „%@“ liegt auf dem Speicher des Gateways und kann auf diesem Gerät nicht geöffnet werden.</string>
 	<key>native.chat.copyDiagnostics</key>
 	<string>Diagnose kopieren</string>
 	<key>native.chat.diagnosticsCopied</key>
@@ -1028,6 +1032,12 @@
 	<string>Erneut versuchen</string>
 	<key>native.requests.sending</key>
 	<string>Deine Antwort wird gesendet…</string>
+	<key>native.requests.waiting.one</key>
+	<string>Eine Anfrage wartet auf deine Antwort.</string>
+	<key>native.requests.waiting.open</key>
+	<string>Öffnen</string>
+	<key>native.requests.waiting.other</key>
+	<string>%lld Anfragen warten auf deine Antwort.</string>
 	<key>native.search.failed</key>
 	<string>Nachrichten konnten nicht durchsucht werden. Prüfe die Verbindung und versuche es erneut.</string>
 	<key>native.search.found</key>

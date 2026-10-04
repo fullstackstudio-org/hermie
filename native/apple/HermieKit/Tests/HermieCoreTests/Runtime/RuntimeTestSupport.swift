@@ -230,6 +230,8 @@ final class ScriptedLink: GatewayLink, Sendable {
     var identityReads = 0
     var pictureAnswer: @Sendable (String) -> PictureFetchOutcome = { _ in .missing }
     var pictureCalls: [String] = []
+    var fileAnswer: @Sendable (String) -> Data? = { _ in nil }
+    var fileCalls: [String] = []
     var declineData: [String: JSONValue] = [:]
     /// What every answer says it lists in full (`RPCReply.listedRequests`).
     var listed: Set<String> = Set(ServerRequestBody.Method.interactive)
@@ -299,6 +301,21 @@ final class ScriptedLink: GatewayLink, Sendable {
     state.withLock { state in
       state.pictureCalls.append(path)
       return state.pictureAnswer(path)
+    }
+  }
+
+  /// What `fetchFile` answers from now on, by the path it was asked for.
+  func setFiles(_ answer: @escaping @Sendable (String) -> Data?) {
+    state.withLock { $0.fileAnswer = answer }
+  }
+
+  /// The paths `fetchFile` was asked for, in order.
+  var fileCalls: [String] { state.withLock { $0.fileCalls } }
+
+  func fetchFile(_ path: String) async -> Data? {
+    state.withLock { state in
+      state.fileCalls.append(path)
+      return state.fileAnswer(path)
     }
   }
 

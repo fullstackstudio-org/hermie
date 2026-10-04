@@ -1,5 +1,6 @@
 import HermieCore
 import HermieTranscript
+import QuickLook
 import SwiftUI
 
 /// What the composer slot is handed: the chat, its models and the session it belongs to.
@@ -34,21 +35,27 @@ public struct ChatComposerContext {
  - Approval and clarify answers go through the chat's `RequestsModel` (`answeringRequests`), and
    secure prompts through its `SecureInputModel` (`secureInput`), and forms, file requests and draft
    reviews through its `InteractiveModel` (`interactiveRequests`). `actions` builds the rest of the
-   rows' actions once per opened chat; opening another bot's chat goes through the router.
+   rows' actions once per opened chat; without it the chat has its own: Retry on a failed reply
+   sends its prompt again, and an attachment opens in Quick Look (`ChatFeed`). Opening another bot's
+   chat goes through the router.
+ - On the Mac the requests come up in the chat's own pane, not as a window-modal sheet, so the
+   sidebar and the other chats stay usable while one waits (`ChatSheetHost`). Leaving the chat puts
+   its request away as Later does; the chat says so when it is opened again (`WaitingRequestsBanner`).
 
  It reads the session from `LiveGateway` in the environment; a chat on a gateway that is not live,
  or not signed in, says so instead.
  */
 public struct ChatScreen<Composer: View>: View {
   let chat: ChatRef
-  let actions: @MainActor (ChatModel) -> TranscriptItemActions
+  let actions: (@MainActor (ChatModel) -> TranscriptItemActions)?
   let composer: (ChatComposerContext) -> Composer
 
   @Environment(LiveGateway.self) private var live: LiveGateway?
 
+  /// - Parameter actions: the rows' actions; nil for the chat's own (Retry, opening attachments).
   public init(
     chat: ChatRef,
-    actions: @escaping @MainActor (ChatModel) -> TranscriptItemActions = { _ in .none },
+    actions: (@MainActor (ChatModel) -> TranscriptItemActions)? = nil,
     @ViewBuilder composer: @escaping (ChatComposerContext) -> Composer
   ) {
     self.chat = chat
@@ -73,7 +80,7 @@ public struct ChatScreen<Composer: View>: View {
 
 extension ChatScreen where Composer == StandardComposer {
   /// The chat with the standard composer.
-  public init(chat: ChatRef, actions: @escaping @MainActor (ChatModel) -> TranscriptItemActions = { _ in .none }) {
+  public init(chat: ChatRef, actions: (@MainActor (ChatModel) -> TranscriptItemActions)? = nil) {
     self.init(chat: chat, actions: actions) { StandardComposer(context: $0) }
   }
 }
@@ -154,7 +161,8 @@ struct ChatUnavailableView: View {
 struct ChatSessionView<Composer: View>: View {
   let chat: ChatRef
   let session: GatewaySession
-  let actions: @MainActor (ChatModel) -> TranscriptItemActions
+  /// The rows' actions; nil for the chat's own (`ChatFeed`'s Retry and attachment opening).
+  let actions: (@MainActor (ChatModel) -> TranscriptItemActions)?
   let composer: (ChatComposerContext) -> Composer
 
   /// The screen's feed, for as long as this screen's identity lives (`ChatFeedOwner`): not dropped on
@@ -204,6 +212,15 @@ struct ChatSessionView<Composer: View>: View {
         Color.clear
       }
     }
+    #if os(macOS)
+      // The requests come up over this chat, not over the window: the sidebar stays usable while one
+      // waits (`ChatSheetHost`; a sheet would block the whole window).
+      .chatSheetHost(covered: feed?.requestUp ?? false)
+    #endif
+    // An attachment a message names, opened from its chip.
+    .quickLookPreview(
+      Binding(get: { owner.feed?.attachmentPreview }, set: { owner.feed?.attachmentPreview = $0 })
+    )
     .modifier(ChatTitle(session: session, chat: chat, feed: feed, diagnostics: diagnostics))
     #if os(iOS)
       .navigationBarTitleDisplayMode(.inline)
@@ -217,8 +234,8 @@ struct ChatSessionView<Composer: View>: View {
       let active = scenePhase == .active
 
       owner.appeared {
-        let next = ChatFeed(chat: chat, session: session) { model in
-          var built = base(model)
+        let next = ChatFeed(chat: chat, session: session, standardActions: base == nil) { model in
+          var built = base?(model) ?? .none
           // A bot-to-bot row opens the other bot's chat, on the same gateway.
           built.openBotChat = { handle in
             router?.openChat(ChatRef(gatewayId: gatewayId, bot: handle))
@@ -370,6 +387,8 @@ struct ChatBanners: View {
       GatewayNoticesView(model: feed.session.notices, chat: feed.name)
       ConnectionRequestCard(model: feed.session.connectionRequests, chat: feed.name)
       PasskeyNoticesView(model: feed.session.passkeys)
+      WaitingRequestsBanner(feed: feed)
+      ChatActionNotices(feed: feed)
 
       if let error = feed.openError {
         HStack(alignment: .firstTextBaseline, spacing: 10) {

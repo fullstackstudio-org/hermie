@@ -54,7 +54,7 @@ struct InteractiveSheetModifier: ViewModifier {
       .safeAreaInset(edge: .top, spacing: 0) {
         InteractiveNoticeView(model: model)
       }
-      .sheet(item: presented) { _ in
+      .chatSheet(item: presented) { _ in
         InteractiveSheetView(model: model)
           .presentationDetents([.large])
           // Opaque: what is asked is read against a plain background.

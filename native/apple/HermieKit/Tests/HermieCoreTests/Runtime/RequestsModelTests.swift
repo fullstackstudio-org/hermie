@@ -271,4 +271,61 @@ private struct RequestsHarness {
     #expect(requests.presentedRequestID == "srq-1")
     await opened.shutdown()
   }
+
+  // MARK: Put away for the session (HERM-251)
+
+  @Test func anApprovalPutAwayStaysPutAwayWhenTheChatIsOpenedAgain() async throws {
+    let opened = try await RequestsHarness.opened()
+    try await opened.raiseApproval()
+    let session = opened.harness.session
+    let first = RequestsModel(session: session, bot: bot)
+
+    first.present("srq-1")
+    first.dismissSheet()
+
+    // The chat screen is made again (another chat, then this one): its model is new, the session is not.
+    let again = RequestsModel(session: session, bot: bot)
+    #expect(again.nextToPresent == nil, "not raised again by itself")
+    #expect(again.waiting == ["srq-1"], "the chat says it waits")
+    #expect(await opened.card()?.state == .open, "and it is still open")
+    #expect(opened.link.answers.isEmpty, "nothing was answered")
+
+    again.present("srq-1")
+    #expect(again.presentedRequestID == "srq-1")
+    #expect(again.waiting.isEmpty)
+    await opened.shutdown()
+  }
+
+  @Test func leavingTheChatPutsAwayTheRequestItsSheetShowedAndANewOneStillComesUp() async throws {
+    let opened = try await RequestsHarness.opened()
+    try await opened.raiseApproval()
+    let session = opened.harness.session
+    let first = RequestsModel(session: session, bot: bot)
+
+    #expect(first.nextToPresent == "srq-1")
+    first.present("srq-1")
+    first.leave()
+    #expect(first.presentedRequestID == nil)
+    #expect(opened.link.answers.isEmpty, "leaving answers nothing")
+
+    let again = RequestsModel(session: session, bot: bot)
+    #expect(again.nextToPresent == nil, "re-entering does not raise what was left")
+
+    // A new request that arrives while the person is in the chat is time-critical: it comes up.
+    try await opened.raiseApproval(id: "srq-2", queueID: "appr-2")
+    #expect(again.nextToPresent == "srq-2")
+    #expect(again.waiting == ["srq-1"])
+    await opened.shutdown()
+  }
+
+  @Test func whatIsPutAwayInOneChatIsNotPutAwayInAnother() {
+    let shelf = RequestShelf()
+    shelf.putAway("srq-1", chat: "researcher", kind: .answer)
+    #expect(shelf.contains("srq-1", chat: "researcher", kind: .answer))
+    #expect(!shelf.contains("srq-1", chat: "writer", kind: .answer))
+    #expect(!shelf.contains("srq-1", chat: "researcher", kind: .secure))
+
+    shelf.keep(only: [], chat: "researcher", kind: .answer)
+    #expect(!shelf.contains("srq-1", chat: "researcher", kind: .answer), "an ended request is forgotten")
+  }
 }
