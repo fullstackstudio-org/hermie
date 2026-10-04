@@ -1046,19 +1046,35 @@ and `chat` seams. Both read the session from `LiveGateway` in the environment.
   chore, from the bots whose shared `hermie` section says `archived: true` (what the Expo app and
   earlier builds wrote) while the person's section has no `archivedBots`; after that the list is
   the only source. The shared flag is never written or cleared, since the frozen Expo app may
-  still read it. Pinned chats come first, each group in the
-  arrangement's order; a bot the arrangement does not place yet comes at the end of the loose
-  top-level run, before the first folder, which is where a move or the fold writes it. This build
-  draws no folders: a folder's chats stand in its place, and Move up, Move down and a drag stay
-  within the chat's pinned group and its container. A move never drops a name (at launch the
-  rows come from the cached roster, which can lack a bot made elsewhere and filed in a folder).
-  Dropping gone bots and placing new ones is the fold (the web client's `reconcileBots`), run as
-  a chore when the gateway has answered the roster and redone on top of every copy taken in.
+  still read it. A bot the arrangement does not place yet comes at the end of the loose
+  top-level run, before the first folder, which is where a move or the fold writes it. A move
+  never drops a name (at launch the rows come from the cached roster, which can lack a bot made
+  elsewhere and filed in a folder). Dropping gone bots and placing new ones is the fold (the web
+  client's `reconcileBots`), run as a chore when the gateway has answered the roster and redone
+  on top of every copy taken in.
+- **Folders.** The list draws the web client's arrangement (`ChatLayout` reads and edits it,
+  `ChatListSections` draws it, both in `HermieCore`, with the web's `normalise` and `listView`
+  rules): a folder is a section with a header that opens and closes it, a run of loose chats is a
+  section of its own, pinned chats lead their folder or the top level, an archived chat leaves its
+  folder for the archive, and a folder with nothing to show is not drawn (Settings, Chats is where
+  an empty one is managed). Which folders are closed is the reader's choice on this device
+  (`ChatFolderCollapse`, `UserDefaults`, a set per gateway); a search shows every folder open. A
+  closed folder carries its chats' unread count and a needs-input mark. A chat is in exactly one
+  place, and `ui_meta` fields this build does not know (a folder's other fields, an entry of
+  another kind) are written back as they came. Folders are made, renamed, coloured and deleted
+  from a folder header's menu and from Settings, Chats (which also orders them and has a menu for
+  the folder of every chat); a chat's row menu has Move to folder (a folder, none, or a new one);
+  deleting a folder keeps its chats at the folder's place; a chat taken out of a folder lands
+  right below it. Move up, Move down and a drag in edit mode (iOS) stay within the chat's pinned
+  group and its container; moving between containers is the menu, or on the Mac a drop of a row on
+  another row (next to it, in its container) or on a folder's header (at the folder's end). The
+  `hermie://folder/<id>` link opens that folder and scrolls to it.
 - **Where the actions are.** iOS: the trailing swipe archives (full swipe) and mutes (a duration
   sheet), the leading swipe marks read and pins, the context menu has all of them, Edit reorders
   on a phone and a long press drags on an iPad; VoiceOver reads the swipe actions and Move up /
-  Move down. Mac: the context menu, the Chat menu (Pin, Mute, Archive with ⌃⌘A for the selected
-  chat), drag in the sidebar, and the same VoiceOver actions. The Mac switches gateways from the
+  Move down. Mac: the context menu, the Chat menu (Pin, Mute, Archive with ⌃⌘A, Move Up and Move
+  Down with ⌃⌘↑ and ⌃⌘↓, Move to Folder and New Folder with ⌥⌘N for the selected chat), drag and
+  drop in the sidebar, and the same VoiceOver actions. The Mac switches gateways from the
   menu bar's Gateway menu (`GatewayMenu`): every gateway, the window's own checked, ⌘1 to ⌘9 for
   the first nine, a long host name cut in the middle at 320 pt, then Add Gateway… and Gateway
   Settings…; it has no toolbar switcher. iPhone and iPad keep the toolbar's switcher and Switch
@@ -1509,7 +1525,7 @@ environment. It only follows: which gateway is live is `LiveGateway`'s, who is s
   in front: a second window minimised on the Mac does not stop the heartbeat). The window in front
   names the open chat for the `seen` heartbeat. The session's `ChatArrangementModel` reads and writes
   the chat list's pins, mutes, order and archive through the same sync. What the gateway's copy
-  carries that this build does not draw (other devices' rows, folders, the plugin advert) goes back
+  carries that this build does not draw (other devices' rows, the plugin advert) goes back
   as it came; nothing taken in is treated as this person's own choice. A change made only of chores
   (the roster folded into the order, a lapsed mute swept, a push row) never wins over a section the
   gateway holds (HERM-191): it is dropped, not sent, and redone on top of what was taken. The settings bridge (`UIMetaSettingsBridge`) is
@@ -1619,7 +1635,7 @@ route in the last column. "Native" is what this build has.
 | Pin                                                           | row menu                              | list                     | yes                                                                   | `ui_meta` app section `pinned`                                                                           |
 | Mute                                                          | row menu, chat options                | list                     | yes                                                                   | `ui_meta` app section `mutes`                                                                            |
 | Archive                                                       | row menu                              | list                     | yes                                                                   | `ui_meta` app section `archivedBots`                                                                     |
-| Folder, order                                                 | row menu, drag                        | list                     | not in settings (the list moves chats)                                | `ui_meta` app section `entries`, `folders`                                                               |
+| Folder, order                                                 | row menu, folder menu, drag           | list                     | yes (Chats: folders, and the folder of each chat)                     | `ui_meta` app section `entries`, `folders`                                                               |
 | Notifications for this chat                                   | chat options                          | no                       | not yet                                                               | `ui_meta` push rows (`push.perBot`)                                                                      |
 | Voice (read aloud)                                            | chat options                          | no                       | not yet                                                               | none: on the device                                                                                      |
 | Export the conversation                                       | chat options                          | no                       | not yet                                                               | none: from the transcript                                                                                |

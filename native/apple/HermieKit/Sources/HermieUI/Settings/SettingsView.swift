@@ -87,7 +87,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
  Settings: the category list and one page per category. A sheet with a stack on iPhone and iPad,
  the `Settings` window with a sidebar on the Mac.
 
- Implemented: Account, Privacy (the app lock), Gateways, MCP, Notifications and About. Every other category is
+ Implemented: Account, Privacy (the app lock), Gateways, MCP, Chats (the folders), Notifications and About. Every other category is
  a placeholder
  page until its task lands.
  */
@@ -234,6 +234,8 @@ struct SettingsPage: View {
         MCPSettingsEntry()
       case .notifications:
         NotificationsSettingsPage()
+      case .chats:
+        ChatListSettingsEntry()
       case .about:
         AboutSettingsPage()
       case .advanced:

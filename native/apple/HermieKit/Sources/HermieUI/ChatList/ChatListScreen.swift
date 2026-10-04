@@ -10,10 +10,12 @@ import SwiftUI
  opens the chat (beside the list on iPad and the Mac, pushed over it on iPhone). The arrow keys move
  the selection, which opens the chat they land on.
 
- Pinned chats come first; archived chats leave the list for the archive (a row at the bottom that
- opens them on iPhone and iPad, a disclosure group in the Mac's sidebar). Pin, mute and archive are
- the session's `ChatArrangementModel`, which writes them through the gateway's `ui_meta` so they
- follow the reader to their other devices and to the web client.
+ Pinned chats come first in their folder or at the top; folders are sections with a header that
+ opens and closes them (kept on this device); archived chats leave the list for the archive (a row
+ at the bottom that opens them on iPhone and iPad, a disclosure group in the Mac's sidebar). Pin,
+ mute, archive, folders and order are the session's `ChatArrangementModel`, which writes them
+ through the gateway's `ui_meta` so they follow the reader to their other devices and to the web
+ client. Folders are made and changed from a row's menu, a folder's header menu and Settings, Chats.
 
  It reads the session from `LiveGateway` in the environment.
  */
@@ -44,7 +46,9 @@ public struct ChatListScreen: View {
       switch live.phase {
       case .live:
         if let session = live.session {
-          SessionChatList(session: session, selection: context.selection, query: query, signIn: { signIn(gateway.id) })
+          SessionChatList(
+            session: session, selection: context.selection, query: query, signIn: { signIn(gateway.id) },
+            focusedFolderId: context.focusedFolderId)
         } else {
           loading
         }

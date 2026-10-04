@@ -19,7 +19,14 @@ struct ChatRowActions {
   /// Open the bot's settings page; nil where the list cannot navigate (the line is then not offered).
   var openSettings: (@MainActor (String) -> Void)?
 
+  /// Ask for the name of a new folder to put this chat in; nil where the list cannot ask (the
+  /// "New folder…" line is then not offered).
+  var askNewFolder: (@MainActor (String) -> Void)?
+
   var arrangement: ChatArrangementModel { session.arrangement }
+
+  /// Every bot the gateway has, for a move that may have to place a chat first.
+  var roster: [String] { session.chatList.names }
 
   // MARK: The intentions
 
@@ -43,6 +50,11 @@ struct ChatRowActions {
     withAnimation { arrangement.setMute(name, until: nil) }
   }
 
+  /// Put the chat in a folder, or out of any folder (`nil`).
+  func moveToFolder(_ name: String, _ folder: String?) {
+    withAnimation { arrangement.move(name, toFolder: folder, roster: roster) }
+  }
+
   // MARK: The context menu
 
   @ViewBuilder func menu(_ row: ChatListRow) -> some View {
@@ -54,6 +66,7 @@ struct ChatRowActions {
     if arrangement.canEdit {
       pinButton(name)
       muteItems(name)
+      folderMenu(name)
       Divider()
       archiveButton(name)
     }
@@ -130,6 +143,45 @@ struct ChatRowActions {
     }
   }
 
+  /// Move to folder: No folder (when it is in one), each other folder, and a new one.
+  @ViewBuilder func folderMenu(_ name: String) -> some View {
+    let layout = arrangement.arrangement.layout
+    let current = layout.folderID(of: name)
+    let others = layout.folders.filter { $0.id != current }
+
+    if current != nil || !others.isEmpty || askNewFolder != nil {
+      Menu {
+        if current != nil {
+          Button {
+            moveToFolder(name, nil)
+          } label: {
+            Label(Strings.App.Layout.topGroup, systemImage: "tray")
+          }
+        }
+
+        ForEach(others) { folder in
+          Button {
+            moveToFolder(name, folder.id)
+          } label: {
+            Label(ChatFolderText.title(folder), systemImage: "folder")
+          }
+        }
+
+        if let askNewFolder {
+          Divider()
+          Button {
+            askNewFolder(name)
+          } label: {
+            Label(ChatFolderText.newFolderAction, systemImage: "folder.badge.plus")
+          }
+        }
+      } label: {
+        Label(Strings.App.Layout.moveToFolderMenu, systemImage: "folder")
+      }
+      .accessibilityIdentifier("hermie.chatList.action.folder")
+    }
+  }
+
   // MARK: The swipe actions (iOS)
 
   @ViewBuilder func leadingSwipe(_ row: ChatListRow) -> some View {
@@ -194,6 +246,17 @@ struct ChatRowActions {
         }
       }
 
+      let layout = arrangement.arrangement.layout
+      let current = layout.folderID(of: name)
+
+      if current != nil {
+        Button(Strings.App.Layout.moveToFolder(folder: Strings.App.Layout.topGroup)) { moveToFolder(name, nil) }
+      }
+
+      ForEach(layout.folders.filter { $0.id != current }) { folder in
+        Button(Strings.App.Layout.moveToFolder(folder: ChatFolderText.title(folder))) { moveToFolder(name, folder.id) }
+      }
+
       Button(arrangement.isArchived(name) ? Strings.App.Layout.unarchive : Strings.App.Layout.archive) {
         setArchived(name, !arrangement.isArchived(name))
       }
@@ -238,6 +301,13 @@ extension View {
 struct ChatListFocus {
   let gatewayID: String
   let arrangement: ChatArrangementModel
+  /// Every bot the gateway has.
+  var roster: [String] = []
+  /// Where one step up and one step down land for a chat; nothing while the order cannot be written
+  /// (a search is narrowing the list).
+  var steps: (String) -> (up: ChatListArrangement.Anchor?, down: ChatListArrangement.Anchor?) = { _ in (nil, nil) }
+  /// Ask for the name of a new folder, with this chat in it.
+  var askNewFolder: (@MainActor (String) -> Void)?
 }
 
 extension FocusedValues {

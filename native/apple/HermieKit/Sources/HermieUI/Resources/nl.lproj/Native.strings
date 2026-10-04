@@ -90,6 +90,18 @@
 	<string>%@ dempen</string>
 	<key>native.chatList.now</key>
 	<string>Nu</string>
+	<key>native.chatList.settings.chats</key>
+	<string>Chats</string>
+	<key>native.chatList.settings.folders</key>
+	<string>Mappen</string>
+	<key>native.chatList.settings.intro</key>
+	<string>Zet je chats in mappen, geef een map een kleur en kies waar elke chat naartoe gaat. Een map verwijderen houdt de chats bewaard. Het volgt je naar je andere apparaten waarop je bent ingelogd.</string>
+	<key>native.chatList.settings.noChats</key>
+	<string>Er zijn nog geen chats om te ordenen.</string>
+	<key>native.chatList.settings.noFolders</key>
+	<string>Nog geen mappen.</string>
+	<key>native.chatList.settings.noGateway</key>
+	<string>Verbind met een gateway om de chats ervan te ordenen.</string>
 	<key>native.chatList.signedOut</key>
 	<string>Meld je aan bij deze gateway om de chats te zien.</string>
 	<key>native.commands.addGateway</key>

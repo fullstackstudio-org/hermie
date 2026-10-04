@@ -7,11 +7,17 @@ struct SessionChatList: View {
   let selection: Binding<ChatRef?>
   let query: String
   let signIn: () -> Void
+  /// A folder a `hermie://folder/<id>` link asked to reveal: opened and scrolled to, then cleared.
+  var focusedFolderId: Binding<String?> = .constant(nil)
 
   /// The archive is open: the sheet on iPhone and iPad, the disclosure group on the Mac.
   @State private var archiveOpen = false
   /// The row a swipe's Mute asked a duration for.
   @State private var muting: ChatListRow?
+  /// The folders the reader has closed, on this device.
+  @State private var collapse = ChatFolderCollapse()
+  /// The folder name the alert is asking for.
+  @State private var naming: FolderNaming?
   @Environment(AppRouter.self) private var router: AppRouter?
   @Environment(\.chatListHostsSectionPicker) private var hostsSectionPicker
   #if os(iOS)
@@ -19,27 +25,33 @@ struct SessionChatList: View {
   #endif
 
   var body: some View {
+    ScrollViewReader { proxy in
+      chatList
+        .onChange(of: focusedFolderId.wrappedValue, initial: true) { _, _ in reveal(proxy) }
+        .onChange(of: session.arrangement.arrangement.layout) { _, _ in reveal(proxy) }
+    }
+  }
+
+  private var chatList: some View {
     let list = session.chatList
     let ready = session.status.phase == .ready
     let rows = ChatListRows(session: session, query: query)
-    let actions = ChatRowActions(session: session, openSettings: openSettings)
+    var actions = ChatRowActions(session: session, openSettings: openSettings)
+    actions.askNewFolder = { naming = .new(chat: $0) }
 
-    List(selection: selection) {
+    return List(selection: selection) {
       if hostsSectionPicker, router != nil {
         sectionPicker
       }
 
-      ForEach(rows.shown) { row in
-        item(row, ready: ready, actions: actions)
-          .modifier(StepActions(steps: steps(row.bot.name, in: rows)) { anchor in
-            withAnimation {
-              session.arrangement.move(row.bot.name, to: anchor, roster: rows.all.map(\.bot.name))
-            }
-          })
+      ForEach(rows.sections.blocks) { block in
+        self.block(block, rows: rows, ready: ready, actions: actions)
       }
-      .onMove(perform: rows.searching || !session.arrangement.canEdit ? nil : { from, to in move(rows, from: from, to: to) })
 
       archive(rows, ready: ready, actions: actions)
+    }
+    .folderNameAlert($naming) { request, name in
+      commit(request, name: name)
     }
     .overlay { overlay(list: list, rows: rows) }
     .muteDialog($muting, actions: actions)
@@ -60,7 +72,7 @@ struct SessionChatList: View {
         ArchivedChatsSheet(session: session, selection: selection)
       }
     #endif
-    .focusedSceneValue(\.chatListFocus, ChatListFocus(gatewayID: session.gatewayID, arrangement: session.arrangement))
+    .focusedSceneValue(\.chatListFocus, focus(rows, askNewFolder: actions.askNewFolder))
     .safeAreaInset(edge: .top, spacing: 0) {
       VStack(spacing: 0) {
         ConnectionBanner(
@@ -132,62 +144,151 @@ struct SessionChatList: View {
     .chatRowActions(row, actions: actions, muting: $muting)
   }
 
-  /// Where one step up and one step down land for a row, within its group; nil at the group's edge
-  /// or while the order cannot be written (searching, no sync yet).
-  private func steps(_ name: String, in rows: ChatListRows) -> (up: ChatListArrangement.Anchor?, down: ChatListArrangement.Anchor?) {
-    guard !rows.searching, session.arrangement.canEdit else {
-      return (nil, nil)
+  // MARK: Folders
+
+  /// Every bot the gateway has: what a move that has to place a chat first folds in.
+  private var roster: [String] { session.chatList.names }
+
+  /// One block of the list: a run of loose chats, or a folder under its header.
+  @ViewBuilder private func block(
+    _ block: ChatListSections<ChatListRow>.Block, rows: ChatListRows, ready: Bool, actions: ChatRowActions
+  ) -> some View {
+    switch block {
+    case .chats(_, let chats):
+      Section {
+        chatRows(chats, rows: rows, ready: ready, actions: actions)
+      }
+    case .folder(let folder):
+      let open = rows.searching || !collapse.isCollapsed(folder.id, gateway: session.gatewayID)
+
+      Section {
+        if open {
+          chatRows(folder.chats, rows: rows, ready: ready, actions: actions)
+        }
+      } header: {
+        folderHeader(folder, open: open, rows: rows)
+      }
     }
+  }
 
-    let names = rows.shown.map(\.bot.name)
-    let group = Array(names[Self.group(of: name, in: names, arrangement: session.arrangement.arrangement)])
+  private func folderHeader(_ folder: ChatListSections<ChatListRow>.Folder, open: Bool, rows: ChatListRows) -> some View {
+    let arrangement = session.arrangement
+    let gateway = session.gatewayID
+    let id = folder.id
 
-    guard let index = group.firstIndex(of: name) else {
-      return (nil, nil)
+    return FolderHeader(folder: folder, open: open, fixed: rows.searching) {
+      withAnimation { collapse.toggle(id, gateway: gateway) }
     }
+    .contextMenu {
+      if arrangement.canEdit {
+        FolderMenuItems(id: id, name: folder.name, colour: folder.colour, arrangement: arrangement) {
+          naming = .rename(folder: id, name: folder.name)
+        }
 
-    return (
-      index > 0 ? .before(group[index - 1]) : nil,
-      index + 1 < group.count ? .after(group[index + 1]) : nil
+        Divider()
+
+        Button {
+          naming = .new(chat: nil)
+        } label: {
+          Label(ChatFolderText.newFolderAction, systemImage: "folder.badge.plus")
+        }
+      }
+    }
+    #if os(macOS)
+      .modifier(
+        FolderDrop(gatewayID: gateway) { name in
+          withAnimation { arrangement.move(name, toFolder: id, roster: roster) }
+        })
+    #endif
+  }
+
+  /// The chats of one run or one folder, each with its row's actions and its steps; reordered by a
+  /// drag in edit mode (iOS) or by dropping a chat on a row (the Mac).
+  private func chatRows(_ chats: [ChatListRow], rows: ChatListRows, ready: Bool, actions: ChatRowActions) -> some View {
+    let movable = !rows.searching && session.arrangement.canEdit
+    let sections = rows.sections
+
+    return ForEach(chats) { row in
+      item(row, ready: ready, actions: actions)
+        .modifier(
+          StepActions(steps: movable ? sections.steps(of: row.bot.name) : (nil, nil)) { anchor in
+            withAnimation {
+              session.arrangement.move(row.bot.name, to: anchor, roster: roster)
+            }
+          }
+        )
+        #if os(macOS)
+          .modifier(
+            ChatRowDragDrop(
+              gatewayID: session.gatewayID, bot: row.bot.name,
+              anchor: { movable ? sections.dropAnchor(moving: $0, onto: row.bot.name) : nil },
+              drop: { name, anchor in
+                withAnimation { session.arrangement.place(name, at: anchor, roster: roster) }
+              }))
+        #endif
+    }
+    #if os(iOS)
+      .onMove(perform: movable ? { from, to in moveWithin(chats, sections: sections, from: from, to: to) } : nil)
+    #endif
+  }
+
+  #if os(iOS)
+    /// A drag ended: move the chat next to the row it was dropped by, within its own set (pinned chats
+    /// stay above the others, and a drag across the line lands at the set's edge).
+    private func moveWithin(_ chats: [ChatListRow], sections: ChatListSections<ChatListRow>, from: IndexSet, to destination: Int) {
+      guard let source = from.first, chats.indices.contains(source) else {
+        return
+      }
+
+      let names = chats.map(\.bot.name)
+      let moving = names[source]
+
+      guard let anchor = sections.dropAnchor(moving: moving, in: names, at: destination) else {
+        return
+      }
+
+      withAnimation {
+        session.arrangement.move(moving, to: anchor, roster: roster)
+      }
+    }
+  #endif
+
+  /// What the Chat menu's commands act on.
+  private func focus(_ rows: ChatListRows, askNewFolder: (@MainActor (String) -> Void)?) -> ChatListFocus {
+    let movable = !rows.searching && session.arrangement.canEdit
+    let sections = rows.sections
+
+    return ChatListFocus(
+      gatewayID: session.gatewayID,
+      arrangement: session.arrangement,
+      roster: roster,
+      steps: { movable ? sections.steps(of: $0) : (nil, nil) },
+      askNewFolder: askNewFolder
     )
   }
 
-  /// The rows a chat can move among: the same pinned group and the same container (the top level,
-  /// or one folder), the moves `ChatListArrangement.move` makes. They are contiguous on screen:
-  /// pinned chats lead, and a folder's chats stand together in its place.
-  static func group(of name: String, in names: [String], arrangement: ChatListArrangement) -> Range<Int> {
-    let pinned = arrangement.isPinned(name)
-    let members = names.indices.filter {
-      arrangement.isPinned(names[$0]) == pinned && arrangement.sameContainer(names[$0], name)
+  /// The naming alert's answer: a new folder (with the chat that asked for it), or a new name.
+  private func commit(_ request: FolderNaming, name: String) {
+    switch request {
+    case .new(let chat):
+      withAnimation { _ = session.arrangement.newFolder(name, containing: chat, roster: roster) }
+    case .rename(let folder, _):
+      session.arrangement.renameFolder(folder, to: name)
     }
-
-    guard let first = members.first, let last = members.last else {
-      return 0..<0
-    }
-
-    return first..<(last + 1)
   }
 
-  /// A drag ended: move the chat next to the row it was dropped by, within its own group (pinned
-  /// chats stay above the others, a folder's chats among themselves, and a drag across the line
-  /// lands at the group's edge).
-  private func move(_ rows: ChatListRows, from: IndexSet, to destination: Int) {
-    guard let source = from.first, rows.shown.indices.contains(source) else {
+  /// A link asked for a folder: open it and scroll to it, once the arrangement has it.
+  private func reveal(_ proxy: ScrollViewProxy) {
+    guard let id = focusedFolderId.wrappedValue, session.arrangement.arrangement.layout.folder(id) != nil else {
       return
     }
 
-    let arrangement = session.arrangement
-    let names = rows.shown.map(\.bot.name)
-    let moving = names[source]
-    let group = Self.group(of: moving, in: names, arrangement: arrangement.arrangement)
-    let target = min(max(destination, group.lowerBound), group.upperBound)
+    collapse.setCollapsed(false, folder: id, gateway: session.gatewayID)
+    focusedFolderId.wrappedValue = nil
 
-    guard let anchor = ChatListArrangement.Anchor.forDrop(names, group: group, at: target) else {
-      return
-    }
-
-    withAnimation {
-      arrangement.move(moving, to: anchor, roster: rows.all.map(\.bot.name))
+    Task { @MainActor in
+      await Task.yield()
+      withAnimation { proxy.scrollTo(ChatListSections<ChatListRow>.blockID(folder: id), anchor: .top) }
     }
   }
 
@@ -283,7 +384,7 @@ struct SessionChatList: View {
 
 /// The session's rows, split into the list and the archive: the arrangement's order (the roster's
 /// while nobody has ordered the list, new bots at the end) narrowed by the search, pinned chats
-/// lifted to the top of the list.
+/// lifted to the top of their folder or of the list, folders as sections of their own.
 ///
 /// A new message in an archived chat leaves it in the archive, as the Expo app does: archiving is
 /// how a chat stops asking for attention, so nothing but Unarchive brings it back, and the archive's
@@ -295,6 +396,8 @@ struct ChatListRows {
   /// Every row the search lets through, archived ones included, in the arrangement's order.
   var all: [ChatListRow]
   var searching: Bool
+  /// The same rows as the list draws them: runs of loose chats and folders, the archive apart.
+  var sections: ChatListSections<ChatListRow>
 
   init(session: GatewaySession, query: String) {
     let list = session.chatList
@@ -313,8 +416,9 @@ struct ChatListRows {
 
     searching = !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     all = arrangement.ordered(rows) { $0.bot.name }
-    shown = arrangement.pinnedFirst(all.filter { !arrangement.isArchived($0.bot.name) }) { $0.bot.name }
-    archived = all.filter { arrangement.isArchived($0.bot.name) }
+    sections = arrangement.sections(rows) { $0.bot.name }
+    shown = sections.visible
+    archived = sections.archived
   }
 }
 

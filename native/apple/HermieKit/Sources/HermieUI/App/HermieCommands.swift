@@ -100,10 +100,65 @@ public struct HermieCommands: Commands {
 
     Divider()
 
+    reorderCommands(target)
+
+    Divider()
+
     Button(archived ? Strings.App.Layout.unarchive : Strings.App.Layout.archive) {
       withAnimation { arrangement?.setArchived(name, !archived) }
     }
     .keyboardShortcut("a", modifiers: [.command, .control])
+    .disabled(target == nil)
+  }
+
+  /**
+   Move Up and Move Down (⌃⌘↑ and ⌃⌘↓) step the selected chat within its folder or the top level, and
+   Move to Folder puts it in another or takes it out: the keyboard's way to the order the pointer drags
+   on the list.
+   */
+  @ViewBuilder private func reorderCommands(_ target: (arrangement: ChatArrangementModel, name: String)?) -> some View {
+    let name = target?.name ?? ""
+    let steps: (up: ChatListArrangement.Anchor?, down: ChatListArrangement.Anchor?) =
+      target == nil ? (nil, nil) : chatList?.steps(name) ?? (nil, nil)
+    let layout = target?.arrangement.arrangement.layout
+    let current = layout?.folderID(of: name)
+    let roster = chatList?.roster ?? []
+
+    Button(Strings.App.Layout.moveUp) {
+      if let up = steps.up {
+        withAnimation { target?.arrangement.move(name, to: up, roster: roster) }
+      }
+    }
+    .keyboardShortcut(.upArrow, modifiers: [.command, .control])
+    .disabled(steps.up == nil)
+
+    Button(Strings.App.Layout.moveDown) {
+      if let down = steps.down {
+        withAnimation { target?.arrangement.move(name, to: down, roster: roster) }
+      }
+    }
+    .keyboardShortcut(.downArrow, modifiers: [.command, .control])
+    .disabled(steps.down == nil)
+
+    Menu(Strings.App.Layout.moveToFolderMenu) {
+      if current != nil {
+        Button(Strings.App.Layout.topGroup) {
+          withAnimation { target?.arrangement.move(name, toFolder: nil, roster: roster) }
+        }
+      }
+
+      ForEach(layout?.folders.filter { $0.id != current } ?? []) { folder in
+        Button(ChatFolderText.title(folder)) {
+          withAnimation { target?.arrangement.move(name, toFolder: folder.id, roster: roster) }
+        }
+      }
+
+      if let ask = chatList?.askNewFolder {
+        Divider()
+        Button(ChatFolderText.newFolderAction) { ask(name) }
+          .keyboardShortcut("n", modifiers: [.command, .option])
+      }
+    }
     .disabled(target == nil)
   }
 

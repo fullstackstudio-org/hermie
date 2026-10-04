@@ -1013,6 +1013,144 @@
         }
       }
     },
+    "native.chatList.settings.chats" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chats"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chats"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chats"
+          }
+        }
+      }
+    },
+    "native.chatList.settings.folders" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ordner"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folders"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mappen"
+          }
+        }
+      }
+    },
+    "native.chatList.settings.intro" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lege deine Chats in Ordnern ab, gib einem Ordner eine Farbe und wähle, wohin jeder Chat gehört. Beim Löschen eines Ordners bleiben die Chats erhalten. Es folgt dir auf deine anderen Geräte, auf denen du angemeldet bist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Put your chats in folders, give a folder a colour and choose where each chat goes. Deleting a folder keeps its chats. It follows you to your other devices signed in as you."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zet je chats in mappen, geef een map een kleur en kies waar elke chat naartoe gaat. Een map verwijderen houdt de chats bewaard. Het volgt je naar je andere apparaten waarop je bent ingelogd."
+          }
+        }
+      }
+    },
+    "native.chatList.settings.noChats" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es gibt noch keine Chats zum Anordnen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There are no chats to arrange yet."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er zijn nog geen chats om te ordenen."
+          }
+        }
+      }
+    },
+    "native.chatList.settings.noFolders" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch keine Ordner."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No folders yet."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nog geen mappen."
+          }
+        }
+      }
+    },
+    "native.chatList.settings.noGateway" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbinde dich mit einem Gateway, um seine Chats anzuordnen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect to a gateway to arrange its chats."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbind met een gateway om de chats ervan te ordenen."
+          }
+        }
+      }
+    },
     "native.chatList.signedOut" : {
       "extractionState" : "manual",
       "localizations" : {

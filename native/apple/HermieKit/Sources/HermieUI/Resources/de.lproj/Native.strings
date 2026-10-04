@@ -90,6 +90,18 @@
 	<string>%@ stummschalten</string>
 	<key>native.chatList.now</key>
 	<string>Jetzt</string>
+	<key>native.chatList.settings.chats</key>
+	<string>Chats</string>
+	<key>native.chatList.settings.folders</key>
+	<string>Ordner</string>
+	<key>native.chatList.settings.intro</key>
+	<string>Lege deine Chats in Ordnern ab, gib einem Ordner eine Farbe und wähle, wohin jeder Chat gehört. Beim Löschen eines Ordners bleiben die Chats erhalten. Es folgt dir auf deine anderen Geräte, auf denen du angemeldet bist.</string>
+	<key>native.chatList.settings.noChats</key>
+	<string>Es gibt noch keine Chats zum Anordnen.</string>
+	<key>native.chatList.settings.noFolders</key>
+	<string>Noch keine Ordner.</string>
+	<key>native.chatList.settings.noGateway</key>
+	<string>Verbinde dich mit einem Gateway, um seine Chats anzuordnen.</string>
 	<key>native.chatList.signedOut</key>
 	<string>Melde dich bei diesem Gateway an, um seine Chats zu sehen.</string>
 	<key>native.commands.addGateway</key>

@@ -90,6 +90,18 @@
 	<string>Mute %@</string>
 	<key>native.chatList.now</key>
 	<string>Now</string>
+	<key>native.chatList.settings.chats</key>
+	<string>Chats</string>
+	<key>native.chatList.settings.folders</key>
+	<string>Folders</string>
+	<key>native.chatList.settings.intro</key>
+	<string>Put your chats in folders, give a folder a colour and choose where each chat goes. Deleting a folder keeps its chats. It follows you to your other devices signed in as you.</string>
+	<key>native.chatList.settings.noChats</key>
+	<string>There are no chats to arrange yet.</string>
+	<key>native.chatList.settings.noFolders</key>
+	<string>No folders yet.</string>
+	<key>native.chatList.settings.noGateway</key>
+	<string>Connect to a gateway to arrange its chats.</string>
 	<key>native.chatList.signedOut</key>
 	<string>Sign in to this gateway to see its chats.</string>
 	<key>native.commands.addGateway</key>

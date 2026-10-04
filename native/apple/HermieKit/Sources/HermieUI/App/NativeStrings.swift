@@ -67,6 +67,30 @@ enum NativeStrings {
     static func muteTitle(name: String) -> String {
       String(localized: "native.chatList.muteTitle", defaultValue: "Mute \(name)", table: "Native", bundle: .module)
     }
+    /// Put your chats in folders, give a folder a colour and choose where each chat goes. (Settings, Chats)
+    static var settingsIntro: String {
+      String(localized: "native.chatList.settings.intro", table: "Native", bundle: .module)
+    }
+    /// Folders (the header of the list of folders)
+    static var settingsFolders: String {
+      String(localized: "native.chatList.settings.folders", table: "Native", bundle: .module)
+    }
+    /// Chats (the header of the list of chats and the folder each is in)
+    static var settingsChats: String {
+      String(localized: "native.chatList.settings.chats", table: "Native", bundle: .module)
+    }
+    /// No folders yet.
+    static var settingsNoFolders: String {
+      String(localized: "native.chatList.settings.noFolders", table: "Native", bundle: .module)
+    }
+    /// There are no chats to arrange yet.
+    static var settingsNoChats: String {
+      String(localized: "native.chatList.settings.noChats", table: "Native", bundle: .module)
+    }
+    /// Connect to a gateway to arrange its chats.
+    static var settingsNoGateway: String {
+      String(localized: "native.chatList.settings.noGateway", table: "Native", bundle: .module)
+    }
   }
 
   enum Commands {
