@@ -3,7 +3,7 @@ import HermieProtocol
 import SwiftUI
 
 extension View {
-  /// Answer the chat's interactive requests (`input.form`, `input.file`, `review.draft`): the sheet
+  /// Answer the chat's interactive requests (`input.form`, `input.file`, `review.draft`, `review.diff`): the sheet
   /// for the oldest open one, raised as it arrives (never over the app lock, and never while
   /// `blocked`, which is another sheet of the chat being up), and the chat's notice when one
   /// ended without the person's answer or could not be shown. Putting the sheet away with Later,
@@ -126,6 +126,9 @@ struct InteractiveSheetView: View {
           .id(prompt.id)
       case .draft(let params):
         DraftSheetView(model: model, prompt: prompt, params: params)
+          .id(prompt.id)
+      case .diff(let diff):
+        DiffSheetView(model: model, prompt: prompt, diff: diff)
           .id(prompt.id)
       }
     }

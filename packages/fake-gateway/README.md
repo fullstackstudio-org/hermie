@@ -385,11 +385,9 @@ from a diff over a WebSocket, the answer and the `approved_patch`), `src/passkey
 invalid ones refused with exactly their `reason`, every form field kind), the rules the schema cannot say,
 and the request's life over a WebSocket (gate, validation, refusal cap, resume listing, cancel on expiry,
 error response, upload listing). `src/client-capabilities.test.ts` covers the handshake. `scripts/dump-frames.ts`
-records a stream scenario per method (`input-form`, `input-file`, `review-draft`) into
-`contract/transcript/streams/`. There is none for `review.diff` yet: the native corpus test needs every server
-request in a stream to decode typed, so the scenario is added together with the native typed decode of it
-(`interactiveScenario('review.diff', 'review-diff', …, 'approved_one_hunk', {decision: 'approved',
-approvedHunks: 1, rejectedHunks: 1})` in `scripts/dump-frames.ts`).
+records a stream scenario per method (`input-form`, `input-file`, `review-draft`, `review-diff`) into
+`contract/transcript/streams/`; the native corpus test needs every server request in a stream to decode typed,
+which `review.diff` does since the native diff sheet.
 
 ## The MCP page (`--mcp`)
 

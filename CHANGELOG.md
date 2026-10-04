@@ -40,6 +40,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **A confirmation can show its key facts, and an agent can ask for the changes to a file hunk by hunk, in the
+  native Apple apps.** A `confirm` can carry up to eight key facts (an amount, a recipient, a domain, a model, a
+  count, a date, some text) that the app shows apart from the summary, an amount large and bold with its
+  currency, a recipient and a domain monospaced and never a link, and nothing shortened: what does not fit wraps.
+  A confirmation with a passkey now signs over those facts too, in their order (text version 2), and a frame whose
+  facts break the contract is refused whole and shown in no part. A new `review.diff` request shows the changes
+  to one file as the hunks of a diff, with the file's path and what happens to it, where each hunk lands (start
+  of the file, end of the file or the whole file), every line verbatim with its marker and tabs, and Approve or
+  Reject for each hunk before anything is sent; the agent receives exactly the approved hunks (`contract/requests`,
+  `contract/confirm-passkey`, `docs/native.md`).
 - **An agent can ask for a form, a file or a review of a draft, in the native Apple apps (0.2.9) and in the
   web client.** Beside an approval and a question, the gateway can now send `input.form` (one to twelve typed
   fields: text, number, amount, date, time, datetime, date range, choice, toggle), `input.file` (one or more

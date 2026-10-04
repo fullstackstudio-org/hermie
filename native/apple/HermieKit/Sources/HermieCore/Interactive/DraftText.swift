@@ -55,8 +55,8 @@ public enum DraftText {
   // MARK: Characters
 
   /// Letters and symbols that render as nothing: the Hangul fillers, the blank Braille pattern, the
-  /// musical null notehead.
-  private static let invisibleLetters: Set<UInt32> = [0x115F, 0x1160, 0x3164, 0xFFA0, 0x2800, 0x1D159]
+  /// musical null notehead and the Khitan small script filler (contract/requests §6.2, item 4).
+  private static let invisibleLetters: Set<UInt32> = [0x115F, 0x1160, 0x3164, 0xFFA0, 0x2800, 0x1D159, 0x16FE4]
 
   /// `Default_Ignorable_Code_Point` as the gateway copies it from `DerivedCoreProperties.txt`.
   private static let defaultIgnorable: [ClosedRange<UInt32>] = [

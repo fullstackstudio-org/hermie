@@ -96,6 +96,117 @@ import Testing
     }
   }
 
+  // MARK: §4.1
+
+  /// The fields of a vector, in its order.
+  static func fields(_ raw: JSONValue?) throws -> [ConfirmField] {
+    try (raw?.arrayValue ?? []).map { field in
+      ConfirmField(
+        id: try #require(field["id"]?.stringValue),
+        kind: try #require(field["kind"]?.stringValue.flatMap(ConfirmFieldKind.init(rawValue:))),
+        label: try #require(field["label"]?.stringValue),
+        value: try #require(field["value"]?.stringValue),
+        currency: field["currency"]?.stringValue
+      )
+    }
+  }
+
+  @Test("text digest v2 vectors: preimage and digest, and never the version-1 digest of the same text")
+  func textDigestsV2() throws {
+    let vectors = Self.list("text_digest_v2_vectors")
+    #expect(vectors.count >= 7)
+
+    for vector in vectors {
+      let name = vector["name"]?.stringValue ?? ""
+      let title = try #require(vector["title"]?.stringValue)
+      let summary = try #require(vector["summary"]?.stringValue)
+      let detail = vector["detail"]?.stringValue
+      let fields = try Self.fields(vector["fields"])
+
+      let preimage = PasskeyChallenge.textDigestV2Preimage(title: title, summary: summary, detail: detail, fields: fields)
+      #expect(Self.hex(preimage) == vector["preimage_hex"]?.stringValue, "\(name)")
+
+      let digest = PasskeyChallenge.textDigestV2(title: title, summary: summary, detail: detail, fields: fields)
+      #expect(Base64URL.encode(digest) == vector["text_digest"]?.stringValue, "\(name)")
+
+      // The version-1 digest of the same text is the vector's, and never equal.
+      let v1 = PasskeyChallenge.textDigest(title: title, summary: summary, detail: detail)
+      #expect(Base64URL.encode(v1) == vector["text_digest_v1"]?.stringValue, "\(name)")
+      #expect(digest != v1, "\(name)")
+
+      // A display picks the version from its fields.
+      let display = ConfirmDisplay(title: title, summary: summary, detail: detail, baseURL: "https://gw.example.com", fields: fields)
+      #expect(display.textVersion == 2 && display.textDigest == digest, "\(name)")
+      let bare = ConfirmDisplay(title: title, summary: summary, detail: detail, baseURL: "https://gw.example.com")
+      #expect(bare.textVersion == 1 && bare.textDigest == v1, "\(name)")
+    }
+  }
+
+  /// The challenge a client computes for a version-2 vector's request, from what it would show.
+  static func challengeV2(_ vector: JSONValue, baseURL: String) throws -> [UInt8] {
+    let context = try #require(Self.vectors["contexts"]?[vector["context"]?.stringValue ?? ""])
+    let request = try #require(vector["request"])
+    let display = ConfirmDisplay(
+      title: try #require(request["title"]?.stringValue),
+      summary: try #require(request["summary"]?.stringValue),
+      detail: request["detail"]?.stringValue,
+      baseURL: baseURL,
+      fields: try Self.fields(request["fields"])
+    )
+    let binding = PasskeyChallengeBinding(
+      purpose: .confirm,
+      gatewayID: try Self.bytes(context["gateway_id"]),
+      userID: try #require(request["user_id"]?.stringValue),
+      sessionID: try #require(request["session_id"]?.stringValue),
+      requestID: try #require(request["request_id"]?.stringValue),
+      nonce: try Self.bytes(request["nonce"])
+    )
+    return PasskeyChallenge.challenge(display, binding)
+  }
+
+  @Test("assertion vectors v2: the challenge over the displayed fields is the signed one, and no other text is")
+  func assertionVectorsV2() throws {
+    let keys = try #require(Self.vectors["keys"]?.objectValue)
+    let vectors = Self.list("assertion_vectors_v2")
+    #expect(vectors.count == 6)
+
+    for vector in vectors {
+      let name = vector["name"]?.stringValue ?? ""
+      let passkey = try #require(vector["answer"]?["passkey"])
+      let clientData = try Self.bytes(passkey["client_data_json"])
+      let signed = try #require(try JSONValue(parsing: Data(clientData))["challenge"]?.stringValue)
+      let ours = Base64URL.encode(try Self.challengeV2(vector, baseURL: try #require(passkey["base_url"]?.stringValue)))
+      let reason = vector["expect"]?["reason"]?.stringValue
+
+      switch reason {
+      case nil:
+        // The accepted one: the challenge a client computes from the frame is what was signed, and the
+        // signature covers it.
+        #expect(ours == signed, "\(name)")
+
+        let key = try #require(keys[vector["signed_by"]?.stringValue ?? ""])
+        let publicKey = try P256.Signing.PublicKey(rawRepresentation: Self.bytes(key["x"]) + Self.bytes(key["y"]))
+        let signature = try P256.Signing.ECDSASignature(derRepresentation: Self.bytes(passkey["signature"]))
+        let message = try Self.bytes(passkey["authenticator_data"]) + Array(SHA256.hash(data: clientData))
+        #expect(publicKey.isValidSignature(Self.lowS(signature), for: message), "\(name)")
+        #expect(passkey["v"]?.doubleValue == 2, "\(name): the answer repeats v 2")
+      case "challenge_mismatch":
+        // Signed over the text without the fields, in another order or with another value: not the
+        // challenge of what the sheet shows.
+        #expect(ours != signed, "\(name)")
+      case "bad_shape":
+        // The challenge is right; the answer's `v` is not the request's. A client sends the version of
+        // the text it hashed (`ConfirmDisplay.textVersion`), which is what the vector tests against.
+        #expect(ours == signed, "\(name)")
+        let request = try #require(vector["request"])
+        let version = (try Self.fields(request["fields"])).isEmpty ? 1 : 2
+        #expect(passkey["v"]?.doubleValue != Double(version), "\(name)")
+      default:
+        Issue.record("\(name): reason \(reason ?? "") not known to this test")
+      }
+    }
+  }
+
   // MARK: §5
 
   @Test("challenge vectors, preimage and challenge, every purpose")

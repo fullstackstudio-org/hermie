@@ -424,8 +424,10 @@ public final class PasskeyModel {
   /// The advertising policy from what this device knows now. A build without an RP, or a gateway
   /// address that cannot be a base URL, advertises no passkey.
   var policy: ConfirmCapabilityPolicy {
+    // This model draws a confirmation's structured fields and, at level `passkey`, commits to them
+    // (`text_digest_v2`): `fields` is on whatever else is.
     guard let rpID = configuration.rpID, baseURL != nil else {
-      return ConfirmCapabilityPolicy(plain: configuration.plain)
+      return ConfirmCapabilityPolicy(plain: configuration.plain, fields: true)
     }
 
     return ConfirmCapabilityPolicy(
@@ -436,7 +438,8 @@ public final class PasskeyModel {
         hasCredential: !pin.appCredentialIDs.isEmpty,
         pinnedGatewayID: pin.gatewayID,
         foreignGatewayIDs: foreignGatewayIDs
-      )
+      ),
+      fields: true
     )
   }
 

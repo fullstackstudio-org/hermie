@@ -221,10 +221,112 @@ struct ConfirmText: View {
           .accessibilityIdentifier("confirm.summary")
       }
 
+      // The key facts, apart from the summary and the detail, in the frame's order (the challenge
+      // commits to them in that order): the ones the person is really confirming.
+      if !display.fields.isEmpty {
+        ConfirmFieldsView(fields: display.fields)
+      }
+
       if let detail = display.detail, !detail.isEmpty {
         ConfirmDetailBlock(detail: detail, review: $review, tracker: tracker, window: window)
       }
     }
+  }
+}
+
+/// The structured fields of a confirmation (contract/confirm-passkey §4.1): every one, in order, as its
+/// label and its value, plain text. A value is never parsed, converted, rounded, localised or linked,
+/// and never truncated or ellipsized: one that does not fit wraps onto more lines. What the kind
+/// changes is only how it is drawn: an amount large and bold with its currency beside it, a recipient
+/// and a domain monospaced, the other kinds plain.
+struct ConfirmFieldsView: View {
+  let fields: [ConfirmField]
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 14) {
+      ForEach(fields) { field in
+        ConfirmFieldRow(field: field)
+      }
+    }
+    .padding(12)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(.background.secondary, in: .rect(cornerRadius: 12))
+    .accessibilityElement(children: .contain)
+    .accessibilityIdentifier("confirm.fields")
+  }
+}
+
+/// One field: its label, small, and its value under it.
+struct ConfirmFieldRow: View {
+  let field: ConfirmField
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 2) {
+      Text(verbatim: field.label)
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+
+      value
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    // One element: the label, then the value (and the currency of an amount).
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(field.label)
+    .accessibilityValue(Self.spoken(field))
+    .accessibilityIdentifier("confirm.field.\(field.id)")
+  }
+
+  /// How a kind is drawn: an amount large and bold with its currency, a recipient and a domain
+  /// monospaced (and never a link), every other kind plain.
+  enum Style: Equatable {
+    case amount, monospaced, plain
+
+    static func of(_ kind: ConfirmFieldKind) -> Style {
+      switch kind {
+      case .amount: .amount
+      case .recipient, .domain: .monospaced
+      case .text, .model, .count, .date: .plain
+      }
+    }
+  }
+
+  @ViewBuilder private var value: some View {
+    switch Style.of(field.kind) {
+    case .amount:
+      Text(Self.amount(field))
+    case .monospaced:
+      Text(verbatim: field.value)
+        .font(.body.monospaced())
+    case .plain:
+      Text(verbatim: field.value)
+        .font(.body)
+    }
+  }
+
+  /// An amount: the value large and bold, its currency beside it. Plain attributed text: no markdown
+  /// is read and nothing in it is a link.
+  static func amount(_ field: ConfirmField) -> AttributedString {
+    var value = AttributedString(field.value)
+    value.font = .title.bold()
+
+    guard let currency = field.currency else {
+      return value
+    }
+
+    var unit = AttributedString(" " + currency)
+    unit.font = .title3.bold()
+    return value + unit
+  }
+
+  /// What VoiceOver reads as the value: the value, and an amount's currency after it.
+  static func spoken(_ field: ConfirmField) -> String {
+    guard field.kind == .amount, let currency = field.currency else {
+      return field.value
+    }
+
+    return "\(field.value) \(currency)"
   }
 }
 

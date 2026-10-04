@@ -82,7 +82,23 @@ extension PasskeyModel {
       throw PasskeyFrameProblem(reason: "bad_base_url")
     }
 
-    guard let passkey = params.passkey, passkey.v == 1 else {
+    guard let passkey = params.passkey, let version = passkey.v, version == 1 || version == 2 else {
+      throw PasskeyFrameProblem(reason: "unsupported_version", notice: .unsupportedVersion)
+    }
+
+    // The structured fields, strictly: a frame whose fields break the contract is shown in no part.
+    let shownFields: [ConfirmField]
+
+    switch ConfirmFieldRules.read(params.json["fields"]) {
+    case .success(let fields):
+      shownFields = fields
+    case .failure:
+      throw PasskeyFrameProblem(reason: "bad_request", notice: .malformedRequest)
+    }
+
+    // Version 2 is a request with fields and only that: `v: 2` without fields, or `v: 1` with them, is
+    // a frame the contract has no such thing as.
+    guard (version == 2) == !shownFields.isEmpty else {
       throw PasskeyFrameProblem(reason: "unsupported_version", notice: .unsupportedVersion)
     }
 
@@ -97,7 +113,8 @@ extension PasskeyModel {
     }
 
     let allow = try allowList(passkey, rpID: rpID)
-    let display = ConfirmDisplay(title: frame.title, summary: frame.summary, detail: params.detail, baseURL: baseURL)
+    let display = ConfirmDisplay(
+      title: frame.title, summary: frame.summary, detail: params.detail, baseURL: baseURL, fields: shownFields)
     let binding = PasskeyChallengeBinding(
       purpose: .confirm,
       gatewayID: frame.gatewayID,
@@ -201,7 +218,9 @@ extension PasskeyModel {
       return
     }
 
-    let assertion = Self.assertion(response, rpID: rpID, baseURL: current.display.baseURL)
+    // The answer repeats the request's own `passkey.v`: 2 for a request with fields, else 1.
+    let assertion = Self.assertion(
+      response, rpID: rpID, baseURL: current.display.baseURL, version: current.display.textVersion)
     await answer(id, ConfirmResult.confirmed(assertion), done: .received)
   }
 
@@ -270,7 +289,12 @@ extension PasskeyModel {
   }
 
   /// The wire form of what the authenticator returned.
-  static func assertion(_ response: PasskeyAssertionResponse, rpID: String, baseURL: String) -> PasskeyAssertion {
+  static func assertion(
+    _ response: PasskeyAssertionResponse,
+    rpID: String,
+    baseURL: String,
+    version: Int = 1
+  ) -> PasskeyAssertion {
     PasskeyAssertion(
       rpID: rpID,
       baseURL: baseURL,
@@ -278,7 +302,8 @@ extension PasskeyModel {
       authenticatorData: Base64URL.encode(response.authenticatorData),
       clientDataJSON: Base64URL.encode(response.clientDataJSON),
       signature: Base64URL.encode(response.signature),
-      userHandle: response.userHandle.map(Base64URL.encode)
+      userHandle: response.userHandle.map(Base64URL.encode),
+      version: version
     )
   }
 

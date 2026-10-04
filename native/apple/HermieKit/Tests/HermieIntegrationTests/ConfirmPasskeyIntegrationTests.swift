@@ -102,11 +102,13 @@ private struct PasskeyApp {
 
   /// Raise a `confirm` at level `passkey` on the researcher's chat; answers its request id once the
   /// model shows it.
-  func raise(summary: String = "Delete 3 old backups.", detail: String? = "rm -rf ./backups/2025-*\n(3 directories)") async throws
-    -> String
-  {
+  func raise(
+    summary: String = "Delete 3 old backups.", detail: String? = "rm -rf ./backups/2025-*\n(3 directories)",
+    fields: JSONValue? = nil
+  ) async throws -> String {
     var params: JSONObject = ["level": "passkey", "title": "Delete backups", "summary": .string(summary)]
     params["detail"] = detail.map(JSONValue.string)
+    params["fields"] = fields
     let raised = try await gateway.control(
       "POST",
       "/__fake/request",
@@ -163,6 +165,79 @@ extension Integration {
         #expect(outcome["verified"]?.boolValue == true)
         #expect(outcome["credential_id"]?.stringValue == app.phone.id)
         #expect(app.passkeys.confirmation(id)?.phase == .received, "resolved after its own answer changes nothing")
+        await app.session.shutdown()
+      }
+    }
+
+    /// The key facts of a spending confirmation, as the contract's own example has them.
+    private static let spending: JSONValue = [
+      ["id": "cost", "kind": "amount", "label": "Estimated cost", "value": "4.20", "currency": "€"],
+      ["id": "tokens", "kind": "count", "label": "tokens", "value": "1,200,000"],
+      ["id": "to", "kind": "recipient", "label": "To", "value": "alex@example.com"],
+      ["id": "model", "kind": "model", "label": "Model", "value": "claude-opus-5-5"]
+    ]
+
+    @Test("a confirm with fields reaches an app that advertised them, is shown with them in order, and its version-2 answer verifies")
+    func confirmWithFields() async throws {
+      try await withPasskeyGateway { gateway in
+        let app = try await PasskeyApp.open(gateway)
+        try await app.enrol()
+
+        // The advertisement says this app computes version 2: the gateway sends it nothing else with fields.
+        let calls = try await gateway.control("GET", "/__fake/state")["clientCapabilities"]?.arrayValue ?? []
+        let accepted = calls.last { $0["confirm"]?.arrayValue?.contains(.string("passkey")) == true }
+        #expect(accepted?["confirm_passkey"]?["v"] == 2)
+        #expect(app.passkeys.capability?.fieldsAccepted == true)
+
+        let id = try await app.raise(summary: "Run the analysis.", detail: nil, fields: Self.spending)
+        let shown = try #require(app.passkeys.confirmation(id))
+        #expect(shown.display.fields.map(\.id) == ["cost", "tokens", "to", "model"], "in the frame's order")
+        #expect(shown.display.fields.map(\.kind) == [.amount, .count, .recipient, .model])
+        #expect(shown.display.fields[0].value == "4.20" && shown.display.fields[0].currency == "€")
+        #expect(shown.display.textVersion == 2)
+
+        // An assertion over another challenge is refused (the fake checks the version-2 digest).
+        var tampering = SoftPasskeyAuthenticator.Tampering()
+        tampering.flipChallengeBit = true
+        app.phone.setTampering(tampering)
+        await app.passkeys.confirm(id)
+        #expect(app.passkeys.confirmation(id)?.phase == .refused(reason: "challenge_mismatch"))
+
+        app.phone.setTampering(SoftPasskeyAuthenticator.Tampering())
+        await app.passkeys.confirm(id)
+        #expect(app.passkeys.confirmation(id)?.phase == .received)
+
+        try await passkeyWait("the outcome") { try await app.outcome(id) != nil }
+        let outcome = try #require(try await app.outcome(id))
+        #expect(outcome["outcome"]?.stringValue == "confirmed")
+        #expect(outcome["method"]?.stringValue == "passkey")
+        #expect(outcome["verified"]?.boolValue == true, "the gateway verified the challenge over the fields it sent")
+        await app.session.shutdown()
+      }
+    }
+
+    @Test("a confirm without fields still works at version 1 on a gateway that knows version 2, and a decline of one with fields is a tap")
+    func versionOneAndDecline() async throws {
+      try await withPasskeyGateway { gateway in
+        let app = try await PasskeyApp.open(gateway)
+        try await app.enrol()
+
+        let plain = try await app.raise()
+        #expect(app.passkeys.confirmation(plain)?.display.textVersion == 1)
+        await app.passkeys.confirm(plain)
+        #expect(app.passkeys.confirmation(plain)?.phase == .received)
+
+        try await passkeyWait("the outcome") { try await app.outcome(plain) != nil }
+        #expect(try await app.outcome(plain)?["verified"]?.boolValue == true)
+
+        let withFields = try await app.raise(summary: "Another run.", detail: nil, fields: Self.spending)
+        let ceremonies = app.phone.ceremonies
+        await app.passkeys.decline(withFields)
+        #expect(app.passkeys.confirmation(withFields)?.phase == .declined)
+        try await passkeyWait("the outcome") { try await app.outcome(withFields) != nil }
+        let outcome = try #require(try await app.outcome(withFields))
+        #expect(outcome["outcome"]?.stringValue == "declined" && outcome["method"]?.stringValue == "tap")
+        #expect(app.phone.ceremonies == ceremonies, "no ceremony for a decline")
         await app.session.shutdown()
       }
     }

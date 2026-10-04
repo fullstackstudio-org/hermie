@@ -188,6 +188,35 @@ public enum PasskeyPurpose: String, Sendable, Hashable, CaseIterable {
   case confirm, register, invite, revoke
 }
 
+/// The kind of a structured field of a `confirm` (contract/confirm-passkey §4.1). It decides how the
+/// field is drawn (an amount large and bold, a recipient and a domain monospaced, never a link) and
+/// is part of what the passkey challenge commits to.
+public enum ConfirmFieldKind: String, Sendable, Hashable, CaseIterable {
+  case amount, text, recipient, domain, model, count, date
+}
+
+/// One structured field of a `confirm`, exactly as it is shown and hashed: no trimming, parsing,
+/// rounding or localising of `value`, and no truncation anywhere (contract/confirm-passkey §4.1).
+public struct ConfirmField: Sendable, Hashable, Identifiable {
+  /// `^[a-z][a-z0-9_]{0,31}$`, unique within the request.
+  public let id: String
+  public let kind: ConfirmFieldKind
+  /// 1 to 40 code points, one line.
+  public let label: String
+  /// 1 to 200 code points, one line.
+  public let value: String
+  /// 1 to 16 code points, only with `kind: amount`.
+  public let currency: String?
+
+  public init(id: String, kind: ConfirmFieldKind, label: String, value: String, currency: String? = nil) {
+    self.id = id
+    self.kind = kind
+    self.label = label
+    self.value = value
+    self.currency = currency
+  }
+}
+
 /// What a passkey ceremony is about, as the app SHOWS it: the text of a confirmation, and the base
 /// URL of the gateway the app dialed.
 ///
@@ -203,12 +232,16 @@ public struct ConfirmDisplay: Sendable, Hashable {
   public let detail: String?
   /// The serialised base URL the app dialed (`PasskeyBaseURL.serialise` of the stored address).
   public let baseURL: String
+  /// The structured fields the sheet shows, in the frame's order; empty for a request without any.
+  /// The challenge commits to them (`textDigest`, version 2), so the sheet draws THESE and no copy.
+  public let fields: [ConfirmField]
 
-  public init(title: String, summary: String, detail: String?, baseURL: String) {
+  public init(title: String, summary: String, detail: String?, baseURL: String, fields: [ConfirmField] = []) {
     self.title = title
     self.summary = summary
     self.detail = detail
     self.baseURL = baseURL
+    self.fields = fields
   }
 
   /// A step-up or a registration: title `""`, summary the subject, detail `""`.
@@ -228,9 +261,15 @@ public struct ConfirmDisplay: Sendable, Hashable {
     return url.hostWithPort + path
   }
 
-  /// `text_digest` (contract §4).
+  /// The version of the text this request commits to: 2 with structured fields (contract §4.1), else
+  /// 1. It is the `passkey.v` of the frame and of the answer.
+  public var textVersion: Int { fields.isEmpty ? 1 : 2 }
+
+  /// `text_digest` (contract §4), or `text_digest_v2` (§4.1) for a request with structured fields.
   public var textDigest: [UInt8] {
-    PasskeyChallenge.textDigest(title: title, summary: summary, detail: detail)
+    fields.isEmpty
+      ? PasskeyChallenge.textDigest(title: title, summary: summary, detail: detail)
+      : PasskeyChallenge.textDigestV2(title: title, summary: summary, detail: detail, fields: fields)
   }
 }
 
@@ -272,6 +311,37 @@ public enum PasskeyChallenge {
     appendString(summary, to: &preimage)
     appendString(detail ?? "", to: &preimage)
     return Array(SHA256.hash(data: preimage))
+  }
+
+  /// The preimage of `text_digest_v2`, for a test that compares it with `preimage_hex`:
+  /// `S("hermie-confirm-text-v2") ‖ S(title) ‖ S(summary) ‖ S(detail or "") ‖ FIELDS`, with `FIELDS` the
+  /// fields in the frame's order, each `S(id) ‖ S(kind) ‖ S(label) ‖ S(value) ‖ S(currency or "")`.
+  public static func textDigestV2Preimage(
+    title: String,
+    summary: String,
+    detail: String?,
+    fields: [ConfirmField]
+  ) -> [UInt8] {
+    var preimage: [UInt8] = []
+    appendString("hermie-confirm-text-v2", to: &preimage)
+    appendString(title, to: &preimage)
+    appendString(summary, to: &preimage)
+    appendString(detail ?? "", to: &preimage)
+
+    for field in fields {
+      appendString(field.id, to: &preimage)
+      appendString(field.kind.rawValue, to: &preimage)
+      appendString(field.label, to: &preimage)
+      appendString(field.value, to: &preimage)
+      appendString(field.currency ?? "", to: &preimage)
+    }
+
+    return preimage
+  }
+
+  /// `SHA-256` of `textDigestV2Preimage` (contract §4.1). The order of the fields is part of the text.
+  public static func textDigestV2(title: String, summary: String, detail: String?, fields: [ConfirmField]) -> [UInt8] {
+    Array(SHA256.hash(data: textDigestV2Preimage(title: title, summary: summary, detail: detail, fields: fields)))
   }
 
   /// The preimage of the challenge, for a test that compares it with `preimage_hex`.

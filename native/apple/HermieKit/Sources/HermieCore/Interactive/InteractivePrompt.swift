@@ -10,6 +10,9 @@ public enum InteractiveBody: Sendable, Equatable {
   case file(InputFileParams)
   /// `review.draft`: approval of a draft, optionally edited.
   case draft(ReviewDraftParams)
+  /// `review.diff`: the changes to one file, approved or rejected hunk by hunk. Read strictly
+  /// (`ReviewDiff.read`): a frame that is not wholly in the contract is not shown.
+  case diff(ReviewDiff)
 
   /// The wire method.
   public var method: String {
@@ -17,6 +20,7 @@ public enum InteractiveBody: Sendable, Equatable {
     case .form: ServerRequestBody.Method.inputForm
     case .file: ServerRequestBody.Method.inputFile
     case .draft: ServerRequestBody.Method.reviewDraft
+    case .diff: ServerRequestBody.Method.reviewDiff
     }
   }
 }
@@ -32,6 +36,8 @@ public enum InteractiveAnswer: Sendable, Equatable {
   case approve(text: String)
   /// `review.draft`: rejected, with a comment for the agent.
   case reject(comment: String?)
+  /// `review.diff`: a decision for EVERY hunk of the request, by hunk id.
+  case diff([String: HunkDecision])
   /// `input.*` with `optional`: Skip.
   case skip
 }
@@ -192,6 +198,18 @@ public struct InteractivePrompt: Sendable, Equatable, Identifiable {
       }
 
       return .content(content(.draft(params), params))
+    case .reviewDiff(let params):
+      guard params.v == 1 else {
+        return .cannotShow(reason: CannotShowReason.unsupportedVersion)
+      }
+
+      // A diff that is not wholly in the contract is not shown, and none of it is.
+      switch ReviewDiff.read(params) {
+      case .success(let diff):
+        return .content(content(.diff(diff), params))
+      case .failure:
+        return .cannotShow(reason: CannotShowReason.notSupportedOnDevice)
+      }
     default:
       return .other
     }
@@ -274,6 +292,22 @@ public struct InteractivePrompt: Sendable, Equatable, Identifiable {
       return InteractiveReply(
         result: ReviewDraftResult.rejected(comment: kept.flatMap { $0.isEmpty ? nil : $0 }).json,
         summary: ["decision": .string("rejected")]
+      )
+    case (.diff(let diff), .diff(let decisions)):
+      // Every hunk decided, and no other: the answer carries an entry for each hunk of the request.
+      guard let result = diff.result(for: decisions) else {
+        return nil
+      }
+
+      let approved = decisions.values.filter { $0 == .approved }.count
+
+      return InteractiveReply(
+        result: result.json,
+        summary: [
+          "decision": result.json["decision"] ?? .null,
+          "approvedHunks": .number(Double(approved)),
+          "rejectedHunks": .number(Double(decisions.count - approved))
+        ]
       )
     default:
       return nil

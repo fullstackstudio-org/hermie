@@ -18,10 +18,16 @@ public struct ConfirmCapabilityPolicy: Sendable, Equatable {
   public var plain: Bool
   /// The client can run a passkey ceremony; `nil` for a build without an RP.
   public var passkey: PasskeyAdvertisingPolicy?
+  /// The client shows a `confirm`'s structured fields (contract/confirm-passkey §4.1) and, for a
+  /// passkey, computes `text_digest_v2` over them. Advertised as `confirm_fields: true` and
+  /// `confirm_passkey {v: 2}`. Off, a gateway never sends this client a request with fields: that
+  /// would ask the person to confirm less than the agent asked.
+  public var fields: Bool
 
-  public init(plain: Bool = false, passkey: PasskeyAdvertisingPolicy? = nil) {
+  public init(plain: Bool = false, passkey: PasskeyAdvertisingPolicy? = nil, fields: Bool = false) {
     self.plain = plain
     self.passkey = passkey
+    self.fields = fields
   }
 }
 
@@ -109,15 +115,24 @@ public enum ConfirmAdvertisement {
   /// - otherwise, when the gateway sends `confirm` at all and the client shows `plain` →
   ///   `confirm: ["plain"]` and nothing about passkeys;
   /// - otherwise none.
+  ///
+  /// Structured fields (version 2, contract §8): a client that shows them adds `confirm_fields: true`
+  /// when the first result carried the key `confirm_fields`, and sends `confirm_passkey {v: 2}` when the
+  /// first result's `versions` lists 2 (and then only together with `confirm_fields: true`: the gateway
+  /// needs both to send a request with fields). A gateway without the key gets neither, as one that
+  /// does not know the key refuses it with 4000.
   public static func secondCall(
     after first: ClientCapabilitiesResult,
     policy: ConfirmCapabilityPolicy
   ) -> ClientCapabilitiesParams? {
     var params = ClientCapabilitiesParams(serverRequests: true)
+    let fields = policy.fields && first.confirmFields != nil
 
     if verdict(first.confirmPasskey, policy: policy.passkey) == .advertised, let passkey = policy.passkey {
+      let version = fields && first.confirmPasskey?.versions?.contains(2) == true ? 2 : 1
       params.confirm = policy.plain ? [.plain, .passkey] : [.passkey]
-      params.confirmPasskey = ConfirmPasskeyAdvertisement(kind: passkey.kind, rpID: passkey.rpID)
+      params.confirmPasskey = ConfirmPasskeyAdvertisement(kind: passkey.kind, rpID: passkey.rpID, version: version)
+      params.confirmFields = fields ? true : nil
       return params
     }
 
@@ -126,6 +141,7 @@ public enum ConfirmAdvertisement {
     }
 
     params.confirm = [.plain]
+    params.confirmFields = fields ? true : nil
     return params
   }
 }
@@ -140,17 +156,22 @@ public struct ConfirmCapabilityReport: Sendable, Equatable {
   /// The interactive methods the second result accepted (`requests`); empty without a second call,
   /// when it failed, or when none was announced.
   public var acceptedRequests: [String]
+  /// The gateway took this connection's `confirm_fields: true`: it may send it a `confirm` with
+  /// structured fields.
+  public var fieldsAccepted: Bool
 
   public init(
     first: ClientCapabilitiesResult?,
     verdict: PasskeyAdvertisingVerdict,
     accepted: [ConfirmLevel],
-    acceptedRequests: [String] = []
+    acceptedRequests: [String] = [],
+    fieldsAccepted: Bool = false
   ) {
     self.first = first
     self.verdict = verdict
     self.accepted = accepted
     self.acceptedRequests = acceptedRequests
+    self.fieldsAccepted = fieldsAccepted
   }
 
   /// `passkey` was accepted on this connection.

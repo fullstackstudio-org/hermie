@@ -2,7 +2,7 @@ import Foundation
 import HermieCore
 import HermieProtocol
 
-/// The app's own words for the interactive requests (`input.form`, `input.file`, `review.draft`):
+/// The app's own words for the interactive requests (`input.form`, `input.file`, `review.draft`, `review.diff`):
 /// the sheets' chrome, buttons, notices and the per-field messages. Never what the agent says:
 /// that is shown verbatim and marked as the agent's. The strings live in `Native.xcstrings`.
 extension NativeStrings {
@@ -30,6 +30,12 @@ extension NativeStrings {
       String(
         localized: "native.interactive.title.draft", defaultValue: "\(bot) asks you to review a draft", table: "Native",
         bundle: .module)
+    }
+    /// {bot} asks you to review changes to a file
+    static func titleDiff(_ bot: String) -> String {
+      String(
+        localized: "native.interactive.title.diff", defaultValue: "\(bot) asks you to review changes to a file",
+        table: "Native", bundle: .module)
     }
     /// {bot} says
     static func says(_ bot: String) -> String {
@@ -425,6 +431,97 @@ extension NativeStrings {
       }
     }
 
+    // MARK: Diff
+
+    enum Diff {
+      private static func string(_ key: String.LocalizationValue) -> String {
+        String(localized: key, table: "Native", bundle: .module)
+      }
+
+      /// Changes to a file
+      static var kindModify: String { string("native.interactive.diff.kind.modify") }
+      /// New file
+      static var kindNew: String { string("native.interactive.diff.kind.new") }
+      /// Delete file
+      static var kindDelete: String { string("native.interactive.diff.kind.delete") }
+      /// Renamed file
+      static var kindRename: String { string("native.interactive.diff.kind.rename") }
+      /// Renamed from
+      static var renamedFrom: String { string("native.interactive.diff.renamedFrom") }
+      /// Renamed to
+      static var renamedTo: String { string("native.interactive.diff.renamedTo") }
+      /// Start of the file
+      static var anchorStart: String { string("native.interactive.diff.anchor.start") }
+      /// End of the file
+      static var anchorEnd: String { string("native.interactive.diff.anchor.end") }
+      /// Whole file
+      static var anchorBoth: String { string("native.interactive.diff.anchor.both") }
+      /// Change {number} of {total}
+      static func hunkTitle(_ number: Int, of total: Int) -> String {
+        String(
+          localized: "native.interactive.diff.hunk.title", defaultValue: "Change \(number) of \(total)",
+          table: "Native", bundle: .module)
+      }
+      /// {added} added, {removed} removed
+      static func hunkStats(added: Int, removed: Int) -> String {
+        String(
+          localized: "native.interactive.diff.hunk.stats", defaultValue: "\(added) added, \(removed) removed",
+          table: "Native", bundle: .module)
+      }
+      /// Approve
+      static var approve: String { string("native.interactive.diff.hunk.approve") }
+      /// Reject
+      static var reject: String { string("native.interactive.diff.hunk.reject") }
+      /// Approve change {number}
+      static func approveHunk(_ number: Int) -> String {
+        String(
+          localized: "native.interactive.diff.hunk.approveLabel", defaultValue: "Approve change \(number)",
+          table: "Native", bundle: .module)
+      }
+      /// Reject change {number}
+      static func rejectHunk(_ number: Int) -> String {
+        String(
+          localized: "native.interactive.diff.hunk.rejectLabel", defaultValue: "Reject change \(number)",
+          table: "Native", bundle: .module)
+      }
+      /// Approve all
+      static var approveAll: String { string("native.interactive.diff.approveAll") }
+      /// Reject all
+      static var rejectAll: String { string("native.interactive.diff.rejectAll") }
+      /// Decided: {decided} of {total}
+      static func progress(decided: Int, total: Int) -> String {
+        String(
+          localized: "native.interactive.diff.progress", defaultValue: "Decided: \(decided) of \(total)",
+          table: "Native", bundle: .module)
+      }
+      /// {approved} approved, {rejected} rejected
+      static func tally(approved: Int, rejected: Int) -> String {
+        String(
+          localized: "native.interactive.diff.tally", defaultValue: "\(approved) approved, \(rejected) rejected",
+          table: "Native", bundle: .module)
+      }
+      /// Send decisions
+      static var send: String { string("native.interactive.diff.send") }
+      /// Decide every change to send.
+      static var decideEveryHunk: String { string("native.interactive.diff.decideEveryHunk") }
+      /// A change that is not marked as the start or the end of the file shows the agent's line numbers…
+      static var agentsLineNumbers: String { string("native.interactive.diff.agentsLineNumbers") }
+      /// Some lines are wider than the view. Scroll sideways to read them.
+      static var overflowNote: String { string("native.interactive.diff.overflowNote") }
+      /// Added
+      static var lineAdded: String { string("native.interactive.diff.line.added") }
+      /// Removed
+      static var lineRemoved: String { string("native.interactive.diff.line.removed") }
+      /// Unchanged
+      static var lineUnchanged: String { string("native.interactive.diff.line.unchanged") }
+      /// empty line
+      static var lineEmpty: String { string("native.interactive.diff.line.empty") }
+      /// tab
+      static var tabWord: String { string("native.interactive.diff.line.tab") }
+      /// No newline at end of file
+      static var noNewline: String { string("native.interactive.diff.line.noNewline") }
+    }
+
     // MARK: The transcript's card
 
     enum Card {
@@ -438,6 +535,14 @@ extension NativeStrings {
       static var file: String { string("native.interactive.card.file") }
       /// Draft review
       static var draft: String { string("native.interactive.card.draft") }
+      /// Change review
+      static var diff: String { string("native.interactive.card.diff") }
+      /// Approved changes: {approved} of {total}
+      static func diffApproved(_ approved: Int, of total: Int) -> String {
+        String(
+          localized: "native.interactive.card.diffApproved", defaultValue: "Approved changes: \(approved) of \(total)",
+          table: "Native", bundle: .module)
+      }
       /// Waiting for your answer
       static var open: String { string("native.interactive.card.open") }
       /// Answered

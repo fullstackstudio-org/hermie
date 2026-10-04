@@ -110,6 +110,76 @@ import Testing
     #expect(second.confirm == [.passkey, .plain])
   }
 
+  // MARK: Structured fields (version 2)
+
+  @Test("a version-2 confirm frame reads its fields in order, and goes back out exactly as it came")
+  func confirmFrameV2() throws {
+    let raw = try Self.example("confirm_request_frame_v2")
+    let frame = try #require(ServerRequest(jsonValue: raw))
+
+    guard case .confirm(let params) = frame.body else {
+      Issue.record("not read as confirm: \(frame.body.method)")
+      return
+    }
+
+    #expect(params.passkey?.v == 2)
+    #expect(params.fields?.map(\.id) == ["cost", "tokens", "model"])
+    #expect(params.fields?.map(\.kind) == ["amount", "count", "model"])
+    #expect(params.fields?.first?.label == "Geschätzte Kosten (€)")
+    #expect(params.fields?.first?.value == "4,20")
+    #expect(params.fields?.first?.currency == "€")
+    #expect(params.fields?.last?.currency == nil)
+    #expect(try canonical(frame) == canonical(raw))
+
+    // A frame without fields has none.
+    let plain = try #require(ServerRequest(jsonValue: try Self.example("confirm_request_frame")))
+
+    guard case .confirm(let v1) = plain.body else { return }
+
+    #expect(v1.fields == nil)
+  }
+
+  @Test("the version-2 capabilities: versions and confirm_fields in the results, both in the second call")
+  func capabilitiesV2() throws {
+    let first = try #require(ClientCapabilitiesResult(jsonValue: try Self.example("capabilities_first_result_v2")))
+    #expect(first.confirmPasskey?.versions == [1, 2])
+    #expect(first.confirmPasskey?.v == 1, "the level's own version stays 1")
+    #expect(first.confirmFields == false, "present, and false until accepted")
+
+    var call = ClientCapabilitiesParams(serverRequests: true)
+    call.confirm = [.plain, .passkey]
+    call.confirmFields = true
+    call.confirmPasskey = ConfirmPasskeyAdvertisement(kind: .native, rpID: "confirm.hermie.dev", version: 2)
+    #expect(try canonical(call) == canonical(try Self.example("capabilities_second_call_params_v2")))
+
+    let second = try #require(ClientCapabilitiesResult(jsonValue: try Self.example("capabilities_second_result_v2")))
+    #expect(second.confirmFields == true)
+    #expect(second.confirm == [.passkey, .plain])
+
+    // The version-1 results do not carry the key: an older gateway.
+    let old = try #require(ClientCapabilitiesResult(jsonValue: try Self.example("capabilities_first_result")))
+    #expect(old.confirmFields == nil && old.confirmPasskey?.versions == nil)
+  }
+
+  @Test("an answer repeats the request's passkey.v: 1 by default, 2 for a request with fields")
+  func answerVersion() {
+    func assertion(_ version: Int?) -> PasskeyAssertion {
+      if let version {
+        return PasskeyAssertion(
+          rpID: "r", baseURL: "b", credentialID: "c", authenticatorData: "a", clientDataJSON: "d", signature: "s",
+          version: version)
+      }
+
+      return PasskeyAssertion(
+        rpID: "r", baseURL: "b", credentialID: "c", authenticatorData: "a", clientDataJSON: "d", signature: "s")
+    }
+
+    #expect(assertion(nil).v == 1)
+    #expect(assertion(1).v == 1)
+    #expect(assertion(2).v == 2)
+    #expect(ConfirmResult.confirmed(assertion(2)).passkey?.v == 2)
+  }
+
   @Test("the 4040 and 4034 errors read their reason")
   func errors() throws {
     let cannotRun = try #require(JSONRPCResponse(jsonValue: try Self.example("error_cannot_run_ceremony")))

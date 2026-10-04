@@ -53,14 +53,15 @@ public struct InteractiveNoticeEntry: Sendable, Equatable, Identifiable {
 /// `requests` in its second `client.capabilities` call.
 public enum InteractiveCapabilities {
   /// The methods this device can show, computed when a session is made (the device does not change
-  /// under a running session). `input.form`, `input.file` and `review.draft` always for now; the
-  /// device methods (`device.*`) join behind their availability checks (a scanner, a camera).
+  /// under a running session). `input.form`, `input.file`, `review.draft` and `review.diff` always
+  /// for now; the device methods (`device.*`) join behind their availability checks (a scanner, a
+  /// camera).
   public static func deviceMethods() -> [String] {
     ServerRequestBody.Method.interactive
   }
 
   /// Whether a session announces `deviceMethods()` unless told otherwise. On since the sheets that
-  /// show the requests exist (`FormSheet`, `FileSheet`, `DraftSheet`): a build that announces a
+  /// show the requests exist (`FormSheet`, `FileSheet`, `DraftSheet`, `DiffSheet`): a build that announces a
   /// method it cannot draw leaves the bot waiting on a question nobody sees.
   public static let advertisedByDefault = true
 
@@ -71,7 +72,7 @@ public enum InteractiveCapabilities {
   }
 }
 
-/// The interactive requests of one gateway (`input.form`, `input.file`, `review.draft`), from the
+/// The interactive requests of one gateway (`input.form`, `input.file`, `review.draft`, `review.diff`), from the
 /// moment they arrive until they are answered, skipped, expired or withdrawn.
 ///
 /// The native counterpart of the web's interactive model, on the rules of `SecureInputCenter`

@@ -594,6 +594,10 @@
 	<string>Approved</string>
 	<key>native.interactive.card.approvedEdited</key>
 	<string>Approved with changes</string>
+	<key>native.interactive.card.diff</key>
+	<string>Change review</string>
+	<key>native.interactive.card.diffApproved</key>
+	<string>Approved changes: %1$lld of %2$lld</string>
 	<key>native.interactive.card.draft</key>
 	<string>Draft review</string>
 	<key>native.interactive.card.ended</key>
@@ -620,6 +624,64 @@
 	<string>Don’t share</string>
 	<key>native.interactive.declineHint</key>
 	<string>Tells the bot you chose not to give this. It does not ask again at once.</string>
+	<key>native.interactive.diff.agentsLineNumbers</key>
+	<string>A change that is not marked as the start or the end of the file shows the agent's line numbers, which are not checked against the file.</string>
+	<key>native.interactive.diff.anchor.both</key>
+	<string>Whole file</string>
+	<key>native.interactive.diff.anchor.end</key>
+	<string>End of the file</string>
+	<key>native.interactive.diff.anchor.start</key>
+	<string>Start of the file</string>
+	<key>native.interactive.diff.approveAll</key>
+	<string>Approve all</string>
+	<key>native.interactive.diff.decideEveryHunk</key>
+	<string>Decide every change to send.</string>
+	<key>native.interactive.diff.hunk.approve</key>
+	<string>Approve</string>
+	<key>native.interactive.diff.hunk.approveLabel</key>
+	<string>Approve change %lld</string>
+	<key>native.interactive.diff.hunk.reject</key>
+	<string>Reject</string>
+	<key>native.interactive.diff.hunk.rejectLabel</key>
+	<string>Reject change %lld</string>
+	<key>native.interactive.diff.hunk.stats</key>
+	<string>%1$lld added, %2$lld removed</string>
+	<key>native.interactive.diff.hunk.title</key>
+	<string>Change %1$lld of %2$lld</string>
+	<key>native.interactive.diff.kind.delete</key>
+	<string>Delete file</string>
+	<key>native.interactive.diff.kind.modify</key>
+	<string>Changes to a file</string>
+	<key>native.interactive.diff.kind.new</key>
+	<string>New file</string>
+	<key>native.interactive.diff.kind.rename</key>
+	<string>Renamed file</string>
+	<key>native.interactive.diff.line.added</key>
+	<string>Added</string>
+	<key>native.interactive.diff.line.empty</key>
+	<string>empty line</string>
+	<key>native.interactive.diff.line.noNewline</key>
+	<string>No newline at end of file</string>
+	<key>native.interactive.diff.line.removed</key>
+	<string>Removed</string>
+	<key>native.interactive.diff.line.tab</key>
+	<string>tab</string>
+	<key>native.interactive.diff.line.unchanged</key>
+	<string>Unchanged</string>
+	<key>native.interactive.diff.overflowNote</key>
+	<string>Some lines are wider than the view. Scroll sideways to read them.</string>
+	<key>native.interactive.diff.progress</key>
+	<string>Decided: %1$lld of %2$lld</string>
+	<key>native.interactive.diff.rejectAll</key>
+	<string>Reject all</string>
+	<key>native.interactive.diff.renamedFrom</key>
+	<string>Renamed from</string>
+	<key>native.interactive.diff.renamedTo</key>
+	<string>Renamed to</string>
+	<key>native.interactive.diff.send</key>
+	<string>Send decisions</string>
+	<key>native.interactive.diff.tally</key>
+	<string>%1$lld approved, %2$lld rejected</string>
 	<key>native.interactive.draft.approve</key>
 	<string>Approve</string>
 	<key>native.interactive.draft.approveWithChanges</key>
@@ -818,6 +880,8 @@
 	<string>Send</string>
 	<key>native.interactive.skip</key>
 	<string>Skip</string>
+	<key>native.interactive.title.diff</key>
+	<string>%@ asks you to review changes to a file</string>
 	<key>native.interactive.title.draft</key>
 	<string>%@ asks you to review a draft</string>
 	<key>native.interactive.title.file</key>

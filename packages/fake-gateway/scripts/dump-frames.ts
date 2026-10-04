@@ -945,6 +945,15 @@ const SCENARIOS: Scenario[] = [
     'approved_edited',
     { decision: 'approved', edited: true }
   ),
+  interactiveScenario(
+    'review.diff',
+    'review-diff',
+    'The same chat receives a review.diff (the contract’s two changes to settings.py); the person approves ' +
+      'the first hunk and rejects the second, and the engine records that it was approved, how many hunks ' +
+      'were approved and rejected, and not a line of the diff.',
+    'approved_one_hunk',
+    { decision: 'approved', approvedHunks: 1, rejectedHunks: 1 }
+  ),
   {
     name: 'subagents',
     description: 'A delegate_task fan-out of three subagents, the third of which fails, inside one turn.',

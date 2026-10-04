@@ -302,10 +302,13 @@ extension GatewayConnection {
     let accepted = (answer?.confirm ?? []).filter { wanted.contains($0) }
     let wantedRequests = Set(params.requests ?? [])
     let acceptedRequests = (answer?.requests ?? []).filter { wantedRequests.contains($0) }
+    // The gateway echoes `confirm_fields: true` once it took this connection's own, with a level.
+    let fieldsAccepted = params.confirmFields == true && answer?.confirmFields == true && !accepted.isEmpty
     // Advertised but refused: the gateway did not take it after all.
     let outcome = verdict == .advertised && !accepted.contains(.passkey) ? .notOffered : verdict
     let report = ConfirmCapabilityReport(
-      first: parsed, verdict: outcome, accepted: accepted, acceptedRequests: acceptedRequests)
+      first: parsed, verdict: outcome, accepted: accepted, acceptedRequests: acceptedRequests,
+      fieldsAccepted: fieldsAccepted)
 
     // Re-check after the suspension: only the socket the calls went out on is described.
     guard attachedGeneration == generation else {
@@ -318,7 +321,8 @@ extension GatewayConnection {
       || (!acceptedRequests.isEmpty && Set(confirmAdvertised?.requests ?? []) != Set(acceptedRequests))
     requestsAdvertised = Set(acceptedRequests)
     noteListed(acceptedRequests)
-    confirmAdvertised = Self.advertisement(params, accepted: accepted, requests: acceptedRequests)
+    confirmAdvertised = Self.advertisement(
+      params, accepted: accepted, requests: acceptedRequests, fields: fieldsAccepted)
     source?.record(report)
 
     if gained {
@@ -347,12 +351,13 @@ extension GatewayConnection {
   }
 
   /// What the gateway holds for this socket after a call with `params`: the levels it accepted,
-  /// the passkey block only with `passkey` among them, and the interactive methods it accepted;
-  /// `nil` for none.
+  /// the passkey block only with `passkey` among them, `confirm_fields` when it took that too, and the
+  /// interactive methods it accepted; `nil` for none.
   nonisolated static func advertisement(
     _ params: ClientCapabilitiesParams,
     accepted: [ConfirmLevel],
-    requests: [String] = []
+    requests: [String] = [],
+    fields: Bool = false
   ) -> ClientCapabilitiesParams? {
     guard !accepted.isEmpty || !requests.isEmpty else {
       return nil
@@ -363,6 +368,9 @@ extension GatewayConnection {
     if !accepted.isEmpty {
       held.confirm = accepted
       held.confirmPasskey = accepted.contains(.passkey) ? params.confirmPasskey : nil
+      // Held with the levels: the gateway takes `confirm_fields` only together with one, and a
+      // refresh's first call must keep this socket able to answer a request with fields.
+      held.confirmFields = fields ? true : nil
     }
 
     if !requests.isEmpty {
@@ -465,7 +473,7 @@ extension GatewayConnection {
     case .confirm:
       // Only a connection that announced `confirm` has someone to answer it.
       supported = options.confirm != nil
-    case .inputForm, .inputFile, .reviewDraft:
+    case .inputForm, .inputFile, .reviewDraft, .reviewDiff:
       // Only a socket that advertised the method (and had it accepted) has someone to answer it;
       // a stray one is answered like any method nobody handles.
       supported = requestsAdvertised.contains(method)

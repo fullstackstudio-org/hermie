@@ -354,7 +354,7 @@ struct InteractiveSheetTests {
   func accessors() {
     typealias I = NativeStrings.Interactive
     let all: [String] = [
-      I.titleForm("A"), I.titleFile("A"), I.titleDraft("A"), I.says("A"), I.onBehalfOf("A"), I.later, I.skip, I.send,
+      I.titleForm("A"), I.titleFile("A"), I.titleDraft("A"), I.titleDiff("A"), I.says("A"), I.onBehalfOf("A"), I.later, I.skip, I.send,
       I.tryAgain, I.close, I.decline, I.declineHint, I.earlierAnswerLost, I.answeredElsewhere, I.notAllowed, I.cannotShow("A"),
       I.refusalNotOptional, I.refusalTooManyFiles, I.refusalFilesTooLarge, I.refusalFileRefused,
       I.refusalNotVerbatim, I.refusalEdited, I.refusalOther, I.refusalOutsideDir, I.refusalFileTooLarge,
@@ -377,7 +377,13 @@ struct InteractiveSheetTests {
       I.Draft.problemCharacters, I.Draft.problemMarks(4), I.Draft.problemBlankLines(2, 3), I.Draft.problemLineTooLong(2, 2000),
       I.Draft.problemIndent(2, 32), I.Draft.problemSpaceRun(2, 16), I.Draft.correctNote, I.Draft.noWrapHint,
       I.Draft.commentTooLong(1),
-      I.Card.form, I.Card.file, I.Card.draft, I.Card.open, I.Card.answered, I.Card.skipped, I.Card.files(1),
+      I.Diff.kindModify, I.Diff.kindNew, I.Diff.kindDelete, I.Diff.kindRename, I.Diff.renamedFrom, I.Diff.renamedTo,
+      I.Diff.anchorStart, I.Diff.anchorEnd, I.Diff.anchorBoth, I.Diff.hunkTitle(1, of: 2),
+      I.Diff.hunkStats(added: 1, removed: 2), I.Diff.approve, I.Diff.reject, I.Diff.approveHunk(1), I.Diff.rejectHunk(1),
+      I.Diff.approveAll, I.Diff.rejectAll, I.Diff.progress(decided: 1, total: 2), I.Diff.tally(approved: 1, rejected: 1),
+      I.Diff.send, I.Diff.decideEveryHunk, I.Diff.agentsLineNumbers, I.Diff.overflowNote, I.Diff.lineAdded,
+      I.Diff.lineRemoved, I.Diff.lineUnchanged, I.Diff.lineEmpty, I.Diff.tabWord, I.Diff.noNewline,
+      I.Card.form, I.Card.file, I.Card.draft, I.Card.diff, I.Card.diffApproved(1, of: 2), I.Card.open, I.Card.answered, I.Card.skipped, I.Card.files(1),
       I.Card.approved, I.Card.approvedEdited, I.Card.rejected, I.Card.timedOut, I.Card.ended,
       I.Card.answeredElsewhere, I.Card.openAction
     ]

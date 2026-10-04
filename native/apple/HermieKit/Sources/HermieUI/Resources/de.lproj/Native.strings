@@ -594,6 +594,10 @@
 	<string>Genehmigt</string>
 	<key>native.interactive.card.approvedEdited</key>
 	<string>Mit Änderungen genehmigt</string>
+	<key>native.interactive.card.diff</key>
+	<string>Prüfung von Änderungen</string>
+	<key>native.interactive.card.diffApproved</key>
+	<string>Genehmigte Änderungen: %1$lld von %2$lld</string>
 	<key>native.interactive.card.draft</key>
 	<string>Entwurfsprüfung</string>
 	<key>native.interactive.card.ended</key>
@@ -620,6 +624,64 @@
 	<string>Nicht teilen</string>
 	<key>native.interactive.declineHint</key>
 	<string>Teilt dem Bot mit, dass du das nicht geben möchtest. Er fragt nicht sofort erneut.</string>
+	<key>native.interactive.diff.agentsLineNumbers</key>
+	<string>Eine Änderung ohne Markierung als Anfang oder Ende der Datei zeigt die Zeilennummern des Agenten. Sie wurden nicht mit der Datei abgeglichen.</string>
+	<key>native.interactive.diff.anchor.both</key>
+	<string>Ganze Datei</string>
+	<key>native.interactive.diff.anchor.end</key>
+	<string>Ende der Datei</string>
+	<key>native.interactive.diff.anchor.start</key>
+	<string>Anfang der Datei</string>
+	<key>native.interactive.diff.approveAll</key>
+	<string>Alle genehmigen</string>
+	<key>native.interactive.diff.decideEveryHunk</key>
+	<string>Entscheide über jede Änderung, um zu senden.</string>
+	<key>native.interactive.diff.hunk.approve</key>
+	<string>Genehmigen</string>
+	<key>native.interactive.diff.hunk.approveLabel</key>
+	<string>Änderung %lld genehmigen</string>
+	<key>native.interactive.diff.hunk.reject</key>
+	<string>Ablehnen</string>
+	<key>native.interactive.diff.hunk.rejectLabel</key>
+	<string>Änderung %lld ablehnen</string>
+	<key>native.interactive.diff.hunk.stats</key>
+	<string>%1$lld hinzugefügt, %2$lld entfernt</string>
+	<key>native.interactive.diff.hunk.title</key>
+	<string>Änderung %1$lld von %2$lld</string>
+	<key>native.interactive.diff.kind.delete</key>
+	<string>Datei löschen</string>
+	<key>native.interactive.diff.kind.modify</key>
+	<string>Änderungen an einer Datei</string>
+	<key>native.interactive.diff.kind.new</key>
+	<string>Neue Datei</string>
+	<key>native.interactive.diff.kind.rename</key>
+	<string>Umbenannte Datei</string>
+	<key>native.interactive.diff.line.added</key>
+	<string>Hinzugefügt</string>
+	<key>native.interactive.diff.line.empty</key>
+	<string>leere Zeile</string>
+	<key>native.interactive.diff.line.noNewline</key>
+	<string>Kein Zeilenumbruch am Dateiende</string>
+	<key>native.interactive.diff.line.removed</key>
+	<string>Entfernt</string>
+	<key>native.interactive.diff.line.tab</key>
+	<string>Tabulator</string>
+	<key>native.interactive.diff.line.unchanged</key>
+	<string>Unverändert</string>
+	<key>native.interactive.diff.overflowNote</key>
+	<string>Einige Zeilen sind breiter als die Ansicht. Scrolle zur Seite, um sie zu lesen.</string>
+	<key>native.interactive.diff.progress</key>
+	<string>Entschieden: %1$lld von %2$lld</string>
+	<key>native.interactive.diff.rejectAll</key>
+	<string>Alle ablehnen</string>
+	<key>native.interactive.diff.renamedFrom</key>
+	<string>Umbenannt von</string>
+	<key>native.interactive.diff.renamedTo</key>
+	<string>Umbenannt in</string>
+	<key>native.interactive.diff.send</key>
+	<string>Entscheidungen senden</string>
+	<key>native.interactive.diff.tally</key>
+	<string>%1$lld genehmigt, %2$lld abgelehnt</string>
 	<key>native.interactive.draft.approve</key>
 	<string>Genehmigen</string>
 	<key>native.interactive.draft.approveWithChanges</key>
@@ -818,6 +880,8 @@
 	<string>Senden</string>
 	<key>native.interactive.skip</key>
 	<string>Überspringen</string>
+	<key>native.interactive.title.diff</key>
+	<string>%@ bittet dich, Änderungen an einer Datei zu prüfen</string>
 	<key>native.interactive.title.draft</key>
 	<string>%@ bittet dich, einen Entwurf zu prüfen</string>
 	<key>native.interactive.title.file</key>

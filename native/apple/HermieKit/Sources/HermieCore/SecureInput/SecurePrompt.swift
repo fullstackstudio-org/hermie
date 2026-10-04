@@ -57,7 +57,7 @@ public enum SecurePromptKind: Sendable, Equatable {
       let origin = S.displayText(p.origin, limit: S.nameLimit)
       let site = S.displayText(p.site, limit: S.nameLimit)
       self = .vaultSaveLogin(site: site.isEmpty ? origin : site, origin: origin)
-    case .approval, .clarify, .confirm, .inputForm, .inputFile, .reviewDraft, .unknown:
+    case .approval, .clarify, .confirm, .inputForm, .inputFile, .reviewDraft, .reviewDiff, .unknown:
       return nil
     }
   }

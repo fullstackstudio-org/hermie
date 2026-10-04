@@ -594,6 +594,10 @@
 	<string>Goedgekeurd</string>
 	<key>native.interactive.card.approvedEdited</key>
 	<string>Goedgekeurd met wijzigingen</string>
+	<key>native.interactive.card.diff</key>
+	<string>Beoordeling van wijzigingen</string>
+	<key>native.interactive.card.diffApproved</key>
+	<string>Goedgekeurde wijzigingen: %1$lld van %2$lld</string>
 	<key>native.interactive.card.draft</key>
 	<string>Conceptbeoordeling</string>
 	<key>native.interactive.card.ended</key>
@@ -620,6 +624,64 @@
 	<string>Niet delen</string>
 	<key>native.interactive.declineHint</key>
 	<string>Laat de bot weten dat je dit niet wilt geven. Hij vraagt het niet meteen opnieuw.</string>
+	<key>native.interactive.diff.agentsLineNumbers</key>
+	<string>Een wijziging die niet als begin of einde van het bestand is gemarkeerd, toont de regelnummers van de agent. Die zijn niet met het bestand vergeleken.</string>
+	<key>native.interactive.diff.anchor.both</key>
+	<string>Heel bestand</string>
+	<key>native.interactive.diff.anchor.end</key>
+	<string>Einde van het bestand</string>
+	<key>native.interactive.diff.anchor.start</key>
+	<string>Begin van het bestand</string>
+	<key>native.interactive.diff.approveAll</key>
+	<string>Alles goedkeuren</string>
+	<key>native.interactive.diff.decideEveryHunk</key>
+	<string>Beslis over elke wijziging om te versturen.</string>
+	<key>native.interactive.diff.hunk.approve</key>
+	<string>Goedkeuren</string>
+	<key>native.interactive.diff.hunk.approveLabel</key>
+	<string>Wijziging %lld goedkeuren</string>
+	<key>native.interactive.diff.hunk.reject</key>
+	<string>Afwijzen</string>
+	<key>native.interactive.diff.hunk.rejectLabel</key>
+	<string>Wijziging %lld afwijzen</string>
+	<key>native.interactive.diff.hunk.stats</key>
+	<string>%1$lld toegevoegd, %2$lld verwijderd</string>
+	<key>native.interactive.diff.hunk.title</key>
+	<string>Wijziging %1$lld van %2$lld</string>
+	<key>native.interactive.diff.kind.delete</key>
+	<string>Bestand verwijderen</string>
+	<key>native.interactive.diff.kind.modify</key>
+	<string>Wijzigingen in een bestand</string>
+	<key>native.interactive.diff.kind.new</key>
+	<string>Nieuw bestand</string>
+	<key>native.interactive.diff.kind.rename</key>
+	<string>Hernoemd bestand</string>
+	<key>native.interactive.diff.line.added</key>
+	<string>Toegevoegd</string>
+	<key>native.interactive.diff.line.empty</key>
+	<string>lege regel</string>
+	<key>native.interactive.diff.line.noNewline</key>
+	<string>Geen regeleinde aan het einde van het bestand</string>
+	<key>native.interactive.diff.line.removed</key>
+	<string>Verwijderd</string>
+	<key>native.interactive.diff.line.tab</key>
+	<string>tab</string>
+	<key>native.interactive.diff.line.unchanged</key>
+	<string>Ongewijzigd</string>
+	<key>native.interactive.diff.overflowNote</key>
+	<string>Sommige regels zijn breder dan het venster. Scroll opzij om ze te lezen.</string>
+	<key>native.interactive.diff.progress</key>
+	<string>Beslist: %1$lld van %2$lld</string>
+	<key>native.interactive.diff.rejectAll</key>
+	<string>Alles afwijzen</string>
+	<key>native.interactive.diff.renamedFrom</key>
+	<string>Hernoemd van</string>
+	<key>native.interactive.diff.renamedTo</key>
+	<string>Hernoemd naar</string>
+	<key>native.interactive.diff.send</key>
+	<string>Beslissingen versturen</string>
+	<key>native.interactive.diff.tally</key>
+	<string>%1$lld goedgekeurd, %2$lld afgewezen</string>
 	<key>native.interactive.draft.approve</key>
 	<string>Goedkeuren</string>
 	<key>native.interactive.draft.approveWithChanges</key>
@@ -818,6 +880,8 @@
 	<string>Versturen</string>
 	<key>native.interactive.skip</key>
 	<string>Overslaan</string>
+	<key>native.interactive.title.diff</key>
+	<string>%@ vraagt je wijzigingen in een bestand te beoordelen</string>
 	<key>native.interactive.title.draft</key>
 	<string>%@ vraagt je een concept te beoordelen</string>
 	<key>native.interactive.title.file</key>

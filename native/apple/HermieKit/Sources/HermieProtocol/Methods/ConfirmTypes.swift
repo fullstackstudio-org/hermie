@@ -67,6 +67,26 @@ public struct ConfirmRequestParams: JSONObjectBacked {
   public var detail: String? { get { json[field: "detail"] } set { json[field: "detail"] = newValue } }
   public var level: ConfirmLevel? { get { json[field: "level"] } set { json[field: "level"] = newValue } }
   public var passkey: ConfirmPasskeyParams? { get { json[field: "passkey"] } set { json[field: "passkey"] = newValue } }
+  /// The structured fields (contract/confirm-passkey §4.1), as the wire has them. An element that is
+  /// not an object is dropped here: whether the request may be shown at all is decided by
+  /// `ConfirmFieldRules.read` over the raw JSON, which refuses it instead.
+  public var fields: [ConfirmFieldView]? { get { json[field: "fields"] } set { json[field: "fields"] = newValue } }
+}
+
+/// One key fact of a `confirm` (contract/confirm-passkey §4.1): `id`, `kind`, `label`, `value` and, for an
+/// amount, `currency`. A view over the wire object; the strict reading is `ConfirmFieldRules`.
+public struct ConfirmFieldView: JSONObjectBacked {
+  public var json: JSONObject
+  public init(json: JSONObject) { self.json = json }
+
+  /// The keys the contract gives a field. Another key makes the frame one this build does not show.
+  public static let knownKeys: Set<String> = ["id", "kind", "label", "value", "currency"]
+
+  public var id: String? { get { json[field: "id"] } set { json[field: "id"] = newValue } }
+  public var kind: String? { get { json[field: "kind"] } set { json[field: "kind"] = newValue } }
+  public var label: String? { get { json[field: "label"] } set { json[field: "label"] = newValue } }
+  public var value: String? { get { json[field: "value"] } set { json[field: "value"] = newValue } }
+  public var currency: String? { get { json[field: "currency"] } set { json[field: "currency"] = newValue } }
 }
 
 /// `ConfirmPasskeyParams`: level `passkey` only. `nonce` (32 bytes) and `gateway_id` (16 bytes) are
@@ -129,10 +149,12 @@ public struct PasskeyAssertion: JSONObjectBacked, CustomDebugStringConvertible, 
     authenticatorData: String,
     clientDataJSON: String,
     signature: String,
-    userHandle: String? = nil
+    userHandle: String? = nil,
+    version: Int = 1
   ) {
     self.init()
-    self.v = 1
+    // Repeats the request's own `passkey.v`: 1, or 2 for a request with structured fields.
+    self.v = version
     self.rpID = rpID
     self.baseURL = baseURL
     self.credentialID = credentialID
@@ -248,9 +270,11 @@ public struct ConfirmPasskeyAdvertisement: JSONObjectBacked {
   public var json: JSONObject
   public init(json: JSONObject) { self.json = json }
 
-  public init(kind: PasskeyRPKind, rpID: String) {
+  /// `version` 2 says this client computes `text_digest_v2` for a request with structured fields; it is
+  /// sent only together with `confirm_fields: true` (contract/confirm-passkey §8).
+  public init(kind: PasskeyRPKind, rpID: String, version: Int = 1) {
     self.init()
-    self.v = 1
+    self.v = version
     self.kind = kind
     self.rpID = rpID
   }

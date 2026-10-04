@@ -178,7 +178,7 @@ public struct ServerRequest: JSONObjectBacked {
 
 /// The typed reading of a server request. The client answers `approval`, `clarify`, the
 /// one-string prompts (`secret`, `sudo`, `vault.*`) and, where a passkey model listens, `confirm`;
-/// the interactive requests (`input.form`, `input.file`, `review.draft`) are typed here and are
+/// the interactive requests (`input.form`, `input.file`, `review.draft`, `review.diff`) are typed here and are
 /// answered only by a connection that advertised them;
 /// everything else is `unknown`, answered `-32601` by the connection.
 public enum ServerRequestBody: Sendable, Hashable {
@@ -193,6 +193,7 @@ public enum ServerRequestBody: Sendable, Hashable {
   case inputForm(InputFormParams)
   case inputFile(InputFileParams)
   case reviewDraft(ReviewDraftParams)
+  case reviewDiff(ReviewDiffParams)
   case unknown(method: String, params: JSONObject)
 
   public enum Method {
@@ -207,13 +208,15 @@ public enum ServerRequestBody: Sendable, Hashable {
     public static let inputForm = "input.form"
     public static let inputFile = "input.file"
     public static let reviewDraft = "review.draft"
+    public static let reviewDiff = "review.diff"
     /// The interactive requests (`contract/requests/`), in the order a connection advertises them in
     /// `client.capabilities`' `requests`.
-    public static let interactive = [inputForm, inputFile, reviewDraft]
+    public static let interactive = [inputForm, inputFile, reviewDraft, reviewDiff]
     /// Every server request the backend declares (`SERVER_REQUEST_METHODS`).
     public static let all = [
-      "approval", "clarify", "confirm", "input.file", "input.form", "preview.act", "preview.read", "review.draft",
-      "secret", "sudo", "terminal.read", "tour", "vault.code", "vault.save_login", "vault.unlock_prompt", "window.read"
+      "approval", "clarify", "confirm", "input.file", "input.form", "preview.act", "preview.read", "review.diff",
+      "review.draft", "secret", "sudo", "terminal.read", "tour", "vault.code", "vault.save_login", "vault.unlock_prompt",
+      "window.read"
     ]
     /// The one-string prompts, answered with `ValueResult` (`''` skips).
     public static let secureInput: Set<String> = [secret, sudo, vaultUnlock, vaultCode, vaultSaveLogin]
@@ -232,6 +235,7 @@ public enum ServerRequestBody: Sendable, Hashable {
     case Method.inputForm: self = .inputForm(InputFormParams(json: params))
     case Method.inputFile: self = .inputFile(InputFileParams(json: params))
     case Method.reviewDraft: self = .reviewDraft(ReviewDraftParams(json: params))
+    case Method.reviewDiff: self = .reviewDiff(ReviewDiffParams(json: params))
     default: self = .unknown(method: method, params: params)
     }
   }
@@ -249,6 +253,7 @@ public enum ServerRequestBody: Sendable, Hashable {
     case .inputForm: Method.inputForm
     case .inputFile: Method.inputFile
     case .reviewDraft: Method.reviewDraft
+    case .reviewDiff: Method.reviewDiff
     case .unknown(let method, _): method
     }
   }
@@ -266,6 +271,7 @@ public enum ServerRequestBody: Sendable, Hashable {
     case .inputForm(let params): params.json
     case .inputFile(let params): params.json
     case .reviewDraft(let params): params.json
+    case .reviewDiff(let params): params.json
     case .unknown(_, let params): params
     }
   }
@@ -274,14 +280,14 @@ public enum ServerRequestBody: Sendable, Hashable {
   public var isSecureInput: Bool {
     switch self {
     case .secret, .sudo, .vaultUnlock, .vaultCode, .vaultSaveLogin: true
-    case .approval, .clarify, .confirm, .inputForm, .inputFile, .reviewDraft, .unknown: false
+    case .approval, .clarify, .confirm, .inputForm, .inputFile, .reviewDraft, .reviewDiff, .unknown: false
     }
   }
 
   /// One of the interactive requests of `contract/requests/`.
   public var isInteractive: Bool {
     switch self {
-    case .inputForm, .inputFile, .reviewDraft: true
+    case .inputForm, .inputFile, .reviewDraft, .reviewDiff: true
     case .approval, .clarify, .secret, .sudo, .vaultUnlock, .vaultCode, .vaultSaveLogin, .confirm, .unknown: false
     }
   }

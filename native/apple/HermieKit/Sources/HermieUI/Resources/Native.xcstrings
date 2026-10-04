@@ -7114,6 +7114,54 @@
         }
       }
     },
+    "native.interactive.card.diff" : {
+      "comment" : "Kind label on the chat card of a request to review changes to a file.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prüfung von Änderungen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change review"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beoordeling van wijzigingen"
+          }
+        }
+      }
+    },
+    "native.interactive.card.diffApproved" : {
+      "comment" : "State on the chat card of a reviewed file: how many changes were approved. The arguments are the approved count and the total.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Genehmigte Änderungen: %1$lld von %2$lld"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approved changes: %1$lld of %2$lld"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Goedgekeurde wijzigingen: %1$lld van %2$lld"
+          }
+        }
+      }
+    },
     "native.interactive.card.draft" : {
       "comment" : "On the chat's card: the kind of request.",
       "extractionState" : "manual",
@@ -7422,6 +7470,702 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Laat de bot weten dat je dit niet wilt geven. Hij vraagt het niet meteen opnieuw."
+          }
+        }
+      }
+    },
+    "native.interactive.diff.agentsLineNumbers" : {
+      "comment" : "Note under a diff: some changes have no pin, so their line numbers are only the agent's.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine Änderung ohne Markierung als Anfang oder Ende der Datei zeigt die Zeilennummern des Agenten. Sie wurden nicht mit der Datei abgeglichen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A change that is not marked as the start or the end of the file shows the agent's line numbers, which are not checked against the file."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een wijziging die niet als begin of einde van het bestand is gemarkeerd, toont de regelnummers van de agent. Die zijn niet met het bestand vergeleken."
+          }
+        }
+      }
+    },
+    "native.interactive.diff.anchor.both" : {
+      "comment" : "Where a change lands: the change covers the whole file.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ganze Datei"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Whole file"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heel bestand"
+          }
+        }
+      }
+    },
+    "native.interactive.diff.anchor.end" : {
+      "comment" : "Where a change lands: the diff pins it to the end of the file.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ende der Datei"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End of the file"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einde van het bestand"
+          }
+        }
+      }
+    },
+    "native.interactive.diff.anchor.start" : {
+      "comment" : "Where a change lands: the diff pins it to the beginning of the file.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anfang der Datei"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start of the file"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Begin van het bestand"
+          }
+        }
+      }
+    },
+    "native.interactive.diff.approveAll" : {
+      "comment" : "Button that marks every change of a diff as approved. It does not send.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle genehmigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approve all"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles goedkeuren"
+          }
+        }
+      }
+    },
+    "native.interactive.diff.decideEveryHunk" : {
+      "comment" : "VoiceOver hint of the disabled send button of a diff.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entscheide über jede Änderung, um zu senden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Decide every change to send."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beslis over elke wijziging om te versturen."
+          }
+        }
+      }
+    },
+    "native.interactive.diff.hunk.approve" : {
+      "comment" : "Button that approves one change of a diff.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Genehmigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approve"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Goedkeuren"
+          }
+        }
+      }
+    },
+    "native.interactive.diff.hunk.approveLabel" : {
+      "comment" : "VoiceOver label of the approve button of one change. The argument is its number.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Änderung %lld genehmigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approve change %lld"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wijziging %lld goedkeuren"
+          }
+        }
+      }
+    },
+    "native.interactive.diff.hunk.reject" : {
+      "comment" : "Button that rejects one change of a diff.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ablehnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reject"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afwijzen"
+          }
+        }
+      }
+    },
+    "native.interactive.diff.hunk.rejectLabel" : {
+      "comment" : "VoiceOver label of the reject button of one change. The argument is its number.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Änderung %lld ablehnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reject change %lld"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wijziging %lld afwijzen"
+          }
+        }
+      }
+    },
+    "native.interactive.diff.hunk.stats" : {
+      "comment" : "Caption under a change: how many lines it adds and removes. The arguments are the added and the removed count.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld hinzugefügt, %2$lld entfernt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld added, %2$lld removed"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld toegevoegd, %2$lld verwijderd"
+          }
+        }
+      }
+    },
+    "native.interactive.diff.hunk.title" : {
+      "comment" : "Heading of one change in a diff. The arguments are its number and the total.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Änderung %1$lld von %2$lld"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change %1$lld of %2$lld"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wijziging %1$lld van %2$lld"
+          }
+        }
+      }
+    },
+    "native.interactive.diff.kind.delete" : {
+      "comment" : "Label above the path of a file that would be removed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datei löschen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete file"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestand verwijderen"
+          }
+        }
+      }
+    },
+    "native.interactive.diff.kind.modify" : {
+      "comment" : "Label above the path of a file whose content changes.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Änderungen an einer Datei"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changes to a file"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wijzigingen in een bestand"
+          }
+        }
+      }
+    },
+    "native.interactive.diff.kind.new" : {
+      "comment" : "Label above the path of a file that does not exist yet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neue Datei"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New file"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nieuw bestand"
+          }
+        }
+      }
+    },
+    "native.interactive.diff.kind.rename" : {
+      "comment" : "Label above the paths of a file that would be moved.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Umbenannte Datei"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renamed file"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hernoemd bestand"
+          }
+        }
+      }
+    },
+    "native.interactive.diff.line.added" : {
+      "comment" : "VoiceOver: what happened to a line of a diff.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hinzugefügt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Added"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toegevoegd"
+          }
+        }
+      }
+    },
+    "native.interactive.diff.line.empty" : {
+      "comment" : "VoiceOver: a line of a diff that holds no text.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "leere Zeile"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "empty line"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "lege regel"
+          }
+        }
+      }
+    },
+    "native.interactive.diff.line.noNewline" : {
+      "comment" : "VoiceOver: git's note that the file has no newline at its end.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Zeilenumbruch am Dateiende"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No newline at end of file"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen regeleinde aan het einde van het bestand"
+          }
+        }
+      }
+    },
+    "native.interactive.diff.line.removed" : {
+      "comment" : "VoiceOver: what happened to a line of a diff.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entfernt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Removed"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwijderd"
+          }
+        }
+      }
+    },
+    "native.interactive.diff.line.tab" : {
+      "comment" : "VoiceOver: the word for a tab character inside a line of a diff.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tabulator"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "tab"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "tab"
+          }
+        }
+      }
+    },
+    "native.interactive.diff.line.unchanged" : {
+      "comment" : "VoiceOver: what happened to a line of a diff.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unverändert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unchanged"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ongewijzigd"
+          }
+        }
+      }
+    },
+    "native.interactive.diff.overflowNote" : {
+      "comment" : "Note under a hunk with a line wider than the view.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einige Zeilen sind breiter als die Ansicht. Scrolle zur Seite, um sie zu lesen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some lines are wider than the view. Scroll sideways to read them."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sommige regels zijn breder dan het venster. Scroll opzij om ze te lezen."
+          }
+        }
+      }
+    },
+    "native.interactive.diff.progress" : {
+      "comment" : "Under a diff: how many changes are decided. The arguments are the decided count and the total.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entschieden: %1$lld von %2$lld"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Decided: %1$lld of %2$lld"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beslist: %1$lld van %2$lld"
+          }
+        }
+      }
+    },
+    "native.interactive.diff.rejectAll" : {
+      "comment" : "Button that marks every change of a diff as rejected. It does not send.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle ablehnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reject all"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles afwijzen"
+          }
+        }
+      }
+    },
+    "native.interactive.diff.renamedFrom" : {
+      "comment" : "Caption above the previous path of a renamed file.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Umbenannt von"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renamed from"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hernoemd van"
+          }
+        }
+      }
+    },
+    "native.interactive.diff.renamedTo" : {
+      "comment" : "Caption above the new path of a renamed file.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Umbenannt in"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renamed to"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hernoemd naar"
+          }
+        }
+      }
+    },
+    "native.interactive.diff.send" : {
+      "comment" : "Button that sends the decisions about every change of a diff.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entscheidungen senden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send decisions"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beslissingen versturen"
+          }
+        }
+      }
+    },
+    "native.interactive.diff.tally" : {
+      "comment" : "Under a diff once every change is decided. The arguments are the approved and the rejected count.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld genehmigt, %2$lld abgelehnt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld approved, %2$lld rejected"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld goedgekeurd, %2$lld afgewezen"
           }
         }
       }
@@ -9798,6 +10542,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Overslaan"
+          }
+        }
+      }
+    },
+    "native.interactive.title.diff" : {
+      "comment" : "Title of the sheet for changes to a file a bot asks the person to review. The argument is the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ bittet dich, Änderungen an einer Datei zu prüfen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ asks you to review changes to a file"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ vraagt je wijzigingen in een bestand te beoordelen"
           }
         }
       }

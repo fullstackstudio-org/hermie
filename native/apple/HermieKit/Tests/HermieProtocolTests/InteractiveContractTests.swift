@@ -60,6 +60,10 @@ import Testing
         case .reviewDraft(let params):
           #expect(try canonical(Self.copy(params)) == canonical(params), "\(place) loses keys when typed")
           #expect(params.offersSkip == (raw["params"]?["optional"]?.boolValue ?? false))
+        case .reviewDiff(let params):
+          #expect(try canonical(Self.copy(params)) == canonical(params), "\(place) loses keys when typed")
+          #expect(!params.offersSkip, "\(place): there is no skip")
+          #expect(params.hunks?.count == raw["params"]?["hunks"]?.arrayValue?.count, "\(place)")
         default:
           Issue.record("\(place): typed as \(body.method)")
         }
@@ -69,11 +73,12 @@ import Testing
         case .inputForm(let p): Self.expectEnvelope(p, envelope, place)
         case .inputFile(let p): Self.expectEnvelope(p, envelope, place)
         case .reviewDraft(let p): Self.expectEnvelope(p, envelope, place)
+        case .reviewDiff(let p): Self.expectEnvelope(p, envelope, place)
         default: break
         }
       }
     }
-    #expect(count == 7)
+    #expect(count == 13)
   }
 
   static func expectEnvelope<P: InteractiveRequestParams>(_ params: P, _ raw: JSONValue?, _ place: String) {
@@ -165,7 +170,7 @@ import Testing
         }
       }
     }
-    #expect(count == 31)
+    #expect(count == 52)
   }
 
   // MARK: Answers
@@ -323,6 +328,56 @@ import Testing
     #expect(ReviewDraftResult.rejected().json == ["decision": "rejected"])
   }
 
+  @Test("the diff frames read kind, path, old path and every hunk with its anchor")
+  func diffFrames() throws {
+    guard case .reviewDiff(let settings) = try Self.frame("review.diff", id: "req_diff_settings").body,
+      case .reviewDiff(let rename) = try Self.frame("review.diff", id: "req_diff_rename").body,
+      case .reviewDiff(let appended) = try Self.frame("review.diff", id: "req_diff_append").body,
+      case .reviewDiff(let created) = try Self.frame("review.diff", id: "req_diff_new_file").body
+    else {
+      Issue.record("not review.diff")
+      return
+    }
+
+    #expect(settings.kind == .modify && settings.path == "app/settings.py" && settings.oldPath == nil)
+    #expect(settings.hunks?.map(\.id) == ["h1", "h2"])
+    #expect(settings.hunks?.first?.header == "@@ -3,4 +3,4 @@ class Settings:")
+    #expect(settings.hunks?.first?.lines?.count == 5 && settings.hunks?.first?.anchor == nil)
+    #expect(rename.kind == .rename && rename.path == "app/accounts.py" && rename.oldPath == "app/users.py")
+    #expect(rename.hunks?.first?.anchor == .start)
+    #expect(appended.hunks?.first?.anchor == .end)
+    #expect(created.kind == .new && created.hunks?.first?.anchor == .both)
+    #expect(created.hunks?.first?.lines?.last == "\\ No newline at end of file")
+    #expect(DiffKind.knownCases.map(\.rawValue) == ["modify", "new", "delete", "rename"])
+    #expect(DiffKind.named("copy") == .unknown("copy") && DiffAnchor.named("middle") == .unknown("middle"))
+  }
+
+  @Test("every valid review.diff answer is what the typed constructor encodes, and decides every hunk")
+  func diffAnswers() throws {
+    let answers = try Self.section("review.diff", "answers")
+    #expect(answers.count == 9)
+
+    for answer in answers {
+      let name = answer["name"]?.stringValue ?? "?"
+      let result = try #require(answer["result"], "\(name)")
+      let request = try Self.frame("review.diff", id: try #require(answer["request"]?.stringValue))
+      guard case .reviewDiff(let params) = request.body else { continue }
+
+      let decided = try #require(ReviewDiffResult(jsonValue: result)?.hunks, "\(name)")
+      #expect(Set(decided.keys) == Set(params.hunks?.compactMap(\.id) ?? []), "\(name): every hunk, no other")
+
+      let built = ReviewDiffResult.decided(decided)
+      #expect(try canonical(built) == canonical(result), "\(name)")
+      #expect(built.decision?.rawValue == result["decision"]?.stringValue, "\(name)")
+    }
+
+    // `approved` when some hunk is, `rejected` when none is: the pairings the gateway refuses are not built.
+    #expect(ReviewDiffResult.decided(["h1": .rejected, "h2": .rejected]).decision == .rejected)
+    #expect(ReviewDiffResult.decided(["h1": .approved, "h2": .rejected]).decision == .approved)
+    #expect(ReviewDiffResult.decided(["h1": .approved]).json["comment"] == nil, "no comment")
+    #expect(HunkDecision.named("skipped") == .unknown("skipped"))
+  }
+
   // MARK: Field definitions
 
   @Test("every field definition reads as its kind, and every valid value is a form value that encodes unchanged")
@@ -422,14 +477,14 @@ import Testing
     #expect(throws: DecodingError.self) { try JSONDecoder().decode(FormField.self, from: Data("[1]".utf8)) }
   }
 
-  @Test("methods nobody handles are still unknown, and the three new ones are declared")
+  @Test("methods nobody handles are still unknown, and the four interactive ones are declared")
   func methodsAndUnknowns() {
     for method in ["input.other", "review.other", "input", "tour", ""] {
       let request = ServerRequest(id: "a", method: method, params: ["session_id": "s"])
       #expect(request.body == .unknown(method: method, params: ["session_id": "s"]), "\(method)")
       #expect(!request.body.isInteractive)
     }
-    #expect(ServerRequestBody.Method.interactive == ["input.form", "input.file", "review.draft"])
+    #expect(ServerRequestBody.Method.interactive == ["input.form", "input.file", "review.draft", "review.diff"])
     #expect(Set(ServerRequestBody.Method.interactive).isSubset(of: Set(ServerRequestBody.Method.all)))
     #expect(ServerRequestBody.Method.all == ServerRequestBody.Method.all.sorted())
     #expect(ServerRequestBody.Method.all.count == Set(ServerRequestBody.Method.all).count)
@@ -493,12 +548,11 @@ import Testing
     let example = try #require(try Self.examples()["capabilities"]?[0]?["request"])
     var params = ClientCapabilitiesParams(serverRequests: true)
     params.confirm = [.plain]
-    // The contract's example lists review.diff after the three phase-1 methods. This build has no sheet for
-    // it yet, so it does not advertise it (only what the device can show); the example must be exactly the
-    // methods it does show, then that one. The line to change when the diff sheet lands is this one.
+    // The contract's example lists the four methods; this build shows all of them (the diff sheet is
+    // `DiffSheet`), so it advertises exactly that list.
     let advertised = try #require(example["params"]?["requests"]?.arrayValue)
     let listed = advertised.compactMap { $0.stringValue }
-    #expect(listed == ServerRequestBody.Method.interactive + ["review.diff"])
+    #expect(listed == ServerRequestBody.Method.interactive)
     params.requests = listed
     let request = JSONRPCRequest(id: .number(3), RPC.ClientCapabilities.self, params: params)
     #expect(try canonical(request) == canonical(example))
@@ -547,6 +601,25 @@ import Testing
       $0.subject = params.subject
       $0.recipients = params.recipients
       $0.editable = params.editable
+    }
+  }
+
+  static func copy(_ params: ReviewDiffParams) -> ReviewDiffParams {
+    with(ReviewDiffParams()) {
+      envelope(params, into: &$0)
+      $0.kind = params.kind
+      $0.path = params.path
+      $0.oldPath = params.oldPath
+      $0.hunks = params.hunks.map { hunks in
+        hunks.map { hunk in
+          with(DiffHunk()) {
+            $0.id = hunk.id
+            $0.header = hunk.header
+            $0.lines = hunk.lines
+            $0.anchor = hunk.anchor
+          }
+        }
+      }
     }
   }
 

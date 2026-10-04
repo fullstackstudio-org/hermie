@@ -393,12 +393,12 @@ which still hands it to the center so the chat can say the bot asked for somethi
 show. The chat screen mounts it with `.secureInput(SecureInputModel(session:bot:))`; the chat list
 reads `session.secureInput.needsInput(bot)` for its marker.
 
-The interactive requests (`input.form`, `input.file`, `review.draft`; `contract/requests/README.md`)
+The interactive requests (`input.form`, `input.file`, `review.draft`, `review.diff`; `contract/requests/README.md`)
 have their own center (`session.interactive`, `InteractiveRequestCenter`) and, per chat, an
 `InteractiveModel` that the chat screen mounts with `.interactiveRequests(_:blocked:)` (never while
 another sheet of the chat is up, never over the app lock). The session announces the device's own list
 (`InteractiveCapabilities.deviceMethods()`) in its second `client.capabilities` call. One sheet per
-method (`FormSheet`, `FileSheet`, `DraftSheet`), in the chrome of `InteractiveSheetFrame`: who asks, on
+method (`FormSheet`, `FileSheet`, `DraftSheet`, `DiffSheet`), in the chrome of `InteractiveSheetFrame`: who asks, on
 which gateway and for what pinned at the top, what the agent says as plain text marked as its own
 words, the buttons pinned below, a 400 ms tap guard, a countdown, and Later, Esc or a swipe putting the
 sheet away without answering (`InteractiveModel.later()`; the request stays open and its transcript
@@ -423,6 +423,26 @@ every character the gateway refuses shown as a visible code. It runs the contrac
 (`DraftText`: the stripping, the character rules with the contract's own default-ignorable table, the
 layout limits), says which rule is broken and on which line, never rewrites the text for the person, and
 will not approve a text the gateway would refuse (`text:not_verbatim`).
+
+The diff sheet (`review.diff`, contract §7) shows the changes to ONE file hunk by hunk, and the person approves
+or rejects each one. A frame is read strictly (`ReviewDiff.read` over the raw JSON, since the typed views drop
+an element that does not convert): a hunk that is not an object or has a key the contract does not give it, an
+id that is not `h<n>` or repeats, a header that is not `@@ -a,b +c,d @@`, a line without a marker, counts in a
+header that disagree with the lines, a rename without its old path, an `old_path` on anything else, a new file
+with a removed line, a declared anchor the lines do not bear out, an end-of-file anchor on a hunk that is not
+the last, and any line or header that breaks the rules of §7.1 (`DiffTextRules`: the characters of §6.2 with the
+tab allowed, no whitespace at the end, the indent up to 96 columns, any other run up to 32, all of it up to 160,
+a tab running to the next multiple of 8) refuse the whole request: `4041 cannot_show` and none of it shown. What
+is shown is verbatim: the file's kind and path (a rename shows the old path too, `DraftText.reveal` makes odd
+characters visible), per hunk where it lands ("Start of the file", "End of the file" or "Whole file" when the
+patch tool pins it there, whatever its header says; for the end of the file the header's line numbers are not
+shown at all, and a hunk without a pin shows its header with a note that its numbers are the agent's), and one
+monospaced row per line with its marker in a gutter that stays put while the text scrolls sideways, a band
+behind added and removed lines, a tab drawn as a marker and the spaces to its stop of 8 columns, and an overflow
+indicator for a row wider than the view (an edge fade, a chevron and a note). Every hunk gets Approve or Reject,
+"Approve all" and "Reject all" set them all, and Send is on only once every hunk is decided
+(`InteractiveDiffModel`); the answer is `{decision, hunks}` with an entry for every hunk (`approved` when some
+hunk is, `rejected` when none is), and the transcript's card keeps only how many hunks were approved and rejected.
 
 One sheet is up at a time on a chat (`ChatSheetOrder`). An approval, a passkey confirmation or a secure
 prompt is time-critical and goes first: a form, file request or draft review on screen steps aside the
@@ -699,6 +719,20 @@ knows end as `outcomeUnknown` ("Check whether the action ran"), never as "nothin
 gateway's own verdicts keep their meaning (`verification_failed`, too many attempts, 4033, a refusal
 that leaves it open, an `ok`). The web client does the same. A `plain` request is declined `-32601`
 until the app has a sheet for it, whatever `PasskeyConfiguration.plain` says.
+
+**Structured fields (version 2, contract §4.1).** A `confirm` may carry up to eight `fields` (`amount`, `text`,
+`recipient`, `domain`, `model`, `count`, `date`), the key facts of the action. `ConfirmFieldRules` reads them
+strictly from the raw JSON: a frame whose fields break the contract (the count, a key that is not given, the id,
+the kind, the lengths, a currency on anything but an amount, a character §6.2 refuses), `v: 2` without fields or
+`v: 1` with them is refused with 4040 and none of it is shown. The sheet draws every field in order under the
+summary (`ConfirmFieldsView`): an amount with its value large and bold and the currency beside it, a recipient and
+a domain monospaced and never a link, the other kinds plain; a value is never parsed, rounded, localised or
+truncated, one that does not fit wraps. `ConfirmDisplay.fields` is what the sheet draws and what the challenge
+commits to (`text_digest_v2`, `PasskeyChallenge.textDigestV2`), and the answer repeats the request's `passkey.v`
+(`ConfirmDisplay.textVersion`). The policy advertises `confirm_fields: true` and `confirm_passkey {v: 2}` when
+the first `client.capabilities` result carries the key and lists version 2 (`ConfirmAdvertisement.secondCall`);
+a refresh's first call repeats them while the gateway has them accepted. A frame without fields is version 1, as
+before.
 
 The detail is shown as the gateway sent it, monospaced with every space and line break kept; the
 sheet renders `ConfirmDisplay` and nothing else. Its host includes the path prefix of a gateway

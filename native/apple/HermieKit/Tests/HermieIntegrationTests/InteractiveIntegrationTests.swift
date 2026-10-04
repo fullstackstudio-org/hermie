@@ -113,7 +113,7 @@ extension Integration {
         let state = try await gateway.control("GET", "/__fake/state")
         let last = try #require(state["clientCapabilities"]?.arrayValue?.last)
         #expect(last["server_requests"] == true)
-        #expect(last["requests"] == ["input.form", "input.file", "review.draft"])
+        #expect(last["requests"] == ["input.form", "input.file", "review.draft", "review.diff"])
 
         let presented = try #require(chat.model.presented)
         #expect(presented.id == id)
@@ -170,6 +170,164 @@ extension Integration {
         let rejected = try await InteractiveChat.view(gateway, second)
         #expect(rejected["answer"]?["decision"] == "rejected")
         #expect(rejected["answer"]?["comment"] == "too short")
+        await chat.session.shutdown()
+      }
+    }
+
+    /// The unified diff of `app/settings.py` the gateway's own parser reads (two hunks, neither pinned).
+    private static let settingsDiff = [
+      "--- a/app/settings.py", "+++ b/app/settings.py",
+      "@@ -3,4 +3,4 @@ class Settings:",
+      "     name = \"booking\"", "-    currency = \"USD\"", "+    currency = \"EUR\"", "     locale = \"nl-NL\"", "     debug = False",
+      "@@ -20,3 +20,4 @@ def retry():",
+      "     attempts = 0", "-    limit = 3", "+    limit = 5", "+    backoff = 2", "     return attempts",
+      ""
+    ].joined(separator: "\n")
+
+    /// A Go file indented with tabs: the first hunk starts the file, the last one ends it.
+    private static let goDiff = [
+      "--- a/cmd/main.go", "+++ b/cmd/main.go",
+      "@@ -1,5 +1,5 @@",
+      " package main", " ", "-import \"fmt\"", "+import \"log\"", " ", " func main() {",
+      "@@ -20,2 +20,3 @@ func tail() {",
+      " \ta()", " \tb()", "+\tc()",
+      ""
+    ].joined(separator: "\n")
+
+    @Test("a diff the gateway's own parser read is shown as it numbered it, decided hunk by hunk, and the agent gets the patch of the approved ones")
+    func answersADiff() async throws {
+      try await withInteractiveGateway { gateway in
+        let chat = try await InteractiveChat.open(gateway)
+        let id = try await chat.raise(gateway, "review.diff", ["diff": .string(Self.settingsDiff)])
+
+        let presented = try #require(chat.model.presented)
+        guard case .diff(let diff) = presented.body else {
+          Issue.record("not a diff")
+          return
+        }
+
+        #expect(presented.method == "review.diff" && !presented.offersSkip)
+        #expect(diff.kind == .modify && diff.path == "app/settings.py")
+        #expect(diff.hunkIDs == ["h1", "h2"])
+        #expect(diff.hunks[0].header == "@@ -3,4 +3,4 @@ class Settings:" && diff.hunks[0].section == "class Settings:")
+        #expect(diff.hunks[0].lines.map(\.mark) == [.context, .removed, .added, .context, .context])
+        #expect(diff.hunks[0].lines[1].text == "    currency = \"USD\"", "verbatim, the marker off")
+        #expect(diff.hunks.map(\.anchor) == [nil, nil], "neither is pinned")
+
+        // Every hunk has to be decided: one left out is never sent.
+        #expect(await chat.model.answer(.diff(["h1": .approved])) == false)
+        let open = try await InteractiveChat.view(gateway, id)
+        #expect(open["open"] == true && open["refusals"] == [])
+
+        #expect(await chat.model.answer(.diff(["h1": .approved, "h2": .rejected])))
+        let view = try await InteractiveChat.view(gateway, id)
+        #expect(view["outcome"] == "answered" && view["refusals"] == [])
+        #expect(view["answer"]?["decision"] == "approved")
+        #expect(view["answer"]?["hunks"] == ["h1": "approved", "h2": "rejected"])
+
+        let patch = try #require(view["answer"]?["approved_patch"]?.stringValue)
+        #expect(patch.contains("+    currency = \"EUR\""))
+        #expect(!patch.contains("backoff"), "the rejected hunk is not in the patch")
+        #expect(chat.model.presentedID == nil)
+
+        // The transcript keeps counts, never a line.
+        let card = try #require(
+          await chat.session.store.state(of: researcher)?.orderedItems.compactMap(\.asRequest).last { $0.requestID == id })
+        #expect(card.answerSummary?.approvedHunks == 1 && card.answerSummary?.rejectedHunks == 1)
+        await chat.session.shutdown()
+      }
+    }
+
+    @Test("a diff of a tab-indented file is shown with its tabs, the start and the end of the file named, and rejecting everything sends no patch")
+    func tabsAndAnchors() async throws {
+      try await withInteractiveGateway { gateway in
+        let chat = try await InteractiveChat.open(gateway)
+        let id = try await chat.raise(gateway, "review.diff", ["diff": .string(Self.goDiff)])
+
+        guard case .diff(let diff) = try #require(chat.model.presented).body else {
+          Issue.record("not a diff")
+          return
+        }
+
+        // The gateway pins the first hunk to the start of the file and the last to its end.
+        #expect(diff.hunks.map(\.anchor) == [.start, .end])
+        #expect(diff.hunks[1].lines.map(\.text) == ["\ta()", "\tb()", "\tc()"], "tabs kept")
+        #expect(DiffTextRules.rendered(diff.hunks[1].lines[2].text) == "\u{2192}       c()", "drawn as a marker and the stop")
+
+        #expect(await chat.model.answer(.diff(["h1": .rejected, "h2": .rejected])))
+        let view = try await InteractiveChat.view(gateway, id)
+        #expect(view["answer"]?["decision"] == "rejected")
+        #expect(view["answer"]?["approved_patch"] == nil)
+        await chat.session.shutdown()
+      }
+    }
+
+    @Test("the contract's example diff, a new file, a rename and a deletion are shown and decided")
+    func theExamplesAreShown() async throws {
+      try await withInteractiveGateway { gateway in
+        let chat = try await InteractiveChat.open(gateway)
+
+        // The contract's frame, as the gateway raises it without a diff of its own.
+        let example = try await chat.raise(gateway, "review.diff")
+        guard case .diff(let diff) = try #require(chat.model.presented).body else {
+          Issue.record("not a diff")
+          return
+        }
+        #expect(diff.hunkIDs == ["h1", "h2"] && diff.path == "app/settings.py")
+        #expect(await chat.model.answer(.diff(["h1": .approved, "h2": .rejected])))
+        #expect(try await InteractiveChat.view(gateway, example)["outcome"] == "answered")
+
+        let new = try await chat.raise(
+          gateway, "review.diff", ["diff": "--- /dev/null\n+++ b/docs/new.md\n@@ -0,0 +1,2 @@\n+one\n+two\n"])
+        guard case .diff(let created) = try #require(chat.model.presented).body else { return }
+        #expect(created.kind == .new && created.hunks[0].anchor == .both)
+        #expect(await chat.model.answer(.diff(["h1": .approved])))
+        #expect(try await InteractiveChat.view(gateway, new)["answer"]?["approved_patch"]?.stringValue?.contains("+two") == true)
+
+        let renamed = try await chat.raise(
+          gateway, "review.diff",
+          ["diff": "diff --git a/a.txt b/b.txt\nsimilarity index 90%\nrename from a.txt\nrename to b.txt\n--- a/a.txt\n+++ b/b.txt\n@@ -1,3 +1,3 @@\n x\n-y\n+z\n w\n"]
+        )
+        guard case .diff(let moved) = try #require(chat.model.presented).body else { return }
+        #expect(moved.kind == .rename && moved.oldPath == "a.txt" && moved.path == "b.txt")
+        #expect(await chat.model.answer(.diff(["h1": .rejected])))
+        #expect(try await InteractiveChat.view(gateway, renamed)["outcome"] == "answered")
+
+        let deleted = try await chat.raise(
+          gateway, "review.diff", ["diff": "--- a/gone.txt\n+++ /dev/null\n@@ -1,2 +0,0 @@\n-one\n-two\n"])
+        guard case .diff(let removed) = try #require(chat.model.presented).body else { return }
+        #expect(removed.kind == .delete && removed.hunks[0].anchor == .both)
+        #expect(await chat.model.answer(.diff(["h1": .approved])))
+        #expect(try await InteractiveChat.view(gateway, deleted)["outcome"] == "answered")
+        await chat.session.shutdown()
+      }
+    }
+
+    @Test("a frame the gateway never sends (a hunk id that is not h<n>) is declined 4041 and none of it shown")
+    func aBrokenDiffIsDeclined() async throws {
+      try await withInteractiveGateway { gateway in
+        let chat = try await InteractiveChat.open(gateway)
+        let model = chat.model
+        let raised = try await gateway.control(
+          "POST", "/__fake/request",
+          body: .object([
+            "profile": .string(researcher), "method": "review.diff",
+            "params": ["hunks": [["id": "intro", "header": "@@ -1 +1 @@", "lines": ["-a", "+b"]]]]
+          ]))
+        let id = try #require(raised["id"]?.stringValue)
+
+        let deadline = ContinuousClock.now + .seconds(10)
+        var view = try await InteractiveChat.view(gateway, id)
+
+        while view["outcome"] == nil, ContinuousClock.now < deadline {
+          try await Task.sleep(for: .milliseconds(20))
+          view = try await InteractiveChat.view(gateway, id)
+        }
+
+        #expect(view["outcome"] == "unavailable")
+        #expect(view["reason"] == "not_supported_on_device")
+        #expect(view["error"]?["code"] == 4041)
+        #expect(model.openPrompts.isEmpty && model.presented == nil, "none of it was shown")
         await chat.session.shutdown()
       }
     }

@@ -2,7 +2,7 @@ import HermieCore
 import HermieTranscript
 import SwiftUI
 
-/// A form, a file request or a draft review the bot asked for: a compact card with what it is, what
+/// A form, a file request, a draft review or a diff review the bot asked for: a compact card with what it is, what
 /// the agent called it, and how it stands. Open, it says it waits for an answer and opens the sheet
 /// again (after Later); closed, it says how it ended. Never a value: the transcript's `RequestItem`
 /// has nothing that could hold one, only the status, how many files and whether a draft was edited.
@@ -68,6 +68,7 @@ struct InteractiveRequestCardView: View {
     case "input.form": NativeStrings.Interactive.Card.form
     case "input.file": NativeStrings.Interactive.Card.file
     case "review.draft": NativeStrings.Interactive.Card.draft
+    case "review.diff": NativeStrings.Interactive.Card.diff
     default: nil
     }
   }
@@ -80,6 +81,7 @@ struct InteractiveRequestCardView: View {
     switch item.method {
     case "input.file": return "paperclip"
     case "review.draft": return "text.badge.checkmark"
+    case "review.diff": return "plusminus.circle"
     default: return "list.bullet.rectangle"
     }
   }
@@ -95,6 +97,11 @@ struct InteractiveRequestCardView: View {
       let summary = item.answerSummary
 
       if summary?.decision == "approved" {
+        // A diff review: how many of its hunks were approved.
+        if let approved = summary?.approvedHunks, let rejected = summary?.rejectedHunks {
+          return Words.diffApproved(approved, of: approved + rejected)
+        }
+
         return summary?.edited == true ? Words.approvedEdited : Words.approved
       }
 
