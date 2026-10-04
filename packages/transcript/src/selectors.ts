@@ -9,7 +9,15 @@
  * unexplainable, so `showBotToBot: false` collapses DM traffic to a one-line
  * chip instead.
  */
-import { type ChatState, type Subagent, type StatusItem, type TranscriptItem, type Verbosity } from './types'
+import {
+  type ChatState,
+  isRequestLikeItem,
+  type RequestLikeItem,
+  type Subagent,
+  type StatusItem,
+  type TranscriptItem,
+  type Verbosity
+} from './types'
 
 export type Presentation = 'full' | 'collapsed' | 'chip' | 'hidden-placeholder'
 
@@ -76,6 +84,7 @@ export function visibleItems(state: ChatState, options: VisibilityOptions): Visi
     switch (item.kind) {
       case 'approval':
       case 'clarify':
+      case 'request':
         // A question for the user is never filtered away.
         out.push({ item, presentation: 'full' })
         break
@@ -266,7 +275,7 @@ export function hasOpenRequest(state: ChatState): boolean {
   return state.order.some(id => {
     const item = state.items[id]
 
-    return Boolean(item) && (item!.kind === 'approval' || item!.kind === 'clarify') && item!.state === 'open'
+    return isRequestLikeItem(item) && item.state === 'open'
   })
 }
 
@@ -274,10 +283,7 @@ export function hasOpenRequest(state: ChatState): boolean {
 export function openRequests(state: ChatState): TranscriptItem[] {
   return state.order
     .map(id => state.items[id])
-    .filter(
-      (item): item is TranscriptItem =>
-        Boolean(item) && (item!.kind === 'approval' || item!.kind === 'clarify') && item!.state === 'open'
-    )
+    .filter((item): item is RequestLikeItem => isRequestLikeItem(item) && item.state === 'open')
 }
 
 export function runningSubagents(state: ChatState): Subagent[] {

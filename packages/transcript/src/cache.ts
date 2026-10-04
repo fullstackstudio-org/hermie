@@ -5,7 +5,14 @@
  * and an unanswered request all describe a moment, not the chat, and restoring
  * them from disk would resurrect a question the gateway already forgot.
  */
-import { type ChatState, createChatState, SEQ_STEP, type Subagent, type TranscriptItem } from './types'
+import {
+  type ChatState,
+  createChatState,
+  isRequestLikeItem,
+  SEQ_STEP,
+  type Subagent,
+  type TranscriptItem
+} from './types'
 
 export const CACHE_ITEM_LIMIT = 200
 export const CACHE_FORMAT = 1
@@ -67,7 +74,7 @@ const isCacheable = (item: TranscriptItem): boolean => {
     return false
   }
 
-  return !((item.kind === 'approval' || item.kind === 'clarify') && item.state === 'open')
+  return !(isRequestLikeItem(item) && item.state === 'open')
 }
 
 export function snapshotForCache(state: ChatState, now: number = Date.now()): CachedTranscript {
@@ -182,7 +189,7 @@ export function stateFromCache(botName: string, ids: SessionIds, snapshot: Cache
       }
     }
 
-    if (placed.kind === 'approval' || placed.kind === 'clarify') {
+    if (isRequestLikeItem(placed)) {
       state.byRequestId[placed.requestId] = placed.id
     }
   })

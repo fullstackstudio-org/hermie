@@ -422,6 +422,78 @@
       "type": "message.complete"
     }
   ],
+  "inputFileRequest": {
+    "id": "srq-10",
+    "method": "input.file",
+    "params": {
+      "accept": "image",
+      "capture": "photo",
+      "expires_at": 1791119400,
+      "multiple": false,
+      "optional": true,
+      "session_id": "run-1a2b",
+      "summary": "Take a photo of the parking receipt so I can add it to the expense report.",
+      "title": "Receipt",
+      "upload": {
+        "dir": "/home/ada/work/uploads/hermie/2026-10-04",
+        "max_bytes": 10485760,
+        "max_files": 1,
+        "max_total_bytes": 10485760,
+        "strip_metadata": true
+      },
+      "v": 1
+    }
+  },
+  "inputFormRequest": {
+    "id": "srq-9",
+    "method": "input.form",
+    "params": {
+      "expires_at": 1791119400,
+      "fields": [
+        {
+          "id": "name",
+          "kind": "text",
+          "label": "Name on the booking",
+          "max_length": 20,
+          "required": true
+        },
+        {
+          "default": 2,
+          "id": "guests",
+          "integer": true,
+          "kind": "number",
+          "label": "Guests",
+          "max": 12,
+          "min": 1,
+          "required": true
+        }
+      ],
+      "optional": true,
+      "session_id": "run-1a2b",
+      "summary": "I found three hotels in Utrecht. Fill this in and I will book the best match.",
+      "title": "Hotel booking details",
+      "v": 1
+    }
+  },
+  "reviewDraftRequest": {
+    "id": "srq-11",
+    "method": "review.draft",
+    "params": {
+      "editable": true,
+      "expires_at": 1791119400,
+      "kind": "mail",
+      "optional": false,
+      "recipients": [
+        "Bram de Vries <bram@example.com>"
+      ],
+      "session_id": "run-1a2b",
+      "subject": "Re: Flat on the Oudegracht",
+      "summary": "Here is the reply I would send. Approve, edit or reject it.",
+      "text": "Hi Bram,\n\nThe flat is free from 1 November.\n\nKind regards,\nAda",
+      "title": "Reply to Bram",
+      "v": 1
+    }
+  },
   "streamedTurn": [
     {
       "payload": {},

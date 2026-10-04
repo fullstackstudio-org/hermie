@@ -17,6 +17,7 @@ import {
   type BotDmOutItem,
   type ChatState,
   freeItemId,
+  isRequestLikeItem,
   type NoticeItem,
   SEQ_STEP,
   type SubagentGroupItem,
@@ -125,8 +126,7 @@ const isEphemeralNotice = (item: TranscriptItem): boolean =>
   item.kind === 'notice' && EPHEMERAL_NOTICE_KINDS.has(item.noticeKind)
 
 /** Items the backend never persists, so a re-hydration can never re-supply them. */
-const isEphemeral = (item: TranscriptItem): boolean =>
-  item.kind === 'approval' || item.kind === 'clarify' || isEphemeralNotice(item)
+const isEphemeral = (item: TranscriptItem): boolean => isRequestLikeItem(item) || isEphemeralNotice(item)
 
 /**
  * Something the reader has already settled, as opposed to a question still
@@ -151,7 +151,7 @@ const isEphemeral = (item: TranscriptItem): boolean =>
  * here rather than in the plain `kept` bucket `placeByTimestamp` never sorts.
  */
 const isSettledRequest = (item: TranscriptItem): boolean =>
-  ((item.kind === 'approval' || item.kind === 'clarify') && item.state !== 'open') || isEphemeralNotice(item)
+  (isRequestLikeItem(item) && item.state !== 'open') || isEphemeralNotice(item)
 
 /**
  * Put items that carry their own moment back into it, rather than at the end.
@@ -397,7 +397,7 @@ function rebuild(state: ChatState, list: readonly TranscriptItem[]): ChatState {
       next.byDelegationId[placed.delegationId] = placed.id
     }
 
-    if (placed.kind === 'approval' || placed.kind === 'clarify') {
+    if (isRequestLikeItem(placed)) {
       next.byRequestId[placed.requestId] = placed.id
     }
 

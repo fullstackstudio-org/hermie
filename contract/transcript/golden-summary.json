@@ -8,14 +8,14 @@
     },
     "answerRequest": {
       "readsClock": false,
-      "recorded": 9,
-      "replayable": 9,
+      "recorded": 38,
+      "replayable": 38,
       "skipped": {}
     },
     "applyEvent": {
       "readsClock": false,
-      "recorded": 1644,
-      "replayable": 1644,
+      "recorded": 1650,
+      "replayable": 1650,
       "skipped": {}
     },
     "applyProcessCompletion": {
@@ -26,14 +26,14 @@
     },
     "applyResumeSnapshot": {
       "readsClock": false,
-      "recorded": 108,
-      "replayable": 108,
+      "recorded": 110,
+      "replayable": 110,
       "skipped": {}
     },
     "applyServerRequest": {
       "readsClock": false,
-      "recorded": 29,
-      "replayable": 29,
+      "recorded": 87,
+      "replayable": 87,
       "skipped": {}
     },
     "applySubagentSnapshot": {
@@ -68,8 +68,8 @@
     },
     "beginLocalTurn": {
       "readsClock": false,
-      "recorded": 217,
-      "replayable": 217,
+      "recorded": 218,
+      "replayable": 218,
       "skipped": {}
     },
     "beginSteer": {
@@ -120,8 +120,8 @@
     },
     "createChatState": {
       "readsClock": false,
-      "recorded": 613,
-      "replayable": 613,
+      "recorded": 665,
+      "replayable": 665,
       "skipped": {}
     },
     "deliveryTargetFromCommand": {
@@ -144,8 +144,8 @@
     },
     "exportTranscript": {
       "readsClock": false,
-      "recorded": 23,
-      "replayable": 1,
+      "recorded": 24,
+      "replayable": 2,
       "skipped": {
         "args: function": 22
       }
@@ -230,8 +230,8 @@
     },
     "openRequests": {
       "readsClock": false,
-      "recorded": 2,
-      "replayable": 2,
+      "recorded": 4,
+      "replayable": 4,
       "skipped": {}
     },
     "parseCronDelivery": {
@@ -298,8 +298,8 @@
     },
     "reconcile": {
       "readsClock": false,
-      "recorded": 395,
-      "replayable": 395,
+      "recorded": 403,
+      "replayable": 403,
       "skipped": {}
     },
     "reconcileTail": {
@@ -316,8 +316,8 @@
     },
     "rowsToItems": {
       "readsClock": false,
-      "recorded": 764,
-      "replayable": 764,
+      "recorded": 772,
+      "replayable": 772,
       "skipped": {}
     },
     "runningSubagents": {
@@ -328,14 +328,14 @@
     },
     "snapshotForCache": {
       "readsClock": false,
-      "recorded": 67,
-      "replayable": 67,
+      "recorded": 69,
+      "replayable": 69,
       "skipped": {}
     },
     "stateFromCache": {
       "readsClock": false,
-      "recorded": 62,
-      "replayable": 62,
+      "recorded": 64,
+      "replayable": 64,
       "skipped": {}
     },
     "stripSteerWrapper": {
@@ -358,8 +358,8 @@
     },
     "transcriptDiagnostics": {
       "readsClock": false,
-      "recorded": 3,
-      "replayable": 3,
+      "recorded": 4,
+      "replayable": 4,
       "skipped": {}
     },
     "transcriptFileName": {
@@ -394,8 +394,8 @@
     },
     "visibleItems": {
       "readsClock": false,
-      "recorded": 54,
-      "replayable": 54,
+      "recorded": 57,
+      "replayable": 57,
       "skipped": {}
     }
   }

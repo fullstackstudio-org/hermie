@@ -22,6 +22,7 @@ import {
   stripUserText,
   type UserRowClass
 } from './rows-to-items'
+import { isInteractiveMethod } from './interactive-methods'
 import { subagentIdOf, TERMINAL_SUBAGENT_STATUS, toSubagent } from './subagent-progress'
 import type { ErrorSurface, SessionLiveInfo, Usage } from '@hermes/shared/gateway-events'
 import {
@@ -37,6 +38,10 @@ import {
   type MessageAuthor,
   type NoticeItem,
   type NoticeKind,
+  type RequestAnswerSummary,
+  type RequestItem,
+  type RequestLikeItem,
+  isRequestLikeItem,
   SEQ_STEP,
   type StatusItem,
   type SubagentGroupItem,
@@ -138,7 +143,7 @@ function indexItem(next: ChatState, item: TranscriptItem): void {
     }
   }
 
-  if (item.kind === 'approval' || item.kind === 'clarify') {
+  if (isRequestLikeItem(item)) {
     next.byRequestId[item.requestId] = item.id
   }
 
@@ -848,10 +853,10 @@ function cancelOpenRequests(next: ChatState, reason: string): void {
   for (const id of next.order) {
     const item = next.items[id]
 
-    if ((item?.kind === 'approval' || item?.kind === 'clarify') && item.state === 'open') {
+    if (isRequestLikeItem(item) && item.state === 'open') {
       patchItem(next, id, draft => {
-        ;(draft as ApprovalItem | ClarifyItem).state = 'cancelled'
-        ;(draft as ApprovalItem | ClarifyItem).cancelReason = reason
+        ;(draft as RequestLikeItem).state = 'cancelled'
+        ;(draft as RequestLikeItem).cancelReason = reason
       })
     }
   }
@@ -1636,10 +1641,14 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
       const cancelId = str(payload.id)
       const id = next.byRequestId[cancelId] ?? next.byApprovalId[cancelId]
 
-      if (id) {
+      const target = id ? next.items[id] : undefined
+
+      // A request that was already answered stays what it was: its summary is the
+      // record, and a late withdrawal must not rewrite it into a cancellation.
+      if (id && !(target?.kind === 'request' && target.state !== 'open')) {
         patchItem(next, id, draft => {
-          ;(draft as ApprovalItem | ClarifyItem).state = 'cancelled'
-          ;(draft as ApprovalItem | ClarifyItem).cancelReason = str(payload.reason)
+          ;(draft as RequestLikeItem).state = 'cancelled'
+          ;(draft as RequestLikeItem).cancelReason = str(payload.reason)
         })
       }
 
@@ -1743,14 +1752,61 @@ function openRequestIdOf(state: ChatState, requestId: string): string | undefine
   const id = state.byRequestId[requestId]
   const item = id ? state.items[id] : undefined
 
-  if (item?.kind !== 'approval' && item?.kind !== 'clarify') {
+  if (!isRequestLikeItem(item)) {
     return undefined
   }
 
   return item.state === 'open' ? id : undefined
 }
 
-/** Turn an `approval` / `clarify` server request into a transcript item. */
+/** The most the contract allows (`title` 1-80, `summary` 1-500); a longer one is cut, not refused. */
+const REQUEST_TITLE_MAX = 80
+const REQUEST_SUMMARY_MAX = 500
+const SUMMARY_KEY = /^[a-z][a-z0-9_]{0,23}$/
+const SUMMARY_COUNT_MAX = 9_999
+
+/**
+ * Narrow what the model passed for an answer to the keys and numbers a
+ * `RequestItem` may carry.
+ *
+ * A whitelist, field by field: an unknown key, a string where a number belongs or
+ * a `precision` that is not a short lowercase key is dropped, so nothing the
+ * person typed can ride in on it even when a caller passes more than it should.
+ */
+function requestAnswerSummary(value: unknown): RequestAnswerSummary | undefined {
+  const raw = rec(value)
+  const out: RequestAnswerSummary = {}
+
+  if (raw.status === 'answered' || raw.status === 'skipped') {
+    out.status = raw.status
+  }
+
+  if (raw.decision === 'approved' || raw.decision === 'rejected') {
+    out.decision = raw.decision
+  }
+
+  if (
+    typeof raw.count === 'number' &&
+    Number.isInteger(raw.count) &&
+    raw.count >= 0 &&
+    raw.count <= SUMMARY_COUNT_MAX
+  ) {
+    out.count = raw.count
+  }
+
+  if (typeof raw.edited === 'boolean') {
+    out.edited = raw.edited
+  }
+
+  if (typeof raw.precision === 'string' && SUMMARY_KEY.test(raw.precision)) {
+    out.precision = raw.precision
+  }
+
+  // Without how it ended, `count` / `edited` / `precision` describe nothing.
+  return out.status || out.decision ? out : undefined
+}
+
+/** Turn an `approval` / `clarify` / interactive server request into a transcript item. */
 export function applyServerRequest(state: ChatState, request: ServerRequest, now: number = Date.now()): ChatState {
   if (openRequestIdOf(state, request.id)) {
     return state
@@ -1837,23 +1893,83 @@ export function applyServerRequest(state: ChatState, request: ServerRequest, now
     return next
   }
 
+  if (isInteractiveMethod(request.method)) {
+    /*
+      One code path for every interactive method: the item says that a question
+      was asked and how it ended, never what was answered, so nothing here depends
+      on the method's own params beyond the three envelope keys below.
+    */
+    addItem<RequestItem>(next, {
+      id: `req:${request.id}`,
+      kind: 'request',
+      requestId: request.id,
+      method: request.method,
+      title: str(params.title).slice(0, REQUEST_TITLE_MAX),
+      summary: str(params.summary).slice(0, REQUEST_SUMMARY_MAX),
+      optional: params.optional === true,
+      state: 'open',
+      ts: now / 1000
+    })
+
+    return next
+  }
+
   return state
 }
 
-/** Record the user's answer locally; the transport still owns the RPC reply. */
-export function answerRequest(state: ChatState, requestId: string, answer: string | Record<string, string>): ChatState {
+/**
+ * Record the user's answer locally; the transport still owns the RPC reply.
+ *
+ * For an interactive request (`RequestItem`) `answer` is the summary object the
+ * model's tool result carries, `{status | decision, count?, edited?, precision?}`,
+ * and only its whitelisted keys are kept. Never pass values: there is nowhere
+ * for them to go, and a string or a map for such a request records that it was
+ * answered and nothing more.
+ */
+export function answerRequest(
+  state: ChatState,
+  requestId: string,
+  answer: string | Record<string, string> | RequestAnswerSummary
+): ChatState {
   const id = state.byRequestId[requestId]
   const item = id ? state.items[id] : undefined
 
-  if (!id || !item || (item.kind !== 'approval' && item.kind !== 'clarify')) {
+  if (!id || !item || !isRequestLikeItem(item)) {
+    return state
+  }
+
+  if (item.kind === 'request' && item.state !== 'open') {
     return state
   }
 
   const next = editable(state)
 
+  if (item.kind === 'request') {
+    const summary = typeof answer === 'string' ? undefined : requestAnswerSummary(answer)
+
+    patchItem<RequestItem>(next, id, draft => {
+      draft.state = 'answered'
+
+      if (summary) {
+        draft.answerSummary = summary
+      }
+    })
+
+    return next
+  }
+
+  // A summary object is for a `request` item; an approval or a clarify card only
+  // ever takes the strings out of whatever map it is handed.
+  const strings: Record<string, string> =
+    typeof answer === 'string'
+      ? {}
+      : Object.fromEntries(
+          Object.entries(answer).filter((entry): entry is [string, string] => typeof entry[1] === 'string')
+        )
+
   if (item.kind === 'approval') {
     patchItem<ApprovalItem>(next, id, draft => {
-      draft.answer = typeof answer === 'string' ? answer : (Object.values(answer)[0] ?? '')
+      draft.answer = typeof answer === 'string' ? answer : (Object.values(strings)[0] ?? '')
       draft.state = 'answered'
     })
 
@@ -1870,7 +1986,7 @@ export function answerRequest(state: ChatState, requestId: string, answer: strin
         merged[open.qid] = answer
       }
     } else {
-      Object.assign(merged, answer)
+      Object.assign(merged, strings)
     }
 
     draft.answers = merged

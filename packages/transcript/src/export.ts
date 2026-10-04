@@ -84,7 +84,19 @@ function toolLine(item: Extract<TranscriptItem, { kind: 'tool' }>): string {
 }
 
 /** One request's outcome in a line, which is all a file can carry of a sheet. */
-function requestLine(item: Extract<TranscriptItem, { kind: 'approval' | 'clarify' }>): string {
+function requestLine(item: Extract<TranscriptItem, { kind: 'approval' | 'clarify' | 'request' }>): string {
+  if (item.kind === 'request') {
+    // How it ended, never what was answered: the item holds no value to print.
+    const summary = item.answerSummary
+    const ended = summary
+      ? [summary.status ?? summary.decision, summary.edited ? 'edited' : '', summary.count ? `${summary.count}` : '']
+          .filter(Boolean)
+          .join(', ')
+      : item.state
+
+    return `Request — ${item.title || item.method} (${ended || item.state})`
+  }
+
   if (item.kind === 'approval') {
     const answered = item.state === 'answered' && item.answer ? `answered ${item.answer}` : item.state
     const subject = item.command || item.toolName || 'a permission request'
@@ -228,6 +240,7 @@ function entryFor(item: TranscriptItem, options: TranscriptExportOptions): Entry
 
     case 'approval':
     case 'clarify':
+    case 'request':
       return { ...base, aside: true, body: requestLine(item), who: '' }
 
     case 'status':

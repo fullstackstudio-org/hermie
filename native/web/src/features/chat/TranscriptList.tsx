@@ -164,6 +164,8 @@ export const ROW_ESTIMATES: Readonly<Record<VisibleItem['item']['kind'], number>
   assistant: 168,
   clarify: 168,
   approval: 132,
+  // A settled record of a question ("Form answered"), one card line.
+  request: 72,
   cron_delivery: 132,
   tool: 52,
   bot_dm_out: 52,

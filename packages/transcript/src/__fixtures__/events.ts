@@ -223,3 +223,62 @@ export const clarifyRequest = {
     ]
   }
 }
+
+/** An interactive form, as the gateway frames it (`contract/requests/examples.json`, trimmed). */
+export const inputFormRequest = {
+  id: 'srq-9',
+  method: 'input.form',
+  params: {
+    session_id: SESSION,
+    v: 1,
+    title: 'Hotel booking details',
+    summary: 'I found three hotels in Utrecht. Fill this in and I will book the best match.',
+    expires_at: 1_791_119_400,
+    optional: true,
+    fields: [
+      { id: 'name', kind: 'text', label: 'Name on the booking', required: true, max_length: 20 },
+      { id: 'guests', kind: 'number', label: 'Guests', required: true, min: 1, max: 12, integer: true, default: 2 }
+    ]
+  }
+}
+
+export const inputFileRequest = {
+  id: 'srq-10',
+  method: 'input.file',
+  params: {
+    session_id: SESSION,
+    v: 1,
+    title: 'Receipt',
+    summary: 'Take a photo of the parking receipt so I can add it to the expense report.',
+    expires_at: 1_791_119_400,
+    optional: true,
+    accept: 'image',
+    capture: 'photo',
+    multiple: false,
+    upload: {
+      dir: '/home/ada/work/uploads/hermie/2026-10-04',
+      max_bytes: 10_485_760,
+      max_total_bytes: 10_485_760,
+      max_files: 1,
+      strip_metadata: true
+    }
+  }
+}
+
+export const reviewDraftRequest = {
+  id: 'srq-11',
+  method: 'review.draft',
+  params: {
+    session_id: SESSION,
+    v: 1,
+    title: 'Reply to Bram',
+    summary: 'Here is the reply I would send. Approve, edit or reject it.',
+    expires_at: 1_791_119_400,
+    optional: false,
+    kind: 'mail',
+    text: 'Hi Bram,\n\nThe flat is free from 1 November.\n\nKind regards,\nAda',
+    subject: 'Re: Flat on the Oudegracht',
+    recipients: ['Bram de Vries <bram@example.com>'],
+    editable: true
+  }
+}

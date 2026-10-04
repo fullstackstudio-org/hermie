@@ -400,6 +400,61 @@ export interface ClarifyItem extends ItemBase {
   cancelReason?: string
 }
 
+/**
+ * How an interactive request (`input.form`, `input.file`, `review.draft`, ...) ended,
+ * as KEYS and numbers only.
+ *
+ * What the person answered (form values, file names, the edited draft, a location)
+ * is never here: it goes to the model in the tool result and nowhere else, so it
+ * cannot reach the cache, a draft, an export or a diagnostics bundle. A client
+ * localises these keys ("Form answered", "Draft approved, edited"); the engine
+ * carries no display text of its own.
+ */
+export interface RequestAnswerSummary {
+  /** `input.*`: how the request ended. */
+  status?: 'answered' | 'skipped'
+  /** `review.*`: how the request ended. */
+  decision?: 'approved' | 'rejected'
+  /** How many things were sent (files, ...). */
+  count?: number
+  /** A reviewed draft was changed before it was approved. */
+  edited?: boolean
+  /** A coarse key such as `approximate`; never a value. */
+  precision?: string
+}
+
+/**
+ * One interactive request: that a question was asked and how it ended.
+ *
+ * One kind for every method in `INTERACTIVE_METHODS` (`interactive-methods.ts`),
+ * because they share one visual. The sheet's own params live in a per-family model
+ * beside the engine; this item has no field that could hold an answer VALUE.
+ */
+export interface RequestItem extends ItemBase {
+  kind: 'request'
+  /** JSON-RPC server-request id (`srq-N`). */
+  requestId: string
+  /** The wire method, e.g. `input.form`. */
+  method: string
+  /** The agent's heading (plain text, at most 80). */
+  title: string
+  /** The agent's words: what it asks and why (plain text, at most 500). */
+  summary: string
+  /** Skip is offered. */
+  optional: boolean
+  state: RequestState
+  /** Only once `state` is `answered`, and only when the model passed a usable summary. */
+  answerSummary?: RequestAnswerSummary
+  /** Why the gateway withdrew it (`timeout`, `too_many_attempts`, ...). */
+  cancelReason?: string
+}
+
+/** The kinds that ask the person something and wait: `state` says whether they still do. */
+export type RequestLikeItem = ApprovalItem | ClarifyItem | RequestItem
+
+export const isRequestLikeItem = (item: TranscriptItem | undefined): item is RequestLikeItem =>
+  item?.kind === 'approval' || item?.kind === 'clarify' || item?.kind === 'request'
+
 export type TranscriptItem =
   | ApprovalItem
   | AssistantItem
@@ -408,6 +463,7 @@ export type TranscriptItem =
   | ClarifyItem
   | CronDeliveryItem
   | NoticeItem
+  | RequestItem
   | StatusItem
   | SubagentGroupItem
   | ToolItem

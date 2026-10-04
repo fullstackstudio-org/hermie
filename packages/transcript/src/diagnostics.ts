@@ -13,7 +13,13 @@
  * hold the same words without the words leaving the device.
  */
 import { normalizedItemText } from './rows-to-items'
-import type { ChatState, ItemOrigin, TranscriptItem, TranscriptItemKind } from './types'
+import {
+  type ChatState,
+  isRequestLikeItem,
+  type ItemOrigin,
+  type TranscriptItem,
+  type TranscriptItemKind
+} from './types'
 
 /** One text that more than one item is carrying. */
 export interface RepeatedText {
@@ -55,8 +61,7 @@ export interface TranscriptDiagnostics {
 }
 
 /** Items the backend never persists, so an absent row id means nothing for them. */
-const isEphemeral = (item: TranscriptItem): boolean =>
-  item.kind === 'approval' || item.kind === 'clarify' || item.kind === 'status'
+const isEphemeral = (item: TranscriptItem): boolean => isRequestLikeItem(item) || item.kind === 'status'
 
 /**
  * FNV-1a, 32 bits, hex. Deliberately not a cryptographic hash: it is a label
