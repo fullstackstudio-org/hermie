@@ -283,9 +283,9 @@ final class CodeCaptureSession: NSObject, AVCaptureMetadataOutputObjectsDelegate
       controller.stopScanning()
     }
 
-    // VisionKit calls its delegate on the main thread, and the protocol is not main-actor isolated in every SDK.
+    // VisionKit calls its delegate on the main thread; the protocol is main-actor isolated.
     @MainActor
-    final class Coordinator: NSObject, @preconcurrency DataScannerViewControllerDelegate {
+    final class Coordinator: NSObject, DataScannerViewControllerDelegate {
       let onCode: @MainActor (String, ScanSymbology) -> Void
       let onFailure: @MainActor () -> Void
       var failed = false
