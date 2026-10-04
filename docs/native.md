@@ -436,13 +436,14 @@ The diff sheet (`review.diff`, contract §7) shows the changes to ONE file hunk 
 or rejects each one. A frame is read strictly (`ReviewDiff.read` over the raw JSON, since the typed views drop
 an element that does not convert): a hunk that is not an object or has a key the contract does not give it, an
 id that is not `h<n>` or repeats, a header that is not `@@ -a,b +c,d @@`, a line without a marker, counts in a
-header that disagree with the lines, a rename without its old path, an `old_path` on anything else, a new file
+header that disagree with the lines, a rename without its old path, a path with more than four combining marks in a row, an `old_path` on anything else, a new file
 with a removed line, a declared anchor the lines do not bear out, an end-of-file anchor on a hunk that is not
 the last, and any line or header that breaks the rules of §7.1 (`DiffTextRules`: the characters of §6.2 with the
 tab allowed, no whitespace at the end, the indent up to 96 columns, any other run up to 32, all of it up to 160,
 a tab running to the next multiple of 8) refuse the whole request: `4041 cannot_show` and none of it shown. What
-is shown is verbatim: the file's kind and path (a rename shows the old path too, `DraftText.reveal` makes odd
-characters visible), per hunk where it lands ("Start of the file", "End of the file" or "Whole file" when the
+is shown is verbatim: the file's kind and path (a rename shows the old path too, each a `Text` of its own laid out
+left to right by the view, `.environment(\.layoutDirection, .leftToRight)`, so a right-to-left path cannot swap sides
+with the other and a copied path carries no direction mark; `DraftText.reveal` makes odd characters visible), per hunk where it lands ("Start of the file", "End of the file" or "Whole file" when the
 patch tool pins it there, whatever its header says; for the end of the file the header's line numbers are not
 shown at all, and a hunk without a pin shows its header with a note that its numbers are the agent's), and one
 monospaced row per line with its marker in a gutter that stays put while the text scrolls sideways, a band

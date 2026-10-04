@@ -141,6 +141,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A long failure under the web composer no longer makes it tall, and a chat open elsewhere is explained.**
+  The paragraph that says why a send was refused took as many lines as the gateway's words, so a long error
+  could fill the screen; it is now at most six lines and scrolls. The refusal for a chat that another Hermes
+  window or terminal has open (`SESSION_NOT_OWNED`) now says so in a sentence of our own in English, Dutch and
+  German, shows the gateway's details on one small line, and offers "Start new chat", which starts a new
+  conversation and puts the refused words back in the field without sending them.
+- **The notices at the top of the native app can no longer raise the window's minimum size.** They took as many
+  lines as their text, like the composer's notice did before; they now take at most six, with the whole text in
+  the tooltip.
+- **A copied path from the diff sheet carries no invisible characters.** The sheet kept a path's direction with
+  two marks inside the selectable text; the direction is now the view's. The native app also refuses a diff path
+  with more than four combining marks in a row, as the gateway does.
 - **A long notice over a chat no longer pushes the Mac window out of view.** When a message was refused
   because the chat was open in another Hermes window or terminal, the notice's long sentence made the chat
   ask for a minimum height of thousands of points: the window's layout grew past the screen, the chat list
