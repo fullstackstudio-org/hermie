@@ -438,6 +438,38 @@ describe('the CLI', () => {
     }
   }, 30_000)
 
+  it('takes the self-enrolment flags, which imply the level', async () => {
+    const started = await run([
+      '--auth',
+      'cookie',
+      '--no-passkey-self-enrol',
+      '--passkey-cooling-off',
+      '90',
+      '--passkey-accept-missing-auth-time',
+      '--passkey-no-reauth'
+    ])
+
+    try {
+      const url = /listening on (\S+)/u.exec(started.out)?.[1] ?? ''
+      const status = (await (await fetch(`${url}/__fake/state`)).json()) as Json
+
+      expect(status.passkey).toMatchObject({
+        enabled: true,
+        self_enrol: { enabled: false, accept_missing_auth_time: true, cooling_off_s: 90 },
+        provider_reauth: false
+      })
+    } finally {
+      started.stop()
+    }
+  }, 30_000)
+
+  it('refuses a cooling-off that is not a number of seconds', async () => {
+    const refused = await run(['--auth', 'cookie', '--passkey-cooling-off', 'soon'])
+
+    expect(refused.code).toBe(1)
+    expect(refused.out).toContain('--passkey-cooling-off is a whole number of seconds')
+  }, 30_000)
+
   it('refuses --passkey where nobody can be signed in', async () => {
     const refused = await run(['--auth', 'none', '--passkey'])
 

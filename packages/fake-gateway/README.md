@@ -50,6 +50,10 @@ changes: `client.capabilities` has no `confirm_passkey`, `/api/auth/passkeys` is
 | `--passkey-base-url <url>` (repeatable, implies it)     | list base URLs instead; the opt-in for private base URLs is then off unless `--passkey-allow-private`                       |
 | `--passkey-rp <id=origin,origin>` (repeatable)          | native RPs and the `clientDataJSON.origin` values allowed for each. Default `confirm.hermie.dev=https://confirm.hermie.dev` |
 | `--no-passkey-invites`                                  | a person cannot mint their own enrolment code                                                                               |
+| `--no-passkey-self-enrol`                               | a person cannot add a passkey by signing in again (`self_enrol.enabled` off); implies the level                             |
+| `--passkey-cooling-off <seconds>`                       | a self-enrolled passkey is listed but unusable for that long (`self_enrol.cooling_off_s`); implies the level                |
+| `--passkey-accept-missing-auth-time`                    | a re-sign-in without an `auth_time` counts as fresh, marked assumed (`self_enrol.accept_missing_auth_time`)                 |
+| `--passkey-no-reauth`                                   | the sign-in provider cannot authenticate again, like Nous (`self_enrol.reason: provider_no_reauth`)                         |
 | `startFakeGateway({ passkey: true \| PasskeyOptions })` | the same in-process                                                                                                         |
 | `POST /__fake/passkey/enable`                           | the same at run time, and how settings change afterwards                                                                    |
 
@@ -67,16 +71,17 @@ with the process. Credentials, codes, registrations and receipts are in memory.
 
 ### What it serves
 
-The six routes of the real gateway, with its shapes, status codes and reasons, behind the gate:
+The seven routes of the real gateway, with its shapes, status codes and reasons, behind the gate:
 
-| Route                                     | Notes                                                                                                               |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/auth/passkeys`                  | `{v, enabled, reason, gateway_id, user: {id, handle}, rp, base_urls, user_invites, credentials}` of the caller only |
-| `POST /api/auth/passkeys/register/begin`  | `{rp_id, base_url, name}`, lives 300 s, 5 per 10 minutes per user and per address                                   |
-| `POST /api/auth/passkeys/register/finish` | attestation (`fmt` any, `none` expected) + a one-time enrolment code                                                |
-| `POST /api/auth/passkeys/stepup/begin`    | `{purpose: "invite" \| "revoke", subject?}`, lives 120 s, single use                                                |
-| `POST /api/auth/passkeys/invites`         | an `invite` step-up assertion mints a code bound to the caller (only with `user_invites`)                           |
-| `POST /api/auth/passkeys/revoke`          | a `revoke` step-up assertion for that credential                                                                    |
+| Route                                     | Notes                                                                                                                                                                  |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/auth/passkeys`                  | `{v, enabled, reason, gateway_id, user: {id, handle}, rp, base_urls, user_invites, self_enrol: {available, reason, cooling_off_s}, credentials}` of the caller only    |
+| `POST /api/auth/passkeys/reauth/begin`    | `{}` opens a grant for self-enrolment (600 s, 5 per 10 minutes per user and per address): `{grant_id, expires_at, provider, login_path?}` (see "Self-enrolment" below) |
+| `POST /api/auth/passkeys/register/begin`  | `{rp_id, base_url, name, grant_id?, use_secret?}`, lives 300 s, 5 per 10 minutes per user and per address; with a grant the answer gains `grant: {expires_at}`         |
+| `POST /api/auth/passkeys/register/finish` | attestation (`fmt` any, `none` expected) + exactly one of a one-time enrolment code and a fresh `grant_id` (the app adds `use_secret`)                                 |
+| `POST /api/auth/passkeys/stepup/begin`    | `{purpose: "invite" \| "revoke", subject?}`, lives 120 s, single use                                                                                                   |
+| `POST /api/auth/passkeys/invites`         | an `invite` step-up assertion mints a code bound to the caller (only with `user_invites`)                                                                              |
+| `POST /api/auth/passkeys/revoke`          | a `revoke` step-up assertion for that credential                                                                                                                       |
 
 Mirrored from the fork:
 
@@ -90,7 +95,10 @@ Mirrored from the fork:
   (16 KiB cap), 422 `attestation_invalid` / `assertion_invalid` with the contract's `reason`, 429
   `rate_limited` with `Retry-After`.
 - Failed enrolment codes: 5 per user and per address per 10 minutes, 20 per hour gateway-wide. A
-  duplicate credential counts as a wrong code.
+  duplicate credential counts as a wrong code, and so does a grant refused at `register/finish`.
+- Self-enrolment: 403 `self_enrol_disabled`, `provider_no_reauth`, `insecure_binding` and
+  `reauth_invalid` (`reason`: `unknown`, `not_fresh`, `spent`, `failed`; with `failed` also `failure`),
+  400 `bad_request` for both or neither of `code` and `grant_id`.
 - `passkey.changed {change, credential: {id, name, rp_id}, at}` goes to every live connection signed
   in as that user (and to nobody else) on an enrolment and on a revoke through the routes, as an event
   with `session_id: ""`.
@@ -150,15 +158,16 @@ the plugin hook `pre_confirm_request` and the audit lines.
 
 Never part of the gateway contract; they play the operator and the clock.
 
-| Call                                                                                                                            | What it does                                                                                                                                                                                                                                                                            |
-| ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST /__fake/passkey/enable {enabled?, base_urls?, rps?, allow_private?, user_invites?}`                                       | know the level, or change the operator's settings. Answers the public view. 400 for a base URL or RP the gateway would refuse                                                                                                                                                           |
-| `POST /__fake/passkey/code {user?, ttl?}`                                                                                       | an operator enrolment code (`hermes dashboard passkey invite`), optionally bound to a user; `ttl` 60 to 86400 s. Answers `{code, expires_at, user_id}`                                                                                                                                  |
-| `POST /__fake/passkey/revoke {credential_id \| user + all, announce?}`                                                          | the operator's revoke, by id prefix or for a whole user. Silent (the real CLI is another process) unless `announce: true`                                                                                                                                                               |
-| `POST /__fake/passkey/expire {request_id?, pending?, codes?, window?}`                                                          | time passing. With no flag every open `confirm` times out now (`request.cancel timeout`); `request_id` names one; `pending` ends open registrations and step-ups, `codes` the enrolment codes, `window` the no-downgrade window and the per-conversation limits                         |
-| `POST /__fake/passkey/changed {user?, change?, credential?}`                                                                    | emit `passkey.changed` to a user's connections without a change behind it                                                                                                                                                                                                               |
-| `POST /__fake/request {method: "confirm", params: {level, title?, summary, detail?}, user?, timeout_seconds?, turn_isolation?}` | raise a gated `confirm` on a profile's chat (`profile`, default `researcher`). Answers 200 `{raised, session_id, request_id, level}`, or 409 `{detail, outcome: "unavailable", reason}` when nothing was sent, 400 for text that cannot be carried. `summary` may also be called `text` |
-| `GET /__fake/state`                                                                                                             | gains `passkey`, below                                                                                                                                                                                                                                                                  |
+| Call                                                                                                                            | What it does                                                                                                                                                                                                                                                                               |
+| ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `POST /__fake/passkey/enable {enabled?, base_urls?, rps?, allow_private?, user_invites?, self_enrol?, provider_reauth?}`        | know the level, or change the operator's settings. `self_enrol` is `{enabled?, accept_missing_auth_time?, cooling_off_s?}`; `provider_reauth: false` stages a provider that cannot authenticate again. Answers the public view. 400 for a base URL, RP or setting the gateway would refuse |
+| `POST /__fake/passkey/code {user?, ttl?}`                                                                                       | an operator enrolment code (`hermes dashboard passkey invite`), optionally bound to a user; `ttl` 60 to 86400 s. Answers `{code, expires_at, user_id}`                                                                                                                                     |
+| `POST /__fake/passkey/revoke {credential_id \| user + all, announce?}`                                                          | the operator's revoke, by id prefix or for a whole user. Silent (the real CLI is another process) unless `announce: true`                                                                                                                                                                  |
+| `POST /__fake/passkey/expire {request_id?, pending?, codes?, grants?, window?}`                                                 | time passing. With no flag every open `confirm` times out now (`request.cancel timeout`); `request_id` names one; `pending` ends open registrations and step-ups, `codes` the enrolment codes, `grants` the re-authentication grants, `window` the no-downgrade window and the limits      |
+| `POST /__fake/passkey/reauth {fail?, auth_time?, user?, provider?, sticky?}`                                                    | what the next simulated re-authentication reports (see "Self-enrolment"). `{}` or `{clear: true}` goes back to a plain fresh sign-in                                                                                                                                                       |
+| `POST /__fake/passkey/changed {user?, change?, credential?}`                                                                    | emit `passkey.changed` to a user's connections without a change behind it                                                                                                                                                                                                                  |
+| `POST /__fake/request {method: "confirm", params: {level, title?, summary, detail?}, user?, timeout_seconds?, turn_isolation?}` | raise a gated `confirm` on a profile's chat (`profile`, default `researcher`). Answers 200 `{raised, session_id, request_id, level}`, or 409 `{detail, outcome: "unavailable", reason}` when nothing was sent, 400 for text that cannot be carried. `summary` may also be called `text`    |
+| `GET /__fake/state`                                                                                                             | gains `passkey`, below                                                                                                                                                                                                                                                                     |
 
 `user` names who the turn acts for: `<provider>:<user id>` (here `self-hosted:<account user id>`), an
 account's user id, or its username. Absent it is the gateway's first account; `null` is a turn nobody
@@ -166,8 +175,10 @@ signed in submitted (`no_acting_user`, or `no_identity` while nobody is signed i
 
 `GET /__fake/state` → `passkey`, absent while the gateway does not know the level: the capability
 fields (`enabled`, `reason`, `gateway_id`, `rp`), `base_urls`, `accepted_base_urls`,
-`allow_private_base_urls`, `native_rps`, `user_invites`, `credentials` (public fields, active and revoked),
-`open_codes`, `receipts` (digests and ids, never the text or a signature), `refusals` (surface, reason,
+`allow_private_base_urls`, `native_rps`, `user_invites`, `self_enrol` (the operator's settings),
+`provider_reauth`, `reauth_script` (what the next sign-in reports, or `null`), `grants` (every grant: id, user,
+provider, client, state, failure, `auth_time`, `auth_time_assumed`, times, the credential it was spent on; never a
+secret), `credentials` (public fields, active and revoked, with `usable_from`), `open_codes`, `receipts` (digests and ids, never the text or a signature), `refusals` (surface, reason,
 user, request id), `open` (requests waiting), `outcomes` (what the agent would learn: `{request_id,
 level, user_id, credential_id, outcome, method, verified, reason}`) and `windows` (conversations whose
 no-downgrade window is open). No key, code, nonce or confirmed text is in it.
@@ -176,6 +187,48 @@ no-downgrade window is open). No key, code, nonce or confirmed text is in it.
 The TypeScript handle has `gateway.passkey()` (the store and settings), `gateway.enablePasskey(options)`,
 `gateway.raiseConfirm({summary, level, user, …})` (`{kind: "unavailable", reason}` or `{kind: "open",
 id, done}` with `done` the outcome) and `gateway.requestServerSide("confirm", …)`.
+
+### Self-enrolment: adding a passkey by signing in again
+
+Contract §7.2 and §8, and the fork's `passkeys/reauth.py` and `routes.py`. A signed-in person opens a grant
+(`reauth/begin`), signs in again, and the grant that sign-in completes authorises one enrolment, with no code.
+The fake plays the identity provider, so the sign-in is **simulated**; the rules that judge it are the
+contract's (§7.2: the binding, the same person on the same provider, `auth_time >= created_at - 120`), and the
+contract's `reauth_freshness_vectors` run through the same store.
+
+- **Web** (`--auth cookie`): `reauth/begin` with a cookie sets `__Host-hermes_reauth=<secret>; Max-Age=600;
+Path=/; Secure; HttpOnly; SameSite=Lax` and answers a `login_path` (`<prefix>/auth/login?provider=self-hosted&
+reauth=<id>`, the prefix from `X-Forwarded-Prefix`). The page then navigates to it with `&next=<its path>`.
+  `GET /auth/login?reauth=` needs that cookie (a 400 page and no redirect or cookie without it; a 429 page with
+  `Retry-After` once the address has used up 200 refusals in 600 s, or one grant id 20, as in the contract;
+  a check that finds its grant is not counted, and `native/authorize` is limited the same way), completes the grant, signs the browser in as the person the sign-in
+  reported and answers 302 to `next` (a relative path only). It never shows a sign-in form: there is no
+  identity provider. The cookie is the grant's binding until `register/finish`, which clears it; `/auth/logout`
+  clears it too. `register/begin` and `register/finish` read it from the `Cookie` header, so a test that sends
+  cookies by hand adds `__Host-hermes_reauth=<secret>` to the session cookie. A browser must be on https or a
+  loopback host (`localhost`, `127.0.0.1`, `[::1]`, `*.localhost`), by its `Origin`: otherwise 403
+  `insecure_binding`.
+- **Native** (`--auth native`): `reauth/begin` with a bearer answers no cookie and no `login_path`. The app
+  opens `GET /auth/native/authorize?…&reauth=<id>` (the provider is optional: the grant names it), redeems the
+  loopback code at `POST /auth/native/token` with its verifier and gets `{reauth: {grant_id, state: "fresh" |
+"failed", reason?, expires_at, use_secret?}}`, **no tokens**; `use_secret` only when fresh, and
+  `register/begin` / `register/finish` then need it in the body. `tokenExchanges` does not move.
+- **What the sign-in reports** is scripted with `POST /__fake/passkey/reauth`: `fail` is one of
+  `provider_mismatch`, `user_mismatch`, `auth_time_missing`, `auth_not_fresh` (it sets the facts that produce
+  that failure; the store then judges them), `auth_time` (Unix seconds, `null` for none), `user` (a person the
+  gateway knows: the browser is then signed in as them, as the real gateway does for a sign-in as somebody else)
+  and `provider` override single facts, `sticky: true` keeps the script for every sign-in until `{}` clears it.
+  Unscripted, the person who opened the grant signs in again, authenticated now. With `accept_missing_auth_time`
+  a missing `auth_time` is fresh and marked assumed; an old one never is.
+- **Cooling-off** (`self_enrol.cooling_off_s` > 0): the new credential is listed with `usable_from`, is in no
+  `confirm` snapshot, cannot sign an `invite` or `revoke` step-up, and can be revoked by another credential.
+- **Switches**: `self_enrol.enabled: false` refuses `reauth/begin` and any `register/begin|finish` that names a
+  grant, also one opened before; `provider_reauth: false` refuses with `provider_no_reauth`.
+
+Not mirrored: the identity provider's own pages and the password form behind `/auth/login`, the audit
+lines (the public view's `refusals`, `grants` and `reauth_script` stand in), and a web caller and a bearer
+caller on one gateway: the fake's gate is `cookie` or `native`, so a grant opened by one kind of client cannot be
+presented by the other here (the store's rule for it is tested directly).
 
 ### The soft authenticator
 
@@ -223,9 +276,11 @@ what `GET /api/auth/passkeys` answers as `user.handle`; the gateway's `handle_ke
 
 ### Tests
 
-`src/passkey/`: `contract-vectors.test.ts` (the contract), `verifier.test.ts` (CBOR, verifier, store),
-`routes.test.ts` (the six routes), `confirm.test.ts` (capability handshake, gating, refusals, limits,
-window), `control.test.ts` (control calls, state, handle, CLI). `harness.ts` is the shared support:
+`src/passkey/`: `contract-vectors.test.ts` (the contract, the freshness table included), `verifier.test.ts`
+(CBOR, verifier, store), `routes.test.ts` (the routes), `self-enrol.test.ts` (grants, the simulated sign-in
+for web and native, enrolment with a grant, cooling-off, the contract's wire examples), `confirm.test.ts`
+(capability handshake, gating, refusals, limits, window), `control.test.ts` (control calls, state, handle,
+CLI). `harness.ts` is the shared support:
 a gateway that knows the level with two accounts, cookie and bearer sign-in, and connections with a
 ticket.
 

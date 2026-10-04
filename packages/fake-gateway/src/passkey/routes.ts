@@ -1,27 +1,33 @@
-import type { IncomingMessage, ServerResponse } from 'node:http'
+import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'node:http'
 
 import { originOf } from './base-url'
 import { b64u, b64uDecode } from './encoding'
 import { userHandle } from './challenge'
 import { type PasskeyGateway, userKey, type Identity } from './gateway'
+import { REAUTH_COOKIE, newReauthSecret, selfEnrolReason } from './reauth'
 import {
   CodeInvalid,
   CommitRefused,
   CredentialExists,
+  GrantInvalid,
   PendingInvalid,
   idOf,
   registrationOf,
-  type CredentialRecord
+  reauthSecretHash,
+  type CredentialRecord,
+  type Grant
 } from './store'
 import { ALG_ES256, verifyAssertion, verifyRegistration } from './webauthn'
 
 /**
- * The six passkey routes, with the shapes, codes and reasons of the real gateway
+ * The seven passkey routes, with the shapes, codes and reasons of the real gateway
  * (`hermes_cli/dashboard_auth/passkeys/routes.py`):
  *
  *     GET  /api/auth/passkeys                   the caller's passkey state and credentials
+ *     POST /api/auth/passkeys/reauth/begin      open a re-authentication grant for self-enrolment (600 s)
  *     POST /api/auth/passkeys/register/begin    open a registration (300 s)
  *     POST /api/auth/passkeys/register/finish   enrol a credential: attestation + a one-time enrolment code
+ *                                               or a fresh re-authentication grant
  *     POST /api/auth/passkeys/stepup/begin      open a step-up for `invite` or `revoke` (120 s, single use)
  *     POST /api/auth/passkeys/invites           mint an enrolment code for oneself, with an `invite` step-up
  *     POST /api/auth/passkeys/revoke            revoke one of one's own credentials, with a `revoke` step-up
@@ -36,7 +42,9 @@ import { ALG_ES256, verifyAssertion, verifyRegistration } from './webauthn'
  * - A cookie-authenticated write must carry an `Origin` that is the origin of one of the level's own
  *   accepted base URLs. A bearer caller (the native app) is exempt: a browser never attaches one by itself.
  * - Bodies are JSON objects of at most 16 KiB.
- * - Every enrolment-code failure is one answer, 403 `code_invalid`.
+ * - Every enrolment-code failure is one answer, 403 `code_invalid`; every grant that cannot authorise an
+ *   enrolment is 403 `reauth_invalid` with the store's reason (`unknown` for none, another user's, another
+ *   client kind's, an expired one, or one presented without its binding).
  */
 
 export const PREFIX = '/api/auth/passkeys'
@@ -58,7 +66,8 @@ class Fail extends Error {
     readonly error: string,
     readonly detail: string,
     readonly reason = '',
-    readonly retryAfter = 0
+    readonly retryAfter = 0,
+    readonly failure = ''
   ) {
     super(error)
   }
@@ -85,7 +94,12 @@ function send(res: ServerResponse, reply: Reply): void {
 
 const failReply = (fail: Fail): Reply => ({
   status: fail.status,
-  body: { error: fail.error, detail: fail.detail, ...(fail.reason ? { reason: fail.reason } : {}) },
+  body: {
+    error: fail.error,
+    detail: fail.detail,
+    ...(fail.reason ? { reason: fail.reason } : {}),
+    ...(fail.failure ? { failure: fail.failure } : {})
+  },
   headers: { ...NO_STORE, ...(fail.retryAfter ? { 'retry-after': String(fail.retryAfter) } : {}) }
 })
 
@@ -100,6 +114,7 @@ function notFound(method: string, path: string): Reply {
 
 const ROUTES: Record<string, string> = {
   '': 'GET',
+  '/reauth/begin': 'POST',
   '/register/begin': 'POST',
   '/register/finish': 'POST',
   '/stepup/begin': 'POST',
@@ -176,7 +191,8 @@ function aaguidText(aaguid: Buffer): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
 }
 
-const credentialView = (c: CredentialRecord): Record<string, unknown> => ({
+/** A credential as a client sees it; `usable_from` only while it is in its cooling-off period. */
+const credentialView = (c: CredentialRecord, now: number): Record<string, unknown> => ({
   id: idOf(c),
   name: c.name,
   rp_id: c.rpId,
@@ -186,7 +202,8 @@ const credentialView = (c: CredentialRecord): Record<string, unknown> => ({
   backup_eligible: c.backupEligible,
   backed_up: c.backedUp,
   created_via: c.createdVia,
-  transports: [...c.transports]
+  transports: [...c.transports],
+  ...(c.usableFrom !== null && c.usableFrom > now ? { usable_from: c.usableFrom } : {})
 })
 
 const credentialsByRp = (records: CredentialRecord[]): { rp_id: string; ids: string[] }[] => {
@@ -225,6 +242,11 @@ function checkRpAndBaseUrl(gw: PasskeyGateway, rpId: string, baseUrl: string): v
 interface Call extends RouteCall {
   identity: Identity
   user: string
+  headers: IncomingHttpHeaders
+  /** The grant client kind of this caller: a cookie caller is the web client, a bearer one the app. */
+  client: 'web' | 'native'
+  /** The sign-in provider of the gate's session. */
+  provider: string
 }
 
 // ── GET /api/auth/passkeys ─────────────────────────────────────────────────────────────────────
@@ -245,9 +267,197 @@ function status(gw: PasskeyGateway, call: Call): Reply {
       rp: { native: [...ctx.nativeRpIds].sort(), web: [...ctx.webRpIds].sort() },
       base_urls: [...ctx.acceptedBaseUrls],
       user_invites: gw.settings.userInvites,
-      credentials: gw.store.credentials(call.user).map(credentialView)
+      self_enrol: {
+        available: selfEnrolReason(gw) === '',
+        reason: selfEnrolReason(gw),
+        cooling_off_s: gw.settings.selfEnrol.coolingOffS
+      },
+      credentials: gw.store.credentials(call.user).map(c => credentialView(c, gw.store.now()))
     }
   }
+}
+
+// ── self-enrolment: the re-authentication grant ────────────────────────────────────────────────
+
+function refuseSelfEnrol(gw: PasskeyGateway, call: Call, requestId = ''): void {
+  const reason = selfEnrolReason(gw)
+
+  if (!reason) {
+    return
+  }
+
+  gw.note({ surface: requestId ? 'register' : 'reauth', reason, userId: call.user, requestId })
+
+  if (reason === 'disabled') {
+    throw new Fail(
+      403,
+      'self_enrol_disabled',
+      "This gateway's operator has switched off adding a passkey by signing in again; use an enrolment code."
+    )
+  }
+
+  throw new Fail(
+    403,
+    'provider_no_reauth',
+    'Your sign-in provider cannot ask you to sign in again; use an enrolment code.'
+  )
+}
+
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1'])
+
+/**
+ * Whether the browser behind a cookie call is on https (or a loopback dev host, which browsers treat as a
+ * secure context), so that it keeps a `__Host-` cookie. The Origin is the browser's own view, whatever the
+ * scheme a TLS-terminating proxy hands the gateway; a forwarded `https` counts as evidence too, unless the
+ * Origin says plain http.
+ */
+function browserOnHttps(headers: IncomingHttpHeaders): boolean {
+  const origin = String(headers.origin ?? '')
+  let url: URL | null = null
+
+  try {
+    url = new URL(origin)
+  } catch {
+    url = null
+  }
+
+  if (url?.protocol === 'https:') {
+    return true
+  }
+
+  if (url?.protocol === 'http:' && (LOOPBACK_HOSTS.has(url.hostname) || url.hostname.endsWith('.localhost'))) {
+    return true
+  }
+
+  return String(headers['x-forwarded-proto'] ?? '').toLowerCase() === 'https' && !origin.startsWith('http://')
+}
+
+/** The proxy prefix the dashboard is served under (`X-Forwarded-Prefix`), `''` for none. */
+function prefixOf(headers: IncomingHttpHeaders): string {
+  const raw = String(headers['x-forwarded-prefix'] ?? '').trim()
+
+  return raw.startsWith('/') ? raw.replace(/\/+$/u, '') : ''
+}
+
+/** One cookie out of a `Cookie` header, `''` when absent. */
+export function cookieValue(headers: IncomingHttpHeaders, name: string): string {
+  for (const part of String(headers.cookie ?? '').split(';')) {
+    const [key, ...rest] = part.trim().split('=')
+
+    if (key === name) {
+      try {
+        return decodeURIComponent(rest.join('='))
+      } catch {
+        return ''
+      }
+    }
+  }
+
+  return ''
+}
+
+const COOKIE_ATTRIBUTES = 'Path=/; Secure; HttpOnly; SameSite=Lax'
+
+/** The binding cookie of a web grant: always `__Host-`, `Secure`, `Path=/`, host-only. */
+export const reauthCookie = (secret: string): string => `${REAUTH_COOKIE}=${secret}; Max-Age=600; ${COOKIE_ATTRIBUTES}`
+
+export const clearedReauthCookie = `${REAUTH_COOKIE}=; Max-Age=0; ${COOKIE_ATTRIBUTES}`
+
+function reauthBegin(gw: PasskeyGateway, call: Call): Reply {
+  refuseSelfEnrol(gw, call)
+
+  if (call.client === 'web' && !browserOnHttps(call.headers)) {
+    // The binding cookie is always `__Host-` (Secure): a browser on plain http would drop it, and any weaker
+    // cookie could be tossed in by a sibling host. Codes still work.
+    gw.note({ surface: 'reauth', reason: 'insecure_binding', userId: call.user, requestId: '' })
+
+    throw new Fail(
+      403,
+      'insecure_binding',
+      'Adding a passkey by signing in again needs this page on https; use an enrolment code.'
+    )
+  }
+
+  const { limiters } = gw
+  const allowed =
+    !limiters.reauthBeginPerUser.exhausted(call.user) &&
+    !limiters.reauthBeginPerIp.exhausted(call.ip) &&
+    limiters.reauthBeginPerUser.check(call.user) &&
+    limiters.reauthBeginPerIp.check(call.ip)
+
+  if (!allowed) {
+    gw.note({ surface: 'reauth', reason: 'rate_limited', userId: call.user, requestId: '' })
+
+    throw new Fail(429, 'rate_limited', 'Too many attempts to add a passkey; try again later.', '', 600)
+  }
+
+  const secret = call.client === 'web' ? newReauthSecret() : null
+  const grant = gw.store.openGrant(call.user, call.provider, call.client, secret ? reauthSecretHash(secret) : null)
+  const answer: Record<string, unknown> = {
+    grant_id: grant.id,
+    expires_at: grant.expiresAt,
+    provider: call.provider
+  }
+
+  if (secret === null) {
+    return { status: 200, headers: NO_STORE, body: answer }
+  }
+
+  answer.login_path = `${prefixOf(call.headers)}/auth/login?${new URLSearchParams({ provider: call.provider, reauth: grant.id })}`
+
+  return { status: 200, headers: { ...NO_STORE, 'set-cookie': reauthCookie(secret) }, body: answer }
+}
+
+const grantIdOf = (body: Record<string, unknown>): string => string(body, 'grant_id', 1, ID_MAX)
+
+function reauthInvalid(gw: PasskeyGateway, call: Call, error: GrantInvalid, requestId: string): Fail {
+  gw.note({ surface: 'register', reason: 'reauth_invalid', userId: call.user, requestId })
+
+  return new Fail(
+    403,
+    'reauth_invalid',
+    'This sign-in cannot add a passkey; sign in again.',
+    error.reason,
+    0,
+    error.failure
+  )
+}
+
+/**
+ * The grant's use binding as this caller presents it: the browser's `__Host-hermes_reauth` cookie for a
+ * cookie caller, the `use_secret` the token route gave the app for a bearer caller (body field).
+ */
+function grantSecret(call: Call, body: Record<string, unknown>): string | null {
+  if (call.client === 'web') {
+    return cookieValue(call.headers, REAUTH_COOKIE) || null
+  }
+
+  const value = body.use_secret
+
+  if (value === undefined || value === null) {
+    return null
+  }
+
+  if (typeof value !== 'string' || value.length < 1 || value.length > ID_MAX) {
+    throw new Fail(400, 'bad_request', `use_secret must be a string of 1 to ${ID_MAX} characters.`)
+  }
+
+  return value
+}
+
+/**
+ * The caller's fresh grant, opened by this kind of client and presented with its use binding, or
+ * `GrantInvalid`. A grant opened by the other kind of client, or without its binding, is `unknown`: the same
+ * answer as another user's.
+ */
+function usableGrant(gw: PasskeyGateway, call: Call, grantId: string, secret: string | null): Grant {
+  const grant = gw.store.freshGrant(grantId, { userId: call.user, secret })
+
+  if (grant.client !== call.client) {
+    throw new GrantInvalid('unknown')
+  }
+
+  return grant
 }
 
 // ── registration ───────────────────────────────────────────────────────────────────────────────
@@ -258,6 +468,24 @@ function registerBegin(gw: PasskeyGateway, call: Call, body: Record<string, unkn
   const name = credentialName(body)
 
   checkRpAndBaseUrl(gw, rpId, baseUrl)
+
+  let grant: Grant | undefined
+
+  if (body.grant_id !== undefined && body.grant_id !== null) {
+    const grantId = grantIdOf(body)
+
+    refuseSelfEnrol(gw, call, grantId.slice(0, 8))
+
+    try {
+      grant = usableGrant(gw, call, grantId, grantSecret(call, body))
+    } catch (error) {
+      if (error instanceof GrantInvalid) {
+        throw reauthInvalid(gw, call, error, grantId.slice(0, 8))
+      }
+
+      throw error
+    }
+  }
 
   const { limiters } = gw
   const allowed =
@@ -297,7 +525,8 @@ function registerBegin(gw: PasskeyGateway, call: Call, body: Record<string, unkn
       exclude_credentials: exclude,
       pub_key_cred_params: [{ type: 'public-key', alg: ALG_ES256 }],
       user_verification: 'required',
-      attestation: 'none'
+      attestation: 'none',
+      ...(grant ? { grant: { expires_at: grant.expiresAt } } : {})
     }
   }
 }
@@ -327,9 +556,28 @@ function recordCodeFailure(gw: PasskeyGateway, call: Call): void {
 
 function registerFinish(gw: PasskeyGateway, call: Call, body: Record<string, unknown>): Reply {
   const registrationId = string(body, 'registration_id', 1, ID_MAX)
+  const code = body.code ?? undefined
+  const hasGrant = body.grant_id !== undefined && body.grant_id !== null
 
-  if (typeof body.code !== 'string') {
+  if ((code === undefined) === !hasGrant) {
+    throw new Fail(
+      400,
+      'bad_request',
+      'Give exactly one of code (an enrolment code) or grant_id (a sign-in made again to add this passkey).'
+    )
+  }
+
+  if (code !== undefined && typeof code !== 'string') {
     throw new Fail(400, 'bad_request', 'code must be a string (the enrolment code).')
+  }
+
+  let grantId: string | undefined
+  let secret: string | null = null
+
+  if (hasGrant) {
+    grantId = grantIdOf(body)
+    refuseSelfEnrol(gw, call, registrationId)
+    secret = grantSecret(call, body)
   }
 
   refuseIfCodeFailuresExhausted(gw, call, registrationId)
@@ -355,12 +603,40 @@ function registerFinish(gw: PasskeyGateway, call: Call, body: Record<string, unk
   let record: CredentialRecord
 
   try {
-    record = gw.store.addCredential({ userId: call.user, code: body.code, registration: verdict, createdIp: call.ip })
+    if (grantId !== undefined) {
+      // The client kind; the store checks the rest (the binding included) again as it spends the grant.
+      usableGrant(gw, call, grantId, secret)
+
+      const cooling = gw.settings.selfEnrol.coolingOffS
+
+      record = gw.store.addCredential({
+        userId: call.user,
+        registration: verdict,
+        grantId,
+        grantSecret: secret,
+        usableFrom: cooling > 0 ? gw.store.now() + cooling : null,
+        createdIp: call.ip
+      })
+    } else {
+      record = gw.store.addCredential({
+        userId: call.user,
+        code: code as string,
+        registration: verdict,
+        createdIp: call.ip
+      })
+    }
   } catch (error) {
     if (error instanceof PendingInvalid) {
       gw.note({ surface: 'register', reason: 'expired', userId: call.user, requestId: registrationId })
 
       throw new Fail(410, 'expired', 'The registration is unknown, used or expired; start again.')
+    }
+
+    if (error instanceof GrantInvalid) {
+      // Counted like a wrong code: the same limiters bound how often anyone may try an authority.
+      recordCodeFailure(gw, call)
+
+      throw reauthInvalid(gw, call, error, registrationId)
     }
 
     if (error instanceof CodeInvalid) {
@@ -371,7 +647,7 @@ function registerFinish(gw: PasskeyGateway, call: Call, body: Record<string, unk
     }
 
     if (error instanceof CredentialExists) {
-      // Counted like a wrong code: the store checks the code before the id, so a caller holding one valid
+      // Counted like a wrong code: the store checks the authority before the id, so a caller holding one valid
       // code could otherwise probe which credential ids exist for as long as the registration lives.
       recordCodeFailure(gw, call)
       gw.note({ surface: 'register', reason: 'credential_exists', userId: call.user, requestId: registrationId })
@@ -384,7 +660,13 @@ function registerFinish(gw: PasskeyGateway, call: Call, body: Record<string, unk
 
   gw.announce(call.user, 'added', record)
 
-  return { status: 200, headers: NO_STORE, body: { ok: true, credential: credentialView(record) } }
+  return {
+    status: 200,
+    // The grant is spent: a web caller's binding is done.
+    headers:
+      grantId !== undefined && call.client === 'web' ? { ...NO_STORE, 'set-cookie': clearedReauthCookie } : NO_STORE,
+    body: { ok: true, credential: credentialView(record, gw.store.now()) }
+  }
 }
 
 // ── step-ups ───────────────────────────────────────────────────────────────────────────────────
@@ -396,9 +678,11 @@ function stepupBegin(gw: PasskeyGateway, call: Call, body: Record<string, unknow
     throw new Fail(400, 'bad_request', 'purpose must be "invite" or "revoke".')
   }
 
-  const active = gw.store.credentials(call.user)
+  // The signers: credentials that may sign now. One in its cooling-off period cannot (it would mint a code for
+  // an immediately usable second passkey), but it can be the subject of a revoke.
+  const signers = gw.store.credentials(call.user, false, true)
 
-  if (!active.length) {
+  if (!signers.length) {
     throw new Fail(400, 'bad_request', 'You have no passkey on this gateway.', 'not_enrolled')
   }
 
@@ -420,7 +704,7 @@ function stepupBegin(gw: PasskeyGateway, call: Call, body: Record<string, unknow
     subject = string(body, 'subject', 1, 1400)
 
     // Only the caller's own active credentials; another user's id gets the same answer as an unknown one.
-    if (!active.some(c => idOf(c) === subject)) {
+    if (!gw.store.credentials(call.user).some(c => idOf(c) === subject)) {
       throw new Fail(400, 'bad_request', 'subject is not one of your passkeys.', 'unknown_credential')
     }
   }
@@ -442,7 +726,7 @@ function stepupBegin(gw: PasskeyGateway, call: Call, body: Record<string, unknow
       subject,
       nonce: b64u(pending.nonce),
       expires_at: pending.expiresAt,
-      credentials: credentialsByRp(active)
+      credentials: credentialsByRp(signers)
     }
   }
 }
@@ -632,7 +916,7 @@ export async function handlePasskeyRoute(
 
     if (write && call.auth === 'cookie' && !accepted.has(origin)) {
       gw.note({
-        surface: suffix.startsWith('/register') ? 'register' : 'stepup',
+        surface: suffix.startsWith('/register') ? 'register' : suffix.startsWith('/reauth') ? 'reauth' : 'stepup',
         reason: 'origin_not_listed',
         userId: userKey(call.identity),
         requestId: ''
@@ -646,9 +930,17 @@ export async function handlePasskeyRoute(
     }
 
     const body = write ? await readBody(req) : {}
-    const scoped: Call = { ...call, identity: call.identity, user: userKey(call.identity) }
+    const scoped: Call = {
+      ...call,
+      identity: call.identity,
+      user: userKey(call.identity),
+      headers: req.headers,
+      client: call.auth === 'cookie' ? 'web' : 'native',
+      provider: call.identity.provider
+    }
     const handler: Record<string, (g: PasskeyGateway, c: Call, b: Record<string, unknown>) => Reply> = {
       '': status,
+      '/reauth/begin': reauthBegin,
       '/register/begin': registerBegin,
       '/register/finish': registerFinish,
       '/stepup/begin': stepupBegin,

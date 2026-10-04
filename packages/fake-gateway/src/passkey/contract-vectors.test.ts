@@ -20,6 +20,7 @@ import {
   userHandle
 } from './challenge'
 import { b64u, b64uDecode } from './encoding'
+import { GRANT_FAILURES, PasskeyStore, reauthSecretHash } from './store'
 import {
   ASSERTION_REASONS,
   GatewayContext,
@@ -215,5 +216,51 @@ describe('registration vectors (§11)', () => {
         expect(verdict).toEqual({ ok: false, reason: vector.expect.reason })
       }
     })
+  }
+})
+
+describe('fresh-authentication grants (§7.2)', () => {
+  it('lists the failures in the order the store judges them', () => {
+    expect(vectors.reauth_failure_order).toEqual(GRANT_FAILURES)
+    expect(new Set((vectors.reauth_freshness_vectors as Json[]).map(v => v.expect.failure ?? null))).toEqual(
+      new Set([null, ...GRANT_FAILURES])
+    )
+  })
+
+  for (const client of ['web', 'native'] as const) {
+    for (const vector of vectors.reauth_freshness_vectors as Json[]) {
+      it(`${client}: ${vector.name}`, () => {
+        const { grant, session } = vector
+        const store = new PasskeyStore({ clock: () => grant.created_at * 1000 })
+        const secret = 'cookie-secret'
+        const opened = store.openGrant(
+          grant.user_id,
+          grant.provider,
+          client,
+          client === 'web' ? reauthSecretHash(secret) : null
+        )
+
+        expect(opened.createdAt).toBe(grant.created_at)
+        expect(opened.expiresAt).toBe(grant.created_at + 600)
+
+        const done = store.completeGrant(opened.id, {
+          sessionUser: session.user_id,
+          sessionProvider: session.provider,
+          authTime: session.auth_time,
+          client,
+          secret: client === 'web' ? secret : null,
+          useSecretHash: client === 'native' ? reauthSecretHash('use') : null,
+          acceptMissing: vector.accept_missing_auth_time
+        })
+
+        expect(done.state).toBe(vector.expect.state)
+
+        if (vector.expect.state === 'failed') {
+          expect(done.failure).toBe(vector.expect.failure)
+        } else {
+          expect(done.authTimeAssumed).toBe(vector.expect.auth_time_assumed)
+        }
+      })
+    }
   }
 })

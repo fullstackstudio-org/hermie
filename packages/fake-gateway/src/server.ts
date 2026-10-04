@@ -21,7 +21,19 @@ import {
   SettingsError,
   userKey
 } from './passkey/gateway'
-import { handlePasskeyRoute, PREFIX as PASSKEY_PREFIX } from './passkey/routes'
+import {
+  EXPIRED_TEXT as REAUTH_EXPIRED_TEXT,
+  PROVIDER as REAUTH_PROVIDER,
+  REAUTH_COOKIE,
+  complete as completeReauth,
+  grantForLogin as reauthGrantForLogin,
+  nativeGrantForLogin as reauthNativeGrantForLogin,
+  outcomeBody as reauthOutcomeBody,
+  beginAttempt as reauthBeginAttempt,
+  type SignInScript
+} from './passkey/reauth'
+import { clearedReauthCookie, cookieValue, handlePasskeyRoute, PREFIX as PASSKEY_PREFIX } from './passkey/routes'
+import { GRANT_FAILURES, type GrantFailure } from './passkey/store'
 import { InteractiveGate, type RaisedInteractive } from './interactive-gate'
 import { defaultParams, INTERACTIVE_METHODS, isInteractiveMethod, type InteractiveMethod } from './interactive'
 import { grantView as mcpGrantView, handleMcpRoute, PREFIX as MCP_PREFIX } from './mcp/routes'
@@ -430,7 +442,7 @@ export interface FakeGatewayOptions {
    * behaviour this fake always had (any level, any answer).
    *
    * `true` or an object: it does, with the real gateway's rules for `confirm` (gated levels, per-level
-   * method sets, 4033 / 4034, five refusals, no downgrade) and the six passkey routes. Needs a gated
+   * method sets, 4033 / 4034, five refusals, no downgrade) and the seven passkey routes. Needs a gated
    * `auth` (`cookie` or `native`): in `none` and `token` mode nobody is signed in, and the level answers
    * `no_identity`. The base URL defaults to the gateway's own address, which is private, so the operator's
    * opt-in is on unless `baseUrls` is given. `POST /__fake/passkey/enable` does the same at run time.
@@ -3245,13 +3257,21 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
   const version = options.version ?? '0.21.3-fake'
 
   const tickets = new Map<string, { expiresAt: number; userId: string; provider: string; identity?: Identity }>()
-  const codes = new Map<string, { challenge: string; provider: string }>()
+  /** Issued loopback codes; `reauth` is the re-authentication grant a code completes instead of signing in. */
+  const codes = new Map<string, { challenge: string; provider: string; reauth?: string }>()
   const stagedIdp = options.idp === 'staged'
   const stagedTotpCode = options.stagedTotpCode ?? '246810'
   /** Staged provider: pending native sign-ins by broker id, as `native_flow.register_pending` keeps them. */
   const brokers = new Map<
     string,
-    { challenge: string; provider: string; redirectUri: string; clientState: string; idpState: string }
+    {
+      challenge: string
+      provider: string
+      redirectUri: string
+      clientState: string
+      idpState: string
+      reauth?: string
+    }
   >()
   /** Staged provider: authorization requests by id, each with the state and redirect it echoes. */
   const idpRequests = new Map<string, { state: string; redirectUri: string }>()
@@ -4067,6 +4087,15 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     }
 
     if (state.auth === 'cookie' && path === '/auth/login') {
+      const reauthId = url.searchParams.get('reauth') ?? ''
+
+      if (reauthId) {
+        // A sign-in made again to add a passkey (contract §7.2): the fake plays the identity provider.
+        handleWebReauthLogin(req, res, url, reauthId)
+
+        return
+      }
+
       // Upstream redirects a password provider to its own /login page and an
       // OAuth provider to the identity provider. The fake has no identity
       // provider, so both land on /login.
@@ -4104,7 +4133,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       sessionCookies.delete(cookieOf(req, SESSION_COOKIE))
       res.writeHead(302, {
         location: '/login',
-        'set-cookie': `${SESSION_COOKIE}=; Max-Age=0; HttpOnly; SameSite=Lax; Path=/`
+        'set-cookie': [`${SESSION_COOKIE}=; Max-Age=0; HttpOnly; SameSite=Lax; Path=/`, clearedReauthCookie]
       })
       res.end()
 
@@ -4180,7 +4209,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     }
 
     if (path === '/auth/native/authorize') {
-      handleAuthorize(url, res)
+      handleAuthorize(req, url, res)
 
       return
     }
@@ -4202,6 +4231,18 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
       if (!issued || issued.challenge !== s256(verifier)) {
         json(res, 400, { detail: 'Invalid or expired authorization code.' })
+
+        return
+      }
+
+      if (issued.reauth) {
+        // A re-authentication code (contract §8): the grant is completed, nothing is signed in, and the app's own
+        // token set is untouched. The answer carries the grant's state and, when fresh, its one-time use secret.
+        json(res, 200, {
+          reauth: passkey
+            ? reauthOutcomeBody(completeReauth(passkey, issued.reauth, { client: 'native', secret: null }))
+            : { grant_id: issued.reauth, state: 'failed', expires_at: 0, reason: 'unknown' }
+        })
 
         return
       }
@@ -4728,7 +4769,9 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
             ...(body.base_urls === undefined ? {} : { baseUrls: body.base_urls as string[] }),
             ...(body.rps === undefined ? {} : { nativeRps: body.rps as Record<string, string[]> }),
             ...(typeof body.allow_private === 'boolean' ? { allowPrivateBaseUrls: body.allow_private } : {}),
-            ...(typeof body.user_invites === 'boolean' ? { userInvites: body.user_invites } : {})
+            ...(typeof body.user_invites === 'boolean' ? { userInvites: body.user_invites } : {}),
+            ...(typeof body.provider_reauth === 'boolean' ? { providerReauth: body.provider_reauth } : {}),
+            ...(body.self_enrol === undefined ? {} : { selfEnrol: selfEnrolOptions(body.self_enrol) })
           })
 
           json(res, 200, passkeyView() ?? { enabled: gateway.settings.enabled })
@@ -4804,12 +4847,36 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         return
       }
 
+      if (action === 'reauth') {
+        // What the next simulated re-authentication reports (contract §7.2): the provider is the fake, so a test
+        // says what it saw. `{}` or `clear: true` goes back to a plain fresh sign-in of the grant's own person.
+        const script = scriptOf(body)
+
+        if (typeof script === 'string') {
+          json(res, 400, { detail: script })
+
+          return
+        }
+
+        passkey.signInScript = script
+
+        json(res, 200, { script: scriptView(script) })
+
+        return
+      }
+
       if (action === 'expire') {
         // Time passing. With no flag: every open `confirm` times out now (`request.cancel timeout`);
         // `request_id` names one. `pending` ends the open registrations and step-ups, `codes` the
-        // enrolment codes, `window` the no-downgrade window and the per-conversation limits.
-        const flags = { pending: body.pending === true, codes: body.codes === true, window: body.window === true }
-        const any = flags.pending || flags.codes || flags.window
+        // enrolment codes, `grants` the re-authentication grants, `window` the no-downgrade window and the
+        // per-conversation limits.
+        const flags = {
+          pending: body.pending === true,
+          codes: body.codes === true,
+          grants: body.grants === true,
+          window: body.window === true
+        }
+        const any = flags.pending || flags.codes || flags.grants || flags.window
         const answer: Record<string, number | boolean> = {}
 
         if (typeof body.request_id === 'string' || !any) {
@@ -4822,6 +4889,10 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
         if (flags.codes) {
           answer.codes = passkey.store.expireCodes()
+        }
+
+        if (flags.grants) {
+          answer.grants = passkey.store.expireGrants()
         }
 
         if (flags.window) {
@@ -5572,7 +5643,11 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       const gatewayCode = `code-${randomUUID()}`
       const target = new URL(pending.redirectUri)
 
-      codes.set(gatewayCode, { challenge: pending.challenge, provider: pending.provider })
+      codes.set(gatewayCode, {
+        challenge: pending.challenge,
+        provider: pending.provider,
+        ...(pending.reauth ? { reauth: pending.reauth } : {})
+      })
       target.searchParams.set('code', gatewayCode)
       target.searchParams.set('state', pending.clientState)
       redirect(target.toString(), [stagedCookie('hermes_session_pkce', '', { path: '/', maxAge: 0 })], 302)
@@ -5583,12 +5658,90 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     json(res, 404, { detail: `No route for ${method} ${path}` })
   }
 
-  function handleAuthorize(url: URL, res: ServerResponse): void {
+  /** A person-facing refusal of a sign-in that carries a `reauth` the gateway will not start: a page, never a redirect. */
+  function reauthPage(res: ServerResponse, status: number, text: string, retryAfter = 0): void {
+    res.writeHead(status, {
+      'content-type': 'text/html; charset=utf-8',
+      'cache-control': 'no-store',
+      ...(retryAfter ? { 'retry-after': String(retryAfter) } : {})
+    })
+    res.end(
+      `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Passkey set-up</title></head><body><main><p>${escapeHtml(text)}</p></main></body></html>`
+    )
+  }
+
+  /**
+   * `GET /auth/login?provider=…&reauth=<grant>&next=…` from the web client: the check runs before anything is
+   * redirected or set (the grant must be open, unexpired, for this provider and bound to this browser's
+   * `__Host-hermes_reauth` cookie), then the provider's re-authentication is *simulated*: the sign-in comes
+   * straight back as the person the script says (the grant's own person unless it says otherwise), the grant is
+   * completed with it, the browser is signed in as that person (a failed grant never undoes a sign-in) and sent
+   * to `next`. The binding cookie is left alone: it is the grant's use binding until `register/finish`.
+   */
+  function handleWebReauthLogin(req: IncomingMessage, res: ServerResponse, url: URL, grantId: string): void {
+    const provider = url.searchParams.get('provider') ?? ''
+    const ip = req.socket.remoteAddress ?? ''
+
+    if (provider !== REAUTH_PROVIDER) {
+      json(res, 404, { detail: `Unknown provider: '${provider}'` })
+
+      return
+    }
+
+    if (!passkey) {
+      reauthPage(res, 400, REAUTH_EXPIRED_TEXT)
+
+      return
+    }
+
+    // Reserved before anything is read; a check that finds the grant gives its slots back.
+    const attempt = reauthBeginAttempt(passkey, ip, grantId)
+
+    if (!attempt.allowed) {
+      reauthPage(res, 429, 'Too many attempts. Try again shortly.', attempt.retryAfter)
+
+      return
+    }
+
+    const secret = cookieValue(req.headers, REAUTH_COOKIE) || null
+    const grant = reauthGrantForLogin(passkey, { grantId, provider, client: 'web', secret })
+
+    if (!grant) {
+      reauthPage(res, 400, REAUTH_EXPIRED_TEXT)
+
+      return
+    }
+
+    attempt.succeeded()
+
+    const outcome = completeReauth(passkey, grantId, { client: 'web', secret })
+    // Whom the browser is signed in as: the person the sign-in reported, when the gateway knows them, else the
+    // grant's own person.
+    const account =
+      accounts.find(row => `${REAUTH_PROVIDER}:${row.userId}` === outcome.facts?.user) ??
+      accounts.find(row => `${REAUTH_PROVIDER}:${row.userId}` === grant.userId)
+
+    const next = url.searchParams.get('next') ?? '/'
+    const headers: Record<string, string> = { location: next.startsWith('/') && !next.startsWith('//') ? next : '/' }
+
+    if (account) {
+      const value = `sess-${randomUUID()}`
+
+      sessionCookies.set(value, account)
+      headers['set-cookie'] = `${SESSION_COOKIE}=${value}; HttpOnly; SameSite=Lax; Path=/`
+    }
+
+    res.writeHead(302, headers)
+    res.end()
+  }
+
+  function handleAuthorize(req: IncomingMessage, url: URL, res: ServerResponse): void {
     const challenge = url.searchParams.get('code_challenge') ?? ''
     const method = url.searchParams.get('code_challenge_method') ?? ''
     const redirectUri = url.searchParams.get('redirect_uri') ?? ''
     const clientState = url.searchParams.get('state') ?? ''
     const provider = url.searchParams.get('provider') || 'self-hosted'
+    const reauthId = url.searchParams.get('reauth') ?? ''
 
     if (method.toUpperCase() !== 'S256' || !challenge) {
       json(res, 400, { detail: 'code_challenge_method must be S256' })
@@ -5602,12 +5755,50 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       return
     }
 
+    if (reauthId) {
+      // A sign-in made again to add a passkey: the grant is checked before any pending authorization or redirect.
+      const ip = req.socket.remoteAddress ?? ''
+      const named = url.searchParams.get('provider') ?? ''
+
+      if (named && named !== REAUTH_PROVIDER) {
+        json(res, 404, { detail: `Unknown provider: '${named}'` })
+
+        return
+      }
+
+      if (!passkey) {
+        reauthPage(res, 400, REAUTH_EXPIRED_TEXT)
+
+        return
+      }
+
+      const attempt = reauthBeginAttempt(passkey, ip, reauthId)
+
+      if (!attempt.allowed) {
+        reauthPage(res, 429, 'Too many attempts. Try again shortly.', attempt.retryAfter)
+
+        return
+      }
+
+      const grant = named
+        ? reauthGrantForLogin(passkey, { grantId: reauthId, provider: named, client: 'native', secret: null })
+        : reauthNativeGrantForLogin(passkey, reauthId)
+
+      if (!grant) {
+        reauthPage(res, 400, REAUTH_EXPIRED_TEXT)
+
+        return
+      }
+
+      attempt.succeeded()
+    }
+
     const redirect = () => {
       const code = `code-${randomUUID()}`
       // The fake gateway is its own identity provider: it stores the challenge
       // and checks the verifier against it at the token endpoint, like the real
       // one does.
-      codes.set(code, { challenge, provider })
+      codes.set(code, { challenge, provider, ...(reauthId ? { reauth: reauthId } : {}) })
       const target = new URL(redirectUri)
       target.searchParams.set('code', code)
       target.searchParams.set('state', clientState)
@@ -5621,7 +5812,14 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       const broker = randomUUID()
       const idpState = randomUUID()
 
-      brokers.set(broker, { challenge, provider, redirectUri, clientState, idpState })
+      brokers.set(broker, {
+        challenge,
+        provider,
+        redirectUri,
+        clientState,
+        idpState,
+        ...(reauthId ? { reauth: reauthId } : {})
+      })
 
       const target = new URL('/__idp/authorize', 'http://placeholder')
       target.searchParams.set('state', idpState)
@@ -10184,6 +10382,87 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
     return mcp
   }
 
+  /** `self_enrol` of a control body (`{enabled?, accept_missing_auth_time?, cooling_off_s?}`) as the options. */
+  function selfEnrolOptions(value: unknown): NonNullable<PasskeyOptions['selfEnrol']> {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+      throw new SettingsError('self_enrol must be an object')
+    }
+
+    const raw = value as Record<string, unknown>
+
+    return {
+      ...(raw.enabled === undefined ? {} : { enabled: raw.enabled as boolean }),
+      ...(raw.accept_missing_auth_time === undefined
+        ? {}
+        : { acceptMissingAuthTime: raw.accept_missing_auth_time as boolean }),
+      ...(raw.cooling_off_s === undefined ? {} : { coolingOffS: raw.cooling_off_s as number })
+    }
+  }
+
+  /**
+   * The script a `POST /__fake/passkey/reauth` body asks for, `null` to clear it, or the message of a 400:
+   * `{fail?, auth_time?, user?, provider?, sticky?}`.
+   */
+  function scriptOf(body: Record<string, unknown>): SignInScript | null | string {
+    const keys = Object.keys(body)
+
+    if (body.clear === true || keys.length === 0) {
+      return null
+    }
+
+    const script: SignInScript = { sticky: body.sticky === true }
+
+    if (body.fail !== undefined) {
+      if (typeof body.fail !== 'string' || !(GRANT_FAILURES as readonly string[]).includes(body.fail)) {
+        return `fail is one of ${GRANT_FAILURES.join(', ')}`
+      }
+
+      script.fail = body.fail as GrantFailure
+    }
+
+    if ('auth_time' in body) {
+      const time = body.auth_time
+
+      if (time !== null && (typeof time !== 'number' || !Number.isInteger(time) || time < 0)) {
+        return 'auth_time is a whole number of Unix seconds, or null for a provider that does not say'
+      }
+
+      script.authTime = time as number | null
+    }
+
+    if (body.user !== undefined) {
+      const user = resolveUser(body.user)
+
+      if (typeof user !== 'string') {
+        return 'user is <provider>:<id>, an account’s user id or its username'
+      }
+
+      script.user = user
+    }
+
+    if (body.provider !== undefined) {
+      if (typeof body.provider !== 'string' || !body.provider) {
+        return 'provider is a provider name'
+      }
+
+      script.provider = body.provider
+    }
+
+    return script
+  }
+
+  function scriptView(script: SignInScript | null): Record<string, unknown> | null {
+    return script
+      ? {
+          ...(script.fail ? { fail: script.fail } : {}),
+          ...(script.authTime === undefined ? {} : { auth_time: script.authTime }),
+          ...(script.user ? { user: script.user } : {}),
+          ...(script.provider ? { provider: script.provider } : {}),
+          sticky: script.sticky
+        }
+      : null
+  }
+
   /** The user an operator call names: `<provider>:<id>`, an account's user id, or its username. */
   function resolveUser(value: unknown): string | null | undefined {
     if (value === null) {
@@ -10255,6 +10534,28 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       allow_private_base_urls: passkey.settings.allowPrivateBaseUrls,
       native_rps: passkey.settings.nativeRps,
       user_invites: passkey.settings.userInvites,
+      self_enrol: {
+        enabled: passkey.settings.selfEnrol.enabled,
+        accept_missing_auth_time: passkey.settings.selfEnrol.acceptMissingAuthTime,
+        cooling_off_s: passkey.settings.selfEnrol.coolingOffS
+      },
+      provider_reauth: passkey.settings.providerReauth,
+      reauth_script: scriptView(passkey.signInScript),
+      grants: passkey.store.grants().map(g => ({
+        id: g.id,
+        user_id: g.userId,
+        provider: g.provider,
+        client: g.client,
+        state: g.state,
+        failure: g.failure,
+        auth_time: g.authTime,
+        auth_time_assumed: g.authTimeAssumed,
+        created_at: g.createdAt,
+        expires_at: g.expiresAt,
+        completed_at: g.completedAt,
+        spent_at: g.spentAt,
+        credential_id: g.credentialRow === null ? null : idOfRow(g.credentialRow)
+      })),
       credentials: credentials.map(c => ({
         id: b64u(c.credentialId),
         user_id: c.userId,
@@ -10268,7 +10569,8 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         created_at: c.createdAt,
         last_used_at: c.lastUsedAt,
         revoked_at: c.revokedAt,
-        revoked_by: c.revokedBy
+        revoked_by: c.revokedBy,
+        usable_from: c.usableFrom
       })),
       open_codes: passkey.store.openCodes(),
       receipts: passkey.store.receipts().map(r => ({

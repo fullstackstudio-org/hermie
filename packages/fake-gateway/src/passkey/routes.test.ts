@@ -1,5 +1,6 @@
 /**
- * The six passkey routes against the running fake, end to end, with the software authenticator.
+ * The six original passkey routes against the running fake, end to end, with the software authenticator
+ * (`self-enrol.test.ts` covers `reauth/begin` and enrolment with a grant).
  *
  * What is pinned is what the real gateway's routes pin
  * (`tests/hermes_cli/test_passkey_routes.py`): 404 for every route while the level is off; nothing is

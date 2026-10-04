@@ -1,6 +1,7 @@
 import { NotABaseUrl, hasPathPrefix, serialiseBaseUrl } from './base-url'
 import { b64u } from './encoding'
 import { PasskeyStore, idOf, type CredentialRecord, type PasskeyStoreOptions } from './store'
+import type { SignInScript } from './reauth'
 import { GatewayContext } from './webauthn'
 
 /**
@@ -29,6 +30,18 @@ export interface Identity {
 export const userKey = (identity: Pick<Identity, 'provider' | 'userId'>): string =>
   `${identity.provider}:${identity.userId}`
 
+/** `confirm.passkey.self_enrol` (contract §7.2): a signed-in person adds a passkey by signing in again. */
+export interface SelfEnrolSettings {
+  enabled: boolean
+  /** Count a re-sign-in as fresh when the provider does not say when it happened (marked as assumed). */
+  acceptMissingAuthTime: boolean
+  /** > 0: a self-enrolled passkey is listed but not usable for that many seconds. */
+  coolingOffS: number
+}
+
+/** The longest cooling-off the real gateway reads (seven days); anything else switches self-enrolment off there. */
+export const COOLING_OFF_MAX_S = 7 * 24 * 60 * 60
+
 export interface PasskeySettings {
   enabled: boolean
   /** Serialised (contract §3); the only base URLs a challenge may name. */
@@ -36,6 +49,12 @@ export interface PasskeySettings {
   nativeRps: Record<string, string[]>
   userInvites: boolean
   allowPrivateBaseUrls: boolean
+  selfEnrol: SelfEnrolSettings
+  /**
+   * Whether the sign-in provider can be told to authenticate the person again and say when (contract §7.2).
+   * `false` stages a provider like Nous: self-enrolment is `unavailable (provider_no_reauth)`, codes remain.
+   */
+  providerReauth: boolean
 }
 
 /** What a caller (`startFakeGateway`, `POST /__fake/passkey/enable`, the CLI) may set. All optional. */
@@ -50,6 +69,10 @@ export interface PasskeyOptions {
   allowPrivateBaseUrls?: boolean
   /** May a person mint their own enrolment code with a passkey (`user_invites`). Default true. */
   userInvites?: boolean
+  /** `confirm.passkey.self_enrol`: on by default, no cooling-off, a missing `auth_time` refused. */
+  selfEnrol?: Partial<SelfEnrolSettings>
+  /** Can the sign-in provider authenticate the person again? Default true; `false` stages a Nous-like provider. */
+  providerReauth?: boolean
 }
 
 /** A body that is not a usable `enable` request; `message` says which field. */
@@ -67,13 +90,20 @@ export function applySettings(
   ownUrl: () => string
 ): PasskeySettings {
   const next: PasskeySettings = current
-    ? { ...current, baseUrls: [...current.baseUrls], nativeRps: { ...current.nativeRps } }
+    ? {
+        ...current,
+        baseUrls: [...current.baseUrls],
+        nativeRps: { ...current.nativeRps },
+        selfEnrol: { ...current.selfEnrol }
+      }
     : {
         enabled: true,
         baseUrls: [],
         nativeRps: Object.fromEntries(Object.entries(DEFAULT_NATIVE_RPS).map(([rp, origins]) => [rp, [...origins]])),
         userInvites: true,
-        allowPrivateBaseUrls: false
+        allowPrivateBaseUrls: false,
+        selfEnrol: { enabled: true, acceptMissingAuthTime: false, coolingOffS: 0 },
+        providerReauth: true
       }
 
   if (options.enabled !== undefined) {
@@ -152,6 +182,47 @@ export function applySettings(
     next.userInvites = options.userInvites === true
   }
 
+  if (options.providerReauth !== undefined) {
+    next.providerReauth = options.providerReauth === true
+  }
+
+  if (options.selfEnrol !== undefined) {
+    const { enabled, acceptMissingAuthTime, coolingOffS } = options.selfEnrol as Record<string, unknown>
+
+    next.selfEnrol = { ...next.selfEnrol }
+
+    if (enabled !== undefined) {
+      if (typeof enabled !== 'boolean') {
+        throw new SettingsError('self_enrol.enabled must be true or false')
+      }
+
+      next.selfEnrol.enabled = enabled
+    }
+
+    if (acceptMissingAuthTime !== undefined) {
+      if (typeof acceptMissingAuthTime !== 'boolean') {
+        throw new SettingsError('self_enrol.accept_missing_auth_time must be true or false')
+      }
+
+      next.selfEnrol.acceptMissingAuthTime = acceptMissingAuthTime
+    }
+
+    if (coolingOffS !== undefined) {
+      if (
+        typeof coolingOffS !== 'number' ||
+        !Number.isInteger(coolingOffS) ||
+        coolingOffS < 0 ||
+        coolingOffS > COOLING_OFF_MAX_S
+      ) {
+        throw new SettingsError(
+          `self_enrol.cooling_off_s must be a whole number of seconds from 0 to ${COOLING_OFF_MAX_S}`
+        )
+      }
+
+      next.selfEnrol.coolingOffS = coolingOffS
+    }
+  }
+
   if (options.allowPrivateBaseUrls !== undefined) {
     next.allowPrivateBaseUrls = options.allowPrivateBaseUrls === true
   } else if (!current && options.baseUrls === undefined) {
@@ -196,6 +267,47 @@ export class SlidingWindowLimiter {
     return true
   }
 
+  /**
+   * Check and record in one step: the stamp of the event recorded for `key`, or `null` when its budget is
+   * used up (nothing recorded). A caller that turns out not to need the slot gives it back with `release`.
+   */
+  reserve(key: string): number | null {
+    const events = this.live(key)
+
+    if (events.length >= this.maxEvents) {
+      return null
+    }
+
+    const stamp = this.clock()
+
+    events.push(stamp)
+
+    return stamp
+  }
+
+  /** Give back the slot `reserve` recorded as `stamp` for `key` (nothing when it is gone). */
+  release(key: string, stamp: number): void {
+    const events = this.live(key)
+    const at = events.indexOf(stamp)
+
+    if (at >= 0) {
+      events.splice(at, 1)
+    }
+  }
+
+  /** Whole seconds until `key` has budget again (0 when it has some now). */
+  retryAfter(key: string): number {
+    const events = this.live(key)
+
+    if (events.length < this.maxEvents) {
+      return 0
+    }
+
+    const oldest = events[events.length - this.maxEvents] as number
+
+    return Math.max(1, Math.ceil((oldest + this.windowSec * 1000 - this.clock()) / 1000))
+  }
+
   /** True when `key` has no budget left. Records nothing. */
   exhausted(key: string): boolean {
     return this.live(key).length >= this.maxEvents
@@ -209,7 +321,7 @@ export class SlidingWindowLimiter {
 /** One refusal, as the public view lists it: never a code, a signature or the confirmed text. */
 export interface RefusalNote {
   at: number
-  surface: 'register' | 'stepup' | 'confirm'
+  surface: 'register' | 'stepup' | 'confirm' | 'reauth'
   reason: string
   userId: string
   requestId: string
@@ -221,6 +333,8 @@ export class PasskeyGateway {
   settings: PasskeySettings
   readonly store: PasskeyStore
   readonly clock: () => number
+  /** What the next simulated re-authentication reports; see `reauth.ts`. `null`: a plain fresh sign-in. */
+  signInScript: SignInScript | null = null
 
   readonly limiters: {
     registerBeginPerUser: SlidingWindowLimiter
@@ -229,6 +343,12 @@ export class PasskeyGateway {
     codeFailuresPerIp: SlidingWindowLimiter
     codeFailuresGateway: SlidingWindowLimiter
     stepupBeginPerUser: SlidingWindowLimiter
+    reauthBeginPerUser: SlidingWindowLimiter
+    reauthBeginPerIp: SlidingWindowLimiter
+    /** Refusals of a `reauth` parameter on the public sign-in routes: a wide ceiling per address, checked first. */
+    reauthRefusalsPerAddress: SlidingWindowLimiter
+    /** And a narrow budget per address and grant id. */
+    reauthRefusalsPerGrant: SlidingWindowLimiter
   }
 
   private readonly refusalNotes: RefusalNote[] = []
@@ -251,7 +371,11 @@ export class PasskeyGateway {
       codeFailuresPerUser: new SlidingWindowLimiter(5, 600, this.clock),
       codeFailuresPerIp: new SlidingWindowLimiter(5, 600, this.clock),
       codeFailuresGateway: new SlidingWindowLimiter(20, 3600, this.clock),
-      stepupBeginPerUser: new SlidingWindowLimiter(10, 600, this.clock)
+      stepupBeginPerUser: new SlidingWindowLimiter(10, 600, this.clock),
+      reauthBeginPerUser: new SlidingWindowLimiter(5, 600, this.clock),
+      reauthBeginPerIp: new SlidingWindowLimiter(5, 600, this.clock),
+      reauthRefusalsPerAddress: new SlidingWindowLimiter(200, 600, this.clock),
+      reauthRefusalsPerGrant: new SlidingWindowLimiter(20, 600, this.clock)
     }
   }
 

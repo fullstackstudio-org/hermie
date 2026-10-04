@@ -28,6 +28,10 @@ const { values } = parseArgs({
     'passkey-rp': { type: 'string', multiple: true },
     'passkey-allow-private': { type: 'boolean', default: false },
     'no-passkey-invites': { type: 'boolean', default: false },
+    'no-passkey-self-enrol': { type: 'boolean', default: false },
+    'passkey-cooling-off': { type: 'string' },
+    'passkey-no-reauth': { type: 'boolean', default: false },
+    'passkey-accept-missing-auth-time': { type: 'boolean', default: false },
     mcp: { type: 'boolean', default: false },
     'mcp-label': { type: 'string' },
     host: { type: 'string', default: '127.0.0.1' },
@@ -75,7 +79,7 @@ if (values.help) {
       '  --no-web-push-key       drop `push.webpush.key` and `webPush` from the advert, staging a',
       '                          plugin that keeps its Web Push key to itself',
       '  --passkey               make the gateway know the confirm level `passkey`: the capability',
-      '                          block, the six /api/auth/passkeys routes and a gated `confirm`.',
+      '                          block, the seven /api/auth/passkeys routes and a gated `confirm`.',
       '                          Needs --auth cookie or native: nobody is signed in otherwise. The',
       '                          base URL is the fake’s own address, which is private, so the',
       '                          operator’s opt-in is on',
@@ -85,6 +89,10 @@ if (values.help) {
       '                          (repeatable; default confirm.hermie.dev=https://confirm.hermie.dev)',
       '  --passkey-allow-private accept private base URLs (http, loopback, LAN) for the level',
       '  --no-passkey-invites    a person cannot mint their own enrolment code (user_invites off)',
+      '  --no-passkey-self-enrol a person cannot add a passkey by signing in again (self_enrol off)',
+      '  --passkey-cooling-off <s>  a self-enrolled passkey is listed but unusable for s seconds',
+      '  --passkey-no-reauth     the sign-in provider cannot authenticate again (provider_no_reauth)',
+      '  --passkey-accept-missing-auth-time  a re-sign-in without an auth_time counts as fresh (assumed)',
       '  --mcp                   serve the MCP page of the app’s Settings: GET /api/auth/mcp and',
       '                          POST /api/auth/mcp/grants/{id}/revoke (mcp.changed follows a revoke),',
       '                          and advertise per_message_author_via. Needs --auth cookie or native.',
@@ -136,12 +144,18 @@ if (values.help) {
       '                        confirm; 409 {outcome, reason} when nothing was sent. `user` is',
       '                        <provider>:<id>, an account’s user id or username, or null for a turn',
       '                        nobody signed in submitted',
-      '  POST /__fake/passkey/enable {enabled?, base_urls?, rps?, allow_private?, user_invites?}',
+      '  POST /__fake/passkey/enable {enabled?, base_urls?, rps?, allow_private?, user_invites?,',
+      '                               self_enrol?: {enabled?, accept_missing_auth_time?, cooling_off_s?},',
+      '                               provider_reauth?}',
       '                                       know the level, or change its operator settings',
       '  POST /__fake/passkey/code {user?, ttl?}    mint an operator enrolment code',
       '  POST /__fake/passkey/revoke {credential_id | user + all, announce?}  the operator’s revoke',
-      '  POST /__fake/passkey/expire {request_id?, pending?, codes?, window?}  time passing: time a',
-      '                                       confirm out, end registrations / codes / the no-downgrade window',
+      '  POST /__fake/passkey/expire {request_id?, pending?, codes?, grants?, window?}  time passing: time a',
+      '                                       confirm out, end registrations / codes / re-authentication grants /',
+      '                                       the no-downgrade window',
+      '  POST /__fake/passkey/reauth {fail?, auth_time?, user?, provider?, sticky?}  what the next simulated',
+      '                                       re-authentication reports; fail is provider_mismatch, user_mismatch,',
+      '                                       auth_time_missing or auth_not_fresh; {} goes back to a fresh sign-in',
       '  POST /__fake/passkey/changed {user?, change?, credential?}  emit passkey.changed',
       '  GET  /__fake/state                   gains `passkey`: credentials, receipts, refusals, open',
       '                                       requests, outcomes and the no-downgrade windows',
@@ -179,8 +193,25 @@ if (values.scenario) {
 
 const passkeyUrls = values['passkey-base-url'] ?? []
 const passkeyRps = values['passkey-rp'] ?? []
+const coolingOff = values['passkey-cooling-off']
+
+if (coolingOff !== undefined && !/^\d+$/u.test(coolingOff)) {
+  console.error('--passkey-cooling-off is a whole number of seconds.')
+  process.exit(1)
+}
+
+const selfEnrol = {
+  ...(values['no-passkey-self-enrol'] ? { enabled: false } : {}),
+  ...(values['passkey-accept-missing-auth-time'] ? { acceptMissingAuthTime: true } : {}),
+  ...(coolingOff === undefined ? {} : { coolingOffS: Number(coolingOff) })
+}
 const passkey: PasskeyOptions | false =
-  values.passkey || passkeyUrls.length || passkeyRps.length || values['passkey-allow-private']
+  values.passkey ||
+  passkeyUrls.length ||
+  passkeyRps.length ||
+  values['passkey-allow-private'] ||
+  Object.keys(selfEnrol).length ||
+  values['passkey-no-reauth']
     ? {
         ...(passkeyUrls.length ? { baseUrls: passkeyUrls } : {}),
         ...(passkeyRps.length
@@ -195,7 +226,9 @@ const passkey: PasskeyOptions | false =
             }
           : {}),
         ...(values['passkey-allow-private'] ? { allowPrivateBaseUrls: true } : {}),
-        ...(values['no-passkey-invites'] ? { userInvites: false } : {})
+        ...(values['no-passkey-invites'] ? { userInvites: false } : {}),
+        ...(Object.keys(selfEnrol).length ? { selfEnrol } : {}),
+        ...(values['passkey-no-reauth'] ? { providerReauth: false } : {})
       }
     : false
 

@@ -549,6 +549,14 @@ describe('the store', () => {
     expect(a.gatewayId).toHaveLength(16)
     expect(a.handleKey).toHaveLength(32)
     expect(a.gatewayId.equals(b.gatewayId)).toBe(false)
-    expect(a.counts()).toEqual({ credentials: 0, revoked: 0, users: 0, openCodes: 0, receipts: 0 })
+    expect(a.counts()).toEqual({
+      credentials: 0,
+      revoked: 0,
+      users: 0,
+      openCodes: 0,
+      receipts: 0,
+      openGrants: 0,
+      coolingOff: 0
+    })
   })
 })
