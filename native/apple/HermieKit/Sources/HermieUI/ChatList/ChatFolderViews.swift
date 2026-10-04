@@ -124,6 +124,8 @@ struct FolderMenuItems: View {
       }
     }
 
+    muteItems
+
     Divider()
 
     Button(role: .destructive) {
@@ -132,6 +134,38 @@ struct FolderMenuItems: View {
       Label(Strings.App.Layout.deleteFolder, systemImage: "trash")
     }
     .accessibilityIdentifier("hermie.chatList.folder.delete")
+  }
+}
+
+extension FolderMenuItems {
+  /// Mute every chat in the folder for a while, or, when every one is already silent, unmute them: the
+  /// row menu's spans applied to all of them at once. Not offered for a folder with nothing in it, and
+  /// not while the arrangement cannot be written.
+  @ViewBuilder fileprivate var muteItems: some View {
+    let silent = arrangement.folderMutedUntil(id) != nil
+    let empty = !(arrangement.arrangement.layout.folders.first { $0.id == id }.map { !$0.bots.isEmpty } ?? false)
+
+    if silent {
+      Button {
+        withAnimation { arrangement.unmuteFolder(id) }
+      } label: {
+        Label(Strings.App.Layout.unmuteFolder, systemImage: "bell")
+      }
+      .disabled(!arrangement.canEdit)
+      .accessibilityIdentifier("hermie.chatList.folder.unmute")
+    } else {
+      Menu {
+        ForEach(MuteDuration.allCases, id: \.self) { duration in
+          Button(ChatListFormat.muteTitle(duration)) {
+            withAnimation { arrangement.muteFolder(id, for: duration) }
+          }
+        }
+      } label: {
+        Label(Strings.App.Layout.muteFolder, systemImage: "bell.slash")
+      }
+      .disabled(empty || !arrangement.canEdit)
+      .accessibilityIdentifier("hermie.chatList.folder.mute")
+    }
   }
 }
 

@@ -2133,6 +2133,11 @@ reader changed.
   off, nothing is read from it or written to it. Switching it off also clears what is stored
   (`SQLiteStore.clearAllChatCaches`, every gateway's rosters and transcripts); "Clear Now" does the
   same. What the open conversations hold in memory is not touched.
+- **Folder mute.** A folder's menu (its header's context menu in the list, and each folder's menu in Settings › Chats)
+  mutes every chat inside for the row menu's four spans, or unmutes them when every one is already silent
+  (`ChatArrangementModel.muteFolder` and `unmuteFolder`, one write to the app section's `mutes`; `folderMutedUntil` is
+  the soonest of the deadlines, `0` when every chat is silent for good, nil when any is not and for an empty folder). A
+  folder holds chats, it does not mute them by being there: a chat put in later is not silent.
 - **Language.** No picker: the page names the language the app is speaking and opens the system's
   per-app language setting (the app's page in Settings on iPhone and iPad, Language & Region on the Mac).
 

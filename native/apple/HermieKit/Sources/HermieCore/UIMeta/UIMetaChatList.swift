@@ -166,6 +166,30 @@ public struct ChatListArrangement: Sendable, Hashable {
     return until == MuteDuration.foreverDeadline || until > now ? until : nil
   }
 
+  /// When every chat in this folder is silent until (`FolderMenuModel.mutedUntil`): the soonest of their
+  /// deadlines, `0` when every one is silent for good, nil when any of them is not silent at `now` and
+  /// for a folder with nothing in it (there is nothing to be silent). It is what turns a folder's
+  /// "Mute" into "Unmute".
+  public func folderMutedUntil(_ id: String, now: Double) -> Double? {
+    guard let bots = layout.folders.first(where: { $0.id == id })?.bots, !bots.isEmpty else {
+      return nil
+    }
+
+    var soonest = Double.infinity
+
+    for bot in bots {
+      guard let until = mutedUntil(bot, now: now) else {
+        return nil
+      }
+
+      if until != MuteDuration.foreverDeadline {
+        soonest = min(soonest, until)
+      }
+    }
+
+    return soonest.isFinite ? soonest : MuteDuration.foreverDeadline
+  }
+
   /// The soonest deadline after `now`, for a timer that redraws the rows when a mute lapses.
   public func nextLapse(after now: Double) -> Double? {
     mutes.values.filter { $0 != MuteDuration.foreverDeadline && $0 > now }.min()
@@ -288,6 +312,13 @@ public struct ChatListArrangement: Sendable, Hashable {
     }
 
     app[UIMetaField.pinned] = .array(list.map(JSONValue.string))
+  }
+
+  /// Mute (or, with nil, unmute) every one of `bots` in one write: a folder's mute is its chats'.
+  public static func setMutes(_ bots: [String], until: Double?, in app: inout JSONObject) {
+    for bot in bots {
+      setMute(bot, until: until, in: &app)
+    }
   }
 
   /// Put a bot on one of the person's own chats (`setCurrent`), or back on the shared Bot Chat with
@@ -827,6 +858,32 @@ public final class ChatArrangementModel {
     }
 
     freshRoster = names
+    refresh()
+  }
+
+  /// When every chat in the folder is silent until, or nil (see `ChatListArrangement.folderMutedUntil`).
+  public func folderMutedUntil(_ id: String) -> Double? {
+    arrangement.folderMutedUntil(id, now: max(clock, now()))
+  }
+
+  /// Mute every chat in a folder for a while (the row menu's four spans, applied to all of them at
+  /// once). A bot added to the folder later is not muted by it: a folder holds chats, it does not
+  /// mute them by being there.
+  public func muteFolder(_ id: String, for duration: MuteDuration) {
+    setFolderMute(id, until: duration.until(now: now()))
+  }
+
+  /// Unmute every chat in a folder.
+  public func unmuteFolder(_ id: String) {
+    setFolderMute(id, until: nil)
+  }
+
+  private func setFolderMute(_ id: String, until: Double?) {
+    guard let bots = arrangement.layout.folders.first(where: { $0.id == id })?.bots, !bots.isEmpty else {
+      return
+    }
+
+    sync?.updateApp(.choice) { ChatListArrangement.setMutes(bots, until: until, in: &$0) }
     refresh()
   }
 
