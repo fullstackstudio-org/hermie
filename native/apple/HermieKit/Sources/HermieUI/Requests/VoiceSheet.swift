@@ -322,7 +322,7 @@ struct VoiceSheetView: View {
 
         if case .unavailable(let reason) = voice.phase {
           Button {
-            Task { await model.cannotShow(reason: reason.reason) }
+            Task { await model.cannotShow(reason: reason.reason, notify: true) }
           } label: {
             Text(Words.cannot)
               .font(.callout)

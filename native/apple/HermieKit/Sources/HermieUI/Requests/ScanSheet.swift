@@ -197,7 +197,7 @@ struct ScanSheetView: View {
 
       if case .unavailable(let reason) = scan.phase {
         Button {
-          Task { await model.cannotShow(reason: reason.reason) }
+          Task { await model.cannotShow(reason: reason.reason, notify: true) }
         } label: {
           Text(Words.cannot)
             .font(.callout)
