@@ -793,7 +793,7 @@
 	<key>native.interactive.calendar.noteEditor</key>
 	<string>Er wordt niets toegevoegd tot je het opslaat in het agenda-scherm van het systeem dat daarna opent.</string>
 	<key>native.interactive.calendar.noteReminder</key>
-	<string>Toevoegen bewaart dit in je standaardlijst in Herinneringen. Het systeem vraagt eerst of Hermie Herinneringen mag gebruiken.</string>
+	<string>Toevoegen bewaart dit in je standaardlijst in Herinneringen. Het systeem vraagt eerst of Hermie Herinneringen mag gebruiken. Daarvoor biedt het alleen volledige toegang aan; Hermie voegt alleen deze ene herinnering toe en leest je andere niet.</string>
 	<key>native.interactive.calendar.notes</key>
 	<string>Notities</string>
 	<key>native.interactive.calendar.savedNotSent</key>

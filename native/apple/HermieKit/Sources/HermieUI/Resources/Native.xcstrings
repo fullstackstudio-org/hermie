@@ -9496,19 +9496,19 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "„Hinzufügen“ speichert dies in deiner Standardliste in Erinnerungen. Das System fragt zuerst, ob Hermie Erinnerungen verwenden darf."
+            "value" : "„Hinzufügen“ speichert dies in deiner Standardliste in Erinnerungen. Das System fragt zuerst, ob Hermie auf Erinnerungen zugreifen darf. Es bietet dafür nur vollen Zugriff an; Hermie fügt nur diese eine Erinnerung hinzu und liest deine anderen nicht."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Add saves this to your default Reminders list. The system asks first whether Hermie may use your Reminders."
+            "value" : "Add saves this to your default Reminders list. The system asks first whether Hermie may use Reminders. It only offers full access for that; Hermie adds this one reminder and does not read your others."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Toevoegen bewaart dit in je standaardlijst in Herinneringen. Het systeem vraagt eerst of Hermie Herinneringen mag gebruiken."
+            "value" : "Toevoegen bewaart dit in je standaardlijst in Herinneringen. Het systeem vraagt eerst of Hermie Herinneringen mag gebruiken. Daarvoor biedt het alleen volledige toegang aan; Hermie voegt alleen deze ene herinnering toe en leest je andere niet."
           }
         }
       }

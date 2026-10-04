@@ -793,7 +793,7 @@
 	<key>native.interactive.calendar.noteEditor</key>
 	<string>Es wird nichts hinzugefügt, bis du es im Kalender-Dialog des Systems speicherst, der sich danach öffnet.</string>
 	<key>native.interactive.calendar.noteReminder</key>
-	<string>„Hinzufügen“ speichert dies in deiner Standardliste in Erinnerungen. Das System fragt zuerst, ob Hermie Erinnerungen verwenden darf.</string>
+	<string>„Hinzufügen“ speichert dies in deiner Standardliste in Erinnerungen. Das System fragt zuerst, ob Hermie auf Erinnerungen zugreifen darf. Es bietet dafür nur vollen Zugriff an; Hermie fügt nur diese eine Erinnerung hinzu und liest deine anderen nicht.</string>
 	<key>native.interactive.calendar.notes</key>
 	<string>Notizen</string>
 	<key>native.interactive.calendar.savedNotSent</key>

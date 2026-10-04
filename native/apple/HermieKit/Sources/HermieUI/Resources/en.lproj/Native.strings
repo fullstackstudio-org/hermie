@@ -793,7 +793,7 @@
 	<key>native.interactive.calendar.noteEditor</key>
 	<string>Nothing is added until you save it in the system’s calendar sheet that opens next.</string>
 	<key>native.interactive.calendar.noteReminder</key>
-	<string>Add saves this to your default Reminders list. The system asks first whether Hermie may use your Reminders.</string>
+	<string>Add saves this to your default Reminders list. The system asks first whether Hermie may use Reminders. It only offers full access for that; Hermie adds this one reminder and does not read your others.</string>
 	<key>native.interactive.calendar.notes</key>
 	<string>Notes</string>
 	<key>native.interactive.calendar.savedNotSent</key>
