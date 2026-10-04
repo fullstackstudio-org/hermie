@@ -91,6 +91,80 @@ import Testing
     #expect(sync.app?["pinned"] == ["zed"])
   }
 
+  /// Dated or not: a chore loses to a section the gateway holds with a date as well.
+  @Test func aChoreLosesToADatedGatewaySectionToo() async {
+    let gateway = HoldingGateway()
+    let theirs: JSONObject = [
+      "v": 1,
+      "entries": [["kind": "folder", "id": "f1"], ["kind": "chat", "name": "researcher"]],
+      "folders": [["id": "f1", "name": "Finance", "bots": ["writer"]]],
+      "updatedAt": .number(noon - hour)
+    ]
+    gateway.write("researcher", [ownerKey: .object(theirs)])
+
+    let sync = UIMetaSync.device(gateway.gateway)
+    sync.updateApp(.chore) { $0["entries"] = [["kind": "chat", "name": "researcher"], ["kind": "chat", "name": "writer"]] }
+    await sync.reconcile()
+
+    #expect(gateway.meta("researcher")[ownerKey] == .object(theirs))
+    #expect(sync.app?["entries"] == theirs["entries"])
+    #expect(!sync.pending)
+    #expect(!gateway.configures.contains { $0["ui_meta"]?[ownerKey] != nil })
+  }
+
+  /// On the one pull that inherits the anonymous section, a chore loses to it as well: what lands
+  /// under the person's key is the inherited arrangement.
+  @Test func aChoreLosesToTheAnonymousSectionOnTheInheritancePull() async {
+    let gateway = HoldingGateway()
+    gateway.write("researcher", [UIMeta.legacyAppKey: [
+      "v": 1,
+      "entries": [["kind": "folder", "id": "f1"], ["kind": "chat", "name": "researcher"]],
+      "folders": [["id": "f1", "name": "Finance", "bots": ["writer"]]]
+    ]])
+
+    let sync = UIMetaSync.device(gateway.gateway)
+    sync.updateApp(.chore) { $0["entries"] = [["kind": "chat", "name": "researcher"], ["kind": "chat", "name": "writer"]] }
+    await sync.reconcile()
+
+    let landed = gateway.meta("researcher")[ownerKey]
+    #expect(landed?["folders"] == [["id": "f1", "name": "Finance", "bots": ["writer"]]])
+    #expect(landed?["entries"] == [["kind": "folder", "id": "f1"], ["kind": "chat", "name": "researcher"]])
+  }
+
+  /// A chore beside a choice is part of a choice, and the choice's date decides.
+  @Test func aChoreBesideAChoiceWinsByTheChoicesDate() async {
+    let gateway = HoldingGateway()
+    gateway.write("researcher", [ownerKey: ["v": 1, "folders": ["Finance"], "updatedAt": .number(noon - hour)]])
+
+    let sync = UIMetaSync.device(gateway.gateway, app: ["v": 1, "folders": ["Travel"]])
+    sync.updateApp(.chore) { $0["entries"] = [["kind": "chat", "name": "writer"]] }
+    sync.updateApp(.choice) { $0["folders"] = ["Travel", "Home"] }
+    await sync.reconcile()
+
+    #expect(gateway.meta("researcher")[ownerKey]?["folders"] == ["Travel", "Home"])
+    #expect(gateway.meta("researcher")[ownerKey]?["entries"] == [["kind": "chat", "name": "writer"]])
+  }
+
+  /// A chore made while a choice is out is sent by a further round of the same flush.
+  @Test func aChoreMadeDuringAChoicesFlightIsSentInAFurtherRound() async {
+    let gateway = HoldingGateway()
+    let sync = UIMetaSync.device(gateway.gateway)
+    await sync.reconcile()
+
+    gateway.hold("profiles.configure")
+    sync.updateApp(.choice) { $0["folders"] = ["Finance"] }
+    let flight = Task { await sync.flush() }
+    await gateway.waitUntilHeld()
+
+    sync.updateApp(.chore) { $0["entries"] = [["kind": "chat", "name": "writer"]] }
+    gateway.release()
+    await flight.value
+
+    #expect(gateway.meta("researcher")[ownerKey]?["folders"] == ["Finance"])
+    #expect(gateway.meta("researcher")[ownerKey]?["entries"] == [["kind": "chat", "name": "writer"]])
+    #expect(!sync.pending)
+  }
+
   /// The bookkeeping: a chore alone is dropped against any remote section; a choice is kept.
   @Test func onlyAChoreIsDropped() {
     var state = UIMetaState()
