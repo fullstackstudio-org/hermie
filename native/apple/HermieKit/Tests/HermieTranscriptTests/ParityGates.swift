@@ -32,7 +32,7 @@ import Testing
   static let corpusCalls = 4_974
 
   /// The stream scenarios the corpus records.
-  static let streamCount = 10
+  static let streamCount = 13
 
   /// Every operation the corpus records, from `golden-summary.json`.
   static let recordedOperations: [String] = ((try? GoldenCorpus.summary()) ?? [:]).keys.sorted()
