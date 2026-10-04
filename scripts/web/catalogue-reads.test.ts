@@ -102,7 +102,9 @@ describe('isRead and catalogueRead', () => {
   })
 })
 
-describe('the web client', () => {
+// These tests parse every module under `native/web/src` with the TypeScript compiler. That takes about a second on a
+// developer machine and over five on a loaded CI runner, so the limit is one that only a hang would reach.
+describe('the web client', { timeout: 60_000 }, () => {
   const src = join(import.meta.dirname, '../../native/web/src')
   const english = JSON.parse(readFileSync(join(src, 'generated/locales/en.json'), 'utf8')) as Record<string, unknown>
 
