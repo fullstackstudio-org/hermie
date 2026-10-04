@@ -120,7 +120,7 @@ withdrawn (`request.cancel {reason: too_many_attempts}`) and the agent is told i
 | `field:<id>:<problem>` | `input.form` | §4. |
 | `files:too_many` | `input.file` | More files than `upload.max_files`, or more than one without `multiple`. |
 | `files:too_large` | `input.file` | The files' `bytes` together exceed `upload.max_total_bytes`. |
-| `file:<n>:outside_dir` | `input.file` | File `n` (0-based) is not under `upload.dir` (§5). |
+| `file:<n>:outside_dir` | `input.file` | File `n` (0-based) is not directly in `upload.dir` (§5). |
 | `file:<n>:too_large` | `input.file` | File `n` declares more `bytes` than `upload.max_bytes`. |
 | `text:not_verbatim` | `review.draft` | The approved text contains something that cannot be shown as it is (§6). |
 | `text:edited` | `review.draft` | The text differs from the draft while `editable` is false. |
@@ -185,8 +185,13 @@ without a value is left out of `values` (never `null`). `""` counts as no value 
 string-valued kind (`text`, `amount`, `date`, `time`, `datetime`, a single `choice`), and so does `[]`
 for a multiple choice: valid for a field that is not `required`, `missing` for one that is.
 
-The gateway checks `values` keys first (an id the form does not have: `field:<id>:unknown`), then each
-field in `fields` order, and refuses the first problem as `field:<id>:<problem>`:
+Every `values` key is a well-formed field id (`^[a-z][a-z0-9_]{0,31}$`; `schema.json` says so with
+`propertyNames`): any other key fails the result model and is refused as `bad_shape`, so no text of the
+client's ever goes into a reason. The gateway then checks the keys (a well-formed id the form does not
+have: `field:<id>:unknown`), then each field in `fields` order, and refuses the first problem as
+`field:<id>:<problem>`. Within one field the problems are checked in the order of this table, so the
+structural ones come before the range ones (a range is only judged on a well-formed value) and a
+range's `order` before its bounds; of `below_min` and `above_max`, a range's `start` is checked first:
 
 | Problem | When |
 | --- | --- |
@@ -194,14 +199,14 @@ field in `fields` order, and refuses the first problem as `field:<id>:<problem>`
 | `type` | the JSON type is wrong for the kind (a number for an amount, a list for a single choice, …) |
 | `format` | a string is not in the kind's format (not a calendar date, three decimals, no zone, a newline in a one-line text, …) |
 | `too_long` | text longer than `max_length` (else 4,000) code points |
-| `below_min` / `above_max` | number, amount, date, time, datetime outside `[min, max]`; a range whose `start` is before `min` or `end` after `max` |
-| `not_integer` | a fraction where `integer` is true |
-| `step` | not `min` (else 0) plus a whole multiple of `step` |
 | `zone` | a datetime zone that is unknown, or not the field's `tz` |
 | `offset` | a datetime offset that is not the zone's offset at that instant |
 | `order` | a range whose `end` is before its `start` |
 | `not_an_option` | a choice value that is not one of the options' `value`s (labels are not values) |
 | `duplicate` | a multiple choice that lists a value twice |
+| `below_min` / `above_max` | number, amount, date, time, datetime outside `[min, max]`; a range whose `start` is before `min` or `end` after `max` |
+| `not_integer` | a fraction where `integer` is true |
+| `step` | not `min` (else 0) plus a whole multiple of `step` |
 | `too_few` / `too_many` | a multiple choice with fewer than `min_selected` or more than `max_selected` values |
 
 Values reach the agent as given. The agent asks only for what it needs.
@@ -225,8 +230,10 @@ gateway's existing HTTP upload route, with the credentials it already uses for a
 {"status": "answered", "files": [{"path": "<upload.dir>/3f9c2a7b1d4e8f60-receipt.jpg", "name": "receipt.jpg", "mime": "image/jpeg", "bytes": 482113, "sha256": "<64 lowercase hex>"}], "text": "optional transcript"}
 ```
 
-- `path` is absolute and under `upload.dir`: after resolving `.` and `..` segments lexically it starts
-  with `upload.dir` followed by `/` (a sibling directory sharing a prefix is not under it).
+- `path` is absolute, at most 4,096 characters, and DIRECTLY in `upload.dir`: after resolving `.`, `..`
+  and empty segments lexically (in both), its parent is `upload.dir` and its last segment is a name (not
+  empty, `.` or `..`). A sibling directory sharing a prefix, `upload.dir` itself and a file in a
+  subdirectory of it are all `outside_dir`: the layout is flat.
 - `bytes` (a JSON integer) and `sha256` describe the bytes as uploaded (after metadata stripping).
 - `upload.max_bytes` bounds EACH file; `upload.max_total_bytes` bounds all files of the answer
   together. A client checks both before uploading.
@@ -239,9 +246,11 @@ gateway's existing HTTP upload route, with the credentials it already uses for a
 The answer is checked in two steps. While the request is open: shape, `not_optional`, the file count
 (`files:too_many`), then each file in order (`file:<n>:outside_dir`, `file:<n>:too_large`), then the
 total (`files:too_large`). After it
-settled, the gateway checks every file on disk (it exists, its size and SHA-256 match, its real path is
-under `upload.dir`); a mismatch makes the request `unavailable (bad_upload)` for the agent, and the
-client is not asked again.
+settled, the gateway checks every file on disk without following a symbolic link anywhere (`upload.dir`
+is the real path of a directory, the file sits directly in it and is a regular file, not a link, and
+its size and SHA-256 match); a mismatch makes the request `unavailable (bad_upload)` for the agent, and
+the client is not asked again. The upload route writes below the `uploads/hermie` part of a path
+without following a symbolic link either: a client gets an error instead of a file stored elsewhere.
 
 ## 6. `review.draft`
 
@@ -261,8 +270,11 @@ can show as it is.
 Result: `{"decision": "approved", "text": "..."}` (1–20,000; the text as approved, unchanged unless
 `editable`) or `{"decision": "rejected", "comment": "..."}` (`comment` ≤1,000, optional).
 
-The gateway removes whitespace at the end of each line of an approved text, then refuses text that
-still cannot be shown verbatim (a tab, a control, format or bidi character, a line separator, …:
+The gateway removes whitespace at the end of each line of an approved text, exactly: the text is split
+on LF only, every character for which Python's `str.isspace()` is true is stripped from the end of
+each line (so CR, tab, VT, FF, NEL U+0085, NBSP U+00A0, U+3000, U+2028, U+2029 and every other Unicode
+space at a line end) and then from the end of the whole text, which also drops trailing blank lines;
+leading whitespace is kept. It then refuses text that still cannot be shown verbatim (a tab, a control, format or bidi character, a line separator, …:
 `text:not_verbatim`) and, when `editable` is false, any change (`text:edited`). Whether the text was
 edited is the gateway's computation, not the client's.
 
