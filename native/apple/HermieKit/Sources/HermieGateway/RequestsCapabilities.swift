@@ -7,6 +7,31 @@ import HermieProtocol
 // the same two-step announcement: the first call's result decides whether the second one carries
 // `requests` at all.
 
+/// The `open_requests` of one session, read again by the connection itself once a socket had the
+/// interactive methods accepted (`GatewayConnection.refetchOpenRequests`): every request the gateway
+/// still waits for there, of the methods in `listed`.
+public struct OpenRequestList: Sendable, Equatable {
+  /// The runtime session the list is for.
+  public let sessionID: String
+  /// The request ids it names.
+  public let ids: [String]
+  /// The interactive methods it lists in full (`RPCReply.listedRequests`).
+  public let listed: Set<String>
+  /// The connection clock's reading just before the call went out: a request first seen at or
+  /// after it may be newer than the list.
+  public let askedAt: Duration
+  /// The wire index of the answer that carried it: a list with a lower index is older.
+  public let index: UInt64
+
+  public init(sessionID: String, ids: [String], listed: Set<String>, askedAt: Duration, index: UInt64) {
+    self.sessionID = sessionID
+    self.ids = ids
+    self.listed = listed
+    self.askedAt = askedAt
+    self.index = index
+  }
+}
+
 /// What this connection announces for the interactive server→client requests.
 public enum RequestsAdvertisement {
   /// At most this many names in `requests` (the contract's bound).

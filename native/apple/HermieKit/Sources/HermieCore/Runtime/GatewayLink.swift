@@ -69,6 +69,11 @@ public protocol GatewayLink: Sendable {
   /// A link without a replay of its own has none (the default).
   var replayGaps: AsyncStream<ReplayGap> { get }
 
+  /// The `open_requests` the connection read again itself once a socket had the interactive
+  /// methods accepted (`GatewayConnection.openRequestLists`). Subscribed before `start()`. A link
+  /// without such reads has none (the default).
+  var openRequestLists: AsyncStream<OpenRequestList> { get }
+
   /// Who the gateway thinks this client is, read through the link's own
   /// credentials (`IdentityProbe`). Never throws: a failure is an answer.
   func probeIdentity() async -> IdentityProbe
@@ -256,6 +261,10 @@ extension IdentityProbe {
 
 extension GatewayLink {
   public var replayGaps: AsyncStream<ReplayGap> {
+    AsyncStream { $0.finish() }
+  }
+
+  public var openRequestLists: AsyncStream<OpenRequestList> {
     AsyncStream { $0.finish() }
   }
 

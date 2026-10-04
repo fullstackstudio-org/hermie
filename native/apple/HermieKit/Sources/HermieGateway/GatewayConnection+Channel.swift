@@ -294,6 +294,8 @@ extension GatewayConnection {
 
     // A request can arrive before the answer: it is deliverable from the moment the call is sent.
     requestsAdvertised = Set(params.requests ?? [])
+    // The call replaces the advertisement: a method it leaves out is no longer listed from now on.
+    requestsListedSince = requestsListedSince.filter { requestsAdvertised.contains($0.key) }
 
     let answer = (try? await second.value().result).flatMap(ClientCapabilitiesResult.init(jsonValue:))
     let wanted = Set(params.confirm ?? [])
@@ -374,8 +376,10 @@ extension GatewayConnection {
   /// connection that advertised it, and the reconnect replay asks before the second call has.
   /// Once a socket gains the level or the methods, the open requests of every session this
   /// connection knows are read again: their
-  /// answers re-deliver what is still open (`deliverOpenRequests`). Their events are not
-  /// dispatched; the socket has delivered those live since it opened, and the replay the rest.
+  /// answers re-deliver what is still open (`deliverOpenRequests`), and their lists go to
+  /// `openRequestLists` (a request that ended while the socket was down is closed by them). Their
+  /// events are not dispatched; the socket has delivered those live since it opened, and the
+  /// replay the rest.
   func refetchOpenRequests() {
     var sessions = attachedSessions
 
@@ -386,8 +390,37 @@ extension GatewayConnection {
     for session in sessions {
       let lastSeen = replay.watermarks[session] ?? 0
       let params: JSONValue = ["session_id": .string(session), "last_seen": .number(lastSeen)]
-      _ = try? clientCall(RPC.SessionEventsSince.name, params: params, timeout: ReplayState.requestTimeout)
+      let askedAt = clock.now
+
+      guard
+        let (_, promise) = try? clientCall(
+          RPC.SessionEventsSince.name, params: params, timeout: ReplayState.requestTimeout)
+      else {
+        continue
+      }
+
+      spawn { await self.publishList(promise, session: session, askedAt: askedAt) }
     }
+  }
+
+  /// Hand on the `open_requests` of a read `refetchOpenRequests` made, when it lists a method in
+  /// full. A missing list says nothing.
+  private func publishList(_ promise: Promise<RPCReply<JSONValue>>, session: String, askedAt: Duration) async {
+    guard let reply = try? await promise.value(), !reply.listedRequests.isEmpty,
+      let entries = reply.result["open_requests"]?.arrayValue
+    else {
+      return
+    }
+
+    let ids = entries.compactMap { entry -> String? in
+      guard let id = entry["id"]?.stringValue, !id.isEmpty else {
+        return nil
+      }
+
+      return id
+    }
+    listHub.publish(
+      OpenRequestList(sessionID: session, ids: ids, listed: reply.listedRequests, askedAt: askedAt, index: reply.index))
   }
 
   // MARK: Server→client requests

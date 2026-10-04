@@ -349,4 +349,115 @@ import Testing
       #expect(try await asked.value == ["status": "skipped"])
     }
   }
+
+  /// Start with every method accepted, and wait until both calls are answered.
+  private static func accepted(_ h: Harness) async throws -> FakeSocket {
+    h.gateway.with { $0.scriptedResults["client.capabilities"] = Self.listed(accepts: Self.all) }
+    await h.connection.start()
+    try await h.waitFor(.ready)
+    let socket = try #require(h.gateway.lastSocket)
+    try await eventually("both calls") { socket.sent.filter { $0["method"] == "client.capabilities" }.count == 2 }
+    try await eventually("the acceptance") {
+      (try? await h.connection.requestReply("session.resume", params: ["session_id": "s1"]))?.listedRequests
+        == Set(Self.all)
+    }
+    return socket
+  }
+
+  @Test("the reads made once the methods are accepted hand their open_requests on, with what they list in full")
+  func refetchPublishesItsLists() async throws {
+    var options = HarnessOptions()
+    options.requests = Self.all
+
+    try await withHarness(options) { h in
+      let lists = Recorder(h.connection.openRequestLists)
+      defer { lists.cancel() }
+      h.gateway.with {
+        $0.scriptedResults["client.capabilities"] = Self.listed(accepts: [])
+        $0.scriptedResults["session.events.since"] = [
+          "events": [], "latest_seq": 0, "truncated": false, "count": 0, "epoch": "epoch-1",
+          "open_requests": [["id": "srq-1", "method": "input.form", "params": ["session_id": "s1"]]]
+        ]
+      }
+      await h.connection.start()
+      try await h.waitFor(.ready)
+      let socket = try #require(h.gateway.lastSocket)
+      try await eventually("both calls") { socket.sent.filter { $0["method"] == "client.capabilities" }.count == 2 }
+      _ = try await h.connection.request("session.resume", params: ["session_id": "s1"])
+      #expect(lists.values.isEmpty)
+
+      h.gateway.with { $0.scriptedResults["client.capabilities"] = Self.listed(accepts: Self.all) }
+      await h.connection.refreshCapabilities()
+      try await eventually("the list") { lists.values.count == 1 }
+      let list = try #require(lists.values.first)
+      #expect(list.sessionID == "s1")
+      #expect(list.ids == ["srq-1"])
+      #expect(list.listed == Set(Self.all))
+    }
+  }
+
+  @Test("a refresh whose first call gets no answer empties what was listed in full")
+  func refreshFirstCallTimesOut() async throws {
+    var options = HarnessOptions()
+    options.requests = Self.all
+
+    try await withHarness(options) { h in
+      _ = try await Self.accepted(h)
+
+      h.gateway.with { $0.holdFrom["client.capabilities"] = 2 }
+      await h.connection.refreshCapabilities()
+      try await eventually("the refresh's first call") { h.gateway.heldCount("client.capabilities") == 1 }
+      await h.clock.advance(by: .seconds(120))
+      try await Task.sleep(for: .milliseconds(30))
+
+      let reply = try await h.connection.requestReply("session.resume", params: ["session_id": "s1"])
+      #expect(reply.listedRequests.isEmpty)
+    }
+  }
+
+  @Test("a refresh that accepts a method again keeps its serial: a read made before the refresh still lists it")
+  func refreshKeepsTheSerial() async throws {
+    var options = HarnessOptions()
+    options.requests = Self.all
+
+    try await withHarness(options) { h in
+      let socket = try await Self.accepted(h)
+
+      // A read made after the acceptance, answered only after a refresh.
+      let resumes = h.gateway.methodLog.filter { $0 == "session.resume" }.count
+      h.gateway.with { $0.holdFrom["session.resume"] = resumes }
+      let held = Task { try await h.connection.requestReply("session.resume", params: ["session_id": "s1"]) }
+      try await eventually("the held read") { h.gateway.heldCount("session.resume") == 1 }
+
+      await h.connection.refreshCapabilities()
+      try await eventually("the refresh") { socket.sent.filter { $0["method"] == "client.capabilities" }.count == 4 }
+      try await Task.sleep(for: .milliseconds(30))
+
+      h.gateway.releaseHeld("session.resume", result: ["session_id": "s1"])
+      #expect(try await held.value.listedRequests == Set(Self.all))
+    }
+  }
+
+  @Test("a refresh's second call that no longer carries a method stops listing it from the moment it goes out")
+  func refreshWithdrawsAtOnce() async throws {
+    var options = HarnessOptions()
+    options.requests = Self.all
+
+    try await withHarness(options) { h in
+      _ = try await Self.accepted(h)
+
+      // The gateway no longer lists the methods: the refresh's second call takes them back. It is
+      // held, so the read below goes out after it and before its answer.
+      h.gateway.with {
+        $0.scriptedResults["client.capabilities"] = ["server_requests": ["approval", "clarify"]]
+        $0.holdFrom["client.capabilities"] = 3
+      }
+      await h.connection.refreshCapabilities()
+      try await eventually("the refresh's second call") { h.gateway.heldCount("client.capabilities") == 1 }
+
+      let reply = try await h.connection.requestReply("session.resume", params: ["session_id": "s1"])
+      #expect(reply.listedRequests.isEmpty)
+      h.gateway.releaseHeld("client.capabilities", result: ["server_requests": ["approval", "clarify"]])
+    }
+  }
 }

@@ -150,7 +150,8 @@ extension TranscriptStore {
       try await local(key, generation: ticket) {
         self.applyHistory(key, rows, .rest, snapshot: snapshot, openRequests: openRequests)
         self.signalOpenRequests(
-          runtimeID: resume.runtimeID, openRequests, askedAt: askedAt, listed: resume.listedRequests)
+          runtimeID: resume.runtimeID, openRequests, askedAt: askedAt, listed: resume.listedRequests,
+          index: resume.index)
       }
     } else {
       let params: JSONValue = ["session_id": .string(resume.runtimeID), "profile": .string(key)]
@@ -161,7 +162,8 @@ extension TranscriptStore {
         let rows = (reply.result["messages"]?.arrayValue ?? []).map { TranscriptRow(json: $0.objectValue ?? [:]) }
         self.applyHistory(key, rows, .rpc, snapshot: snapshot, openRequests: openRequests)
         self.signalOpenRequests(
-          runtimeID: resume.runtimeID, openRequests, askedAt: askedAt, listed: resume.listedRequests)
+          runtimeID: resume.runtimeID, openRequests, askedAt: askedAt, listed: resume.listedRequests,
+          index: resume.index)
       }
     }
 
@@ -189,6 +191,8 @@ extension TranscriptStore {
     var result: SessionResumeResult
     /// The interactive methods its `open_requests` lists in full (`RPCReply.listedRequests`).
     var listedRequests: Set<String> = []
+    /// The wire index of the answer.
+    var index: UInt64 = 0
   }
 
   func resumeCall(_ key: String, storedID: String) -> @Sendable () async throws -> RPCReply<JSONValue> {
@@ -236,7 +240,8 @@ extension TranscriptStore {
     }
 
     return ResumeOutcome(
-      runtimeID: runtimeID, resolvedID: resolvedID, result: result, listedRequests: reply.listedRequests)
+      runtimeID: runtimeID, resolvedID: resolvedID, result: result, listedRequests: reply.listedRequests,
+      index: reply.index)
   }
 
   /// Steps 3 and 4: the history rows, then the in-flight tail they do not contain yet.
@@ -392,7 +397,7 @@ extension TranscriptStore {
         key, runtimeID: runtimeID, knownEpoch: knownEpoch, lastSeq: lastSeq, reply.result)
       self.signalOpenRequests(
         runtimeID: runtimeID, reply.result["open_requests"]?.arrayValue, askedAt: askedAt,
-        listed: reply.listedRequests)
+        listed: reply.listedRequests, index: reply.index)
       return continuity
     }
   }
@@ -794,7 +799,7 @@ extension TranscriptStore {
         self.registerOpenRequests(key, reply.result["open_requests"]?.arrayValue)
         self.signalOpenRequests(
           runtimeID: runtimeID, reply.result["open_requests"]?.arrayValue, askedAt: askedAt,
-          listed: reply.listedRequests)
+          listed: reply.listedRequests, index: reply.index)
         self.signalConnectionSnapshot(key, runtimeID: runtimeID, reply.result)
         return runtimeID
       }

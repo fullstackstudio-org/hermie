@@ -850,6 +850,26 @@ struct InteractiveTests {
     #expect(await h.center.answer("srq-nv", .form(["name": .text("x")])))
   }
 
+  @Test("a request this device may not answer (4033) ends with a notice, not as a retry")
+  func notAllowed() async throws {
+    let h = InteractiveHarness()
+    try await h.open()
+    try await h.raiseOpen("srq-na")
+    let model = InteractiveModel(session: h.session, bot: bot)
+    model.present("srq-na")
+    h.link.onRequestAnswer { _, _ in
+      throw GatewayRPCError(.rejected, "not allowed", code: 4033)
+    }
+
+    #expect(await model.answer(.form(["name": .text("x")])) == false)
+    #expect(!h.center.isOpen("srq-na"))
+    #expect(!model.hasFailed)
+    #expect(model.presentedOutcome == .notAllowed)
+    #expect(await h.card("srq-na")?.cancelReason == "not_allowed")
+    #expect(await model.answer(.form(["name": .text("x")])) == false)
+    #expect(h.link.calls(RPC.RequestAnswer.name).count == 1)
+  }
+
   // MARK: Only what this socket may show
 
   @Test("a delivery the connection already declined -32601 opens no prompt and no card")

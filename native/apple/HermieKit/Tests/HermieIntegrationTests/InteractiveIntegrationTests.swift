@@ -323,6 +323,41 @@ extension Integration {
       }
     }
 
+    @Test("a form answered on another device while the socket is down closes as lapsed after the reconnect")
+    func answeredElsewhereWhileDown() async throws {
+      try await withInteractiveGateway { gateway in
+        let chat = try await InteractiveChat.open(gateway)
+        let model = chat.model
+        let session = chat.session
+        let id = try await chat.raise(gateway, "input.form", ["fields": Self.fields])
+
+        _ = try await gateway.control("POST", "/__fake/drop-sockets")
+        try await interactiveWait("the socket to drop") {
+          let state = try await gateway.control("GET", "/__fake/state")
+          return session.status.phase != .ready && state["openSockets"] == 0
+        }
+
+        // Another device answers it meanwhile (the fake sends no request.cancel for that).
+        let other = try LiveConnection(gateway: gateway, credentials: SessionTokenCredentials(token: ""))
+        await other.connection.start()
+        try await other.waitFor(.ready)
+        let taken = try await other.connection.request(
+          "request.answer",
+          params: ["id": .string(id), "result": ["status": "answered", "values": ["name": "Bram", "guests": 3]]])
+        await other.connection.shutdown()
+        #expect(taken["status"] == "ok")
+        #expect(model.presented?.id == id, "the client heard nothing: the sheet is still up")
+
+        await session.retryNow()
+        try await interactiveWait("the request to close") { model.presented == nil }
+        #expect(model.presentedOutcome == .lapsed)
+        #expect(await model.answer(.form(["name": .text("too late"), "guests": .number(2)])) == false)
+        let view = try await InteractiveChat.view(gateway, id)
+        #expect(view["answer"]?["values"]?["name"] == "Bram", "only the other device's answer")
+        await session.shutdown()
+      }
+    }
+
     @Test("a refused answer (4034) keeps the form open with the gateway's reason; the corrected one is taken")
     func refusedAnswer() async throws {
       try await withInteractiveGateway { gateway in

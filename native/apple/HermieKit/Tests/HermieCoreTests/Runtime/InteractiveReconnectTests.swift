@@ -29,7 +29,7 @@ struct InteractiveReconnectTests {
     model.present("srq-1")
     await h.clock.advance(by: .seconds(1))
 
-    h.center.reconcile(session: Fixture.runtime, open: ["srq-2"], askedAt: h.clock.now, listed: all)
+    h.center.reconcile(session: Fixture.runtime, open: ["srq-2"], askedAt: h.clock.now, listed: all, index: h.link.nextIndex())
 
     #expect(h.center.prompts.map(\.id) == ["srq-2"])
     #expect(h.center.notices[bot]?.notice == .lapsed)
@@ -60,12 +60,12 @@ struct InteractiveReconnectTests {
     await h.clock.advance(by: .seconds(1))
 
     // Read before this socket's methods were accepted: it says nothing about them.
-    h.center.reconcile(session: Fixture.runtime, open: [], askedAt: h.clock.now, listed: [])
+    h.center.reconcile(session: Fixture.runtime, open: [], askedAt: h.clock.now, listed: [], index: h.link.nextIndex())
     #expect(h.center.prompts.map(\.id) == ["form", "draft"])
     #expect(h.center.notices.isEmpty)
 
     // Only `input.form` was accepted when this one was read.
-    h.center.reconcile(session: Fixture.runtime, open: [], askedAt: h.clock.now, listed: ["input.form"])
+    h.center.reconcile(session: Fixture.runtime, open: [], askedAt: h.clock.now, listed: ["input.form"], index: h.link.nextIndex())
     #expect(h.center.prompts.map(\.id) == ["draft"])
     #expect(h.center.notices[bot]?.requestID == "form")
   }
@@ -79,7 +79,7 @@ struct InteractiveReconnectTests {
     let askedAt = h.clock.now
     try await h.raiseOpen("after")
 
-    h.center.reconcile(session: Fixture.runtime, open: [], askedAt: askedAt, listed: all)
+    h.center.reconcile(session: Fixture.runtime, open: [], askedAt: askedAt, listed: all, index: h.link.nextIndex())
 
     #expect(h.center.prompts.map(\.id) == ["after"])
     #expect(h.center.notices[bot]?.requestID == "before")
@@ -92,8 +92,8 @@ struct InteractiveReconnectTests {
     try await h.raiseOpen("mine")
     await h.clock.advance(by: .seconds(1))
 
-    h.center.reconcile(session: "rt-other", open: [], askedAt: h.clock.now, listed: all)
-    h.center.reconcile(session: "", open: [], askedAt: h.clock.now, listed: all)
+    h.center.reconcile(session: "rt-other", open: [], askedAt: h.clock.now, listed: all, index: h.link.nextIndex())
+    h.center.reconcile(session: "", open: [], askedAt: h.clock.now, listed: all, index: h.link.nextIndex())
 
     #expect(h.center.isOpen("mine"))
     #expect(h.center.notices.isEmpty)
@@ -110,7 +110,7 @@ struct InteractiveReconnectTests {
     try await eventually("far to wait for its chat") { await center.parkedCount == 1 }
     await h.clock.advance(by: .seconds(1))
 
-    center.reconcile(session: "rt-9", open: [], askedAt: h.clock.now, listed: all)
+    center.reconcile(session: "rt-9", open: [], askedAt: h.clock.now, listed: all, index: h.link.nextIndex())
 
     #expect(center.parkedCount == 0)
     #expect(center.prompts.isEmpty)
@@ -139,7 +139,7 @@ struct InteractiveReconnectTests {
     let sending = Task { @MainActor in await center.answer("slow", .form(["name": .text(typed)])) }
     try await eventually("the answer to be on its way") { await center.phases["slow"] == .sending }
     // The list may leave it out because this very answer settled it.
-    center.reconcile(session: Fixture.runtime, open: [], askedAt: h.clock.now, listed: all)
+    center.reconcile(session: Fixture.runtime, open: [], askedAt: h.clock.now, listed: all, index: h.link.nextIndex())
     #expect(center.isOpen("slow"), "the verdict decides")
     gate.open()
     #expect(await sending.value)
@@ -165,7 +165,7 @@ struct InteractiveReconnectTests {
     let center = h.center
     let sending = Task { @MainActor in await center.answer("slow", .form(["name": .text(typed)])) }
     try await eventually("the answer to be on its way") { await center.phases["slow"] == .sending }
-    center.reconcile(session: Fixture.runtime, open: [], askedAt: h.clock.now, listed: all)
+    center.reconcile(session: Fixture.runtime, open: [], askedAt: h.clock.now, listed: all, index: h.link.nextIndex())
     gate.open()
     #expect(await sending.value == false)
 
@@ -176,6 +176,101 @@ struct InteractiveReconnectTests {
     #expect(await center.answer("slow", .form(["name": .text(typed)])) == false)
     #expect(gate.answers.count == 1)
     #expect(await h.card("slow")?.cancelReason == "lapsed")
+  }
+
+  // MARK: The connection's own reads, and their order
+
+  @Test("the connection's read after the acceptance closes a request that ended while the socket was down")
+  func connectionListCloses() async throws {
+    let h = InteractiveHarness()
+    try await h.open()
+    try await h.raiseOpen("srq-gone")
+    try await h.raiseOpen("srq-kept")
+    await h.clock.advance(by: .seconds(1))
+
+    h.link.list(Fixture.runtime, open: ["srq-kept"], askedAt: h.clock.now)
+    let center = h.center
+    try await eventually("srq-gone to close") { await !center.isOpen("srq-gone") }
+    #expect(center.isOpen("srq-kept"))
+    #expect(center.notices[bot]?.notice == .lapsed)
+    #expect(await h.card("srq-gone")?.cancelReason == "lapsed")
+    #expect(h.link.answers.isEmpty)
+    #expect(h.link.declines.isEmpty)
+  }
+
+  @Test("a list older than one already read is not read; a copy an older answer re-delivers does not reopen what a list closed")
+  func olderListsAndCopies() async throws {
+    let h = InteractiveHarness()
+    try await h.open()
+    try await h.raiseOpen("srq-o")
+    await h.clock.advance(by: .seconds(1))
+    let early = h.link.nextIndex()
+    let late = h.link.nextIndex()
+
+    // The newer list still names it; the older one, read after it, does not: it is not read.
+    h.center.reconcile(session: Fixture.runtime, open: ["srq-o"], askedAt: h.clock.now, listed: all, index: late)
+    h.center.reconcile(session: Fixture.runtime, open: [], askedAt: h.clock.now, listed: all, index: early)
+    #expect(h.center.isOpen("srq-o"))
+    #expect(h.center.notices.isEmpty)
+
+    // A newer list leaves it out: it closes.
+    let closing = h.link.nextIndex()
+    h.center.reconcile(session: Fixture.runtime, open: [], askedAt: h.clock.now, listed: all, index: closing)
+    #expect(!h.center.isOpen("srq-o"))
+
+    // A copy from an answer older than that list is stale: not opened again.
+    var params = InteractiveFrames.form()
+    params["session_id"] = .string(Fixture.runtime)
+    h.link.raise(id: "srq-o", method: "input.form", params: params, replayed: true, index: late)
+    try await h.harness.frame()
+    try await Task.sleep(for: .milliseconds(30))
+    #expect(!h.center.isOpen("srq-o"))
+
+    // One the gateway re-delivers after it: it still waits after all.
+    try await h.raiseOpen("srq-o", replayed: true)
+  }
+
+  @Test("a request delivered with or after the list is kept, whatever the clock says")
+  func deliveredAfterTheList() async throws {
+    let h = InteractiveHarness()
+    try await h.open()
+    let listIndex = h.link.nextIndex()
+    try await h.raiseOpen("srq-new")
+    await h.clock.advance(by: .seconds(1))
+
+    h.center.reconcile(session: Fixture.runtime, open: [], askedAt: h.clock.now, listed: all, index: listIndex)
+    #expect(h.center.isOpen("srq-new"))
+  }
+
+  @Test("a resolved cancel through the store before the request.answer reply: the card ends answered, with its summary")
+  func resolvedThroughTheStoreBeforeTheVerdict() async throws {
+    let h = InteractiveHarness()
+    try await h.open()
+    try await h.raiseOpen("srq-rs", params: InteractiveFrames.form(optional: true))
+    let gate = ReplyGate()
+    h.link.onRequestAnswer { _, result in
+      _ = await gate.respond(result)
+      return ["status": "ok"]
+    }
+
+    let center = h.center
+    let sending = Task { @MainActor in await center.skip("srq-rs") }
+    try await eventually("the answer to be on its way") { await center.phases["srq-rs"] == .sending }
+
+    // The gateway settles it and tells every client, this one too, before its reply.
+    h.link.emit("request.cancel", session: Fixture.runtime, payload: ["id": "srq-rs", "method": "input.form", "reason": "resolved"])
+    try await h.harness.frame()
+    try await eventually("the store to apply the cancel") { await h.card("srq-rs")?.state == .cancelled }
+    #expect(center.isOpen("srq-rs"), "the verdict decides")
+
+    gate.open()
+    #expect(await sending.value)
+    try await h.harness.frame()
+    let card = try #require(await h.card("srq-rs"))
+    #expect(card.state == .answered)
+    #expect(card.answerSummary?.status == "skipped")
+    #expect(center.notices[bot] == nil, "not answered elsewhere")
+    #expect(center.lastAnswered?.requestID == "srq-rs")
   }
 
   // MARK: Through the store
@@ -379,7 +474,7 @@ struct InteractiveReconnectTests {
 
     gate.release()
     try await Task.sleep(for: .milliseconds(50))
-    try await eventually("the passes to end") { await center.liveTaskCount == 2 }
+    try await eventually("the passes to end") { await center.liveTaskCount == 3 }
     #expect(center.isOpen("b-draft"), "never declined behind the person's back")
     #expect(center.prompts.first { $0.id == "b-draft" }?.chatKey == "writer")
     #expect(center.isOpen("a-form"))

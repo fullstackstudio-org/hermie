@@ -684,6 +684,7 @@ public struct ConnectionLink: GatewayLink {
   public func seqWatermarks() async -> [String: Double] { await connection.seqWatermarks }
 
   public var replayGaps: AsyncStream<ReplayGap> { connection.replayGaps }
+  public var openRequestLists: AsyncStream<OpenRequestList> { connection.openRequestLists }
 
   /// Through this link's HTTP client, the one place its credentials are loaded (`IdentityProbe.read`).
   public func probeIdentity() async -> IdentityProbe {

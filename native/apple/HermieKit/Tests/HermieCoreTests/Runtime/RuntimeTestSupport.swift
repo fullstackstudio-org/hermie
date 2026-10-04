@@ -244,15 +244,34 @@ final class ScriptedLink: GatewayLink, Sendable {
   let statusSink: AsyncStream<ConnectionStatus>.Continuation
   let gapStream: AsyncStream<ReplayGap>
   let gapSink: AsyncStream<ReplayGap>.Continuation
+  let listStream: AsyncStream<OpenRequestList>
+  let listSink: AsyncStream<OpenRequestList>.Continuation
 
   init() {
     (eventStream, eventSink) = AsyncStream.makeStream()
     (requestStream, requestSink) = AsyncStream.makeStream()
     (statusStream, statusSink) = AsyncStream.makeStream()
     (gapStream, gapSink) = AsyncStream.makeStream()
+    (listStream, listSink) = AsyncStream.makeStream()
   }
 
   var replayGaps: AsyncStream<ReplayGap> { gapStream }
+  var openRequestLists: AsyncStream<OpenRequestList> { listStream }
+
+  /// The connection's own read of a session's `open_requests` (`OpenRequestList`), at a fresh wire
+  /// index unless one is given; answers it.
+  @discardableResult
+  func list(
+    _ session: String,
+    open ids: [String],
+    listed: Set<String> = Set(ServerRequestBody.Method.interactive),
+    askedAt: Duration,
+    index: UInt64? = nil
+  ) -> UInt64 {
+    let index = index ?? nextIndex()
+    listSink.yield(OpenRequestList(sessionID: session, ids: ids, listed: listed, askedAt: askedAt, index: index))
+    return index
+  }
 
   /// Report a hole in a session's reconnect replay, as the connection does.
   func gap(_ session: String, _ reason: ReplayGap.Reason = .truncated, index: UInt64? = nil) {
@@ -740,6 +759,7 @@ final class ScriptedLink: GatewayLink, Sendable {
     requestSink.finish()
     statusSink.finish()
     gapSink.finish()
+    listSink.finish()
 
     for sink in state.withLock({ $0.eventSubscribers }) {
       sink.finish()

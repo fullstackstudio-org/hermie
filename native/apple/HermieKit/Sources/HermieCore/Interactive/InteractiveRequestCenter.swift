@@ -29,6 +29,9 @@ public enum InteractiveNotice: Sendable, Equatable {
   /// The request was answered on another device (the gateway's `request.cancel` with reason
   /// `resolved` for a request this device did not answer).
   case answeredElsewhere
+  /// The gateway does not let this device answer the request (`request.answer` error `4033`):
+  /// another device has to.
+  case notAllowed
   /// The request ended while the connection was down (withdrawn, timed out, or answered
   /// elsewhere): the reconnect found the gateway no longer waits for it, so nothing was sent.
   case lapsed
@@ -172,6 +175,12 @@ public final class InteractiveRequestCenter {
   /// opened again), on `clock`: `reconcile` keeps one first seen at or after the call whose list
   /// it reads went out.
   @ObservationIgnored private var firstSeen: [String: Duration] = [:]
+  /// The wire index of the delivery that took each open or waiting request in (its newest
+  /// opening): `reconcile` keeps one that came with or after the list it reads.
+  @ObservationIgnored private var firstIndex: [String: UInt64] = [:]
+  /// Per runtime session, the wire index of the newest `open_requests` list taken in: an older one
+  /// that arrives later is not read.
+  @ObservationIgnored private var listIndex: [String: UInt64] = [:]
   @ObservationIgnored private var pending: [String: Pending] = [:]
   @ObservationIgnored private var parked: [String: Parked] = [:]
   @ObservationIgnored private var parkedNotices: [String: Parked] = [:]
@@ -236,14 +245,17 @@ public final class InteractiveRequestCenter {
     var reason: CloseReason
     /// The deadline it had, for a copy that opens it again.
     var deadline: Duration?
+    /// For one a list left out: that list's wire index. A copy re-delivered by an older answer
+    /// (with an index at or below it) does not open it again.
+    var listIndex: UInt64?
   }
 
   /// How the gateway ended a request while its answer was on its way.
   private enum EndedWhileSending {
     /// `request.cancel` with this reason.
     case cancelled(reason: String)
-    /// A reconnect's `open_requests` left it out.
-    case lapsed
+    /// A reconnect's `open_requests` left it out; the list's wire index.
+    case lapsed(index: UInt64)
 
     var cancelReason: String? {
       if case .cancelled(let reason) = self {
@@ -260,11 +272,14 @@ public final class InteractiveRequestCenter {
     case expired
     case refused(reason: String)
     case tooManyAttempts
+    case notAllowed
     case noVerdict
   }
 
   /// `request.answer`'s refusal: the answer is not valid (`data.reason` says why).
   nonisolated static let refusedCode = 4034
+  /// `request.answer`'s refusal: this device may not answer the request.
+  nonisolated static let notAllowedCode = 4033
   nonisolated static let tooManyAttempts = "too_many_attempts"
   /// `request.cancel`'s reason when the request was answered (here or elsewhere).
   nonisolated static let resolved = "resolved"
@@ -297,6 +312,7 @@ public final class InteractiveRequestCenter {
 
     let requests = link.serverRequests
     let events = link.events
+    let lists = link.openRequestLists
 
     // Off the main actor: the texts are cleaned there, and the stream of events (every token of
     // every reply) never wakes the main actor.
@@ -313,6 +329,13 @@ public final class InteractiveRequestCenter {
         for await wire in events where wire.event.type == GatewayEventType.requestCancel {
           let payload = RequestCancelPayload(json: wire.event.payload?.objectValue ?? [:])
           await self?.withdraw(payload.id ?? "", reason: payload.reason ?? "")
+        }
+      }
+    )
+    tasks.append(
+      Task.detached { [weak self] in
+        for await list in lists {
+          await self?.reconcile(list)
         }
       }
     )
@@ -505,6 +528,12 @@ public final class InteractiveRequestCenter {
       show(Self.notice(forCancel: reason), id, on: key)
       transcript { await $0.interactiveEnded(key, requestID: id, reason: reason) }
       return false
+    case .notAllowed:
+      // Another device may still answer it: this one lets go, with a notice.
+      finish(id, .cancelled)
+      show(.notAllowed, id, on: key)
+      transcript { await $0.interactiveEnded(key, requestID: id, reason: "not_allowed") }
+      return false
     case .tooManyAttempts:
       finish(id, .cancelled)
       show(.withdrawn, id, on: key)
@@ -547,6 +576,8 @@ public final class InteractiveRequestCenter {
       case .expired?: return .expired
       default: return .noVerdict
       }
+    } catch let error as GatewayRPCError where error.kind == .rejected && error.code == notAllowedCode {
+      return .notAllowed
     } catch let error as GatewayRPCError where error.kind == .rejected && error.code == refusedCode {
       let reason = error.data?["reason"]?.stringValue ?? ""
       return reason == tooManyAttempts ? .tooManyAttempts : .refused(reason: reason)
@@ -601,8 +632,8 @@ public final class InteractiveRequestCenter {
       // The store applied the cancel to the card already.
       finish(id, .cancelled)
       show(mayHaveArrived ? .mayNotHaveArrived : Self.notice(forCancel: reason), id, on: key)
-    case .lapsed:
-      finish(id, .closedHere)
+    case .lapsed(let index):
+      finish(id, .closedHere, listIndex: index)
       show(mayHaveArrived ? .mayNotHaveArrived : .lapsed, id, on: key)
       transcript { await $0.interactiveEnded(key, requestID: id, reason: "lapsed") }
     }
@@ -640,7 +671,9 @@ public final class InteractiveRequestCenter {
     if let done = closed[id] {
       // Only the gateway's re-delivery of a request it still waits for opens it again, and never
       // one it withdrew or one that was only a notice.
-      guard inbound.replayed, done.reason == .answered || done.reason == .closedHere else {
+      guard inbound.replayed, done.reason == .answered || done.reason == .closedHere,
+        done.listIndex.map({ inbound.index > $0 }) ?? true
+      else {
         return
       }
 
@@ -729,6 +762,7 @@ public final class InteractiveRequestCenter {
 
     expiries[id] = expiry
     firstSeen[id] = clock.now
+    firstIndex[id] = inbound.index
     timers[id] = clock.schedule(after: max(expiry - clock.now, .zero)) { [weak self] in
       await self?.expire(id)
     }
@@ -1001,30 +1035,46 @@ public final class InteractiveRequestCenter {
   /// opens it again: the gateway still waits for it after all.
   ///
   /// One first seen at or after `askedAt` (the shared clock's reading just before the call went
-  /// out) is kept: the gateway may have raised it after it took the list.
-  func reconcile(session sessionID: String, open ids: [String], askedAt: Duration, listed methods: Set<String>) {
-    guard !isShutDown, !sessionID.isEmpty, !methods.isEmpty else {
+  /// out), or delivered with or after the list (`index`, its answer's wire index), is kept: the
+  /// gateway may have raised it after it took the list. A list older than one already read for the
+  /// session (the store's, read before the connection's own) is not read at all.
+  func reconcile(_ list: OpenRequestList) {
+    reconcile(session: list.sessionID, open: list.ids, askedAt: list.askedAt, listed: list.listed, index: list.index)
+  }
+
+  func reconcile(
+    session sessionID: String,
+    open ids: [String],
+    askedAt: Duration,
+    listed methods: Set<String>,
+    index: UInt64
+  ) {
+    guard !isShutDown, !sessionID.isEmpty, !methods.isEmpty, index >= (listIndex[sessionID] ?? 0) else {
       return
     }
 
+    listIndex[sessionID] = index
+
     let listed = Set(ids)
-    let ended = { [firstSeen] (id: String, session: String, method: String) -> Bool in
-      guard session == sessionID, methods.contains(method), !listed.contains(id), let seen = firstSeen[id] else {
+    let ended = { [firstSeen, firstIndex] (id: String, session: String, method: String) -> Bool in
+      guard session == sessionID, methods.contains(method), !listed.contains(id), let seen = firstSeen[id],
+        let delivered = firstIndex[id]
+      else {
         return false
       }
 
-      return seen < askedAt
+      return seen < askedAt && delivered < index
     }
 
     for prompt in prompts where ended(prompt.id, prompt.sessionID, prompt.method) {
       if phases[prompt.id] == .sending {
         if endedWhileSending[prompt.id] == nil {
-          endedWhileSending[prompt.id] = .lapsed
+          endedWhileSending[prompt.id] = .lapsed(index: index)
         }
         continue
       }
 
-      finish(prompt.id, .closedHere)
+      finish(prompt.id, .closedHere, listIndex: index)
       show(.lapsed, prompt.id, on: prompt.chatKey)
       transcript { await $0.interactiveEnded(prompt.chatKey, requestID: prompt.id, reason: "lapsed") }
     }
@@ -1034,7 +1084,7 @@ public final class InteractiveRequestCenter {
       pending.compactMap { id, entry in ended(id, entry.sessionID, entry.content.body.method) ? id : nil })
 
     for id in waiting {
-      finish(id, .closedHere)
+      finish(id, .closedHere, listIndex: index)
     }
   }
 
@@ -1056,7 +1106,7 @@ public final class InteractiveRequestCenter {
   // MARK: - Bookkeeping
 
   /// Take a request out of every table, and remember it is done and why.
-  private func finish(_ id: String, _ reason: CloseReason) {
+  private func finish(_ id: String, _ reason: CloseReason, listIndex: UInt64? = nil) {
     let deadline = prompts.first { $0.id == id }?.deadline ?? pending[id]?.deadline
     prompts.removeAll { $0.id == id }
     phases[id] = nil
@@ -1065,18 +1115,19 @@ public final class InteractiveRequestCenter {
     pending[id] = nil
     expiries[id] = nil
     firstSeen[id] = nil
+    firstIndex[id] = nil
     endedWhileSending[id] = nil
     timers.removeValue(forKey: id)?.cancel()
     parkTimers.removeValue(forKey: id)?.cancel()
-    close(id, reason, deadline: deadline)
+    close(id, reason, deadline: deadline, listIndex: listIndex)
   }
 
-  private func close(_ id: String, _ reason: CloseReason, deadline: Duration? = nil) {
+  private func close(_ id: String, _ reason: CloseReason, deadline: Duration? = nil, listIndex: UInt64? = nil) {
     if closed[id] == nil {
       closedOrder.append(id)
     }
 
-    closed[id] = Closed(reason: reason, deadline: deadline)
+    closed[id] = Closed(reason: reason, deadline: deadline, listIndex: listIndex)
 
     if closedOrder.count > Self.closedLimit {
       closed[closedOrder.removeFirst()] = nil
