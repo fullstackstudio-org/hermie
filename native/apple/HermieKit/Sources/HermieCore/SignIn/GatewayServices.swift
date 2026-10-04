@@ -115,8 +115,8 @@ public protocol PasskeyReauthenticating: AnyObject {
  The app's re-authentication for one gateway: the sign-in's own machinery, reused. The same one
  browser attempt at a time (`GatewayServices.browserGate`: it ends a sign-in in progress, and a
  sign-in started meanwhile ends it), the same listener, timeout and sheet as `BrowserSignIn.run`,
- and the app lock reads the sheet as it reads the system passkey sheet (`AppLock.ceremonyBegan`):
- the resign the sheet causes does not lock the app under it, while a real departure still counts.
+ and the app lock reads the sheet as a long system prompt (`AppLock.longPromptBegan`): a departure
+ under it counts, and only the plate waits until the sheet is gone.
  */
 @MainActor
 public final class BrowserReauthenticator: PasskeyReauthenticating {
@@ -156,7 +156,7 @@ public final class BrowserReauthenticator: PasskeyReauthenticating {
         return
       }
 
-      lock?.ceremonyBegan()
+      lock?.longPromptBegan()
       outcome.value = await BrowserSignIn.reauthenticate(
         credentials: credentials,
         grantID: grantID,
@@ -166,7 +166,7 @@ public final class BrowserReauthenticator: PasskeyReauthenticating {
         timeout: services.signInTimeout,
         sleep: services.sleep
       )
-      lock?.ceremonyEnded()
+      lock?.longPromptEnded()
     }
 
     gate.current = task
@@ -197,10 +197,23 @@ public final class BrowserReauthenticator: PasskeyReauthenticating {
     }
 
     // The attempt's own task: the sheet closes and the listener stops as for any cancellation, and
-    // the lock's guard, taken inside it, is given back there. Waits until it has.
+    // the lock's guard, taken inside it, is given back there. Cancelling also cancels a code
+    // exchange in flight; the wait is bounded all the same, so a shutdown never hangs on one.
     task.cancel()
-    await task.value
+
+    let sleep = services.sleep
+    let wait = Self.cancelWait
+
+    await withTaskGroup(of: Void.self) { group in
+      group.addTask { await task.value }
+      group.addTask { try? await sleep(wait) }
+      await group.next()
+      group.cancelAll()
+    }
   }
+
+  /// The longest `cancel()` waits for the attempt to end.
+  nonisolated static let cancelWait: Duration = .seconds(2)
 }
 
 /// Where the attempt's task leaves its result.

@@ -183,6 +183,12 @@ extension PasskeyModel {
     pin.knownCredentialIDs.append(id)
     pin.appCredentialIDs.append(id)
     await savePin()
+
+    // Shut down while it finished: the device remembers its passkey, and nothing more runs.
+    guard !isShutDown else {
+      expectedAdditions.remove(id)
+      return finish.credential ?? PasskeyCredentialInfo(json: ["id": .string(id), "name": .string(name), "rp_id": .string(account.rpID)])
+    }
     await refresh()
     await policyChanged()
     expectedAdditions.remove(id)
@@ -420,16 +426,17 @@ extension PasskeyModel {
       throw .reauth(.notOffered)
     }
 
-    guard !selfEnrolmentRunning else {
+    guard selfEnrolmentRun == nil else {
       throw .reauth(.busy)
     }
 
-    selfEnrolmentRunning = true
-    defer { selfEnrolmentRunning = false }
+    let run = startSelfEnrolmentRun()
+    defer { endSelfEnrolmentRun(run) }
     expireSelfEnrolmentIfDue()
 
     // The status decides first, a reused grant included: the operator may have switched it off.
     _ = try await account()
+    try checkSelfEnrolmentRun(run)
 
     if let reason = Self.selfEnrolUnavailable(status?.selfEnrol) {
       throw .reauth(reason)
@@ -441,6 +448,7 @@ extension PasskeyModel {
       attempt = held
     } else {
       let begin: PasskeyReauthBeginResult = try await route(grant: true) { try await $0.reauthBegin() }
+      try checkSelfEnrolmentRun(run)
 
       guard let grantID = begin.grantID, !grantID.isEmpty, let expiresAt = begin.expiresAt else {
         throw .badAnswer
@@ -454,29 +462,19 @@ extension PasskeyModel {
       )
     }
 
-    guard !isShutDown else {
-      throw .notConfigured
-    }
-
-    selfEnrolmentAttempt &+= 1
     attempt.phase = .signingIn
     selfEnrolment = attempt
 
-    let token = selfEnrolmentAttempt
     let result = await reauthenticator.reauthenticate(
       grantID: attempt.grantID,
       provider: attempt.provider,
       presenter: presenter
     )
 
-    guard !isShutDown else {
-      throw .notConfigured
-    }
+    // Shut down, forgotten or replaced meanwhile: this result is nobody's any more.
+    try checkSelfEnrolmentRun(run)
 
-    // Forgotten, or replaced, meanwhile: this result is nobody's any more.
-    guard token == selfEnrolmentAttempt, let current = selfEnrolment, current.grantID == attempt.grantID,
-      current.phase == .signingIn
-    else {
+    guard let current = selfEnrolment, current.grantID == attempt.grantID, current.phase == .signingIn else {
       throw .reauth(.signIn(.cancelled))
     }
 
@@ -524,7 +522,7 @@ extension PasskeyModel {
       throw .notConfigured
     }
 
-    guard !selfEnrolmentRunning else {
+    guard selfEnrolmentRun == nil else {
       throw .reauth(.busy)
     }
 
@@ -542,12 +540,17 @@ extension PasskeyModel {
       }
     }
 
-    selfEnrolmentRunning = true
-    defer { selfEnrolmentRunning = false }
+    let run = startSelfEnrolmentRun()
+    defer { endSelfEnrolmentRun(run) }
     update { $0.phase = .enrolling }
 
     do {
       let credential = try await enrol(authority: .grant(id: grantID, useSecret: secret))
+
+      // The passkey exists at the gateway whatever happened here meanwhile; only the state is left alone.
+      guard selfEnrolmentRun == run, !isShutDown else {
+        return credential
+      }
 
       update(grantID) {
         $0.phase = .done
@@ -556,6 +559,10 @@ extension PasskeyModel {
 
       return credential
     } catch {
+      guard selfEnrolmentRun == run, !isShutDown else {
+        throw isShutDown ? .notConfigured : error
+      }
+
       update(grantID) { held in
         if case .reauth(let reason) = error, Self.endsGrant(reason) {
           held.phase = .failed(reason)
@@ -593,7 +600,8 @@ extension PasskeyModel {
   /// up closes; the grant is left to expire at the gateway.
   public func forgetSelfEnrolment() {
     selfEnrolment = nil
-    selfEnrolmentAttempt &+= 1
+    // A step still running is nobody's now; a new one may start at once.
+    selfEnrolmentRun = nil
 
     if let reauthenticator {
       Task { await reauthenticator.cancel() }
@@ -603,6 +611,29 @@ extension PasskeyModel {
   /// The app is in front again: a sign-in in progress listens again (see `PasskeyReauthenticating`).
   public func appBecameActive() async {
     await reauthenticator?.appBecameActive()
+  }
+
+  private func startSelfEnrolmentRun() -> UInt64 {
+    selfEnrolmentAttempt &+= 1
+    selfEnrolmentRun = selfEnrolmentAttempt
+    return selfEnrolmentAttempt
+  }
+
+  private func endSelfEnrolmentRun(_ run: UInt64) {
+    if selfEnrolmentRun == run {
+      selfEnrolmentRun = nil
+    }
+  }
+
+  /// After every wait of step 1: shut down, or let go of by a forget, ends it here.
+  private func checkSelfEnrolmentRun(_ run: UInt64) throws(PasskeyActionError) {
+    guard !isShutDown else {
+      throw .notConfigured
+    }
+
+    guard selfEnrolmentRun == run else {
+      throw .reauth(.signIn(.cancelled))
+    }
   }
 
   /// The token route's `failed` reason: a failure of contract §7.2, or a grant that could not be

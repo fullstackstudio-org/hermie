@@ -145,80 +145,151 @@ struct AppLockCeremonyTests {
     #expect(lock.machine.locked, "the lifecycle is not held")
   }
 
-  // MARK: A resign under a long prompt (a sign-in sheet)
+  // MARK: A long system prompt (the passkey sign-in sheet)
 
-  @Test("away under the sheet and still away when it ends: the return judges the absence from the resign")
-  func resignUnderTheSheetCounts() async throws {
+  @Test("left under the sign-in sheet for longer than the threshold and back under it: locked once it ends")
+  func longAbsenceUnderTheSheet() async throws {
     let clock = TestClock()
-    let lock = try await openLock("immediately", clock: clock)
+    let lock = try await openLock("5m", clock: clock)
 
-    lock.ceremonyBegan()
-    // The Mac app loses the front (another app), and the sheet times out minutes later.
+    lock.longPromptBegan()
     lock.appWentAway()
-    clock.advance(5 * 60_000)
-    lock.ceremonyEnded()
-    #expect(!lock.machine.locked, "nothing is decided while the app is still away")
-
-    clock.advance(10_000)
+    clock.advance(9 * 60_000)
+    // Someone clicks Hermie with the sheet still up, then the sheet is cancelled.
     lock.appCameBack()
+    #expect(!lock.machine.locked, "the plate waits while the sheet is up")
+    #expect(!lock.consumeAutoPrompt())
+
+    lock.longPromptEnded()
     #expect(lock.machine.locked)
     #expect(lock.consumeAutoPrompt())
+    #expect(lock.longPrompts == 0)
   }
 
-  @Test("with a grace period, the absence is measured from the resign under the sheet")
-  func graceFromTheResign() async throws {
+  @Test("a short absence under the sheet, below the threshold, does not lock")
+  func shortAbsenceUnderTheSheet() async throws {
     let clock = TestClock()
     let lock = try await openLock("1m", clock: clock)
 
-    lock.ceremonyBegan()
+    lock.longPromptBegan()
     lock.appWentAway()
-    clock.advance(50_000)
-    lock.ceremonyEnded()
-    clock.advance(20_000)
+    clock.advance(30_000)
     lock.appCameBack()
-    #expect(lock.machine.locked, "70 s away in all, 20 s of it after the sheet")
-
-    let short = try await openLock("1m", clock: clock)
-
-    short.ceremonyBegan()
-    short.appWentAway()
-    clock.advance(20_000)
-    short.ceremonyEnded()
-    clock.advance(10_000)
-    short.appCameBack()
-    #expect(!short.machine.locked, "30 s is inside the minute")
-  }
-
-  @Test("the sheet handing the app back just after it ended is the sheet's own return")
-  func sheetReturnAfterItsEnd() async throws {
-    let clock = TestClock()
-    let lock = try await openLock("immediately", clock: clock)
-
-    lock.ceremonyBegan()
-    lock.appWentAway()
-    clock.advance(3_000)
-    lock.ceremonyEnded()
-    clock.advance(200)
-    lock.appCameBack()
+    lock.longPromptEnded()
 
     #expect(!lock.machine.locked)
     #expect(!lock.consumeAutoPrompt())
   }
 
-  @Test("hidden after the sheet ended away: the absence still began at the resign")
-  func hiddenAfterTheSheet() async throws {
+  @Test("one long absence among short ones is enough")
+  func anyLongAbsence() async throws {
+    let clock = TestClock()
+    let lock = try await openLock("1m", clock: clock)
+
+    lock.longPromptBegan()
+    lock.appWentAway()
+    clock.advance(90_000)
+    lock.appCameBack()
+    lock.appWentAway()
+    clock.advance(1_000)
+    lock.appCameBack()
+    lock.longPromptEnded()
+
+    #expect(lock.machine.locked)
+  }
+
+  @Test("at immediately, any resign under the sheet means one unlock after it: it fails closed")
+  func immediatelyFailsClosed() async throws {
+    let lock = try await openLock("immediately")
+
+    lock.longPromptBegan()
+    lock.appWentAway()
+    lock.appCameBack()
+    lock.longPromptEnded()
+
+    #expect(lock.machine.locked)
+    #expect(lock.consumeAutoPrompt())
+  }
+
+  @Test("still away when the sheet ends: the departure goes on from the resign, and the return judges it")
+  func stillAwayWhenItEnds() async throws {
     let clock = TestClock()
     let lock = try await openLock("5m", clock: clock)
 
-    lock.ceremonyBegan()
+    lock.longPromptBegan()
     lock.appWentAway()
     clock.advance(4 * 60_000)
-    lock.ceremonyEnded()
+    lock.longPromptEnded()
+    #expect(!lock.machine.locked)
+
+    clock.advance(2 * 60_000)
+    lock.appCameBack()
+    #expect(lock.machine.locked, "6 minutes since the resign")
+  }
+
+  @Test("hidden under the sheet counts at once, as under any prompt, and is judged by the return")
+  func hiddenUnderTheSheet() async throws {
+    let clock = TestClock()
+    let lock = try await openLock("1m", clock: clock)
+
+    lock.longPromptBegan()
+    lock.appWentAway()
     lock.appWentAway(entirely: true)
     clock.advance(2 * 60_000)
     lock.appCameBack()
+    lock.longPromptEnded()
 
-    #expect(lock.machine.locked, "6 minutes since the resign")
+    #expect(lock.machine.locked)
+  }
+
+  @Test("on the Mac, another app taking the front under the sheet is a departure; the sheet's agent is not")
+  func anotherAppUnderTheSheet() async throws {
+    let clock = TestClock()
+    let lock = try await openLock("1m", clock: clock)
+
+    lock.longPromptBegan()
+    lock.anotherAppActivated(bundleID: "com.apple.AuthenticationServicesCore.AuthenticationServicesAgent", ownBundleID: "dev.hermie")
+    lock.anotherAppActivated(bundleID: "dev.hermie", ownBundleID: "dev.hermie")
+    clock.advance(2 * 60_000)
+    lock.appCameBack()
+    lock.longPromptEnded()
+    #expect(!lock.machine.locked, "only the sheet's own agents took the front")
+
+    lock.longPromptBegan()
+    lock.anotherAppActivated(bundleID: "com.example.mail", ownBundleID: "dev.hermie")
+    clock.advance(2 * 60_000)
+    lock.appCameBack()
+    lock.longPromptEnded()
+    #expect(lock.machine.locked)
+
+    // Outside the sheet, the app's own resign says it; another app's activation adds nothing.
+    let open = try await openLock("immediately", clock: clock)
+    open.anotherAppActivated(bundleID: "com.example.mail", ownBundleID: "dev.hermie")
+    #expect(!open.machine.locked)
+  }
+
+  @Test("an unlock while the sheet is up clears what its absences came to")
+  func unlockClears() async throws {
+    let clock = TestClock()
+    let lock = try await openLock("1m", clock: clock)
+
+    lock.longPromptBegan()
+    lock.appWentAway()
+    clock.advance(2 * 60_000)
+    lock.appCameBack()
+    lock.longPromptEnded()
+    #expect(lock.machine.locked)
+    #expect(await lock.unlock(reason: "test"))
+    #expect(!lock.machine.locked)
+  }
+
+  @Test("an end without a beginning changes nothing")
+  func unbalancedLongEnd() async throws {
+    let lock = try await openLock("immediately")
+
+    lock.longPromptEnded()
+    #expect(lock.longPrompts == 0)
+    #expect(!lock.machine.locked)
   }
 
   // MARK: The wrapper

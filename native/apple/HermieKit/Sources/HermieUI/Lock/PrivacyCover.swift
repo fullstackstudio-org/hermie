@@ -210,5 +210,21 @@ enum ApplicationActivity {
         MainActor.assumeIsolated { lock.appCameBack() }
       }
     ]
+
+    #if os(macOS)
+      // Under the passkey sign-in sheet this app may stay inactive throughout; another app taking
+      // the front is then the only sign that the person left.
+      let own = Bundle.main.bundleIdentifier
+      observers.append(
+        NSWorkspace.shared.notificationCenter.addObserver(
+          forName: NSWorkspace.didActivateApplicationNotification,
+          object: nil,
+          queue: .main
+        ) { note in
+          let activated = (note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.bundleIdentifier
+          MainActor.assumeIsolated { lock.anotherAppActivated(bundleID: activated, ownBundleID: own) }
+        }
+      )
+    #endif
   }
 }

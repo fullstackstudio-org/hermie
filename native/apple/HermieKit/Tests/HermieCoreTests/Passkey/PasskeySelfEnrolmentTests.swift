@@ -529,12 +529,27 @@ struct PasskeySelfEnrolmentTests {
     // Forget without the sheet answering the cancel (as when it had already called back), then the
     // fresh result arrives.
     f.model.selfEnrolment = nil
-    f.model.selfEnrolmentAttempt &+= 1
+    f.model.selfEnrolmentRun = nil
     f.browser.release()
 
     let error = await #expect(throws: PasskeyActionError.self) { try await running.value }
     #expect(error == .reauth(.signIn(.cancelled)))
     #expect(f.model.selfEnrolment == nil)
+  }
+
+  @Test("forgetting while the sheet is up lets a new start begin at once, with a new grant")
+  func forgetThenStart() async throws {
+    let f = try Self.fixture()
+    let first = try await startHeld(f)
+
+    f.model.forgetSelfEnrolment()
+    f.browser.hold = false
+    let again = try await f.model.beginSelfEnrolment(presenter: Self.presenter)
+
+    #expect(again.phase == .ready)
+    #expect(f.gateway.requests("/api/auth/passkeys/reauth/begin").count == 2)
+    await #expect(throws: PasskeyActionError.reauth(.signIn(.cancelled))) { try await first.value }
+    #expect(f.model.selfEnrolment == again, "the forgotten start did not touch the new one")
   }
 
   @Test("a second start while the sheet is up is busy: no second grant, the first goes on")
@@ -678,9 +693,9 @@ struct BrowserReauthenticatorTests {
     let opened = try #require(presenter.opened.first?.absoluteString)
     #expect(opened.hasPrefix("\(Self.base)/auth/native/authorize?provider=self_hosted&"))
     #expect(opened.hasSuffix("&reauth=\(SelfEnrolWire.grant)"))
-    #expect(f.lock.ceremonies == 1, "the sheet is up: a system prompt")
+    #expect(f.lock.longPrompts == 1, "the sheet is up: a long system prompt")
 
-    // The sheet's resign does not lock the app under it.
+    // A resign under the sheet is a departure; the plate waits until the sheet is gone.
     f.lock.appWentAway()
     f.lock.appCameBack()
     #expect(!f.lock.machine.locked)
@@ -693,7 +708,8 @@ struct BrowserReauthenticatorTests {
     let completion = try await attempt.value.get()
 
     #expect(completion == ReauthCompletion(grantID: SelfEnrolWire.grant, state: .fresh(useSecret: SelfEnrolWire.useSecret), expiresAt: 1_790_000_600))
-    #expect(f.lock.ceremonies == 0)
+    #expect(f.lock.longPrompts == 0)
+    #expect(f.lock.machine.locked, "at immediately, the resign under the sheet locks once it is gone")
     #expect(presenter.closes >= 1)
     #expect(await listener.stopped)
     #expect(f.store.load() == Self.held, "the token set is untouched")
@@ -711,7 +727,7 @@ struct BrowserReauthenticatorTests {
     presenter.personClosesIt()
 
     #expect(await attempt.value == .failure(.cancelled))
-    #expect(f.lock.ceremonies == 0)
+    #expect(f.lock.longPrompts == 0)
     #expect(f.server.requests.isEmpty)
   }
 
@@ -731,11 +747,11 @@ struct BrowserReauthenticatorTests {
     #expect(await a.value == .failure(.cancelled))
     #expect(await first.stopped)
     await eventually { !secondSheet.opened.isEmpty }
-    #expect(f.lock.ceremonies == 1)
+    #expect(f.lock.longPrompts == 1)
 
     #expect(await second.deliver(secondSheet.callbackURL(code: "code-2")))
     #expect(try await b.value.get().grantID == SelfEnrolWire.grant)
-    #expect(f.lock.ceremonies == 0)
+    #expect(f.lock.longPrompts == 0)
   }
 
   @Test("the caller cancelling ends the attempt: the sheet closes, the listener stops, the lock is given back")
@@ -746,13 +762,13 @@ struct BrowserReauthenticatorTests {
     let attempt = Task { await f.reauth.reauthenticate(grantID: SelfEnrolWire.grant, provider: nil, presenter: presenter) }
 
     await eventually { !presenter.opened.isEmpty }
-    #expect(f.lock.ceremonies == 1)
+    #expect(f.lock.longPrompts == 1)
     attempt.cancel()
 
     #expect(await attempt.value == .failure(.cancelled))
     #expect(presenter.closes >= 1)
     #expect(await listener.stopped)
-    #expect(f.lock.ceremonies == 0)
+    #expect(f.lock.longPrompts == 0)
     #expect(f.server.requests.isEmpty)
   }
 
@@ -766,7 +782,7 @@ struct BrowserReauthenticatorTests {
     await eventually { !presenter.opened.isEmpty }
     await f.reauth.cancel()
 
-    #expect(f.lock.ceremonies == 0)
+    #expect(f.lock.longPrompts == 0)
     #expect(await listener.stopped)
     #expect(await attempt.value == .failure(.cancelled))
 
@@ -779,11 +795,11 @@ struct BrowserReauthenticatorTests {
     // No grant: the authorize URL cannot be made.
     let f1 = try await Self.fixture(listeners: ListenerQueue([FakeListener()]))
     #expect(await f1.reauth.reauthenticate(grantID: "", provider: nil, presenter: FakePresenter()) == .failure(.couldNotStart))
-    #expect(f1.lock.ceremonies == 0)
+    #expect(f1.lock.longPrompts == 0)
 
     let f2 = try await Self.fixture(listeners: ListenerQueue([FakeListener(.fail(.unavailable))]))
     #expect(await f2.reauth.reauthenticate(grantID: SelfEnrolWire.grant, provider: nil, presenter: FakePresenter()) == .failure(.listenerUnavailable))
-    #expect(f2.lock.ceremonies == 0)
+    #expect(f2.lock.longPrompts == 0)
 
     let timer = ManualTimer()
     let presenter = FakePresenter()
@@ -792,7 +808,7 @@ struct BrowserReauthenticatorTests {
     await eventually { !presenter.opened.isEmpty }
     timer.fire()
     #expect(await attempt.value == .failure(.timedOut))
-    #expect(f3.lock.ceremonies == 0)
+    #expect(f3.lock.longPrompts == 0)
   }
 
   @Test("an onboarding sign-in started during a re-authentication ends it, and the reverse")
@@ -823,7 +839,7 @@ struct BrowserReauthenticatorTests {
 
     #expect(await first.value == .failure(.cancelled))
     #expect(await reauthListener.stopped)
-    #expect(lock.ceremonies == 0)
+    #expect(lock.longPrompts == 0)
     await signInListener.waitUntilStarted()
     await eventually { !signInSheet.opened.isEmpty }
     #expect(window.isWaitingForBrowser)
@@ -837,7 +853,7 @@ struct BrowserReauthenticatorTests {
     await eventually { !laterSheet.opened.isEmpty }
     #expect(await laterReauthListener.deliver(laterSheet.callbackURL(code: "code-r")))
     #expect(try await second.value.get().grantID == SelfEnrolWire.grant)
-    #expect(lock.ceremonies == 0)
+    #expect(lock.longPrompts == 0)
   }
 
   @Test("a sign-in in progress in the same gate is ended by a re-authentication")
