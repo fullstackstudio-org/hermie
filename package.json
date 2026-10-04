@@ -31,6 +31,7 @@
     "icons:check": "node scripts/generate-app-icons.mjs --check && node scripts/generate-store-assets.mjs --check",
     "golden": "tsx scripts/golden/generate.ts",
     "golden:check": "tsx scripts/golden/generate.ts --check",
+    "contract:check": "node scripts/contract-check.mjs",
     "golden:branch-cases": "tsx scripts/golden/record-branch-cases.ts",
     "golden:branch-cases:check": "tsx scripts/golden/record-branch-cases.ts --check",
     "i18n": "tsx scripts/i18n/generate.ts",
