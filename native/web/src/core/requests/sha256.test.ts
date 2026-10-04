@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto'
 
 import { describe, expect, it } from 'vitest'
 
-import { sha256Hex, sha256Plain } from './sha256'
+import { Sha256, sha256Chunked, sha256Hex, sha256Plain } from './sha256'
 
 const encode = (text: string): Uint8Array => new TextEncoder().encode(text)
 
@@ -48,5 +48,52 @@ describe('the SHA-256 of a blob', () => {
     } finally {
       Object.defineProperty(globalThis, 'crypto', { value: original, configurable: true })
     }
+  })
+})
+
+describe('the incremental SHA-256', () => {
+  it('gives the same digest however the input is cut into pieces', () => {
+    const bytes = Uint8Array.from({ length: 5000 }, (_value, index) => (index * 13 + 5) % 256)
+    const expected = createHash('sha256').update(bytes).digest('hex')
+
+    for (const size of [1, 7, 63, 64, 65, 100, 1000, 5000]) {
+      const hash = new Sha256()
+
+      for (let start = 0; start < bytes.length; start += size) {
+        hash.update(bytes.subarray(start, start + size))
+      }
+
+      expect(hash.hex(), `pieces of ${size}`).toBe(expected)
+    }
+  })
+
+  it('hashes a blob a chunk at a time, never holding the whole of it, and hands the thread back between chunks', async () => {
+    const body = Uint8Array.from({ length: 10_000 }, (_value, index) => index % 253)
+    const blob = new Blob([body])
+    const reads: number[] = []
+    const original = blob.slice.bind(blob)
+
+    blob.slice = (start?: number, end?: number, type?: string) => {
+      reads.push((end ?? 0) - (start ?? 0))
+
+      return original(start, end, type)
+    }
+
+    let yielded = 0
+    const tick = setInterval(() => (yielded += 1), 0)
+
+    try {
+      expect(await sha256Chunked(blob, 1000)).toBe(createHash('sha256').update(body).digest('hex'))
+    } finally {
+      clearInterval(tick)
+    }
+
+    // Ten reads of a thousand bytes, never one of ten thousand; the page ran in between.
+    expect(reads).toEqual(Array(10).fill(1000))
+    expect(yielded).toBeGreaterThan(0)
+  })
+
+  it('hashes an empty blob', async () => {
+    expect(await sha256Chunked(new Blob([]))).toBe('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')
   })
 })

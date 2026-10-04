@@ -16,9 +16,14 @@ import {
   type InteractiveAsk,
   INTERACTIVE_METHODS,
   isInteractiveMethod,
+  LAYOUT_LIMITS,
   LIMITS,
+  minorUnits,
+  onStep,
   readInteractiveParams,
+  stripLineEnds,
   unknownFields,
+  verbatimIssue,
   verbatimProblem
 } from './interactive-types'
 
@@ -525,5 +530,151 @@ describe('a draft', () => {
     ]) {
       expect(verbatimProblem(good), JSON.stringify(good)).toBe(false)
     }
+  })
+})
+
+describe('the gateway’s draft rules (contract §6.1 to §6.3)', () => {
+  const sp = (count: number): string => ' '.repeat(count)
+  const cp = (code: number): string => String.fromCodePoint(code)
+
+  it('strips first: LF only, Python’s isspace at the end of each line and of the text, leading whitespace kept', () => {
+    expect(stripLineEnds('a  \nb\t\n\n  c \n\n')).toBe('a\nb\n\n  c')
+    // CR is not a line break: it is whitespace at the end of a line (or refused in the middle of one).
+    expect(stripLineEnds('a\r\nb\r\n')).toBe('a\nb')
+    expect(stripLineEnds(`a${cp(0xa0)}${cp(0x3000)}${cp(0x2028)}\nb`)).toBe('a\nb')
+    expect(stripLineEnds(`a${cp(0x1c)}${cp(0x85)}${cp(0x202f)}\nb`)).toBe('a\nb')
+    expect(stripLineEnds('   \n  \nx')).toBe('\n\nx')
+    expect(stripLineEnds('  \n \t ')).toBe('')
+    expect(stripLineEnds('\n\nx')).toBe('\n\nx')
+  })
+
+  it('refuses a character that cannot be shown as it is, after stripping', () => {
+    expect(verbatimIssue('a\tb')).toEqual({ rule: 'character', codePoint: 9 })
+    expect(verbatimIssue('a\rb')).toEqual({ rule: 'character', codePoint: 13 })
+    expect(verbatimIssue(`a${cp(0x7f)}b`)).toEqual({ rule: 'character', codePoint: 0x7f })
+    expect(verbatimIssue(`a${cp(0x85)}b`)).toEqual({ rule: 'character', codePoint: 0x85 })
+    expect(verbatimIssue(`a${cp(0xa0)}b`)).toEqual({ rule: 'character', codePoint: 0xa0 })
+    expect(verbatimIssue(`a${cp(0x2028)}b`)).toEqual({ rule: 'character', codePoint: 0x2028 })
+    expect(verbatimIssue(`a${cp(0x200b)}b`)).toEqual({ rule: 'character', codePoint: 0x200b })
+    expect(verbatimIssue(`a${cp(0xad)}b`)).toEqual({ rule: 'character', codePoint: 0xad })
+    expect(verbatimIssue(`a${cp(0xfe0f)}b`)).toEqual({ rule: 'character', codePoint: 0xfe0f })
+    expect(verbatimIssue(`a${cp(0xe0100)}b`)).toEqual({ rule: 'character', codePoint: 0xe0100 })
+    expect(verbatimIssue(`a${cp(0x3164)}b`)).toEqual({ rule: 'character', codePoint: 0x3164 })
+    expect(verbatimIssue(`a${cp(0x2800)}b`)).toEqual({ rule: 'character', codePoint: 0x2800 })
+    expect(verbatimIssue(`a${cp(0x1d159)}b`)).toEqual({ rule: 'character', codePoint: 0x1d159 })
+    expect(verbatimIssue(`a${cp(0xe000)}b`)).toEqual({ rule: 'character', codePoint: 0xe000 })
+    expect(verbatimIssue(`a${cp(0x0378)}b`)).toEqual({ rule: 'character', codePoint: 0x378 })
+    // A tab or a CR at the end of a line is stripped, not refused.
+    expect(verbatimIssue('a\t\nb\r\n')).toBeNull()
+    expect(verbatimIssue('plain text\n\n  indented\n')).toBeNull()
+  })
+
+  it('refuses more than 4 combining marks in a row, counted from any character before them', () => {
+    const marks = (count: number): string => cp(0x301).repeat(count)
+
+    expect(verbatimIssue(`e${marks(4)}`)).toBeNull()
+    expect(verbatimIssue(`e${marks(5)}`)).toEqual({ rule: 'marks' })
+    expect(verbatimIssue(marks(5))).toEqual({ rule: 'marks' })
+    // A space or a base letter resets the count.
+    expect(verbatimIssue(`${marks(4)} ${marks(4)}`)).toBeNull()
+  })
+
+  it('refuses spacing that could push part of a text out of view, with the rule and the line', () => {
+    expect(LAYOUT_LIMITS).toEqual({ spaceRun: 16, indent: 32, blankLines: 3, lineChars: 2000 })
+    expect(verbatimIssue(`x${sp(17)}y`)).toEqual({ rule: 'space_run', line: 1, size: 17 })
+    expect(verbatimIssue(`x${sp(16)}y`)).toBeNull()
+    expect(verbatimIssue(`${sp(33)}x`)).toEqual({ rule: 'indent', line: 1, size: 33 })
+    expect(verbatimIssue(`${sp(32)}x`)).toBeNull()
+    // The indent is not also a space run; a later run on a deep line is measured against MAX_SPACE_RUN.
+    expect(verbatimIssue(`${sp(32)}x${sp(16)}y`)).toBeNull()
+    expect(verbatimIssue(`${sp(32)}x${sp(17)}y`)).toEqual({ rule: 'space_run', line: 1, size: 17 })
+    expect(verbatimIssue('a\n\n\n\nb')).toBeNull()
+    expect(verbatimIssue('a\n\n\n\n\nb')).toEqual({ rule: 'blank_lines', line: 2 })
+    expect(verbatimIssue('\n\n\n\nx')).toEqual({ rule: 'blank_lines', line: 1 })
+    // A line of spaces is an empty line once stripped; blank lines at the end are stripped, never counted.
+    expect(verbatimIssue('a\n \n  \n   \n    \nb')).toEqual({ rule: 'blank_lines', line: 2 })
+    expect(verbatimIssue('a\n\n\n\n\n\n\n')).toBeNull()
+    expect(verbatimIssue('x'.repeat(2000))).toBeNull()
+    expect(verbatimIssue(`ok\n${'x'.repeat(2001)}`)).toEqual({ rule: 'line_length', line: 2, size: 2001 })
+    // Code points, not UTF-16 units.
+    expect(verbatimIssue('😀'.repeat(2000))).toBeNull()
+    expect(verbatimIssue('😀'.repeat(2001))).toEqual({ rule: 'line_length', line: 1, size: 2001 })
+    // The indent counts in the line's length.
+    expect(verbatimIssue(`${sp(10)}${'x'.repeat(1991)}`)).toEqual({ rule: 'line_length', line: 1, size: 2001 })
+  })
+
+  it('judges the characters before the layout, and the stripped text, as the gateway does', () => {
+    expect(verbatimIssue(`${sp(40)}x\t y`)).toEqual({ rule: 'character', codePoint: 9 })
+    expect(verbatimProblem(`x${sp(17)}y`)).toBe(true)
+    expect(verbatimProblem(`x${sp(17)}y`, { layout: false })).toBe(false)
+    expect(verbatimProblem('a\tb', { tab: true, layout: false })).toBe(false)
+  })
+
+  it('declines a draft frame whose text breaks a layout rule: it could not be approved as it is', () => {
+    const frame = (text: string): Record<string, unknown> => ({
+      session_id: 's',
+      v: 1,
+      title: 'T',
+      summary: 'S',
+      expires_at: 1_791_119_400,
+      optional: false,
+      kind: 'mail',
+      text,
+      editable: true
+    })
+
+    expect(readInteractiveParams('review.draft', frame(`x${sp(17)}y`))).toEqual({
+      ok: false,
+      reason: 'not_supported_on_device'
+    })
+    expect(readInteractiveParams('review.draft', frame('fine')).ok).toBe(true)
+  })
+})
+
+describe('ISO 4217 minor units, as the gateway’s table has them', () => {
+  it.each([
+    ['EUR', 2],
+    ['USD', 2],
+    ['JPY', 0],
+    ['KRW', 0],
+    ['ISK', 0],
+    ['CLP', 0],
+    ['VND', 0],
+    ['KWD', 3],
+    ['BHD', 3],
+    ['IQD', 3],
+    ['JOD', 3],
+    // The browser's own locale data says 0 for these; the gateway's table (ISO 4217) says 2.
+    ['HUF', 2],
+    ['IDR', 2],
+    ['COP', 2],
+    ['TWD', 2],
+    ['LBP', 2],
+    // ISO 4217 has four decimals for these, and a decimal string never has more than three.
+    ['CLF', 3],
+    ['UYW', 3],
+    // Not in the table: the answer check's two.
+    ['XXX', 2],
+    ['ZZZ', 2]
+  ])('%s has %i decimals', (code, decimals) => {
+    expect(minorUnits(code)).toBe(decimals)
+  })
+})
+
+describe('a step in exact decimal arithmetic', () => {
+  it('is on a step by integer arithmetic, with no floating-point tolerance', () => {
+    expect(onStep(0.3, 0, 0.1)).toBe(true)
+    expect(onStep('0.3', 0, 0.1)).toBe(true)
+    expect(onStep('0.30000000000000004', 0, 0.1)).toBe(false)
+    expect(onStep('0.3000000001', 0, 0.1)).toBe(false)
+    expect(onStep(7, 1, 2)).toBe(true)
+    expect(onStep(4, 1, 2)).toBe(false)
+    expect(onStep('1.05', 1, 0.05)).toBe(true)
+    expect(onStep('-0.5', -1, 0.25)).toBe(true)
+    expect(onStep('1e3', 0, 5)).toBe(true)
+    expect(onStep('1e-7', 0, 1e-7)).toBe(true)
+    expect(onStep('3e-7', 0, 2e-7)).toBe(false)
+    expect(onStep('12345678901234567890.5', 0, 0.5)).toBe(true)
+    expect(onStep(5, undefined, undefined)).toBe(true)
   })
 })

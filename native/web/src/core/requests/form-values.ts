@@ -345,7 +345,7 @@ function evaluateNumber(field: Extract<FormField, { kind: 'number' }>, raw: stri
     return problem('not_integer')
   }
 
-  if (!onStep(value, field.min, field.step)) {
+  if (!onStep(text, field.min, field.step)) {
     return problem('step')
   }
 

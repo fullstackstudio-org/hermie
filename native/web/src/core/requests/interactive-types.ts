@@ -411,13 +411,40 @@ export function milli(value: unknown): bigint | null {
   return match[1] === '-' ? -total : total
 }
 
-/** The decimals an ISO 4217 currency has (EUR 2, JPY 0, KWD 3); three when this runtime does not know it. */
+/**
+ * ISO 4217 minor units, as the gateway's table has them (`tui_gateway/currency_units.py`: the active currency codes,
+ * funds codes with a minor unit included, the precious-metal and testing codes, which have none, left out). Not read from
+ * the browser's own locale data, which disagrees on some (HUF, IDR, COP, IQD, ...): the gateway is what an answer is
+ * checked by.
+ */
+const MINOR_UNITS: ReadonlyMap<string, number> = new Map(
+  (
+    [
+      [0, 'BIF CLP DJF GNF ISK JPY KMF KRW PYG RWF UGX UYI VND VUV XAF XOF XPF'],
+      [3, 'BHD IQD JOD KWD LYD OMR TND'],
+      [4, 'CLF UYW'],
+      [
+        2,
+        'AED AFN ALL AMD ANG AOA ARS AUD AWG AZN BAM BBD BDT BGN BMD BND BOB BOV BRL BSD BTN BWP BYN BZD CAD CDF CHE ' +
+          'CHF CHW CNY COP COU CRC CUP CVE CZK DKK DOP DZD EGP ERN ETB EUR FJD FKP GBP GEL GHS GIP GMD GTQ GYD HKD HNL ' +
+          'HTG HUF IDR ILS INR IRR JMD KES KGS KHR KPW KYD KZT LAK LBP LKR LRD LSL MAD MDL MGA MKD MMK MNT MOP MRU MUR ' +
+          'MVR MWK MXN MXV MYR MZN NAD NGN NIO NOK NPR NZD PAB PEN PGK PHP PKR PLN QAR RON RSD RUB SAR SBD SCR SDG SEK ' +
+          'SGD SHP SLE SOS SRD SSP STN SVC SYP SZL THB TJS TMT TOP TRY TTD TWD TZS UAH USD USN UYU UZS VED VES WST XCD ' +
+          'YER ZAR ZMW ZWG'
+      ]
+    ] as const
+  ).flatMap(([digits, codes]) => codes.split(' ').map((code): [string, number] => [code, digits]))
+)
+
+/** The most decimals any amount carries, whatever the currency (the contract's decimal string). */
+const MAX_DECIMALS = 3
+
+/**
+ * The decimals an amount in `currency` may carry: its ISO 4217 minor unit, at most three (the contract's decimal
+ * string has no more); two for a code the table does not list, as the gateway's answer check assumes.
+ */
 export function minorUnits(currency: string): number {
-  try {
-    return new Intl.NumberFormat('en', { style: 'currency', currency }).resolvedOptions().maximumFractionDigits ?? 3
-  } catch {
-    return 3
-  }
+  return Math.min(MAX_DECIMALS, MINOR_UNITS.get(currency) ?? 2)
 }
 
 /** An IANA zone this runtime knows. */
@@ -470,15 +497,50 @@ const byCode = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0)
 const byNumber = (a: number, b: number): number => a - b
 const byBig = (a: bigint, b: bigint): number => (a < b ? -1 : a > b ? 1 : 0)
 
-/** `value` as `min` plus a whole multiple of `step` (floating point tolerant). */
-export function onStep(value: number, min: number | undefined, step: number | undefined): boolean {
+/** A decimal number (a JSON number, or the text a person typed) as an integer and the digits after the point it has. */
+function decimalParts(value: number | string): { digits: bigint; scale: number } | null {
+  const text = typeof value === 'number' ? String(value) : value.trim()
+  const match = /^([+-]?)(\d*)(?:\.(\d*))?(?:[eE]([+-]?\d+))?$/u.exec(text)
+
+  if (!match || ((match[2] ?? '') === '' && (match[3] ?? '') === '')) {
+    return null
+  }
+
+  const fraction = match[3] ?? ''
+  const exponent = Number(match[4] ?? 0)
+  let digits = BigInt(`${match[2] || '0'}${fraction}`)
+  let scale = fraction.length - exponent
+
+  // A negative scale is a number of tens: bring it to a whole number so the scales can be compared.
+  if (scale < 0) {
+    digits *= 10n ** BigInt(-scale)
+    scale = 0
+  }
+
+  return { digits: match[1] === '-' ? -digits : digits, scale }
+}
+
+/**
+ * `value` as `min` (else 0) plus a whole multiple of `step`, in exact decimal arithmetic: no floating point, so
+ * `0.3` is on a step of `0.1` and `0.30000000000000004` is not. `value` is a JSON number or the text typed.
+ */
+export function onStep(value: number | string, min: number | undefined, step: number | undefined): boolean {
   if (step === undefined) {
     return true
   }
 
-  const quotient = (value - (min ?? 0)) / step
+  const v = decimalParts(value)
+  const base = decimalParts(min ?? 0)
+  const unit = decimalParts(step)
 
-  return Math.abs(quotient - Math.round(quotient)) < 1e-9
+  if (!v || !base || !unit || unit.digits === 0n) {
+    return false
+  }
+
+  const scale = Math.max(v.scale, base.scale, unit.scale)
+  const lift = (part: { digits: bigint; scale: number }): bigint => part.digits * 10n ** BigInt(scale - part.scale)
+
+  return (lift(v) - lift(base)) % lift(unit) === 0n
 }
 
 function readBase(raw: Rec): Omit<FieldBase, never> {
@@ -575,7 +637,7 @@ function readText(raw: Rec): TextField {
     // as it came (cleaning would fold its blank lines and send something else), so it must be text that shows as it
     // is: one with a control, format, bidi or invisible character the field would hide is not shown at all (a tab is
     // a tab in a field). A one-line field shows it cleaned, like every other text.
-    if (multiline && verbatimProblem(text as string, { tab: true })) {
+    if (multiline && verbatimProblem(text as string, { tab: true, layout: false })) {
       refuse()
     }
 
@@ -944,44 +1006,123 @@ function readFile(params: Rec): FileAsk {
 }
 
 /**
- * Whether a draft's `text` holds something the gateway's verbatim rule refuses (contract §6): an approval of it
- * unchanged could not be taken, and the sheet could not show it as it is. Line-end whitespace does not count (the
- * gateway strips it from an approved text first), nor does spacing: the characters are this check's. `allow.tab`
- * lets a tab through, for a field's default (a tab shows as one there).
+ * The text as the gateway sees an approved draft: whitespace at the end of each line (split on LF only; every
+ * character Python's `str.isspace()` is true for) and at the end of the whole text is gone, which also drops
+ * trailing blank lines. Leading whitespace stays (`strip_line_ends`, contract §6).
  */
-export function verbatimProblem(text: string, allow: { tab?: boolean } = {}): boolean {
-  for (const line of text.split('\n')) {
+export function stripLineEnds(text: string): string {
+  const stripEnd = (line: string): string => {
     const chars = Array.from(line)
     let end = chars.length
 
-    // What the gateway strips before it looks.
     while (end > 0 && PYTHON_SPACE.has(chars[end - 1]?.codePointAt(0) ?? 0)) {
       end -= 1
     }
 
-    let marks = 0
+    return chars.slice(0, end).join('')
+  }
 
-    for (const char of chars.slice(0, end)) {
-      const code = char.codePointAt(0) ?? 0
+  return stripEnd(text.split('\n').map(stripEnd).join('\n'))
+}
 
-      if (
-        (NOT_VERBATIM.test(char) && !(allow.tab === true && char === '\t')) ||
-        INVISIBLE_LETTERS.has(code) ||
-        IGNORABLE.some(([low, high]) => code >= low && code <= high)
-      ) {
-        return true
+/** The spacing limits of the gateway's layout rule (`request_text.py`): spacing that could push part of a text out of view. */
+export const LAYOUT_LIMITS = Object.freeze({ spaceRun: 16, indent: 32, blankLines: 3, lineChars: 2_000 })
+
+/** Which rule of the gateway's verbatim check a text breaks, with where. */
+export type VerbatimIssue =
+  /** A character that cannot be shown as it is (hidden, a tab, a control, a separator, ...). */
+  | { rule: 'character'; codePoint: number }
+  | { rule: 'marks' }
+  /** Line `line` (1-based) holds `size` spaces in a row. */
+  | { rule: 'space_run'; line: number; size: number }
+  | { rule: 'indent'; line: number; size: number }
+  /** More than `LAYOUT_LIMITS.blankLines` blank lines in a row start at line `line`. */
+  | { rule: 'blank_lines'; line: number }
+  | { rule: 'line_length'; line: number; size: number }
+
+/**
+ * The first rule of the gateway's verbatim check (`verbatim_problem`, contract §6) that `text` breaks, or `null`:
+ * a character it cannot show as it is, too many combining marks on one, or spacing that could hide part of it (a
+ * run of more than 16 spaces, an indent of more than 32, more than 3 blank lines in a row, a line of more than
+ * 2,000 characters). Whitespace at the end of a line or of the text does not count (the gateway strips it from an
+ * approved text first). `allow.tab` lets a tab through and `allow.layout: false` skips the spacing rules, for a
+ * field's default (a tab shows as one there, and no layout rule is stated for a default).
+ */
+export function verbatimIssue(text: string, allow: { tab?: boolean; layout?: boolean } = {}): VerbatimIssue | null {
+  const body = stripLineEnds(text)
+  let marks = 0
+
+  for (const char of body) {
+    // The only whitespace a draft may hold.
+    if (char === '\n' || char === ' ') {
+      marks = 0
+
+      continue
+    }
+
+    const code = char.codePointAt(0) ?? 0
+
+    if (
+      (NOT_VERBATIM.test(char) && !(allow.tab === true && char === '\t')) ||
+      INVISIBLE_LETTERS.has(code) ||
+      IGNORABLE.some(([low, high]) => code >= low && code <= high)
+    ) {
+      return { rule: 'character', codePoint: code }
+    }
+
+    marks = COMBINING.test(char) ? marks + 1 : 0
+
+    if (marks > MAX_COMBINING_MARKS) {
+      return { rule: 'marks' }
+    }
+  }
+
+  if (allow.layout === false) {
+    return null
+  }
+
+  let blank = 0
+
+  for (const [index, line] of body.split('\n').entries()) {
+    const number = index + 1
+    const chars = Array.from(line)
+
+    if (line.replace(/ +/gu, '') === '') {
+      blank += 1
+
+      if (blank > LAYOUT_LIMITS.blankLines) {
+        return { rule: 'blank_lines', line: number - blank + 1 }
       }
 
-      marks = COMBINING.test(char) ? marks + 1 : 0
+      continue
+    }
 
-      if (marks > MAX_COMBINING_MARKS) {
-        return true
+    blank = 0
+
+    if (chars.length > LAYOUT_LIMITS.lineChars) {
+      return { rule: 'line_length', line: number, size: chars.length }
+    }
+
+    const bodyOfLine = line.replace(/^ +/u, '')
+    const indent = chars.length - Array.from(bodyOfLine).length
+
+    if (indent > LAYOUT_LIMITS.indent) {
+      return { rule: 'indent', line: number, size: indent }
+    }
+
+    for (const run of bodyOfLine.matchAll(/ +/gu)) {
+      if (run[0].length > LAYOUT_LIMITS.spaceRun) {
+        return { rule: 'space_run', line: number, size: run[0].length }
       }
     }
   }
 
-  return false
+  return null
 }
+
+/** Whether a draft's `text` breaks the gateway's verbatim rule: an approval of it could not be taken (`verbatimIssue`). */
+export const verbatimProblem = (text: string, allow: { tab?: boolean; layout?: boolean } = {}): boolean =>
+  verbatimIssue(text, allow) !== null
 
 function readDraft(params: Rec): DraftAsk {
   const envelope = readEnvelope(params, false)

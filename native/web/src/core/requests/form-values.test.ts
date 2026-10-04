@@ -384,3 +384,31 @@ describe('a refusal of a field', () => {
     expect(parseFieldRefusal(null)).toBeNull()
   })
 })
+
+describe('minor units come from the gateway’s table, not the browser’s locale data', () => {
+  it('takes two decimals for HUF, IDR and COP, whatever the platform says', () => {
+    const forint = read({ id: 'a', kind: 'amount', label: 'A', currency: 'HUF' })
+
+    expect(evaluate(forint, '1500.50', DEVICE)).toEqual({ value: '1500.50' })
+    expect(evaluate(forint, '1500.505', DEVICE)).toEqual({ problem: 'format' })
+    expect(evaluate(read({ id: 'a', kind: 'amount', label: 'A', currency: 'IDR' }), '10.25', DEVICE)).toEqual({
+      value: '10.25'
+    })
+    expect(evaluate(read({ id: 'a', kind: 'amount', label: 'A', currency: 'IQD' }), '1.234', DEVICE)).toEqual({
+      value: '1.234'
+    })
+    expect(evaluate(read({ id: 'a', kind: 'amount', label: 'A', currency: 'CLP' }), '10.5', DEVICE)).toEqual({
+      problem: 'format'
+    })
+  })
+})
+
+describe('a step is exact', () => {
+  it('takes 0.3 on a step of 0.1 and refuses what is only nearly on it', () => {
+    const field = read({ id: 'n', kind: 'number', label: 'N', step: 0.1 })
+
+    expect(evaluate(field, '0.3', DEVICE)).toEqual({ value: 0.3 })
+    expect(evaluate(field, '0.30000000000000004', DEVICE)).toEqual({ problem: 'step' })
+    expect(evaluate(field, '0.35', DEVICE)).toEqual({ problem: 'step' })
+  })
+})

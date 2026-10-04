@@ -95,6 +95,7 @@ import {
   INTERACTIVE_METHODS,
   isInteractiveMethod,
   readInteractiveParams,
+  stripLineEnds,
   unknownFields
 } from './interactive-types'
 import { NAME_LIMIT, displayText } from './secure-input'
@@ -305,12 +306,6 @@ interface Entry {
 const str = (value: unknown): string => (typeof value === 'string' ? value : '')
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
-
-/**
- * Text compared the way the gateway compares it: whitespace at the end of each line does not count, nor does any at the
- * end of the whole text (trailing blank lines included).
- */
-const trimmedLines = (text: string): string => text.replace(/[^\S\n]+$/gmu, '').replace(/\s+$/u, '')
 
 export class InteractiveModel {
   readonly store: StoreApi<InteractiveState>
@@ -771,7 +766,9 @@ export class InteractiveModel {
       return {
         decision: approved ? 'approved' : 'rejected',
         // The gateway computes the real flag for the agent; this one is for the transcript line, from what was sent.
-        ...(approved && 'text' in result ? { edited: trimmedLines(result.text) !== trimmedLines(entry.ask.text) } : {})
+        ...(approved && 'text' in result
+          ? { edited: stripLineEnds(result.text) !== stripLineEnds(entry.ask.text) }
+          : {})
       }
     }
 
@@ -978,7 +975,8 @@ export class InteractiveModel {
     this.finish(request.id, 'declined', { decline: reason })
     this.fail(request, reason)
     this.show(bot, request.id, { kind: 'cannot_show', method: displayText(entry.method, NAME_LIMIT), reason })
-    this.options.engine?.ended(bot, request.id, 'cannot_show')
+    // The person chose not to share (`declined`): the record says so, not that the page failed to show it.
+    this.options.engine?.ended(bot, request.id, reason === 'declined' ? 'declined' : 'cannot_show')
   }
 
   // ── the chats moved on ────────────────────────────────────────────────────────────────────────

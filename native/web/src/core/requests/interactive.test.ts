@@ -641,6 +641,15 @@ describe('declined', () => {
     expect(gw.replies).toHaveLength(1)
   })
 
+  it('declined is the person’s choice: 4041 with reason declined, and the record says so, not that the page failed', () => {
+    gw.deliver('srq-1', 'input.form', formParams({ optional: false }))
+
+    expect(model.cannotShow('srq-1', 'declined')).toBe('sent')
+    expect(gw.declined).toEqual([{ id: 'srq-1', code: CANNOT_SHOW_CODE, message: 'cannot_show', reason: 'declined' }])
+    expect(notice('researcher')).toEqual({ kind: 'cannot_show', method: 'input.form', reason: 'declined' })
+    expect(engine.calls.at(-1)).toEqual({ call: 'ended', bot: 'researcher', id: 'srq-1', reason: 'declined' })
+  })
+
   it('does not decline while an answer is on its way: its result decides first', async () => {
     let release: (value: unknown) => void = () => undefined
 
