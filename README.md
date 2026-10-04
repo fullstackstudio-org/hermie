@@ -84,6 +84,14 @@ no third-party network call. The only address Hermie knows is the one you typed.
   request can also be answered from the card in the transcript, without the
   sheet — the buttons are exactly the ones the gateway offered, and answering
   either way takes the sheet down with it.
+- **Forms, files and drafts the agent asks for.** An agent can ask for a form
+  (typed fields, checked the way the gateway checks them), for files (from the
+  photo library, Files, the camera or, on iPhone and iPad, the document scanner,
+  uploaded with their checksum and, on request, without their location data) and
+  for a draft to approve, change or reject, shown exactly as written with every
+  invisible character marked. Each is a sheet that can be put away for later or
+  refused with Don't share, and what you type is never stored. The tools are in
+  the gateway's `interactive` toolset, which is off until you switch it on.
 - **Crons.** The gateway's scheduled jobs, under the name the gateway and its
   dashboard use: what they run, when they run next, pause, resume, run now, and
   the transcript of any past run. A delivery lands in the chat it was addressed

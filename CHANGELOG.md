@@ -40,6 +40,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **An agent can ask for a form, a file or a review of a draft, in the native Apple apps (0.2.9) and in the
+  web client.** Beside an approval and a question, the gateway can now send `input.form` (one to twelve typed
+  fields: text, number, amount, date, time, datetime, date range, choice, toggle), `input.file` (one or more
+  files) and `review.draft` (a mail, post or message to approve, change or reject), from the tools `ask_form`,
+  `ask_file` and `review_draft` in the gateway's `interactive` toolset (off by default). Each opens as a sheet
+  that names the agent and the gateway, shows the agent's words as plain text, checks a form the way the gateway
+  does, and shows a draft verbatim with every invisible character marked. A file request offers the photo
+  library, Files, the camera and, on an iPhone or iPad, the document scanner. Pictures lose their location data
+  when the agent asks for it, files go flat into the directory the gateway names with their SHA-256, and what
+  is typed or picked is never kept: not in the transcript, a cache, a draft or a log. **Later** puts a sheet
+  away without answering (the transcript's card opens it again), **Don't share** tells the agent the person
+  chose not to provide it, and a request survives a reconnect or is closed with a notice saying why. In the
+  native apps an approval or a passkey confirmation steps in front of a form that is open. A push notification
+  says that an agent has a form, a file request or a draft for you, and carries none of its text (`docs/web.md`,
+  `docs/native.md`, `contract/requests`).
+- **The MCP page in Settings and the agent label.** Settings has an MCP page with the gateway's endpoint and the
+  clients connected to it, and a client can be revoked. A turn an agent sent on the person's behalf is drawn as
+  `<name> via <client>` under its bubble, in the native apps and the web client.
 - **The native Apple apps keep your gateways in iCloud Keychain.** The gateway list and the
   credentials that are the same on every device (session tokens, Cloudflare Access service tokens,
   custom headers) reach your other Apple devices without typing; sign-ins through an identity
@@ -71,6 +89,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Swiping back out of a chat no longer crashes the native apps.** A queued layout pass kept the transcript
+  list alive past its coordinator, and its hooks then read a coordinator that was already gone. The hooks now
+  let go of it, on iOS, iPadOS and the Mac.
+- **A reply no longer appears twice after a reconnect mid-turn.** When the socket dropped and came back while
+  the agent was working, the history read settled the reply onto its row, the closing message then found
+  nowhere to land and stood the same words up a second time, and the turn never settled. The reply is now found
+  from the turn's receipt, and a completion that goes on past a row's text still gets a bubble of its own.
+- **The chat title is centred, and a running tool is named like the transcript names it.** The title column sits
+  between the back button and the buttons on the right and shortens a long status inside itself instead of
+  pushing the name to the left; the status drops the `mcp__` prefix of a tool.
+- **The Mac's chat title pill has more room**, and a wider default, and the newest message no longer touches the
+  composer on the Mac (and sits clear of it on iPhone and iPad).
+- **The Mac's Settings sidebar is evened out.** Every row and every gap between groups comes from the system, the
+  toggle button that was drawn at the top of the column is gone, and the sidebar still collapses from
+  View > Show/Hide Sidebar or by dragging its divider, with the collapsed state kept per window.
 - **Malformed gateway addresses no longer get a gateway key or front-door credentials.** An address
   such as `example.com:9119` (no scheme) gave the same notification key as every other address of
   its kind; it now gives none, as an unparseable one already did. An address with a secure scheme
