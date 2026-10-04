@@ -130,7 +130,7 @@ struct ComposerTextField {
 
       if focusRequest != context.coordinator.lastFocusRequest {
         context.coordinator.lastFocusRequest = focusRequest
-        if !view.isFirstResponder {
+        if !view.isFirstResponder, view.isEditable {
           view.becomeFirstResponder()
         }
       }
@@ -147,6 +147,7 @@ struct ComposerTextField {
       view.onPaste = { coordinator.parent.onPaste($0) }
       view.completionKeysActive = completionKeysActive
       view.onCompletionKey = { coordinator.parent.onCompletionKey($0) }
+      view.setEnabled(context.environment.isEnabled)
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView view: KeyTextView, context: Context) -> CGSize? {
@@ -188,6 +189,19 @@ struct ComposerTextField {
   /// A text view that hears Return, Shift-Return, Command-Return and Esc from
   /// a hardware keyboard before the text system does, and that draws its own placeholder.
   final class KeyTextView: UITextView {
+    /// Off while something covers the composer (`.disabled`): not editable, and the keyboard goes.
+    func setEnabled(_ enabled: Bool) {
+      guard enabled != isEditable else {
+        return
+      }
+
+      isEditable = enabled
+
+      if !enabled, isFirstResponder {
+        resignFirstResponder()
+      }
+    }
+
     var onSend: () -> Void = {}
     var onEscape: () -> Bool = { false }
     var onPaste: ([PasteItem]) -> Void = { _ in }
@@ -273,6 +287,10 @@ struct ComposerTextField {
     }
 
     @objc private func returnPressed() {
+      guard isEditable else {
+        return
+      }
+
       // An input method still composing: Return commits, it does not send.
       if markedTextRange != nil {
         unmarkText()
@@ -327,6 +345,10 @@ struct ComposerTextField {
 
     // Text goes in as plain text; files and pictures with no text go to be attached.
     override func paste(_ sender: Any?) {
+      guard isEditable else {
+        return
+      }
+
       let items = Self.attachments(on: UIPasteboard.general)
 
       if !items.isEmpty {
@@ -424,7 +446,9 @@ struct ComposerTextField {
 
       if focusRequest != context.coordinator.lastFocusRequest {
         context.coordinator.lastFocusRequest = focusRequest
-        textView.window?.makeFirstResponder(textView)
+        if textView.isEnabledForInput {
+          textView.window?.makeFirstResponder(textView)
+        }
       }
     }
 
@@ -440,6 +464,7 @@ struct ComposerTextField {
       textView.onPaste = { coordinator.parent.onPaste($0) }
       textView.completionKeysActive = completionKeysActive
       textView.onCompletionKey = { coordinator.parent.onCompletionKey($0) }
+      textView.setEnabled(context.environment.isEnabled)
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView scroll: NSScrollView, context: Context) -> CGSize? {
@@ -507,6 +532,29 @@ struct ComposerTextField {
   /// A text view that sends on Return and Command-Return, starts a new line on
   /// Shift-Return, hands Esc to the composer, and draws its own placeholder.
   final class KeyTextView: NSTextView {
+    /// Off while something covers the composer (a request over the chat, `.disabled`): the field
+    /// cannot be typed in, pasted into or sent from, does not take the keyboard, and gives it up
+    /// if it had it, so what is typed for a secure prompt can never land here.
+    private(set) var isEnabledForInput = true
+
+    func setEnabled(_ enabled: Bool) {
+      guard enabled != isEnabledForInput else {
+        return
+      }
+
+      isEnabledForInput = enabled
+      isEditable = enabled
+      isSelectable = enabled
+
+      if !enabled, let window, window.firstResponder === self {
+        window.makeFirstResponder(nil)
+      }
+    }
+
+    override var acceptsFirstResponder: Bool {
+      isEnabledForInput && super.acceptsFirstResponder
+    }
+
     var onSend: () -> Void = {}
     var onEscape: () -> Bool = { false }
     var onFocusChange: (Bool) -> Void = { _ in }
@@ -592,6 +640,10 @@ struct ComposerTextField {
     }
 
     override func keyDown(with event: NSEvent) {
+      guard isEnabledForInput else {
+        return
+      }
+
       // The command list first, while it is open. Not while an input method is composing: its
       // arrows pick a candidate.
       if completionKeysActive, !hasMarkedText(), let key = Self.completionKey(for: event), onCompletionKey(key) {
@@ -622,7 +674,7 @@ struct ComposerTextField {
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
       let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
 
-      if window?.firstResponder === self, Self.returnKeys.contains(event.keyCode), flags.contains(.command) {
+      if isEnabledForInput, window?.firstResponder === self, Self.returnKeys.contains(event.keyCode), flags.contains(.command) {
         onSend()
         return true
       }
@@ -632,6 +684,10 @@ struct ComposerTextField {
 
     // Text goes in as plain text; files and pictures with no text go to be attached.
     override func paste(_ sender: Any?) {
+      guard isEnabledForInput else {
+        return
+      }
+
       let items = Self.attachments(on: .general)
 
       if items.isEmpty {

@@ -66,7 +66,11 @@ struct ChatSheetPresentation<Item: Identifiable, Sheet: View>: ViewModifier {
 
   func body(content: Content) -> some View {
     if hosted {
-      content.preference(key: ChatSheetKey.self, value: entries)
+      // Added to what the views inside already asked for, never in its place: a chat stacks three of
+      // these (approvals, secure prompts, interactive requests), and `preference(key:value:)` from the
+      // outer one would hide an inner one's request, leaving the chat covered with nothing to answer.
+      let entries = self.entries
+      content.transformPreference(ChatSheetKey.self) { $0.append(contentsOf: entries) }
     } else {
       content.sheet(item: $item, content: sheet)
     }
@@ -106,6 +110,8 @@ struct ChatSheetHost: ViewModifier {
 struct ChatSheetPane: View {
   let entry: ChatSheetEntry
 
+  @FocusState private var focused: Bool
+
   /// The card's size on a large window; on a small one it takes what there is, less the margin.
   static let maxWidth: CGFloat = 560
   static let maxHeight: CGFloat = 720
@@ -122,6 +128,15 @@ struct ChatSheetPane: View {
 
       entry.view
         .id(entry.id)
+        // The card takes the keyboard when it comes up (the composer under it gave it up and takes
+        // none while covered), so Esc reaches the request and Tab stays among its own controls.
+        .focusable()
+        .focusEffectDisabled()
+        .focused($focused)
+        #if os(macOS)
+          .focusSection()
+        #endif
+        .onAppear { focused = true }
         .frame(maxWidth: Self.maxWidth, maxHeight: Self.maxHeight)
         .background(.background, in: .rect(cornerRadius: 16))
         .clipShape(.rect(cornerRadius: 16))

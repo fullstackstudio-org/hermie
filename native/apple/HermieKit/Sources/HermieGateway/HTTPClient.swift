@@ -156,8 +156,9 @@ public struct HTTPClient: Sendable {
 
   /// `GET` a file the gateway serves (`/api/files/…`), with the same 401-then-retry as every other
   /// call and no redirect followed. Nil when the gateway refused it, does not have it, or could not
-  /// be reached; throws only what the credential provider throws.
-  public func fetchFile(_ path: String, timeoutMs: Int? = nil) async throws -> Data? {
+  /// be reached, or the file is larger than `maxBytes`; throws only what the credential provider
+  /// throws.
+  public func fetchFile(_ path: String, maxBytes: Int = .max, timeoutMs: Int? = nil) async throws -> Data? {
     var attempt = try await attemptBinary(path, timeoutMs: timeoutMs, auth: AuthHeaderOptions())
 
     if attempt.status == 401 {
@@ -170,7 +171,11 @@ public struct HTTPClient: Sendable {
       attempt = try await attemptBinary(path, timeoutMs: timeoutMs, auth: AuthHeaderOptions(forceRefresh: false))
     }
 
-    return attempt.ok ? attempt.data : nil
+    guard attempt.ok, let data = attempt.data, data.count <= maxBytes else {
+      return nil
+    }
+
+    return data
   }
 
   /// The headers a fetch this client does NOT make would still need (an

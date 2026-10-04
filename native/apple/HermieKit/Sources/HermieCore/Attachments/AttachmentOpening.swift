@@ -19,11 +19,18 @@ public enum AttachmentTarget: Sendable, Equatable {
  is not something this app can fetch: it opens a file this device has (the same Mac as the
  gateway), a file the gateway serves under `/api/files/`, and nothing else. A path that tries to
  leave `/api/files/` (`..`, an encoded dot, a backslash) is refused, as the web client refuses it.
+
+ A path on this device's disk is opened only when the gateway runs on this device (it is dialled at
+ a loopback address): then the path names a file of the gateway's own, which is also this device's.
+ For any other gateway the same path would name a file of this device that the gateway knows
+ nothing about, and a message must not be a way to put, say, a private key on screen.
  */
 public enum AttachmentOpening {
-  /// What `reference` can be opened as. `fileExists` is asked about an absolute path.
+  /// What `reference` can be opened as. `localFiles`: a path on this device's disk may be opened (the
+  /// gateway is this device). `fileExists` is asked about an absolute path.
   public static func target(
     for reference: String,
+    localFiles: Bool,
     fileExists: (String) -> Bool = { FileManager.default.fileExists(atPath: $0) }
   ) -> AttachmentTarget {
     let value = unwrapped(reference)
@@ -33,11 +40,29 @@ public enum AttachmentOpening {
       return .gatewayFile(path: path, name: name)
     }
 
-    if value.hasPrefix("/"), !value.contains("\0"), fileExists(value) {
+    if localFiles, value.hasPrefix("/"), !value.contains("\0"), fileExists(value) {
       return .localFile(URL(fileURLWithPath: value))
     }
 
     return .unavailable(name: name)
+  }
+
+  /// Whether `address` dials this device itself: `localhost` (or a name under it), `127.0.0.0/8`,
+  /// `::1`.
+  public static func isLoopback(_ address: String?) -> Bool {
+    guard let address, let host = URLComponents(string: address)?.host?.lowercased() else {
+      return false
+    }
+
+    let bare = host.trimmingCharacters(in: CharacterSet(charactersIn: "[]"))
+
+    return bare == "localhost" || bare.hasSuffix(".localhost") || bare == "::1"
+      || (bare.hasPrefix("127.") && bare.split(separator: ".").count == 4)
+  }
+
+  /// Delete every copy of the gateway's files that was opened.
+  public static func discardOpened() {
+    try? FileManager.default.removeItem(at: directory)
   }
 
   /// Where opened copies of the gateway's files are kept: the caches, never backed up, one folder
@@ -127,7 +152,9 @@ extension GatewaySession {
     _ reference: String,
     fileExists: (String) -> Bool = { FileManager.default.fileExists(atPath: $0) }
   ) async -> AttachmentOpenResult {
-    switch AttachmentOpening.target(for: reference, fileExists: fileExists) {
+    let localFiles = AttachmentOpening.isLoopback(link.gatewayAddress)
+
+    switch AttachmentOpening.target(for: reference, localFiles: localFiles, fileExists: fileExists) {
     case .localFile(let url):
       return .preview(url)
     case .unavailable(let name):

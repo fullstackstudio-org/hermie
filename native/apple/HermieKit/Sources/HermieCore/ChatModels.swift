@@ -224,6 +224,8 @@ public final class ChatModel {
   /// socket that delivered the question is gone, and the card stays open until
   /// the gateway asks again after the reconnect. Gone once the card closes.
   public private(set) var cardNotices: [String: String] = [:]
+  /// A Retry is on its way (`retryTurn`): a second press sends nothing.
+  @ObservationIgnored var retrying = false
 
   /// What a card says when its answer could not go out.
   public static let unsentAnswerNotice =

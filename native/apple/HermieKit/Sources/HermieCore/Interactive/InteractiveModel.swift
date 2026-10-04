@@ -143,7 +143,14 @@ public final class InteractiveModel {
 
   /// Later: the person puts the sheet away. Not an answer: the request stays open, in the
   /// transcript, and the sheet does not come back for it by itself (`present(_:)` opens it again).
+  ///
+  /// Not while an answer or an upload is on its way (`canYield`): the sheet stays until that is done,
+  /// whatever asked (Esc on the Mac's pane, where no system sheet holds it back).
   public func later() {
+    if presented != nil, !canYield {
+      return
+    }
+
     if let presentedID, presented != nil {
       shelf.putAway(presentedID, chat: bot, kind: .interactive)
     }
@@ -155,6 +162,8 @@ public final class InteractiveModel {
   /// The chat screen goes (another chat was chosen, the chat was closed): the request its sheet
   /// showed is put away, as with Later. Nothing is answered.
   public func leave() {
+    shelf.keep(only: Set(openPrompts.map(\.id)), chat: bot, kind: .interactive)
+
     if let presentedID, presented != nil {
       shelf.putAway(presentedID, chat: bot, kind: .interactive)
     }

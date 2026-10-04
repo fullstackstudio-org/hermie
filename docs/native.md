@@ -440,7 +440,8 @@ Later, and Esc and a swipe are Later. For a secure prompt and a confirmation Lat
 while an answer is on its way (a confirmation's system passkey sheet or its reply, a secure prompt's send)
 does a sheet stay. Leaving the chat while its sheet is up (another chat chosen, the chat closed) puts the
 request away too (`ChatFeed.stop` → `leave()`). What was put away is the session's (`RequestShelf`, keyed
-by chat and request id, forgetting a request once it is no longer open), not the chat screen's, so a chat
+by chat and request id, forgetting a request once it ends; an approval or a confirmation also carries
+when it arrived, so an id a restarted gateway hands out again is a new request), not the chat screen's, so a chat
 opened again does not raise it by itself: a line over the chat says how many requests wait and opens the
 oldest (`WaitingRequestsBanner`). A new request that arrives while the person is in the chat still comes
 up at once.
@@ -448,9 +449,21 @@ up at once.
 **On the Mac the requests do not block the window.** A `.sheet` is window-modal on the Mac: it blocked the
 sidebar, so a request in one chat kept the person from every other chat. The chat screen therefore hosts
 its request sheets in its own pane (`ChatSheetHost`, `chatSheet(item:)`): the request comes up on a card
-over the chat it belongs to, the chat under it dimmed and disabled (so typing never lands in the
-composer), while the sidebar, the search and the other chats stay usable. Choosing another chat takes the
-pane away with its chat and puts the request away. iPhone and iPad keep the system sheet.
+over the chat it belongs to, the chat under it dimmed and disabled, while the sidebar, the search and the
+other chats stay usable. Choosing another chat takes the pane away with its chat and puts the request
+away. iPhone and iPad keep the system sheet. The three sheet modifiers each add their request to the
+pane's preference (`transformPreference`), never replace the others'. Nothing typed for a request can
+leave as a message: the card takes the keyboard, the composer's text view stops being editable and gives
+up the keyboard while covered (`isEnabled` from the environment), Return and paste do nothing there, and
+the composer model holds every send while a request of its chat is up (`ComposerModel.held`).
+
+**A row's Retry and attachments.** Retry on a failed reply sends the prompt it answered again
+(`ChatModel.retryTurn`): only the newest turn, one press at a time, never while a turn runs, and never a
+prompt that may be a colleague's (a gateway that stamps authors, before it said who this is, refuses an
+authored row). An attachment opens in Quick Look when this device can have it: a `/api/files/…` path,
+fetched with the gateway's credentials (at most 100 MiB; the copies are deleted when the session ends),
+or a path on this device's disk only when the gateway is dialled at a loopback address. Anything else
+says it is on the gateway's disk.
 
 **Advertising.** The second `client.capabilities` call carries `requests` only after the first call's
 result lists at least one `input.*`, `review.*` or `device.*` method under `server_requests`

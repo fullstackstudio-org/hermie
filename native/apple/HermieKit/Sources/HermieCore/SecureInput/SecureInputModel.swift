@@ -151,6 +151,8 @@ public final class SecureInputModel {
   /// The chat screen goes (another chat was chosen, the chat was closed): the prompt it showed is put
   /// away, as with Later, and nothing is sent.
   public func leave() {
+    shelf.keep(only: Set(openPrompts.map(\.id)), chat: bot, kind: .secure)
+
     if let presentedID, presented != nil {
       shelf.putAway(presentedID, chat: bot, kind: .secure)
     }

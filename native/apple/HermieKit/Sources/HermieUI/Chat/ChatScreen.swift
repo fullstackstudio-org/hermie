@@ -187,11 +187,7 @@ struct ChatSessionView<Composer: View>: View {
         ChatTranscript(feed: feed)
           .environment(\.transcriptExpansion, feed.expansion)
           .modifier(OwnAuthor(session: session))
-          // One sheet at a time, approvals and secure prompts first (`ChatSheetOrder`): they wait
-          // until a form on screen has stepped aside, and a form does not come up over them.
-          .answeringRequests(with: feed.requests, actions: feed.itemActions, hold: feed.sheets.holdForInteractive)
-          .secureInput(feed.secureInput, hold: feed.sheets.holdForInteractive)
-          .interactiveRequests(feed.interactive, blocked: feed.sheets.interactiveBlocked)
+          .modifier(ChatRequestSheets(feed: feed))
           .safeAreaInset(edge: .top, spacing: 0) {
             ChatBanners(feed: feed)
           }
@@ -258,8 +254,7 @@ struct ChatSessionView<Composer: View>: View {
     }
     .onChange(of: covered) { _, covered in
       owner.feed?.coverChanged(covered: covered)
-    }
-    // A search hit followed to this chat: before the screen exists (taken on appear) or while it is open.
+    }    // A search hit followed to this chat: before the screen exists (taken on appear) or while it is open.
     .onChange(of: router?.chatFind) { _, request in
       takeFind(request)
     }
@@ -289,6 +284,19 @@ struct ChatSessionView<Composer: View>: View {
   /// The text the title's long press copies.
   private func diagnostics() -> String {
     ChatDiagnostics.report(chat: chat, session: session, screen: owner.screen, owner: owner, live: live)
+  }
+}
+
+/// The chat's request sheets, one at a time, approvals and secure prompts first (`ChatSheetOrder`):
+/// they wait until a form on screen has stepped aside, and a form does not come up over them.
+struct ChatRequestSheets: ViewModifier {
+  let feed: ChatFeed
+
+  func body(content: Content) -> some View {
+    content
+      .answeringRequests(with: feed.requests, actions: feed.itemActions, hold: feed.sheets.holdForInteractive)
+      .secureInput(feed.secureInput, hold: feed.sheets.holdForInteractive)
+      .interactiveRequests(feed.interactive, blocked: feed.sheets.interactiveBlocked)
   }
 }
 

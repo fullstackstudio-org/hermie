@@ -277,6 +277,11 @@ public final class GatewaySession {
       options: interactiveOptions
     )
     (commands, commandSink) = AsyncStream.makeStream()
+    // A request that is over is no longer put away: an id the gateway hands out again (after a
+    // restart it counts from the start) is a new request, and comes up.
+    let shelf = requestShelf
+    secureInput.onFinished = { shelf.forget($0, kind: .secure) }
+    interactive.onFinished = { shelf.forget($0, kind: .interactive) }
   }
 
   // MARK: - Lifecycle
@@ -403,6 +408,9 @@ public final class GatewaySession {
     await interactive.shutdown()
     await passkeys?.shutdown()
     mcp?.shutdown()
+    // The copies of the gateway's files opened from this session (sign-out, the gateway removed or
+    // switched): nothing of them stays on this device.
+    AttachmentOpening.discardOpened()
     await store.persistAll()
     await link.shutdown()
 
@@ -730,8 +738,10 @@ public struct ConnectionLink: GatewayLink {
 
   /// Through this link's HTTP client, as `fetchPicture`: this gateway's credentials, this gateway only.
   public func fetchFile(_ path: String) async -> Data? {
-    (try? await http.fetchFile(path)) ?? nil
+    (try? await http.fetchFile(path, maxBytes: AttachmentRules.maxFileBytes)) ?? nil
   }
+
+  public var gatewayAddress: String? { http.baseURL }
 
   public func uploadFile(
     from file: URL,

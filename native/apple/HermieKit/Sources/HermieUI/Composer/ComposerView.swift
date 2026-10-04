@@ -30,6 +30,8 @@ import SwiftUI
 public struct ComposerView: View {
   @Bindable var model: ComposerModel
 
+  /// Off while a request covers the chat: nothing is typed, pasted or sent from here.
+  @Environment(\.isEnabled) private var isEnabled
   /// Whether the caret is in the field (reported by the text view).
   @State private var focused = false
   /// Moved to put the caret back in the field.
@@ -147,6 +149,7 @@ public struct ComposerView: View {
         return true
       },
       onPaste: { items in
+        guard isEnabled else { return }
         AttachmentIntake.addPasted(items, to: model.tray)
       },
       completionKeysActive: model.suggestionsOpen && !model.suggestions.isEmpty,
@@ -318,6 +321,11 @@ public struct ComposerView: View {
   /// Return from the field: takes the line of the command list the arrow keys are on when there is
   /// one to take, and sends otherwise.
   private func returnPressed() {
+    // Covered by a request: Return is not a send (the field is off as well; this is the second lock).
+    guard isEnabled else {
+      return
+    }
+
     if model.handle(.enter) {
       return
     }
@@ -326,7 +334,7 @@ public struct ComposerView: View {
   }
 
   private func send() {
-    guard model.canSubmit else {
+    guard isEnabled, model.canSubmit else {
       return
     }
 

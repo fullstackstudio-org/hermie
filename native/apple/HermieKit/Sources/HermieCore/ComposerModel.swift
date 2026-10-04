@@ -223,7 +223,11 @@ public final class ComposerModel {
   /// Never while an attachment is still being read or uploaded, or failed and still in the tray:
   /// what the reader sees staged is what goes, and a message that silently left without the file
   /// would be the worse surprise.
-  public var canSubmit: Bool { canSend && !tray.blocked && (!trimmedDraft.isEmpty || !tray.isEmpty) }
+  public var canSubmit: Bool { !held && canSend && !tray.blocked && (!trimmedDraft.isEmpty || !tray.isEmpty) }
+
+  /// A request of the chat has the screen (an approval, a secure prompt, a form): nothing is sent from
+  /// here until it goes. Above all, what was typed for a secure prompt must never leave as a message.
+  public var held = false
 
   /// The bot is at work (a turn, a tool, a subagent, a compaction): Stop is
   /// offered while the field is empty, and Esc stops.
@@ -319,6 +323,10 @@ public final class ComposerModel {
   /// Anything else, `/usr/local/bin` or a sentence that happens to begin with a slash, goes to the
   /// bot as written; while a turn runs it is queued behind it.
   public func submit() async {
+    guard !held else {
+      return
+    }
+
     let body = draft
     let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
 

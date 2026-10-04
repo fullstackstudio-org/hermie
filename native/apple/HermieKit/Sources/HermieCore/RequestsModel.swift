@@ -237,7 +237,17 @@ public final class RequestsModel {
   }
 
   private func isPutAway(_ id: String) -> Bool {
-    shelf.contains(id, chat: bot, kind: .answer)
+    shelf.contains(id, chat: bot, kind: .answer, stamp: stamp(of: id))
+  }
+
+  /// When the request arrived, which tells it from a later one under the same id (the gateway counts
+  /// its ids from the start again after a restart).
+  private func stamp(of id: String) -> Double {
+    if let confirmation = confirmations.first(where: { $0.id == id }) {
+      return confirmation.receivedAt.timeIntervalSince1970
+    }
+
+    return openRequests.first { $0.requestID == id }?.ts ?? RequestShelf.noStamp
   }
 
   // MARK: - The sheet
@@ -303,7 +313,7 @@ public final class RequestsModel {
     let open = Set(openRequests.compactMap(\.requestID)).union(confirmations.filter(\.isOpen).map(\.id))
 
     shelf.keep(only: open.union([id]), chat: bot, kind: .answer)
-    shelf.putAway(id, chat: bot, kind: .answer)
+    shelf.putAway(id, chat: bot, kind: .answer, stamp: stamp(of: id))
   }
 
   /// An answer to the confirmation is on its way: the system's passkey sheet is up, or the reply is out.

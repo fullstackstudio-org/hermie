@@ -120,6 +120,8 @@ public final class SecureInputCenter {
 
   /// Every open prompt, oldest first.
   public private(set) var prompts: [SecurePrompt] = []
+  /// Told the id of every prompt that is over, however it ended (the session forgets it was put away).
+  @ObservationIgnored public var onFinished: (@MainActor (String) -> Void)?
   /// Per request id: an answer on its way, or one that did not go out.
   public private(set) var phases: [String: SecureInputPhase] = [:]
   /// The last notice per chat key.
@@ -813,6 +815,7 @@ public final class SecureInputCenter {
 
   /// Take a prompt out of every table, and remember it is done and why.
   private func finish(_ id: String, _ reason: CloseReason) {
+    defer { onFinished?(id) }
     let deadline = prompts.first { $0.id == id }?.deadline ?? pending[id]?.deadline
     prompts.removeAll { $0.id == id }
     phases[id] = nil

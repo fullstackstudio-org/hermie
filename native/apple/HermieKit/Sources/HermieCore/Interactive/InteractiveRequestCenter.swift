@@ -150,6 +150,8 @@ public final class InteractiveRequestCenter {
 
   /// Every open request, oldest first.
   public private(set) var prompts: [InteractivePrompt] = []
+  /// Told the id of every request that is over, however it ended (the session forgets it was put away).
+  @ObservationIgnored public var onFinished: (@MainActor (String) -> Void)?
   /// Per request id: an answer on its way, or one that did not go out.
   public private(set) var phases: [String: InteractivePhase] = [:]
   /// The last notice per chat key.
@@ -1116,6 +1118,7 @@ public final class InteractiveRequestCenter {
 
   /// Take a request out of every table, and remember it is done and why.
   private func finish(_ id: String, _ reason: CloseReason, listIndex: UInt64? = nil) {
+    defer { onFinished?(id) }
     let deadline = prompts.first { $0.id == id }?.deadline ?? pending[id]?.deadline
     prompts.removeAll { $0.id == id }
     phases[id] = nil

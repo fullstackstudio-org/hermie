@@ -177,10 +177,10 @@ final class ChatFeed: ChatScreenFeed {
   /// no prompt of the reader's to repeat, sends nothing.
   func retry(_ item: AssistantItem) {
     let model = self.model
-    let own = session.ownAuthorID
+    let authors = session.retryAuthors
 
     Task {
-      lastRetry = await model.retryTurn(of: item.id, ownAuthorID: own)
+      lastRetry = await model.retryTurn(of: item.id, authors: authors)
     }
   }
 
@@ -247,8 +247,22 @@ final class ChatFeed: ChatScreenFeed {
     let revisions = Observations { model.snapshot?.revision }
     let phases = Observations { session.status.phase }
     let bottom = Observations { listState.isAtBottom }
+    let requests = self.requests
+    let secureInput = self.secureInput
+    let interactive = self.interactive
+    let composer = self.composer
+    let covering = Observations {
+      requests.presentedRequestID != nil || secureInput.presentedID != nil || interactive.presentedID != nil
+    }
 
     tasks = [
+      // Nothing goes out from the composer while a request has the screen: what is typed for a
+      // secure prompt must never leave as a message (the field is off as well; this holds the send).
+      Task {
+        for await up in covering {
+          composer.held = up
+        }
+      },
       Task { [weak self] in
         for await _ in revisions {
           await self?.snapshotChanged()

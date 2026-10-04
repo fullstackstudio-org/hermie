@@ -10,6 +10,11 @@ import Observation
 /// opened, and what it held would be forgotten with it, raising the same sheet again over a chat the
 /// person only meant to pass through.
 ///
+/// A request that is over is forgotten (`forget`, `keep(only:)`): the gateway hands out its ids again
+/// after a restart, and a new request under an old id must come up. Where the end of a request is not
+/// told (an approval, a passkey confirmation), the request carries a `stamp` (when it arrived) and only
+/// the same id with the same stamp counts as put away.
+///
 /// Each kind of request has its own ids (the approval, clarify and confirm sheet, the secure prompts,
 /// the interactive requests), so each model forgets only its own when it prunes.
 @MainActor
@@ -30,43 +35,44 @@ public final class RequestShelf {
     let kind: Kind
   }
 
-  private var shelved: [Key: Set<String>] = [:]
+  /// Per chat and kind: the ids put away, each with the stamp it was put away under.
+  private var shelved: [Key: [String: Double]] = [:]
+
+  /// The stamp of a request that carries none.
+  public static let noStamp: Double = -1
 
   public init() {}
 
-  /// Whether `id` was put away in `chat`.
-  public func contains(_ id: String, chat: String, kind: Kind) -> Bool {
-    shelved[Key(chat: chat, kind: kind)]?.contains(id) == true
+  /// Whether `id` (arrived at `stamp`) was put away in `chat`.
+  public func contains(_ id: String, chat: String, kind: Kind, stamp: Double = noStamp) -> Bool {
+    shelved[Key(chat: chat, kind: kind)]?[id] == stamp
   }
 
   /// The ids put away in `chat`, of one kind.
   public func ids(chat: String, kind: Kind) -> Set<String> {
-    shelved[Key(chat: chat, kind: kind)] ?? []
+    Set(shelved[Key(chat: chat, kind: kind)].map { Array($0.keys) } ?? [])
   }
 
   /// Put `id` away: not an answer, and it does not come up again by itself.
-  public func putAway(_ id: String, chat: String, kind: Kind) {
+  public func putAway(_ id: String, chat: String, kind: Kind, stamp: Double = noStamp) {
     let key = Key(chat: chat, kind: kind)
 
-    guard shelved[key]?.contains(id) != true else {
+    guard shelved[key]?[id] != stamp else {
       return
     }
 
-    shelved[key, default: []].insert(id)
+    shelved[key, default: [:]][id] = stamp
   }
 
   /// The person opened it again.
   public func bringBack(_ id: String, chat: String, kind: Kind) {
-    let key = Key(chat: chat, kind: kind)
+    remove(Key(chat: chat, kind: kind), id)
+  }
 
-    guard shelved[key]?.contains(id) == true else {
-      return
-    }
-
-    shelved[key]?.remove(id)
-
-    if shelved[key]?.isEmpty == true {
-      shelved[key] = nil
+  /// The request is over, in whichever chat it was: it is no longer put away.
+  public func forget(_ id: String, kind: Kind) {
+    for key in shelved.keys where key.kind == kind {
+      remove(key, id)
     }
   }
 
@@ -79,12 +85,24 @@ public final class RequestShelf {
       return
     }
 
-    let kept = current.intersection(open)
+    let kept = current.filter { open.contains($0.key) }
 
-    guard kept != current else {
+    guard kept.count != current.count else {
       return
     }
 
     shelved[key] = kept.isEmpty ? nil : kept
+  }
+
+  private func remove(_ key: Key, _ id: String) {
+    guard shelved[key]?[id] != nil else {
+      return
+    }
+
+    shelved[key]?[id] = nil
+
+    if shelved[key]?.isEmpty == true {
+      shelved[key] = nil
+    }
   }
 }

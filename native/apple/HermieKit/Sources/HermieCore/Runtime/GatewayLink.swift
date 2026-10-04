@@ -94,6 +94,10 @@ public protocol GatewayLink: Sendable {
   /// (the default).
   func fetchFile(_ path: String) async -> Data?
 
+  /// The gateway's address as this link dials it, when it has one: whether it is this device itself
+  /// decides whether a path a message names may be opened from this device's disk.
+  var gatewayAddress: String? { get }
+
   /// Wait until every frame queued so far has been handed to the socket, or
   /// `limit` has passed: the last answers before a shutdown.
   func flushWrites(within limit: Duration) async
@@ -292,6 +296,8 @@ extension GatewayLink {
   public func fetchFile(_ path: String) async -> Data? {
     nil
   }
+
+  public var gatewayAddress: String? { nil }
 
   /// A link with no writer of its own has nothing to wait for.
   public func flushWrites(within limit: Duration) async {}
