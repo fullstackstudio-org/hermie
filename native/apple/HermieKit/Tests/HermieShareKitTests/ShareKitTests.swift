@@ -321,9 +321,11 @@ struct ShareDeliveryTests {
 
   @Test("a gateway that never answers runs into the deadline, and the entry is the app's again")
   func deadline() async throws {
-    // Accepts the upgrade request and never answers it.
+    // Accepts the upgrade request and never answers it: far longer than any bound below, so the
+    // attempt cannot end because the gateway finally gave up. Only the deadline can end it.
+    let stall: TimeInterval = 30
     let silent = try LoopbackHTTPServer { _ in
-      Thread.sleep(forTimeInterval: 5)
+      Thread.sleep(forTimeInterval: stall)
       return ""
     }
     let port = try await silent.start()
@@ -336,9 +338,12 @@ struct ShareDeliveryTests {
     let outcome = await ShareDelivery.deliver(
       request(id), credential: ShareCredential(record("http://127.0.0.1:\(port)")), targets: targets(),
       outbox: scratch.outbox, deadline: .milliseconds(500))
+    let elapsed = ContinuousClock.now - started
 
     #expect(outcome == .queued(reason: "the attempt ran out of time"))
-    #expect(ContinuousClock.now - started < .seconds(4))
+    // Not an endless wait: half the gateway's stall is already generous for a loaded runner (the
+    // deadline is half a second), and still well short of it.
+    #expect(elapsed < .seconds(stall / 2), "took \(elapsed) for a deadline of 500 ms")
     #expect(try scratch.read(id)?.lease == nil)
     #expect(try scratch.read(id)?.claim == nil)
   }
