@@ -2298,7 +2298,8 @@ gateway's voice RPCs are not used.** What follows is how the Apple apps keep to 
 
 A hands-free call with a bot (HERM-175): the waveform button in the chat's toolbar, or Voice mode in its options menu.
 The first time, the voice setup comes first (`VoiceSetupView`: the voice as numbered dots per language, Personal
-Voice where the reader allows it, Pace, Expressivity, the orb's look, and a Source row that has one source today).
+Voice where the reader allows it, Pace, Expressivity, the orb's look, and a Source row: Apple, or the gateway's voice
+where the gateway can speak, see "The gateway's voice" below).
 
 | Piece                     | Where                                                          | What                                                                                                        |
 | ------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -2331,8 +2332,34 @@ Voice where the reader allows it, Pace, Expressivity, the orb's look, and a Sour
   meters on the engine's taps, smoothed per frame by elapsed time. Thinking and running tools swirl faster with a
   glow running round the rim; muted dims it. One `TimelineView`, paused off screen and in the background; Reduce
   Motion gets a gentle pulse.
+- **The gateway's voice** ([ADR-0033](adr/0033-the-gateways-voice-as-a-second-source.md)) is a second source of
+  speech, for speaking only. `GatewaySpeechAccess` (one per bot, `GatewaySession.speechAccess(profile:)`) reads
+  `GET /api/audio/voice-config` (whether the gateway can speak, with which provider, and whether it takes a voice per
+  request) and `GET /api/audio/elevenlabs/voices`; the Source row is drawn only where `ttsAvailable`. The voice
+  config of a direct provider carries the provider's API key, which `GatewayVoiceConfig` never reads. A reply from
+  the gateway is fetched a sentence at a time (`GatewayFetch`: `WS /api/audio/speak-stream` as PCM while it is made,
+  `POST /api/audio/speak` as a file, decoded with `AVAudioFile`, where the gateway says it has no stream or the
+  stream does not open), rendered to buffers by `GatewaySpeechRenderer` and played on the call's engine like the
+  device's voices, so echo cancellation, the orb and cutting in are unchanged. The sentence after the one being spoken
+  is fetched while it plays (`SpeechSynthesizing.prefetch`). The audio socket authenticates with its ticket on the
+  query (`GatewayAudioSocket`), the route not selecting the subprotocol a ticket would travel in, and its binary frames
+  come through `WebSocketChannel.messages`. A sentence with no audio from the gateway in 2 seconds, or at all, is
+  spoken by the device's voice, said once per call as a passing notice (`VoiceModeNotice`), and the next sentences
+  go straight to the device for 20 seconds. Outside a call `GatewaySpeechSynthesizer` plays the same audio on an
+  engine of its own. **No voice per request on the gateway as shipped**: `TTSSpeakRequest` is `{text}`. The voice
+  list is offered only when `voice-config` says `voice_selection: true` (then `voice` rides in the POST body and the
+  stream's text frame; `voices` lists Edge's), and until then the gateway speaks in the voice it is set up with.
+  Pace and expressivity are the device voice's. Ogg from the file route cannot be read by the system (a fall-back).
+- **A voice per bot** (bot settings › Voice, `BotVoiceSection`): Default (the Voice screen's choice) or a source and
+  a voice for that bot, kept in the `hermie.voice` blob per gateway and bot (`VoiceSettings.botVoices`) and resolved
+  by `VoiceSettings.speech(bot:gatewayID:)` when `ReadAloudModel` starts a request, which is what "Read aloud", the
+  automatic read and a call all go through. It is not in `ui_meta`: a device voice's identifier means nothing on
+  another device.
 - **Tests.** `VoiceModeTests`, `VoiceModePartsTests` (HermieCoreTests, fake recogniser, speaker, audio session and a
-  hand-turned clock), `SubmitPipelineTests` (the fields on the wire), `ChatFeedVoiceModeTests` and `VoiceOrbTests`
+  hand-turned clock), `GatewaySpeechRendererTests` (streaming order, prefetch, cut-in, fall-back and timeout over a
+  fake transport), `GatewayVoiceConfigTests`, `GatewayAudioDecodingTests`, `LiveGatewaySpeechStreamTests`,
+  `GatewaySpeechSynthesizerTests`, `BotVoiceTests`, `GatewayVoiceSetupTests`, `AudioSocketTests`,
+  `GatewaySpeechIntegrationTests` (the real sockets and HTTP against the fake gateway's `/api/audio/…`), `SubmitPipelineTests` (the fields on the wire), `ChatFeedVoiceModeTests` and `VoiceOrbTests`
   (HermieUITests). What no test proves: echo cancellation and cut-in on real hardware, Bluetooth routes, the
   interruption notifications, and how the orb looks.
 

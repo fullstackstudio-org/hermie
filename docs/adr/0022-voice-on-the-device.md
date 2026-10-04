@@ -1,6 +1,6 @@
 # 0021. Speech happens on the device, and the gateway's voice RPCs are not used
 
-- Status: Accepted
+- Status: Accepted; speaking is amended by [0033](0033-the-gateways-voice-as-a-second-source.md)
 - Date: 2026-09-22
 
 ## Context

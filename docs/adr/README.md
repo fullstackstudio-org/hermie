@@ -32,7 +32,7 @@ new record supersedes it, and the old one gets a line at the top pointing forwar
 | [0019](0019-folders-in-the-chat-list.md)               | The chat list groups into folders, and a bot is in exactly one               | Accepted                   |
 | [0020](0020-diagrams-and-math-without-a-webview.md)    | Diagrams and mathematics are drawn in the bundle, not in a web view          | Accepted                   |
 | [0021](0021-header-based-front-doors.md)               | Header-based front doors: Cloudflare Access                                  | Accepted                   |
-| [0022](0022-voice-on-the-device.md)                    | Speech happens on the device; the gateway's voice RPCs are not used          | Accepted                   |
+| [0022](0022-voice-on-the-device.md)                    | Speech happens on the device; the gateway's voice RPCs are not used          | Amended by 0033 (speaking) |
 | [0023](0023-the-shared-container-is-the-seam.md)       | The shared container is the seam for every system surface                    | Amended by 0026            |
 | [0024](0024-a-list-of-gateways.md)                     | A list of gateways, one live at a time, storage keyed by which               | Amended by 0032, see 0030  |
 | [0025](0025-hermie-web-is-a-service-layer.md)          | Hermie Web is a service layer, not only a proxy                              | Superseded by 0030         |
@@ -42,6 +42,7 @@ new record supersedes it, and the old one gets a line at the top pointing forwar
 | [0029](0029-expo-native-and-the-contract-directory.md) | `expo/`, `native/` and a `contract/` both are tested against                 | Accepted, see 0030         |
 | [0030](0030-web-client-served-by-the-plugin.md)        | The web client is served by the `hermie` plugin, on the gateway's origin     | Accepted                   |
 | [0032](0032-icloud-gateway-sync.md)                    | Gateways follow the Apple Account through iCloud Keychain                    | Accepted                   |
+| [0033](0033-the-gateways-voice-as-a-second-source.md)  | The gateway's voice is a second source for speaking                          | Accepted                   |
 
 ## Template
 
