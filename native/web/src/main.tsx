@@ -9,13 +9,20 @@
  * storage, no request, no React. The modules imported above it only define
  * things; none of them has a side effect at import.
  */
-import type { AuthIdentity, CredentialProvider, ProbeResult } from '@hermie/gateway-client'
+import {
+  type AuthIdentity,
+  type CredentialProvider,
+  GatewayError,
+  type ProbeResult,
+  type SessionTokenCredentials
+} from '@hermie/gateway-client'
 import { StrictMode, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 
 import { APP_DIRECTORY_PATH, pageBasePath, type ResolvedBasePath, storageNamespace } from './boot/base-path'
 import { boot, bootWithToken, describeBootFailure, type BootState } from './boot/boot'
 import { refuseInFrame } from './boot/frame-guard'
+import { rereadToken } from './boot/token-recovery'
 import { claimForOwner, forgetToken, restoreRoute, signIn, signOut } from './boot/login-bounce'
 import { createPeoplePictures } from './core/people-pictures'
 import { strings } from './generated/strings'
@@ -30,6 +37,7 @@ import { TokenPrompt, type TokenPromptReason, type TokenSubmitOutcome } from './
 import { chatCacheFor, type ChatCache, GatedChatCache } from './platform/chat-cache'
 import { createKeyValueStore, type WebKeyValueStore } from './platform/key-value-store'
 import { localeEnvironmentFor } from './platform/locale-environment'
+import { createTabChannel, type TabChannel } from './platform/tab-channel'
 import { chatViewStore } from './state/chat-view'
 import { OWNER_USER_ID } from './state/device-context'
 import { bindTheme, settingsStore } from './state/settings'
@@ -85,13 +93,20 @@ function BootView({ state, onRetry }: { state: WaitingState; onRetry: () => void
         </Screen>
       )
     case 'needs_signin':
-      return (
-        <Screen title={strings.app.signedOut.title}>
-          <p role="alert">{strings.app.signedOut.body({ host })}</p>
-          <Button onClick={() => signIn(state.basePath)}>{strings.app.onboarding.signIn.signOutAndRetry}</Button>
-        </Screen>
-      )
+      return <SignedOut basePath={state.basePath} host={host} />
   }
+}
+
+/** Signed out: the session lapsed, or another tab signed out. "Sign in again" goes to the gateway's `/login`. */
+function SignedOut({ basePath, host }: { basePath: ResolvedBasePath; host: string }) {
+  useLocale()
+
+  return (
+    <Screen title={strings.app.signedOut.title}>
+      <p role="alert">{strings.app.signedOut.body({ host })}</p>
+      <Button onClick={() => signIn(basePath)}>{strings.app.onboarding.signIn.signOutAndRetry}</Button>
+    </Screen>
+  )
 }
 
 function render(root: Root, view: ReactNode): void {
@@ -104,6 +119,8 @@ interface Page {
   basePath: ResolvedBasePath
   store: WebKeyValueStore
   cache: ChatCache
+  /** The page's other tabs on this gateway (`platform/tab-channel.ts`). */
+  tabs: TabChannel
 }
 
 /**
@@ -117,6 +134,8 @@ interface Page {
 interface Ready {
   probe: ProbeResult
   credentials: CredentialProvider
+  /** The session token's credentials on a gateway without sign-in; absent on the cookie session. */
+  token?: SessionTokenCredentials
   gated: boolean
   identity: AuthIdentity | null
   author: { id: string; name?: string } | undefined
@@ -144,6 +163,7 @@ async function show(page: Page, state: BootState): Promise<void> {
       await startApp(page, {
         probe: state.probe,
         credentials: state.session.credentials,
+        token: state.session.credentials,
         gated: false,
         identity: null,
         author: undefined
@@ -165,17 +185,26 @@ async function show(page: Page, state: BootState): Promise<void> {
  */
 function askForToken(page: Page, probe: ProbeResult, reason: TokenPromptReason): void {
   const submit = async (token: string): Promise<TokenSubmitOutcome> => {
-    const next = await bootWithToken(page.basePath, probe, token)
+    try {
+      const next = await bootWithToken(page.basePath, probe, token)
 
-    switch (next.kind) {
-      case 'token_ready':
-        await show(page, next)
+      switch (next.kind) {
+        case 'token_ready':
+          await show(page, next)
 
-        return { kind: 'accepted' }
-      case 'needs_token':
-        return { kind: 'wrong' }
-      case 'unreachable':
-        return { kind: 'failed', message: describeBootFailure(next.error, page.basePath.baseUrl) }
+          return { kind: 'accepted' }
+        case 'needs_token':
+          return { kind: 'wrong' }
+        case 'unreachable':
+          return { kind: 'failed', message: describeBootFailure(next.error, page.basePath.baseUrl) }
+      }
+    } catch (error) {
+      // Starting the app failed after the token was taken: say so on the prompt rather than leave it checking.
+      return {
+        kind: 'failed',
+        message:
+          error instanceof GatewayError ? describeBootFailure(error, page.basePath.baseUrl) : strings.app.errors.unknown
+      }
     }
   }
 
@@ -215,17 +244,40 @@ async function startApp(page: Page, ready: Ready): Promise<void> {
   const user = identity ? identity.displayName || identity.email || identity.userId || '' : ''
 
   /*
-    The way out, and the way back in. The order matters in both: the chats and the socket stop before the
-    session is ended or the token dropped, so nothing dials with a credential that is going away.
-
-    Signed in: sign out at the gateway, clear this person's state, go to `/login`; "Sign in again" goes to
-    `/login`. No sign-in: forget the token (the session that holds it is stopped and dropped, the same
-    local state is cleared) and ask for it; a token the gateway stopped taking (it restarted) is read from
-    its dashboard again, which is the boot from the probe.
+    The app ends exactly once, whichever way: the chats and the socket stop before anything else, so
+    nothing dials with a credential that is going away, and every watcher below lets go.
   */
-  const leave = (): void => {
+  let ended = false
+  const unsubscribes: (() => void)[] = []
+
+  const end = (): boolean => {
+    if (ended) {
+      return false
+    }
+
+    ended = true
     session.stop()
     pictures.clear()
+
+    for (const unsubscribe of unsubscribes.splice(0)) {
+      unsubscribe()
+    }
+
+    return true
+  }
+
+  /*
+    The way out. Signed in: sign out at the gateway, clear this person's state, go to `/login`. No
+    sign-in: forget the token (the session that holds it is stopped and dropped, the same local state is
+    cleared) and ask for it. Either way the other tabs on this gateway are told first, so they stop
+    writing into the state about to be cleared ("in this browser" means every tab).
+  */
+  const leave = (): void => {
+    if (!end()) {
+      return
+    }
+
+    page.tabs.announceForget()
 
     if (ready.gated) {
       void signOut({ basePath, credentials: ready.credentials, cache, store })
@@ -234,14 +286,65 @@ async function startApp(page: Page, ready: Ready): Promise<void> {
     }
   }
 
+  /*
+    Another tab signed out or forgot the token: stop, drop the credentials, clear what that tab cleared
+    (whatever this one wrote meanwhile included), and show the prompt or the signed-out screen. Nothing
+    is said to the gateway: the tab that left already did what there was to do.
+  */
+  unsubscribes.push(
+    page.tabs.onForget(() => {
+      if (!end()) {
+        return
+      }
+
+      void forgetToken({ basePath, cache, store }).then(() => {
+        if (ready.gated) {
+          render(root, <SignedOut basePath={basePath} host={new URL(basePath.baseUrl).host} />)
+        } else {
+          askForToken(page, ready.probe, 'forgotten')
+        }
+      })
+    })
+  )
+
+  /*
+    The way back in. Signed in: the gateway's `/login`. No sign-in: the token the gateway stopped taking
+    is read from its dashboard again (the boot from the probe).
+  */
   const signInAgain = (): void => {
     if (ready.gated) {
       signIn(basePath)
-    } else {
-      session.stop()
-      pictures.clear()
+    } else if (end()) {
       void run(page)
     }
+  }
+
+  /*
+    No sign-in: the fork mints a new token for every server process, so a gateway restart refuses the
+    page's token and the connection stops at `needs_signin`. The first time that happens, the token is read
+    from the dashboard again by itself (`boot/token-recovery.ts`), as the dashboard reloads once: a new
+    token that is taken, or a gateway that turned sign-in on, starts over on it. The same token, or no
+    token, leaves the connection line's "Read it from the dashboard again" as the way back.
+  */
+  const token = ready.token
+
+  if (token) {
+    let reread = false
+
+    unsubscribes.push(
+      session.client.stores.connection.subscribe(state => {
+        if (state.status !== 'needs_signin' || reread) {
+          return
+        }
+
+        reread = true
+        void rereadToken(basePath, token).then(result => {
+          if (result.kind === 'restart' && end()) {
+            void show(page, result.state)
+          }
+        })
+      })
+    )
   }
 
   render(
@@ -322,7 +425,8 @@ async function start(): Promise<void> {
     root,
     basePath,
     store,
-    cache: new GatedChatCache(chatCacheFor(basePath.namespace), () => settingsStore.getState().transcriptCache)
+    cache: new GatedChatCache(chatCacheFor(basePath.namespace), () => settingsStore.getState().transcriptCache),
+    tabs: createTabChannel(basePath.namespace)
   })
 }
 

@@ -13,8 +13,9 @@
  *    the page and the check) shows the masked field; a wrong token is said once; the right one opens
  *    the app, and is not kept either.
  *  - **A token that stops working while the page is open** (the gateway restarted) is read again from
- *    the dashboard, from the connection line.
- *  - **Forgetting the token** goes back to the prompt and leaves nothing behind.
+ *    the dashboard by itself, once; when the dashboard still has the refused token, the connection line
+ *    and its button are the way back.
+ *  - **Forgetting the token** goes back to the prompt and leaves nothing behind, in every tab.
  *  - **What needs a person says so**: Passkeys and MCP, in Settings.
  *
  * Every test also fails on a console error or a policy violation (the `diagnostics` fixture); the 401s
@@ -206,7 +207,7 @@ test('a token the gateway refuses is the prompt: a wrong one is said once, the r
   expect(stored).not.toContain('stale-token')
 })
 
-test('a token that stops working while the page is open is read again from the dashboard', async ({
+test('a gateway restart is followed by itself: the new token is read from the dashboard once', async ({
   app,
   diagnostics,
   gateway,
@@ -219,8 +220,46 @@ test('a token that stops working while the page is open is read again from the d
   await page.goto(gateway.appUrl(`#/chat/${BOT}`))
   await app.ready()
 
-  // The gateway restarts with a fresh token, and the socket goes with it.
+  // The gateway restarts with a fresh token, and the socket goes with it. Nobody clicks anything.
   const fresh = 'e2e-token-after-restart-Hy5'
+  const traffic = recordTraffic(page)
+
+  gateway.fake.state.token = fresh
+  await gateway.dropSockets()
+
+  await expect.poll(() => traffic.sockets.some(url => new URL(url).searchParams.get('token') === fresh)).toBe(true)
+  await expect(page.getByText('No sign-in on this gateway')).toBeVisible()
+  await app.ready()
+  await expect(page.getByRole('alert').filter({ hasText: /did not accept the token/u })).toHaveCount(0)
+
+  // Only the refused dials carried the old token; the token is still in nothing stored.
+  expect(await everythingStored(page)).not.toContain(fresh)
+  expect(traffic.requests.map(request => request.url()).filter(url => url.includes(fresh))).toEqual([])
+})
+
+test('when the dashboard still has the refused token, the line stays, and its button reads it again', async ({
+  app,
+  diagnostics,
+  gateway,
+  page
+}) => {
+  diagnostics.allow(REFUSED_BY_GATEWAY)
+  diagnostics.allow(/WebSocket connection to .* failed/u)
+  await page.goto(gateway.appUrl(`#/chat/${BOT}`))
+  await app.ready()
+
+  // The gateway takes a new token, but its dashboard page still hands out the old one (a cached proxy, say).
+  const dashboardPage = (url: URL) => url.href === `${gateway.url}/`
+
+  await page.route(dashboardPage, route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'text/html; charset=utf-8',
+      body: `<!doctype html><html><head><script>window.__HERMES_SESSION_TOKEN__="${TOKEN}";</script></head></html>`
+    })
+  )
+
+  const fresh = 'e2e-token-after-restart-Kw2'
 
   gateway.fake.state.token = fresh
   await gateway.dropSockets()
@@ -229,6 +268,9 @@ test('a token that stops working while the page is open is read again from the d
 
   await expect(line).toBeVisible()
 
+  // The page catches up; the button reads it again.
+  await page.unroute(dashboardPage)
+
   const traffic = recordTraffic(page)
 
   await line.getByRole('button', { name: 'Read it from the dashboard again' }).click()
@@ -236,6 +278,30 @@ test('a token that stops working while the page is open is read again from the d
   await expect(page.getByText('No sign-in on this gateway')).toBeVisible()
   await app.ready()
   await expectTokenOnlyOnTheSocket(page, traffic, fresh)
+})
+
+test('forgetting the token in one tab stops the other tab on the same gateway too', async ({
+  app,
+  context,
+  gateway,
+  page
+}) => {
+  const other = await context.newPage()
+
+  await page.goto(gateway.appUrl(`#/chat/${BOT}`))
+  await other.goto(gateway.appUrl(`#/chat/${BOT}`))
+  await app.ready()
+  await expect(other.getByText('No sign-in on this gateway')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Forget the token' }).click()
+
+  // The other tab drops its session and asks for the token: no socket of it stays open on the gateway.
+  await expect(other.getByText(/Hermie has forgotten the token/u)).toBeVisible()
+  await expect(other.getByLabel('Session token', { exact: true })).toBeVisible()
+  await expect.poll(async () => (await gateway.state()).openSockets).toBe(0)
+
+  expect(await everythingStored(other)).not.toContain(TOKEN)
+  await other.close()
 })
 
 test('forgetting the token goes back to the prompt and leaves nothing behind', async ({ app, gateway, page }) => {

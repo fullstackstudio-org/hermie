@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ownAuthorStore } from '../../core/chats/own-author'
 import { createPeoplePictures } from '../../core/people-pictures'
+import { sessionStatusStore } from '../../state/session-status'
 import { ChatRuntimeContext, type ChatSessionRuntime } from '../chat/chat-runtime'
 import { ConnectionLine } from './ConnectionLine'
 import { SidebarFooter } from './SidebarFooter'
@@ -17,6 +18,7 @@ const settle = () => act(() => new Promise<void>(resolve => setTimeout(resolve, 
 afterEach(() => {
   cleanup()
   ownAuthorStore.getState().reset()
+  sessionStatusStore.getState().reset()
 })
 
 function draw(pictureUrl: string | undefined) {
@@ -62,9 +64,14 @@ describe('SidebarFooter', () => {
 
   it('on a gateway without sign-in, says there is none and offers to forget the token', () => {
     const onSignOut = vi.fn()
+
+    // Nobody is named, which the identity note would say again under the line that already says it.
+    sessionStatusStore.setState({ identity: { kind: 'anonymous' } })
+
     const { container, getByRole, queryByRole } = render(<SidebarFooter user="" gated={false} onSignOut={onSignOut} />)
 
     expect(container.querySelector('.hm-sidebar__who')?.textContent).toBe('No sign-in on this gateway')
+    expect(container.querySelector('[data-identity]')).toBeNull()
     expect(queryByRole('button', { name: 'Sign out' })).toBeNull()
 
     fireEvent.click(getByRole('button', { name: 'Forget the token' }))

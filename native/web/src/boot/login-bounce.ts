@@ -16,7 +16,8 @@
  *
  * On a gateway without sign-in there is no `/login` to go to: `forgetToken` is
  * the sign-out's local half, and the caller drops the token and shows the
- * token prompt itself.
+ * token prompt itself. It is also what a tab does when another tab on the same
+ * gateway signed out or forgot the token (`platform/tab-channel.ts`).
  *
  * Nothing stored here is a credential: a route, and an author id
  * (`<provider>:<user id>`), which the gateway stamps on every message anyway.

@@ -138,6 +138,30 @@ test('a session that lapses while the page is open is a signed-out line over the
   await expect(page.getByRole('link', { name: /Researcher/u })).toBeVisible()
 })
 
+test('signing out in one tab stops the other tab on the same gateway at once', async ({
+  app,
+  context,
+  gateway,
+  page
+}) => {
+  await app.open('#/')
+
+  const other = await context.newPage()
+
+  await other.goto(gateway.appUrl('#/'))
+  await expect(other.getByRole('link', { name: /Researcher/u })).toBeVisible()
+  await expect.poll(async () => (await gateway.state()).openSockets).toBe(2)
+
+  await page.getByRole('button', { name: 'Sign out' }).click()
+  await expect(page).toHaveURL(/\/login\?next=/u)
+
+  // Told by the tab that left: no wait for its next dial to be refused.
+  await expect(other.getByRole('heading', { name: 'Signed out' })).toBeVisible()
+  await expect(other.getByRole('button', { name: 'Sign in again' })).toBeVisible()
+  await expect.poll(async () => (await gateway.state()).openSockets).toBe(0)
+  await other.close()
+})
+
 test('framed by another page, it says one sentence and asks the gateway for nothing', async ({
   app,
   gateway,

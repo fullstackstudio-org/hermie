@@ -173,6 +173,145 @@ describe('the entry module', () => {
       expect(order).toEqual(['session stopped', 'forgotten'])
       expect(screen.getByLabelText('Session token', { selector: 'input' })).toBeTruthy()
     })
+
+    it('tells the other tabs when the token is forgotten, and nothing more than that', async () => {
+      const heard: unknown[] = []
+      const otherTab = new BroadcastChannel('hermie:/:session')
+
+      otherTab.onmessage = event => heard.push(event.data)
+
+      try {
+        await load(APP_PATH, { ...ungatedRoutes, 'GET /': dashboard(TOKEN), 'GET /api/profiles': profiles })
+        fireEvent.click(await screen.findByRole('button', { name: 'Forget the token' }))
+
+        await vi.waitFor(() => expect(heard).toEqual([{ type: 'forget' }]))
+      } finally {
+        otherTab.close()
+      }
+    })
+
+    it('stops and asks for the token when another tab forgot it, and clears what this one wrote', async () => {
+      const otherTab = new BroadcastChannel('hermie:/:session')
+
+      try {
+        await load(APP_PATH, { ...ungatedRoutes, 'GET /': dashboard(TOKEN), 'GET /api/profiles': profiles })
+        expect(await screen.findByText('No sign-in on this gateway')).toBeTruthy()
+        window.localStorage.setItem('hermie:/:watermarks', '{"researcher":3}')
+
+        otherTab.postMessage({ type: 'forget' })
+
+        expect(await screen.findByText(/Hermie has forgotten the token/u)).toBeTruthy()
+        expect(screen.queryByText('No sign-in on this gateway')).toBeNull()
+        expect(window.localStorage.getItem('hermie:/:watermarks')).toBeNull()
+      } finally {
+        otherTab.close()
+        window.localStorage.clear()
+      }
+    })
+
+    describe('when the gateway refuses the token while the page is open', () => {
+      /** A gateway whose dashboard and check follow `current.token`, as a restarted gateway's do. */
+      const restartable = (current: { token: string }) => ({
+        ...ungatedRoutes,
+        'GET /': (call: Parameters<Route>[0]) => dashboard(current.token)(call),
+        'GET /api/profiles': (call: Parameters<Route>[0]) =>
+          call.headers['x-hermes-session-token'] === current.token
+            ? json(200, { profiles: [] })
+            : json(401, { detail: 'Unauthorized' })
+      })
+
+      const refuse = async () => {
+        const { connectionStore } = await import('./state/connection')
+
+        connectionStore.getState().setStatus('needs_signin', null)
+      }
+
+      it('reads the new token from the dashboard by itself, once, and starts over on it', async () => {
+        const current = { token: TOKEN }
+        const gateway = await load(APP_PATH, restartable(current))
+
+        expect(await screen.findByText('No sign-in on this gateway')).toBeTruthy()
+
+        current.token = 'tok-after-restart'
+        await refuse()
+
+        await vi.waitFor(() =>
+          expect(
+            gateway.calls.some(
+              call =>
+                new URL(call.url).pathname === '/api/profiles' &&
+                call.headers['x-hermes-session-token'] === 'tok-after-restart'
+            )
+          ).toBe(true)
+        )
+        expect(await screen.findByText('No sign-in on this gateway')).toBeTruthy()
+        expect(gateway.calls.filter(call => new URL(call.url).pathname === '/')).toHaveLength(2)
+      })
+
+      it('leaves the line and its button when the dashboard still has the same token', async () => {
+        const gateway = await load(APP_PATH, restartable({ token: TOKEN }))
+
+        expect(await screen.findByText('No sign-in on this gateway')).toBeTruthy()
+        await refuse()
+
+        expect(await screen.findByRole('button', { name: 'Read it from the dashboard again' })).toBeTruthy()
+        await vi.waitFor(() => expect(gateway.calls.filter(call => new URL(call.url).pathname === '/')).toHaveLength(2))
+        // The same token is not checked again, and the app was not restarted.
+        expect(gateway.calls.filter(call => new URL(call.url).pathname === '/api/profiles')).toHaveLength(1)
+      })
+
+      it('goes to the gateway’s sign-in when the gateway turned sign-in on meanwhile', async () => {
+        const routes: Record<string, Route> = { ...restartable({ token: TOKEN }) }
+
+        await load(APP_PATH, routes)
+        expect(await screen.findByText('No sign-in on this gateway')).toBeTruthy()
+
+        Object.assign(routes, gatedRoutes, { 'GET /api/auth/me': () => json(401, {}) })
+        await refuse()
+
+        expect(await screen.findByRole('heading', { name: 'Signed out' })).toBeTruthy()
+      })
+    })
+
+    it('says a failure to start on a typed token on the prompt, instead of checking forever', async () => {
+      vi.doMock('./features/shell/session', async importOriginal => ({
+        ...(await importOriginal<typeof SessionModule>()),
+        startSession: () => {
+          throw new Error('boom')
+        }
+      }))
+
+      await load(APP_PATH, { ...ungatedRoutes, 'GET /': dashboard(null), 'GET /api/profiles': profiles })
+
+      const field = (await screen.findByLabelText('Session token', { selector: 'input' })) as HTMLInputElement
+
+      field.value = TOKEN
+      fireEvent.input(field)
+      fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+
+      await vi.waitFor(() => expect(screen.getByRole('alert').textContent).toBe('Something went wrong.'))
+      expect(screen.getByRole('status').textContent).toBe('')
+    })
+  })
+
+  it('stops and says signed out when another tab signed out, and tells the other tabs when this one does', async () => {
+    const heard: unknown[] = []
+    const otherTab = new BroadcastChannel('hermie:/:session')
+
+    otherTab.onmessage = event => heard.push(event.data)
+
+    try {
+      await load(APP_PATH, { ...gatedRoutes, 'GET /api/auth/me': meRoute })
+      expect(await screen.findByText('Signed in as Tester')).toBeTruthy()
+
+      otherTab.postMessage({ type: 'forget' })
+
+      expect(await screen.findByRole('heading', { name: 'Signed out' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Sign in again' })).toBeTruthy()
+      expect(heard).toEqual([])
+    } finally {
+      otherTab.close()
+    }
   })
 
   it('offers to sign in again when the session has lapsed', async () => {

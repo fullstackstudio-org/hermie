@@ -54,7 +54,8 @@ export function SidebarFooter({ user, pictureUrl = '', onSignOut, gated = true }
               : strings.app.onboarding.signIn.signedIn}
         </p>
       </div>
-      <IdentityNote />
+      {/* Without sign-in the line above already says nobody is named; the note would say it twice. */}
+      {gated ? <IdentityNote /> : null}
       {/* The Settings chunk is asked for as soon as a pointer or the focus reaches the link. */}
       <a
         className="hm-sidebar__settings"
