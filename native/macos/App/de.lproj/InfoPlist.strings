@@ -1,6 +1,14 @@
+/* The calendar permission prompt (write only): shown when the reader first adds an event a bot suggested. */
+"NSCalendarsWriteOnlyAccessUsageDescription" = "Hermie fügt deinem Kalender einen Termin hinzu, wenn ein Bot einen vorschlägt und du ihn hinzufügen willst. Hermie kann nur Termine hinzufügen: Deinen Kalender kann Hermie nicht lesen.";
 /* The camera permission prompt: shown when the reader first takes a photo, scans a document or reads a code, to attach to a message or to send when a bot asks for it. */
 "NSCameraUsageDescription" = "Hermie verwendet die Kamera, damit du ein Foto aufnehmen, ein Dokument scannen oder einen Code lesen kannst, um es an eine Nachricht anzuhängen oder zu senden, wenn ein Bot danach fragt.";
+/* The location permission prompt (the Mac also reads the older key): shown when the reader first shares their location because a bot asked. One reading, never tracking. */
+"NSLocationUsageDescription" = "Hermie verwendet deinen Standort einmalig, wenn du ihn teilst, weil ein Bot danach fragt. Er wird an das Gateway gesendet, bei dem du angemeldet bist, und nicht auf diesem Gerät gespeichert.";
+/* The location permission prompt: shown when the reader first shares their location because a bot asked. One reading, never tracking. */
+"NSLocationWhenInUseUsageDescription" = "Hermie verwendet deinen Standort einmalig, wenn du ihn teilst, weil ein Bot danach fragt. Er wird an das Gateway gesendet, bei dem du angemeldet bist, und nicht auf diesem Gerät gespeichert.";
 /* The microphone permission prompt: shown when the reader first dictates a message or records a voice note. Dictation is recognised on the device and goes nowhere; a voice note is sent only on Send. */
 "NSMicrophoneUsageDescription" = "Hermie verwendet das Mikrofon, damit du eine Nachricht diktieren oder eine Sprachnachricht aufnehmen kannst. Diktieren wird auf diesem Gerät in Text umgewandelt und nirgendwohin gesendet; eine Sprachnachricht geht erst an dein Gateway, wenn du auf Senden tippst.";
+/* The reminders permission prompt: shown when the reader first adds a reminder a bot suggested. */
+"NSRemindersFullAccessUsageDescription" = "Hermie fügt eine Erinnerung hinzu, wenn ein Bot eine vorschlägt und du sie hinzufügen willst. Deine anderen Erinnerungen liest Hermie nicht.";
 /* The speech recognition permission prompt: shown with the microphone's. Recognition runs on the device only, for dictation and for the transcript of a voice note. */
 "NSSpeechRecognitionUsageDescription" = "Hermie verwendet die Spracherkennung auf dem Gerät, um das, was du sagst, in den Text einer Nachricht oder in ein Transkript einer Sprachnachricht zu verwandeln. Es wird nichts an Apple oder einen anderen Dienst gesendet.";

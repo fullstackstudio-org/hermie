@@ -1,6 +1,14 @@
+/* The calendar permission prompt (write only): shown when the reader first adds an event a bot suggested. */
+"NSCalendarsWriteOnlyAccessUsageDescription" = "Hermie adds an event to your calendar when a bot suggests one and you choose to add it. Hermie can only add events: it cannot read your calendar.";
 /* The camera permission prompt: shown when the reader first takes a photo, scans a document or reads a code, to attach to a message or to send when a bot asks for it. */
 "NSCameraUsageDescription" = "Hermie uses the camera so you can take a photo, scan a document or read a code, to attach to a message or to send when a bot asks for it.";
+/* The location permission prompt (the Mac also reads the older key): shown when the reader first shares their location because a bot asked. One reading, never tracking. */
+"NSLocationUsageDescription" = "Hermie uses your location once, when you choose to share it because a bot asked for it. It is sent to the gateway you are signed in to and is not kept on this device.";
+/* The location permission prompt: shown when the reader first shares their location because a bot asked. One reading, never tracking. */
+"NSLocationWhenInUseUsageDescription" = "Hermie uses your location once, when you choose to share it because a bot asked for it. It is sent to the gateway you are signed in to and is not kept on this device.";
 /* The microphone permission prompt: shown when the reader first dictates a message or records a voice note. Dictation is recognised on the device and goes nowhere; a voice note is sent only on Send. */
 "NSMicrophoneUsageDescription" = "Hermie uses the microphone so you can dictate a message or record a voice note. Dictation is transcribed on this device and never sent anywhere; a voice note goes to your gateway only when you press Send.";
+/* The reminders permission prompt: shown when the reader first adds a reminder a bot suggested. */
+"NSRemindersFullAccessUsageDescription" = "Hermie adds a reminder when a bot suggests one and you choose to add it. Hermie does not read your other reminders.";
 /* The speech recognition permission prompt: shown with the microphone's. Recognition runs on the device only, for dictation and for the transcript of a voice note. */
 "NSSpeechRecognitionUsageDescription" = "Hermie uses on-device speech recognition to turn what you say into the text of a message, or into a transcript of a voice note. Nothing is sent to Apple or to any other service.";
