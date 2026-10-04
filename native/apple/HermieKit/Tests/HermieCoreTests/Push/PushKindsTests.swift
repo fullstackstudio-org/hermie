@@ -51,6 +51,24 @@ struct PushKindsTests {
     }
   }
 
+  @Test("the interactive requests: a request kind with a required request id, no actions, no preview, not a secure input")
+  func interactiveMethods() {
+    for name in ["input.form", "input.file", "review.draft"] {
+      guard let method = PushRequestMethod(rawValue: name) else {
+        Issue.record("a method this build does not know: \(name)")
+        continue
+      }
+
+      #expect(PushRequestMethod.isRequestKind(name))
+      #expect(method.requestId == .required)
+      #expect(!method.offersActions)
+      #expect(!method.carriesPreview)
+      #expect(!method.isSecureInput)
+      #expect(method.levels.isEmpty)
+      #expect(!Self.request(name).wantsActions)
+    }
+  }
+
   @Test("an approval that carries no request id is posted without the category, and a tap on it only opens")
   func approvalWithoutRequestId() {
     let bare = Self.request("approval", without: ["requestId"])
@@ -428,6 +446,45 @@ struct PushKindsControllerTests {
     #expect(link == .chat(bot: "scout", gatewayKey: G.one.key))
     #expect(request.method == "secret")
     #expect(request.destination == .conversation(sessionId: "key-b"))
+  }
+
+  @Test("the interactive requests are buttonless and open the chat and the request sheet, answering nothing")
+  func interactiveRequestsOpen() async throws {
+    let rig = try PushControllerTests.Rig()
+    var opened: [PushRoute] = []
+    var answers = 0
+    var reads = 0
+
+    rig.controller.attachLinkHandler(UUID()) { opened.append($0) }
+    rig.controller.pendingApprovals = { _ in
+      reads += 1
+      return []
+    }
+    rig.controller.respond = { _ in answers += 1 }
+    await rig.controller.setGateways([G.one])
+
+    for method in ["input.form", "input.file", "review.draft"] {
+      opened.removeAll()
+
+      let payload = Self.request(method)
+      #expect(payload.categoryIdentifier == nil, "\(method)")
+
+      // A tap, and a forged Allow or Deny on the notification, are all the same open.
+      for action in ["", "hermie.request.allow", "hermie.request.deny"] {
+        await rig.controller.handleResponse(actionIdentifier: action, payload: payload)
+      }
+
+      let expected = PushRoute.request(
+        .chat(bot: "scout", gatewayKey: G.one.key),
+        PushOpenRequest(
+          bot: "scout", gatewayKey: G.one.key, method: method, requestId: "srq-0123456789ab", sessionId: "8a1b2c3d",
+          sessionKey: "20261003_101500_a1b2c3", level: nil, destination: .chat))
+
+      #expect(opened == [expected, expected, expected], "\(method)")
+    }
+
+    #expect(answers == 0)
+    #expect(reads == 0)
   }
 
   @Test("an approval for a branch opens that conversation by its stored key, not by the runtime id")

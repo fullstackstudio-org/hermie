@@ -1357,7 +1357,8 @@ contract lists: `type` (the seven switches, the unfiltered `security` and the le
 `carriedKeys` together are every key of the contract.
 
 - **Request methods.** `PushRequestMethod` names `approval`, `clarify`, `secret`, `sudo`,
-  `vault.unlock_prompt`, `vault.code`, `vault.save_login` and `confirm`. Only an approval is posted
+  `vault.unlock_prompt`, `vault.code`, `vault.save_login`, `confirm`, `input.form`, `input.file` and
+  `review.draft` (the last three carry no text at all: a tap opens the chat and the request sheet). Only an approval is posted
   under `hermie.request` (`PushPayload.wantsActions`); every other method never gets Allow or Deny,
   and a tap that says Allow or Deny on one is a plain open. An approval is posted with the category
   only when it carries a request id (the id is `whenKnown` for an approval). A request with no `method` is not an

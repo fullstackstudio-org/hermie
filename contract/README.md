@@ -270,13 +270,14 @@ Web's daemon, the relay) and what every app generation must be able to read. It 
 
 - the notification category `hermie.request` with its two actions `hermie.request.allow` /
   `hermie.request.deny`, and `category.notFor`: the request methods that are posted with **no**
-  category at every level and on every transport (`clarify`, the secure inputs, `confirm`);
+  category at every level and on every transport (`clarify`, the secure inputs, `confirm`, the interactive requests);
 - `types`: the seven switchable types, and `unfilteredTypes` (`security`), values of the data `type`
   that no device asks for and none can refuse: a sender delivers them to the devices of the person
   they are about whatever the switches, per-chat overrides, a mute and the open-chat suppression
   say;
 - `requests.methods`: per request `method` (`approval`, `clarify`, `secret`, `sudo`,
-  `vault.unlock_prompt`, `vault.code`, `vault.save_login`, `confirm`) whether the request id is
+  `vault.unlock_prompt`, `vault.code`, `vault.save_login`, `confirm`, and the interactive requests
+  `input.form`, `input.file`, `review.draft`: required id, no actions, no text) whether the request id is
   `required` or sent `whenKnown` (an approval is `whenKnown`: without an id it is posted without the
   category), whether the Allow/Deny actions are offered, whether any text about
   the request may travel (`preview`; `false` is never, whatever the registration or the gateway
@@ -304,7 +305,7 @@ Two fields do not mean what they might at first read:
   shows it. **`sessionKey`** (requests only) is the conversation under its stored id, for opening
   it.
 - **`requestId`** is required for every request that has no other handle (the secure inputs,
-  `confirm`); an approval and a clarify carry it when the sender has it.
+  `confirm`, the interactive requests); an approval and a clarify carry it when the sender has it.
 
 Two registration-row keys steer what a sender may send: **`clears: true`** (the device understands a
 clearing push) and, for a Web Push row, **`requestMethods: true`** (its worker reads a request's

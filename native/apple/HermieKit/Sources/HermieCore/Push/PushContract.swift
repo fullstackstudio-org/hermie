@@ -168,7 +168,9 @@ public struct PushCategoryDescriptor: Sendable, Equatable {
  What a `type: request` notification is, per `data.method` (`requests.methods`): the gateway's own
  name for the server request. Only an approval is ever posted with the Allow and Deny actions; every
  other kind has no answer a button could send (a clarify), has to be typed (the secure inputs) or is
- the person's own act (a confirmation, possibly on a locked screen).
+ the person's own act (a confirmation, possibly on a locked screen). The interactive requests
+ (`input.form`, `input.file`, `review.draft`) are buttonless too and carry no text: a tap opens the
+ chat and the request sheet.
  */
 public enum PushRequestMethod: String, Sendable, CaseIterable {
   case approval
@@ -179,6 +181,13 @@ public enum PushRequestMethod: String, Sendable, CaseIterable {
   case vaultCode = "vault.code"
   case vaultSaveLogin = "vault.save_login"
   case confirm
+  /// An agent's form, filled in the app (`input.form`). The notification carries no text and no
+  /// buttons: the tap opens the chat and the request sheet.
+  case inputForm = "input.form"
+  /// An agent's request for files from the device (`input.file`); same shape as a form.
+  case inputFile = "input.file"
+  /// An agent's draft for the person to review and edit (`review.draft`); same shape as a form.
+  case reviewDraft = "review.draft"
 
   /// Whether the sender always names the request id or only when it has it. An approval is
   /// `whenKnown` too: the approval hook of a gateway may carry no request id, and such an approval is
@@ -207,7 +216,7 @@ public enum PushRequestMethod: String, Sendable, CaseIterable {
   public var isSecureInput: Bool {
     switch self {
     case .secret, .sudo, .vaultUnlockPrompt, .vaultCode, .vaultSaveLogin: true
-    case .approval, .clarify, .confirm: false
+    case .approval, .clarify, .confirm, .inputForm, .inputFile, .reviewDraft: false
     }
   }
 

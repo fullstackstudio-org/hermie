@@ -33,7 +33,18 @@
     "$comment": "An action is a hint, never an instruction: the app re-reads the open request by requestId and answers only if it is still open and still says what the notification said. The category is posted for an approval and for nothing else (see `notFor`, and `requests` for every method): a clarify has no answer a button could send, a secure input has to be typed, and a confirmation is the person's own act, which a tap on a notification (possibly on a locked screen) would not be. A clearing push (`data.clear`) never carries a category.",
     "notFor": {
       "$comment": "Request methods that are posted with NO category, at every level and on every transport. The Allow and Deny actions must never be offered for these.",
-      "methods": ["clarify", "secret", "sudo", "vault.unlock_prompt", "vault.code", "vault.save_login", "confirm"]
+      "methods": [
+        "clarify",
+        "secret",
+        "sudo",
+        "vault.unlock_prompt",
+        "vault.code",
+        "vault.save_login",
+        "confirm",
+        "input.form",
+        "input.file",
+        "review.draft"
+      ]
     }
   },
   "requests": {
@@ -87,6 +98,24 @@
         "actions": false,
         "preview": false,
         "level": ["plain", "passkey"]
+      },
+      {
+        "method": "input.form",
+        "requestId": "required",
+        "actions": false,
+        "preview": false
+      },
+      {
+        "method": "input.file",
+        "requestId": "required",
+        "actions": false,
+        "preview": false
+      },
+      {
+        "method": "review.draft",
+        "requestId": "required",
+        "actions": false,
+        "preview": false
       }
     ]
   },
@@ -208,6 +237,18 @@
           {
             "type": "request",
             "method": "confirm"
+          },
+          {
+            "type": "request",
+            "method": "input.form"
+          },
+          {
+            "type": "request",
+            "method": "input.file"
+          },
+          {
+            "type": "request",
+            "method": "review.draft"
           }
         ]
       },
@@ -224,7 +265,10 @@
           "vault.unlock_prompt",
           "vault.code",
           "vault.save_login",
-          "confirm"
+          "confirm",
+          "input.form",
+          "input.file",
+          "review.draft"
         ]
       },
       {
@@ -520,6 +564,60 @@
         "body": "Needs your confirmation"
       },
       {
+        "name": "input_form",
+        "data": {
+          "v": 1,
+          "type": "request",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "request:ad43bbcfd6f94e2d2fcac8cb146c81ad",
+          "sessionId": "8a1b2c3d",
+          "sessionKey": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "method": "input.form",
+          "requestId": "srq-0123456789ab"
+        },
+        "title": "scout",
+        "body": "Has a form for you"
+      },
+      {
+        "name": "input_file",
+        "data": {
+          "v": 1,
+          "type": "request",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "request:5c5de54d3bffd818e64d77892a2b3034",
+          "sessionId": "8a1b2c3d",
+          "sessionKey": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "method": "input.file",
+          "requestId": "srq-0123456789ab"
+        },
+        "title": "scout",
+        "body": "Needs a file"
+      },
+      {
+        "name": "review_draft",
+        "data": {
+          "v": 1,
+          "type": "request",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "request:e180cdc1ba4abc2fd9aacb0b6a4462bc",
+          "sessionId": "8a1b2c3d",
+          "sessionKey": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "method": "review.draft",
+          "requestId": "srq-0123456789ab"
+        },
+        "title": "scout",
+        "body": "Has a draft to review"
+      },
+      {
         "name": "clear_approval_answered",
         "data": {
           "v": 1,
@@ -576,6 +674,28 @@
           "clear": true,
           "reason": "cancelled",
           "replaces": "request:fb1a627ee0025a214875128aa9129b3d",
+          "requestId": "srq-0123456789ab"
+        },
+        "title": "scout",
+        "body": "Request closed",
+        "silent": true
+      },
+      {
+        "name": "clear_input_form_answered",
+        "data": {
+          "v": 1,
+          "type": "request",
+          "bot": "scout",
+          "at": 1790000000,
+          "eventId": "clear:6864c819600ca320a82cbba9e162cd2e",
+          "sessionId": "8a1b2c3d",
+          "sessionKey": "20261003_101500_a1b2c3",
+          "sessionKind": "canonical",
+          "gatewayKey": "bf796761db84e312",
+          "method": "input.form",
+          "clear": true,
+          "reason": "answered",
+          "replaces": "request:ad43bbcfd6f94e2d2fcac8cb146c81ad",
           "requestId": "srq-0123456789ab"
         },
         "title": "scout",

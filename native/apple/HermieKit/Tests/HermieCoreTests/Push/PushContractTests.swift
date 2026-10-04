@@ -216,6 +216,21 @@ struct PushContractTests {
     #expect(Self.object(category["when"])["type"] == "request")
   }
 
+  @Test("the three phase-1 interactive requests have buttonless, textless, id-required rows")
+  func interactiveRows() throws {
+    let methods = Self.array(Self.object(try Self.contract()["requests"])["methods"])
+
+    for name in ["input.form", "input.file", "review.draft"] {
+      let rows = methods.filter { $0["method"]?.stringValue == name }
+      #expect(rows.count == 1, "one row for \(name)")
+      #expect(rows.first?["requestId"] == "required", "requestId of \(name)")
+      #expect(rows.first?["actions"] == .bool(false), "actions of \(name)")
+      #expect(rows.first?["preview"] == .bool(false), "preview of \(name)")
+      #expect(rows.first?["level"] == nil, "level of \(name)")
+      #expect(PushRequestMethod(rawValue: name) != nil, "\(name) is known to this build")
+    }
+  }
+
   @Test("the requestId rule of the contract: the field names the strict form, the table says whenKnown for an approval")
   func requiredRequestIds() throws {
     let field = try Self.field("requestId")
