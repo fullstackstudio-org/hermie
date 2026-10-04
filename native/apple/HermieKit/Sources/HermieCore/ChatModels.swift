@@ -125,6 +125,8 @@ public final class ChatListModel {
   public private(set) var refreshed = false
   /// What the gateway's Hermie plugin offers (`memory.browse`, `memory.edit`, …), from the last roster read.
   public private(set) var pluginCapabilities: Set<String> = []
+  /// Whether the gateway's plugin is there, as the last roster read said (`PluginPresence`).
+  public private(set) var plugin = PluginPresence.unknown
 
   @ObservationIgnored private var roster = BotRoster.Snapshot()
   @ObservationIgnored private var summaries: [String: ChatSummary] = [:]
@@ -140,6 +142,13 @@ public final class ChatListModel {
 
     if pluginCapabilities != snapshot.pluginCapabilities {
       pluginCapabilities = snapshot.pluginCapabilities
+    }
+
+    let presence: PluginPresence =
+      snapshot.refreshed ? snapshot.pluginAdvert.map { .installed(version: $0.version) } ?? .absent : .unknown
+
+    if presence != plugin {
+      plugin = presence
     }
 
     let fresh = snapshot.bots.map(\.name)

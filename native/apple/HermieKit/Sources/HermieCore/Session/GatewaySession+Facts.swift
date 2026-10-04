@@ -80,6 +80,12 @@ extension GatewaySession {
     refreshOwnPicture(probe, identity: next.identity)
   }
 
+  /// Whether this gateway's Hermie plugin is there, as the last roster read said: unknown until one has
+  /// arrived, so "not looked yet" is never drawn as "not installed".
+  public var pluginPresence: PluginPresence {
+    chatList.plugin
+  }
+
   /// The reader's own picture, from the address `/api/auth/me` named (never from the identity
   /// provider): fetched again after every read, since it may have changed there, and dropped when the
   /// gateway says it holds none.

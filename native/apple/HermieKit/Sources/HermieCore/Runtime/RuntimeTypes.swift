@@ -300,30 +300,66 @@ public enum PluginCapabilities {
   /// `profiles.list` answer, the default profile's advert winning, else the
   /// first. No advert, or one newer than this build reads, offers nothing.
   public static func of(_ rows: [JSONValue]) -> Set<String> {
-    var found: Set<String>?
+    advert(in: rows)?.capabilities ?? []
+  }
+
+  /// The advert itself off a `profiles.list` answer (the default profile's winning, else the first),
+  /// or nil when the roster carries none this build reads: the plugin is not there (`PluginPresence`).
+  public static func advert(in rows: [JSONValue]) -> PluginAdvert? {
+    var found: PluginAdvert?
 
     for row in rows {
-      guard let capabilities = capabilities(of: row["ui_meta"]?[advertKey]) else {
+      guard let advert = advert(of: row["ui_meta"]?[advertKey]) else {
         continue
       }
 
       if row["is_default"] == .bool(true) {
-        return capabilities
+        return advert
       }
 
-      found = found ?? capabilities
+      found = found ?? advert
     }
 
-    return found ?? []
+    return found
   }
 
   static func capabilities(of advert: JSONValue?) -> Set<String>? {
-    guard case .object(let object)? = advert, case .number(let version)? = object["v"],
+    Self.advert(of: advert)?.capabilities
+  }
+
+  static func advert(of value: JSONValue?) -> PluginAdvert? {
+    guard case .object(let object)? = value, case .number(let version)? = object["v"],
       version.rounded() == version, version >= 1, version <= Double(contractVersion)
     else {
       return nil
     }
 
-    return Set((object["capabilities"]?.arrayValue ?? []).compactMap(\.stringValue))
+    return PluginAdvert(
+      version: object["version"]?.stringValue ?? "",
+      capabilities: Set((object["capabilities"]?.arrayValue ?? []).compactMap(\.stringValue)))
   }
+}
+
+/// What the gateway's Hermie plugin published about itself (`PluginAdvert` in `plugin.ts`): its
+/// release, shown and never compared against, and what it can do, each a string a client asks for.
+public struct PluginAdvert: Sendable, Equatable {
+  /// The plugin's release version. Empty when the advert named none.
+  public var version: String
+  public var capabilities: Set<String>
+
+  public init(version: String = "", capabilities: Set<String> = []) {
+    self.version = version
+    self.capabilities = capabilities
+  }
+}
+
+/// Whether the gateway's plugin is there, which is what decides whether notifications can come from
+/// the gateway at all (`pluginPresence` in the Expo app's `store/plugin.ts`). Three states, kept
+/// apart on purpose: "not looked yet" must never be drawn as "not installed", the difference between
+/// a screen that waits and one that sends somebody to a shell to install what they already have.
+public enum PluginPresence: Sendable, Equatable {
+  /// No roster has been read from the gateway on this connection yet.
+  case unknown
+  case installed(version: String)
+  case absent
 }

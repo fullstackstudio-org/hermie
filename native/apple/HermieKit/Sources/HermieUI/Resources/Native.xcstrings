@@ -11024,6 +11024,124 @@
         }
       }
     },
+    "native.licences.hermesAgent" : {
+      "comment" : "What the Hermes Agent entry of the licence list is.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teile des Gateway-Protokolls, der Transkript-Engine und der Bot-zu-Bot-Konventionen sind nach der Hermes-Agent-Desktop-App und dem Gateway geschrieben, und die mitgelieferten Protokollquellen stammen von dort."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parts of the gateway protocol, the transcript engine and the bot-to-bot conventions are written from the Hermes Agent Desktop app and gateway, and the vendored protocol sources are copied from it."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delen van het gatewayprotocol, de transcript-engine en de bot-naar-bot-afspraken zijn geschreven naar de Hermes Agent Desktop-app en -gateway, en de meegeleverde protocolbronnen zijn daaruit gekopieerd."
+          }
+        }
+      }
+    },
+    "native.licences.hermie" : {
+      "comment" : "What the Hermie entry of the licence list is.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie selbst: die Expo-, Web- und Apple-Apps und alles in diesem Repository, was unten nicht eigens aufgeführt ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie itself: the Expo, web and Apple apps, and everything in this repository that is not listed below."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie zelf: de Expo-, web- en Apple-apps, en alles in deze repository dat hieronder niet apart staat."
+          }
+        }
+      }
+    },
+    "native.licences.licence" : {
+      "comment" : "{licence} is the licence's identifier, such as MIT.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lizenz: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Licence: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Licentie: %@"
+          }
+        }
+      }
+    },
+    "native.licences.summary" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie ist Open Source unter der MIT-Lizenz. Die Apple-Apps verwenden keine Pakete von Dritten, nur Apples eigene Frameworks. Was sie anderen verdanken, steht unten; tippe auf einen Eintrag, um die Lizenz zu lesen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie is open source under the MIT licence. The Apple apps use no third-party packages, only Apple's own frameworks. What they owe to others is below; tap an entry to read its licence."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie is open source onder de MIT-licentie. De Apple-apps gebruiken geen pakketten van derden, alleen de eigen frameworks van Apple. Wat ze aan anderen te danken hebben staat hieronder; tik op een onderdeel om de licentie te lezen."
+          }
+        }
+      }
+    },
+    "native.licences.unreadable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Lizenztext konnte nicht gelesen werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The licence text could not be read."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De licentietekst kon niet worden gelezen."
+          }
+        }
+      }
+    },
     "native.lock.coverLabel" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -53,6 +53,9 @@ struct GatewaysSettingsPage: View {
         SettingsNote(Strings.App.Settings.Gateways.hint)
       }
 
+      // The live gateway's version and whether its plugin is there.
+      LiveGatewayFactsSection()
+
       ICloudSyncAvailableSection()
     }
   }

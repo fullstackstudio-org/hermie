@@ -1,7 +1,7 @@
 import HermieCore
 import SwiftUI
 
-/// Settings → About: exactly which build this is, and the licences (a later build).
+/// Settings → About: exactly which build this is, and the licences.
 struct AboutSettingsPage: View {
   var info: BuildInfo = .main
 
@@ -21,16 +21,9 @@ struct AboutSettingsPage: View {
 
       Section {
         NavigationLink(Strings.App.Settings.licences) {
-          Form {
-            Section {
-              Text(NativeStrings.later)
-            } footer: {
-              SettingsNote(Strings.App.Settings.licencesHint)
-            }
-          }
-          .formStyle(.grouped)
-          .navigationTitle(Strings.App.Settings.licences)
+          LicencesPage()
         }
+        .accessibilityIdentifier("hermie.settings.about.licences")
       }
     }
     .formStyle(.grouped)

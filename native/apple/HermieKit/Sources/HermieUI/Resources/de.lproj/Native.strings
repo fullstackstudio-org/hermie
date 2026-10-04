@@ -920,6 +920,16 @@
 	<string>Niemand</string>
 	<key>native.later</key>
 	<string>Kommt in einem späteren Build.</string>
+	<key>native.licences.hermesAgent</key>
+	<string>Teile des Gateway-Protokolls, der Transkript-Engine und der Bot-zu-Bot-Konventionen sind nach der Hermes-Agent-Desktop-App und dem Gateway geschrieben, und die mitgelieferten Protokollquellen stammen von dort.</string>
+	<key>native.licences.hermie</key>
+	<string>Hermie selbst: die Expo-, Web- und Apple-Apps und alles in diesem Repository, was unten nicht eigens aufgeführt ist.</string>
+	<key>native.licences.licence</key>
+	<string>Lizenz: %@</string>
+	<key>native.licences.summary</key>
+	<string>Hermie ist Open Source unter der MIT-Lizenz. Die Apple-Apps verwenden keine Pakete von Dritten, nur Apples eigene Frameworks. Was sie anderen verdanken, steht unten; tippe auf einen Eintrag, um die Lizenz zu lesen.</string>
+	<key>native.licences.unreadable</key>
+	<string>Der Lizenztext konnte nicht gelesen werden.</string>
 	<key>native.lock.coverLabel</key>
 	<string>Hermie ist ausgeblendet, solange die App nicht im Vordergrund ist.</string>
 	<key>native.lock.settingUnknown</key>

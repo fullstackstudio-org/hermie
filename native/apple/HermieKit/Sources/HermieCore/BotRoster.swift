@@ -30,6 +30,8 @@ public actor BotRoster {
     public var refreshed = false
     /// What the gateway's plugin offers (`PluginCapabilities`), from the last roster read.
     public var pluginCapabilities: Set<String> = []
+    /// The plugin's advert from the last roster read, nil when it carried none.
+    public var pluginAdvert: PluginAdvert?
 
     public init() {}
 
@@ -245,7 +247,9 @@ public actor BotRoster {
     // The name is the bot's identity everywhere; a row without one is not a bot.
     let bots = rows.compactMap { $0.objectValue }.map { Bot(row: ProfileRow(json: $0)) }.filter { !$0.name.isEmpty }
 
-    snapshot.pluginCapabilities = PluginCapabilities.of(rows)
+    let advert = PluginCapabilities.advert(in: rows)
+    snapshot.pluginAdvert = advert
+    snapshot.pluginCapabilities = advert?.capabilities ?? []
     setBots(bots, fromCache: false)
 
     // What the roster settled on, pins included, not what the wire said.

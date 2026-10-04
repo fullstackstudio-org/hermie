@@ -2280,3 +2280,20 @@ name, else user id>` is the lead, `Chat · <name> · <label>` one of the chats. 
 - Tests: `OwnChatTitleTests`, `OwnChatMemoryTests`, `OwnChatClassifierTests`, `OwnChatServiceTests`, `OwnChatStoreTests`,
   `OwnChatSessionTests` and `OwnChatConversationsTests` (HermieCoreTests, a scripted link), `OwnChatViewTests`
   (HermieUITests) and `OwnChatsIntegrationTests` (the fake gateway over a real socket).
+
+## Licences and the gateway's facts
+
+**Settings › About › Licences** (`LicencesPage`) lists what the Apple apps owe to others, each entry opening its licence
+text, which can be selected and copied. The Expo app lists every npm package that ships inside it; the Apple apps
+ship none (`HermieKit` has no third-party package, only Apple's own frameworks), so the list is Hermie's own licence
+and Hermes Agent's, whose Desktop app and gateway the protocol, the transcript engine and the bot-to-bot conventions
+were written from (`THIRD_PARTY_NOTICES.md`). The two texts are bundled as they are in the repository (`LICENSE` and
+`packages/hermes-shared/LICENSE`) and `LicencesTests` holds the copies to the originals. A new third-party package, or
+a new port, adds an entry to `LicenceCatalogue` and its text to `HermieUI/Resources`.
+
+**Settings › Gateways** shows, under the list, the live gateway's version (what its status said when it was set up,
+`StoredGatewayConfig.version`) and whether its Hermie plugin is there (`LiveGatewayFactsSection`). The plugin row is read
+off the roster's `hermie-plugin` advert (`PluginCapabilities.advert(in:)`, the default profile's advert winning) and is
+one of three states kept apart on purpose (`PluginPresence`): "Checking…" until a roster has actually been read from the
+gateway, never "Not installed", which is a reason to send somebody to a shell; then the plugin with its release, or
+absent. Nothing about it is stored: the advert is a fact about a gateway at a moment.
