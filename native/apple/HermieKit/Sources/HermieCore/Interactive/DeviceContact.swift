@@ -318,8 +318,10 @@ public final class InteractiveContactModel {
       func available(_ key: String) -> Bool { contact.isKeyAvailable(key) }
       func wants(_ field: ContactField) -> Bool { requested.contains(field) }
 
+      // Everything the formatter reads for a full name (prefix, middle name, suffix and the rest), not two of
+      // its keys: formatting a contact that lacks one of them raises.
       let name: String? =
-        available(CNContactGivenNameKey) && available(CNContactFamilyNameKey)
+        contact.areKeysAvailable([CNContactFormatter.descriptorForRequiredKeys(for: .fullName)])
         ? CNContactFormatter.string(from: contact, style: .fullName) : nil
       var birthday: ContactBirthday?
 
