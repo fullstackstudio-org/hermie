@@ -80,9 +80,7 @@ public struct MarkdownBlockView: View, Equatable {
     case .math(let source):
       MarkdownMathBlock(source: source.trimmingCharacters(in: .whitespacesAndNewlines))
     case .mermaid(let source):
-      MarkdownCodeView(
-        label: MarkdownStrings.diagram, accessibilityLabel: MarkdownStrings.mermaidSource,
-        copyLabel: MarkdownStrings.copySource, source: source)
+      MarkdownMermaidBlock(source: source)
     case .rule:
       Divider()
         .padding(.vertical, 4)
@@ -238,6 +236,7 @@ struct MarkdownCodeView: View {
 
   @Environment(\.markdownCodeHighlighting) private var highlights
   @State private var copied = false
+  @State private var showsSource = false
   @ScaledMetric(relativeTo: .body) private var padding: CGFloat = 10
 
   var body: some View {
@@ -248,6 +247,19 @@ struct MarkdownCodeView: View {
           .foregroundStyle(.secondary)
           .accessibilityHidden(true)
         Spacer(minLength: 8)
+        if rendered != nil {
+          Button {
+            showsSource.toggle()
+          } label: {
+            Label(
+              showsSource ? MarkdownStrings.showRendered : MarkdownStrings.showSource,
+              systemImage: showsSource ? "eye" : "chevron.left.forwardslash.chevron.right"
+            )
+            .labelStyle(.iconOnly)
+          }
+          .buttonStyle(.borderless)
+          .accessibilityLabel(showsSource ? MarkdownStrings.showRendered : MarkdownStrings.showSource)
+        }
         Button {
           MarkdownPasteboard.copy(source)
           copied = true
@@ -284,7 +296,7 @@ extension MarkdownCodeView {
   /// The listing: coloured when it has a language the highlighter knows and the surface is one the
   /// colours were chosen for, the plain text otherwise.
   @ViewBuilder fileprivate var content: some View {
-    if let rendered {
+    if let rendered, !showsSource {
       rendered
     } else {
       listing.font(.body.monospaced())
