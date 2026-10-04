@@ -17,3 +17,10 @@ export { SudoSheet } from './SudoSheet'
 export { VaultCodeSheet } from './VaultCodeSheet'
 export { VaultSaveLoginSheet } from './VaultSaveLoginSheet'
 export { VaultUnlockSheet } from './VaultUnlockSheet'
+
+/**
+ * The sheets that reach for the device (a signature pad, the location, the contact picker, the camera, the microphone)
+ * are a chunk of their own, fetched when a request that needs one is on the page (`device-sheets.ts`). It is imported
+ * from here, not from the first load, so it shares the frame, the strings and the upload with these sheets.
+ */
+export const loadDeviceSheets = (): Promise<typeof import('./device-sheets')> => import('./device-sheets')

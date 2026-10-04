@@ -21,7 +21,10 @@ import {
   minorUnits,
   onStep,
   readInteractiveParams,
+  type ScanAsk,
+  type SignatureAsk,
   stripLineEnds,
+  SYMBOLOGIES,
   unknownFields,
   verbatimIssue,
   verbatimProblem
@@ -48,24 +51,13 @@ interface Examples {
 const examples = JSON.parse(examplesSource) as Examples
 
 /**
- * The contract's methods this client does not read yet: the signature and the device requests land with their sheets
- * (P3-W1), which removes them from this list.
+ * The contract's methods this client does not read: a browser has no calendar to write to, so `device.calendar` is never
+ * advertised and never read (its examples stay in the contract for the apps).
  */
-const NOT_YET_READ = ['input.signature', 'device.location', 'device.contact', 'device.calendar', 'device.scan']
-
-/**
- * Invalid `input.file` frames the reader does not refuse yet: a recording asked for an image or a photo asked for a
- * recording (`contract/requests` section 5.1). The audio frames themselves decode; P3-W1 refuses the contradictions.
- */
-const NOT_YET_REFUSED = [
-  'audio_capture_for_an_image',
-  'audio_capture_for_any',
-  'photo_capture_for_audio',
-  'scan_capture_for_audio'
-]
+const NOT_READ = ['device.calendar']
 
 const readMethods = Object.fromEntries(
-  Object.entries(examples.methods).filter(([method]) => !NOT_YET_READ.includes(method))
+  Object.entries(examples.methods).filter(([method]) => !NOT_READ.includes(method))
 )
 
 const frames = Object.entries(readMethods).flatMap(([method, entry]) => entry.frames.map(frame => ({ method, frame })))
@@ -93,9 +85,10 @@ const ask = (result: ReturnType<typeof readInteractiveParams>): InteractiveAsk =
 }
 
 describe('the methods', () => {
-  it('are the contract’s three, and nothing else is read', () => {
+  it('are the contract’s, but for the calendar, and nothing else is read', () => {
     expect(examples.methods).toBeDefined()
-    expect(Object.keys(examples.methods).sort()).toEqual([...INTERACTIVE_METHODS, ...NOT_YET_READ].sort())
+    expect(Object.keys(examples.methods).sort()).toEqual([...INTERACTIVE_METHODS, ...NOT_READ].sort())
+    expect(isInteractiveMethod('device.calendar')).toBe(false)
     expect(isInteractiveMethod('input.form')).toBe(true)
     expect(isInteractiveMethod('confirm')).toBe(false)
     expect(readInteractiveParams('confirm', formWith({ id: 'a', kind: 'toggle', label: 'A' }))).toEqual({
@@ -224,7 +217,7 @@ describe('every valid frame of the examples', () => {
 
 describe('every frame the gateway never sends', () => {
   const invalid = Object.entries(readMethods).flatMap(([method, entry]) =>
-    entry.invalid_frames.filter(frame => !NOT_YET_REFUSED.includes(frame.name)).map(frame => ({ method, ...frame }))
+    entry.invalid_frames.map(frame => ({ method, ...frame }))
   )
 
   it('is there to be held to', () => {
@@ -695,5 +688,124 @@ describe('a step in exact decimal arithmetic', () => {
     expect(onStep('3e-7', 0, 2e-7)).toBe(false)
     expect(onStep('12345678901234567890.5', 0, 0.5)).toBe(true)
     expect(onStep(5, undefined, undefined)).toBe(true)
+  })
+})
+
+/** The contract's own frame for a method, with `over` laid over its params. */
+const frameOf = (id: string, over: Record<string, unknown> = {}): Record<string, unknown> => {
+  const found = frames.find(entry => entry.frame.id === id)
+
+  if (!found) {
+    throw new Error(`example gone: ${id}`)
+  }
+
+  return { ...found.frame.params, ...over }
+}
+
+describe('a signature request', () => {
+  const sign = (over: Record<string, unknown> = {}): ReturnType<typeof readInteractiveParams> =>
+    readInteractiveParams('input.signature', frameOf('req_sig_lease', over))
+
+  it('carries the statement exactly as the frame had it, and cleans the name beside it', () => {
+    const statement = 'I agree.  \nAnd this, too.   '
+    const read = ask(sign({ statement, signer_name: 'Ada\u202E Lovelace' })) as SignatureAsk
+
+    // Verbatim: its SHA-256 is of these bytes, so a trailing blank or a double space is part of what was signed.
+    expect(read.statement).toBe(statement)
+    expect(read.signerName).toBe('Ada Lovelace')
+    expect(read.upload).toMatchObject({ maxFiles: 2, maxBytes: 1_048_576 })
+  })
+
+  it('declines a statement the gateway could not show as it is', () => {
+    for (const bad of ['a\u202Eb', 'a\u200Bb', 'a\tb', 'a\u0000b', 'x'.repeat(501), '']) {
+      expect(sign({ statement: bad }).ok, JSON.stringify(bad).slice(0, 30)).toBe(false)
+    }
+
+    expect(sign({ statement: 'x'.repeat(500) }).ok).toBe(true)
+  })
+
+  it('declines a name of two lines or of more than 80 characters, and a pad of one file slot', () => {
+    expect(sign({ signer_name: 'Ada\nLovelace' }).ok).toBe(false)
+    expect(sign({ signer_name: 'x'.repeat(81) }).ok).toBe(false)
+    expect(sign({ signer_name: 'x'.repeat(80) }).ok).toBe(true)
+    expect(sign({ upload: { dir: '/up', max_bytes: 10, max_total_bytes: 20, max_files: 1 } }).ok).toBe(false)
+    expect(sign({ upload: undefined }).ok).toBe(false)
+  })
+
+  it('offers Skip unless the agent says not to', () => {
+    expect(ask(sign()).optional).toBe(true)
+    expect(ask(readInteractiveParams('input.signature', frameOf('req_sig_required'))).optional).toBe(false)
+  })
+})
+
+describe('a location request', () => {
+  const locate = (over: Record<string, unknown>): ReturnType<typeof readInteractiveParams> =>
+    readInteractiveParams('device.location', frameOf('req_loc_approx', over))
+
+  it('reads the precision asked for, and nothing else', () => {
+    expect(ask(locate({ precision: 'precise' }))).toMatchObject({ method: 'device.location', precision: 'precise' })
+    expect(ask(locate({ precision: 'approximate' }))).toMatchObject({ precision: 'approximate' })
+
+    for (const bad of ['exact', undefined, null, 1, 'PRECISE']) {
+      expect(locate({ precision: bad }).ok, String(bad)).toBe(false)
+    }
+  })
+})
+
+describe('a contact request', () => {
+  const pick = (fields: unknown): ReturnType<typeof readInteractiveParams> =>
+    readInteractiveParams('device.contact', frameOf('req_contact_phone', { fields }))
+
+  it('reads one to six of the contract’s fields, each once, in the order asked', () => {
+    expect(ask(pick(['phones', 'name']))).toMatchObject({ fields: ['phones', 'name'] })
+    expect(pick(['name', 'phones', 'emails', 'postal', 'birthday', 'organization']).ok).toBe(true)
+
+    for (const bad of [[], ['name', 'name'], ['nickname'], 'name', null, undefined, [1], Array(7).fill('name')]) {
+      expect(pick(bad).ok, JSON.stringify(bad)).toBe(false)
+    }
+  })
+})
+
+describe('a scan request', () => {
+  const scan = (formats: unknown): ReturnType<typeof readInteractiveParams> =>
+    readInteractiveParams('device.scan', frameOf('req_scan_any', { formats }))
+
+  it('reads the symbologies asked for, or none named, which is every one the device reads', () => {
+    expect((ask(readInteractiveParams('device.scan', frameOf('req_scan_any'))) as ScanAsk).formats).toBeUndefined()
+    expect((ask(scan(['qr', 'aztec'])) as ScanAsk).formats).toEqual(['qr', 'aztec'])
+    expect(scan([...SYMBOLOGIES]).ok).toBe(true)
+
+    for (const bad of [[], ['qr', 'qr'], ['upca'], null, 'qr', [...SYMBOLOGIES, 'qr']]) {
+      expect(scan(bad).ok, JSON.stringify(bad)).toBe(false)
+    }
+  })
+})
+
+describe('a voice note request', () => {
+  const file = (over: Record<string, unknown>): ReturnType<typeof readInteractiveParams> =>
+    readInteractiveParams('input.file', frameOf('req_file_voice', over))
+
+  it('reads a recording, and a request to pick an audio file', () => {
+    expect(ask(file({}))).toMatchObject({ accept: 'audio', capture: 'audio' })
+    expect(
+      (ask(readInteractiveParams('input.file', frameOf('req_file_voice_pick'))) as FileAsk).capture
+    ).toBeUndefined()
+  })
+
+  it('refuses a recording of anything but audio, and a photo or a scan of a recording', () => {
+    for (const [accept, capture] of [
+      ['image', 'audio'],
+      ['any', 'audio'],
+      ['document', 'audio'],
+      ['audio', 'photo'],
+      ['audio', 'scan']
+    ]) {
+      expect(file({ accept, capture }).ok, `${accept} ${capture}`).toBe(false)
+    }
+
+    // The other pairings are as they were: a photo of an image, a scan of a document, no preference at all.
+    expect(file({ accept: 'image', capture: 'photo' }).ok).toBe(true)
+    expect(file({ accept: 'document', capture: 'scan' }).ok).toBe(true)
+    expect(file({ accept: 'any', capture: undefined }).ok).toBe(true)
   })
 })

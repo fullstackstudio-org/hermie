@@ -129,10 +129,16 @@ export function answerName(name: string): string {
   return cleaned === '' ? 'file' : cleaned
 }
 
-/** The MIME type the answer gives (at most 80 characters, a `type/subtype`), or the generic one. */
+/**
+ * The MIME type the answer gives (at most 80 characters, a `type/subtype`), or the generic one. Parameters are dropped:
+ * a recording a browser makes says `audio/webm;codecs=opus`, and the contract wants `audio/webm` (section 5.1: the
+ * gateway refuses a parameter in an audio file's `mime`).
+ */
 export function answerMime(type: string): string {
-  return /^[A-Za-z0-9][\w.+-]*\/[A-Za-z0-9][\w.+-]*$/u.test(type) && type.length <= 80
-    ? type
+  const bare = (type.split(';')[0] ?? '').trim()
+
+  return /^[A-Za-z0-9][\w.+-]*\/[A-Za-z0-9][\w.+-]*$/u.test(bare) && bare.length <= 80
+    ? bare
     : 'application/octet-stream'
 }
 

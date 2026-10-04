@@ -86,7 +86,8 @@ import { type StoreApi, useStore } from 'zustand'
 
 import { CANCELLED_BY_READER, RequestWithdrawnError } from '../../core/request-withdrawn'
 import type { AnswerOutcome } from '../../core/requests/interactive'
-import type { InteractiveAnswer } from '../../core/requests/interactive-types'
+import { canRecord } from '../../core/requests/device-support'
+import type { InteractiveAnswer, InteractiveAsk } from '../../core/requests/interactive-types'
 import { BOT_NAME_LIMIT, displayText } from '../../core/requests/secure-input'
 import { useLocale } from '../../i18n/use-locale'
 import { webStrings } from '../../i18n/web-strings'
@@ -105,6 +106,7 @@ import { GatewayNotices } from '../notices/GatewayNotices'
 import { openAuthorisationLink, useSessionSignalsRuntime } from '../notices/signals-runtime'
 import { usePasskeyRuntime } from './passkey-runtime'
 import { PasskeyNotices } from './PasskeyNotices'
+import { type DeviceSheets, useDeviceSheets } from './device-sheets-loader'
 import { type RequestSheets, useRequestSheets } from './request-sheets'
 import { useInteractiveRuntime } from './interactive-runtime'
 import { useSecureInputRuntime } from './secure-input-runtime'
@@ -285,6 +287,8 @@ function SecureSheetFor({ sheets, ...props }: SecureSheetProps & { sheets: Reque
 /** What the sheet of an interactive request is given by the layer. */
 interface InteractiveSheetForProps {
   sheets: RequestSheets
+  /** The device sheets' chunk, once it is in memory (`needsDeviceSheets` says which requests wait for it). */
+  deviceSheets: DeviceSheets | undefined
   request: InteractiveRequest
   gateway: string
   titleId: string
@@ -299,9 +303,25 @@ interface InteractiveSheetForProps {
   onUpload: FileUploader | undefined
 }
 
+/**
+ * Whether a request is a voice note this browser records on the sheet (`VoiceSheet`): one for a recording, where a
+ * microphone and `MediaRecorder` exist. Anywhere else it is the file sheet, which picks an audio file.
+ */
+const isVoiceNote = (ask: InteractiveAsk): boolean =>
+  ask.method === 'input.file' && ask.accept === 'audio' && ask.capture === 'audio' && canRecord()
+
+/** Whether a request is drawn by a sheet of the device chunk, which is fetched when one is on the page. */
+export const needsDeviceSheets = (ask: InteractiveAsk): boolean =>
+  ask.method === 'input.signature' ||
+  ask.method === 'device.location' ||
+  ask.method === 'device.contact' ||
+  ask.method === 'device.scan' ||
+  isVoiceNote(ask)
+
 /** The sheet for an interactive request's method. */
 function InteractiveSheetFor({
   sheets,
+  deviceSheets,
   request,
   onUpload,
   onCannotShow,
@@ -309,6 +329,31 @@ function InteractiveSheetFor({
   ...rest
 }: InteractiveSheetForProps): ReactElement | null {
   const { ask } = request
+
+  // A signature, the location, a contact, a code, a voice note: one element, the choice is made in their chunk. A voice
+  // note falls back to the file sheet when the person would rather pick an audio file.
+  if (needsDeviceSheets(ask)) {
+    return deviceSheets ? (
+      <deviceSheets.DeviceSheet
+        request={request}
+        onSkip={onSkip}
+        onCannotShow={onCannotShow}
+        onUpload={onUpload}
+        renderPicker={() =>
+          ask.method === 'input.file' ? (
+            <sheets.FileSheet
+              request={{ ...request, ask }}
+              onSkip={onSkip}
+              onCannotShow={onCannotShow}
+              onUpload={onUpload}
+              {...rest}
+            />
+          ) : null
+        }
+        {...rest}
+      />
+    ) : null
+  }
 
   switch (ask.method) {
     case 'input.form':
@@ -327,6 +372,8 @@ function InteractiveSheetFor({
       return <sheets.DraftSheet request={{ ...request, ask }} {...rest} />
     case 'review.diff':
       return <sheets.DiffSheet request={{ ...request, ask }} {...rest} />
+    default:
+      return null
   }
 }
 
@@ -406,6 +453,15 @@ export function RequestLayer({
   const gatewayHost = useStore(secureInput, state => state.gateway)
   const interactiveGateway = useStore(interactive, state => state.gateway)
   const interactiveRequests = useStore(interactive, state => state.requests)
+  // The sheets that reach for the device are a chunk of their own, fetched once one of their requests is on the page.
+  const deviceSheets = useDeviceSheets(
+    sheets?.loadDeviceSheets,
+    interactiveRequests.some(request => needsDeviceSheets(request.ask))
+  )
+  const currentAsk =
+    current?.kind === 'interactive' ? interactiveRequests.find(request => request.id === current.id)?.ask : undefined
+  // The dialog is a request for the device whose sheets are still on their way: nothing to press yet.
+  const waitingForDevice = currentAsk !== undefined && needsDeviceSheets(currentAsk) && !deviceSheets
   const signals = useSessionSignalsRuntime()
   const connectionOp = current?.kind === 'connection' ? current.opId : undefined
   const card = useStore(connections, state => {
@@ -737,7 +793,8 @@ export function RequestLayer({
         ? interactiveEntries.flatMap(entry => {
             const asked = interactiveRequests.find(request => request.id === entry.id)
 
-            if (!asked) {
+            // A request for the device waits for its sheets' chunk, which is on its way (`useDeviceSheets`).
+            if (!asked || (needsDeviceSheets(asked.ask) && !deviceSheets)) {
               return []
             }
 
@@ -756,6 +813,7 @@ export function RequestLayer({
                 <BusyScope entryKey={entry.key} onBusy={reportBusy}>
                   <InteractiveSheetFor
                     sheets={sheets}
+                    deviceSheets={deviceSheets}
                     request={asked}
                     gateway={interactiveGateway}
                     shown={isCurrent}
@@ -819,8 +877,9 @@ export function RequestLayer({
                   <ConfirmFallback confirmation={confirmation} titleId={titleId} descriptionId={descriptionId} />
                 )
               ) : null
-            ) : !sheets ? (
-              // The sheets' chunk is not in memory yet (it is fetched when the session starts): nothing to press.
+            ) : !sheets || waitingForDevice ? (
+              // The sheets' chunk is not in memory yet (it is fetched when the session starts, the device sheets' when
+              // a request for the device is on the page): nothing to press.
               <div className="hm-requests__pending" aria-busy="true" />
             ) : current.kind === 'secure' ? (
               prompt ? (

@@ -12,6 +12,7 @@ import { useStore } from 'zustand'
 import type { StoreApi } from 'zustand/vanilla'
 
 import { BOT_NAME_LIMIT, displayText } from '../../core/requests/secure-input'
+import { recordStrings } from '../../i18n/record-strings'
 import { useLocale } from '../../i18n/use-locale'
 import { sheetStrings } from '../../i18n/sheet-strings'
 import { webStrings } from '../../i18n/web-strings'
@@ -44,7 +45,15 @@ export function interactiveNoticeText(notice: InteractiveNoticeKind, name: strin
             ? words.whatDraft
             : notice.method === 'review.diff'
               ? words.whatDiff
-              : words.whatForm
+              : notice.method === 'input.signature'
+                ? recordStrings.what.signature
+                : notice.method === 'device.location'
+                  ? recordStrings.what.location
+                  : notice.method === 'device.contact'
+                    ? recordStrings.what.contact
+                    : notice.method === 'device.scan'
+                      ? recordStrings.what.scan
+                      : words.whatForm
 
       // The person's own choice (`4041 declined`) is said as theirs, not as the page's failure.
       return notice.reason === 'declined'

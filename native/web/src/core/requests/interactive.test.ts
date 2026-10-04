@@ -225,8 +225,8 @@ describe('arrival', () => {
       'secret',
       'sudo',
       'vault.code',
-      'input.signature',
-      'device.scan'
+      // A browser has no calendar to write to: never advertised, so never ours.
+      'device.calendar'
     ]) {
       expect(gw.deliver(`srq-${method}`, method, { session_id: 'rt-1' })).toBe(false)
     }
@@ -1508,10 +1508,23 @@ describe('stopping (sign-out)', () => {
 })
 
 describe('advertising', () => {
+  const ALL = [
+    'approval',
+    'input.form',
+    'input.file',
+    'review.draft',
+    'review.diff',
+    'input.signature',
+    'device.location',
+    'device.contact',
+    'device.calendar',
+    'device.scan'
+  ]
+  const NOTHING = { signature: false, location: false, contact: false, scan: false }
+
   it('lists the methods of the gateway’s list that this page can show', () => {
-    expect(
-      showableMethods(['approval', 'input.form', 'input.file', 'review.draft', 'review.diff', 'device.scan'])
-    ).toEqual(['input.form', 'input.file', 'review.draft', 'review.diff'])
+    // This runtime (jsdom) has no geolocation, no contact picker, no barcode detector and no canvas: none is listed.
+    expect(showableMethods(ALL)).toEqual(['input.form', 'input.file', 'review.draft', 'review.diff'])
     expect(showableMethods(['approval', 'clarify'])).toEqual([])
     expect(showableMethods(['review.draft'])).toEqual(['review.draft'])
   })
@@ -1523,12 +1536,41 @@ describe('advertising', () => {
     expect(showableMethods(['input.file'])).toEqual(['input.file'])
   })
 
+  it('lists each device method only where the browser can do what it takes, and never the calendar', () => {
+    const everything = { file: true, signature: true, location: true, contact: true, scan: true }
+
+    expect(showableMethods(ALL, everything)).toEqual([
+      'input.form',
+      'input.file',
+      'review.draft',
+      'review.diff',
+      'input.signature',
+      'device.location',
+      'device.contact',
+      'device.scan'
+    ])
+    expect(showableMethods(ALL, { ...everything, location: false })).not.toContain('device.location')
+    expect(showableMethods(ALL, { ...everything, contact: false })).not.toContain('device.contact')
+    expect(showableMethods(ALL, { ...everything, scan: false })).not.toContain('device.scan')
+    expect(showableMethods(ALL, { ...everything, signature: false })).not.toContain('input.signature')
+    expect(showableMethods(ALL, { ...NOTHING, file: true })).toEqual([
+      'input.form',
+      'input.file',
+      'review.draft',
+      'review.diff'
+    ])
+    expect(showableMethods(['device.calendar'], everything)).toEqual([])
+  })
+
   it('advertises the methods the sheets can show, and nothing when the switch is off', () => {
     const list = ['approval', 'input.form', 'input.file', 'review.draft', 'review.diff']
 
     expect(ADVERTISE_INTERACTIVE_REQUESTS).toBe(true)
     expect(interactiveAdvert(model, { enabled: false }).methods(list)).toEqual([])
     expect(interactiveAdvert(model).methods(list)).toEqual(['input.form', 'input.file', 'review.draft', 'review.diff'])
+    expect(
+      interactiveAdvert(model, { support: { location: true } }).methods(['device.location', 'device.scan'])
+    ).toEqual(['device.location'])
   })
 })
 

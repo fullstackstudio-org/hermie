@@ -1,0 +1,100 @@
+/*
+ * The sheets that reach for the device: a signature, a contact, a code, a voice note. The frame, the fields and the file
+ * list are the interactive sheets' (`interactive-sheets.css`); what is here is what only these hold. Colours, radii and
+ * gutters are the theme's; the policy forbids inline styles, so every variation is a class or a data attribute. It is
+ * loaded with the device sheets' chunk, not with the request sheets'.
+ */
+
+/* A signature: the statement, then a white pad (the ink is black and so is the file, whatever the theme). */
+.hm-signature__statement {
+  max-height: 10rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.hm-signature__pad {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.hm-signature__canvas {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  max-width: 600px;
+  aspect-ratio: 3 / 1;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: #ffffff;
+  /* A finger drawing must not scroll or zoom the page under it. */
+  touch-action: none;
+  cursor: crosshair;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.hm-signature__tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* A contact: one box per field the contact has, with what would be sent under it. */
+.hm-contact__asked {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hm-contact__fields,
+.hm-contact__values {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-contact__values {
+  gap: 2px;
+  padding-inline-start: 28px;
+}
+
+.hm-contact__values li {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+/* A code: the camera's picture, and what the code says. */
+.hm-scan__video {
+  display: block;
+  width: 100%;
+  max-height: 18rem;
+  border-radius: var(--hm-radius);
+  background: #000000;
+  object-fit: cover;
+}
+
+.hm-scan__value {
+  max-height: 10rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* A voice note: the live timer, and the player. */
+.hm-voice,
+.hm-voice__live,
+.hm-voice__take {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.hm-voice__player {
+  width: 100%;
+}

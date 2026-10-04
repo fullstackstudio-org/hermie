@@ -12,6 +12,7 @@ import { memo } from 'react'
 import { useStore } from 'zustand'
 
 import { strings } from '../../../generated/strings'
+import { listOf, recordStrings } from '../../../i18n/record-strings'
 import { useLocale } from '../../../i18n/use-locale'
 import { sheetStrings } from '../../../i18n/sheet-strings'
 import { requestLaterStore } from '../../../state/request-later'
@@ -28,6 +29,31 @@ interface Plain {
 }
 
 const BODY_CHARS = 1_200
+
+/** The small line above a record: what kind of request it was. */
+function requestKind(method: RequestItem['method']): string {
+  const words = sheetStrings.chat.request
+
+  switch (method) {
+    case 'input.file':
+      return words.kindFile
+    case 'review.draft':
+      return words.kindDraft
+    case 'review.diff':
+      return words.kindDiff
+    case 'input.signature':
+      return recordStrings.kind.signature
+    case 'device.location':
+      return recordStrings.kind.location
+    case 'device.contact':
+      return recordStrings.kind.contact
+    case 'device.scan':
+      return recordStrings.kind.scan
+    default:
+      // `input.form`, and `device.calendar`, which this page never advertises and so never records.
+      return words.kindForm
+  }
+}
 
 /** How a form, a file request or a draft stands, in words: waiting, answered (how), or ended without an answer. */
 function requestState(item: RequestItem, away: boolean): string {
@@ -69,6 +95,30 @@ function requestState(item: RequestItem, away: boolean): string {
     return words.rejected
   }
 
+  // What kind of thing was shared, never the thing: how exact a location was (not where), which fields of a contact
+  // (not what they say), which symbology a code was (not what it said), that a recording is a voice note.
+  const sent = recordStrings.answered
+
+  if (summary?.audio) {
+    return sent.voice
+  }
+
+  if (item.method === 'input.signature') {
+    return sent.signed
+  }
+
+  if (item.method === 'device.location' && summary?.precision) {
+    return summary.precision === 'precise' ? sent.locationPrecise : sent.locationApproximate
+  }
+
+  if (item.method === 'device.contact' && summary?.fields?.length) {
+    return sent.contact({ fields: listOf(summary.fields.map(field => recordStrings.contactField[field])) })
+  }
+
+  if (item.method === 'device.scan' && summary?.symbology) {
+    return sent.scan({ kind: recordStrings.symbology[summary.symbology] })
+  }
+
   return summary?.count !== undefined && summary.count > 0 ? words.files({ count: summary.count }) : words.answered
 }
 
@@ -91,14 +141,7 @@ function plainOf(item: TranscriptItem, away: boolean): Plain | null {
 
     case 'request':
       return {
-        eyebrow:
-          item.method === 'input.file'
-            ? sheetStrings.chat.request.kindFile
-            : item.method === 'review.draft'
-              ? sheetStrings.chat.request.kindDraft
-              : item.method === 'review.diff'
-                ? sheetStrings.chat.request.kindDiff
-                : sheetStrings.chat.request.kindForm,
+        eyebrow: requestKind(item.method),
         text: `${item.title}\n${requestState(item, away)}`
       }
 

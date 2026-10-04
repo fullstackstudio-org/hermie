@@ -159,6 +159,64 @@ export const fileFrame = (extra: Record<string, unknown> = {}): Record<string, u
   ...extra
 })
 
+const DEVICE_UPLOAD = {
+  dir: '/home/ada/work/uploads/hermie/2026-10-04',
+  max_bytes: 1_048_576,
+  max_total_bytes: 2_097_152,
+  max_files: 2,
+  strip_metadata: false
+}
+
+const deviceFrame = (extra: Record<string, unknown>): Record<string, unknown> => ({
+  session_id: 'rt-1',
+  v: 1,
+  expires_at: NOW_SECONDS + 300,
+  optional: true,
+  ...extra
+})
+
+/** A signature (the contract's rental agreement); anything else is laid over it. */
+export const signatureFrame = (extra: Record<string, unknown> = {}): Record<string, unknown> =>
+  deviceFrame({
+    title: 'Sign the agreement',
+    summary: 'Sign to confirm you accept the rental agreement.',
+    statement: 'I have read the rental agreement dated 3 October 2026 and agree to its terms.',
+    signer_name: 'Ada Lovelace',
+    upload: DEVICE_UPLOAD,
+    ...extra
+  })
+
+export const locationFrame = (extra: Record<string, unknown> = {}): Record<string, unknown> =>
+  deviceFrame({
+    title: 'Where are you?',
+    summary: 'I need your location to find the nearest branch.',
+    precision: 'approximate',
+    ...extra
+  })
+
+export const contactFrame = (extra: Record<string, unknown> = {}): Record<string, unknown> =>
+  deviceFrame({
+    title: 'Who should I call?',
+    summary: 'Pick the person and I will take their number.',
+    fields: ['name', 'phones'],
+    ...extra
+  })
+
+export const scanFrame = (extra: Record<string, unknown> = {}): Record<string, unknown> =>
+  deviceFrame({ title: 'Scan the box', summary: 'Scan the code on the box.', ...extra })
+
+/** A voice note: an `input.file` request for a recording. */
+export const voiceFrame = (extra: Record<string, unknown> = {}): Record<string, unknown> =>
+  deviceFrame({
+    title: 'Tell me about it',
+    summary: 'Record a short voice note.',
+    accept: 'audio',
+    capture: 'audio',
+    multiple: false,
+    upload: DEVICE_UPLOAD,
+    ...extra
+  })
+
 /** A diff review: two hunks of `app/settings.py`, neither pinned (the contract's own example); anything else is laid over it. */
 export const diffFrame = (extra: Record<string, unknown> = {}): Record<string, unknown> => ({
   session_id: 'rt-1',

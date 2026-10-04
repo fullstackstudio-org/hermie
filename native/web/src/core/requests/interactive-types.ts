@@ -30,8 +30,21 @@
  */
 import { displayText } from './secure-input'
 
-/** The methods this page can read: the contract's three of phase 1 and `review.diff` of phase 2. */
-export const INTERACTIVE_METHODS = ['input.form', 'input.file', 'review.draft', 'review.diff'] as const
+/**
+ * The methods this page can read: the contract's three of phase 1, `review.diff` of phase 2 and the signature and
+ * three device requests of phase 3. `device.calendar` is not one: a browser has no calendar to write to, so the page
+ * never advertises it and never reads it.
+ */
+export const INTERACTIVE_METHODS = [
+  'input.form',
+  'input.file',
+  'review.draft',
+  'review.diff',
+  'input.signature',
+  'device.location',
+  'device.contact',
+  'device.scan'
+] as const
 
 export type InteractiveMethod = (typeof INTERACTIVE_METHODS)[number]
 
@@ -62,7 +75,10 @@ export const LIMITS = Object.freeze({
   uploadBytes: 104_857_600,
   uploadFiles: 10,
   comment: 1_000,
-  transcript: 4_000
+  transcript: 4_000,
+  statement: 500,
+  signerName: 80,
+  scanValue: 4_096
 })
 
 /** Why a request is declined with `4041 cannot_show` before any sheet is built. */
@@ -251,7 +267,51 @@ export interface DraftAsk extends InteractiveEnvelope {
   editable: boolean
 }
 
-export type InteractiveAsk = FormAsk | FileAsk | DraftAsk | DiffAsk
+/** A statement signed on a pad (README section 8). */
+export interface SignatureAsk extends InteractiveEnvelope {
+  method: 'input.signature'
+  /**
+   * What the person signs, VERBATIM: the answer carries its SHA-256 as the frame had it (no trimming, no cleaning), so
+   * what is shown and what is hashed are one text. Only a text the gateway could show as it is reaches here.
+   */
+  statement: string
+  /** The signer's name, one line, display only, cleaned. */
+  signerName?: string
+  upload: UploadRules
+}
+
+export type LocationPrecision = 'approximate' | 'precise'
+
+/** Where the device is now (README section 9). */
+export interface LocationAsk extends InteractiveEnvelope {
+  method: 'device.location'
+  precision: LocationPrecision
+}
+
+/** The contract's contact fields (README section 10), in its order. */
+export const CONTACT_FIELDS = ['name', 'phones', 'emails', 'postal', 'birthday', 'organization'] as const
+
+export type ContactField = (typeof CONTACT_FIELDS)[number]
+
+/** One picked contact, cut down to some of the fields (README section 10). */
+export interface ContactAsk extends InteractiveEnvelope {
+  method: 'device.contact'
+  fields: readonly ContactField[]
+}
+
+/** The contract's symbologies (README section 12), in its order. */
+export const SYMBOLOGIES = ['qr', 'ean13', 'ean8', 'code128', 'pdf417', 'datamatrix', 'aztec'] as const
+
+export type Symbology = (typeof SYMBOLOGIES)[number]
+
+/** One code read with the camera (README section 12). */
+export interface ScanAsk extends InteractiveEnvelope {
+  method: 'device.scan'
+  /** The symbologies asked for; absent, every one the device reads. */
+  formats?: readonly Symbology[]
+}
+
+export type InteractiveAsk = FormAsk | FileAsk | DraftAsk | DiffAsk | SignatureAsk | LocationAsk | ContactAsk | ScanAsk
 
 export type ReadResult = { ok: true; ask: InteractiveAsk } | { ok: false; reason: CannotShowReason }
 
@@ -287,7 +347,31 @@ export interface DiffAnswer {
   hunks: Readonly<Record<string, HunkDecision>>
 }
 
-export type InteractiveAnswer = FormAnswer | FileAnswer | DraftAnswer | DiffAnswer
+/** The two files of a signature (a PNG and an SVG, by reference), when it was signed and the statement's SHA-256. */
+export type SignatureAnswer =
+  | { status: 'answered'; files: readonly UploadedFile[]; signed_at: number; statement_sha256: string }
+  | { status: 'skipped' }
+
+export type LocationAnswer =
+  | { status: 'answered'; lat: number; lon: number; accuracy_m: number; at: number; precision: LocationPrecision }
+  | { status: 'skipped' }
+
+/** What of a contact is shared: only the keys the person ticked. */
+export interface ContactValue {
+  name?: string
+  phones?: readonly string[]
+  emails?: readonly string[]
+  postal?: readonly string[]
+  birthday?: string
+  organization?: string
+}
+
+export type ContactAnswer = { status: 'answered'; contact: ContactValue } | { status: 'skipped' }
+
+export type ScanAnswer = { status: 'answered'; value: string; symbology: Symbology } | { status: 'skipped' }
+
+export type InteractiveAnswer =
+  FormAnswer | FileAnswer | DraftAnswer | DiffAnswer | SignatureAnswer | LocationAnswer | ContactAnswer | ScanAnswer
 
 /**
  * The answer for `decisions` (a hunk id to what the person decided), or `null` while a hunk of `ask` is still undecided
@@ -993,15 +1077,9 @@ function readForm(params: Rec): FormAsk {
   return { ...envelope, method: 'input.form', fields }
 }
 
-function readFile(params: Rec): FileAsk {
-  const envelope = readEnvelope(params, true)
-  const { accept } = params
-
-  if (accept !== 'image' && accept !== 'document' && accept !== 'audio' && accept !== 'any') {
-    refuse()
-  }
-
-  const upload = isRec(params.upload) ? params.upload : (refuse() as never)
+/** The upload rules of a request that uploads files: where, how big, how many (README section 5). */
+function readUpload(raw: unknown): UploadRules {
+  const upload = isRec(raw) ? raw : (refuse() as never)
   const dir = upload.dir
 
   // Absolute, without `..` and without control characters: the directory the files go to and the answer's paths
@@ -1024,8 +1102,34 @@ function readFile(params: Rec): FileAsk {
     refuse()
   }
 
+  return {
+    dir: dir as string,
+    maxBytes: maxBytes as number,
+    maxTotalBytes: maxTotalBytes as number,
+    maxFiles: maxFiles as number,
+    stripMetadata: optBool(upload.strip_metadata, false)
+  }
+}
+
+function readFile(params: Rec): FileAsk {
+  const envelope = readEnvelope(params, true)
+  const { accept } = params
+
+  if (accept !== 'image' && accept !== 'document' && accept !== 'audio' && accept !== 'any') {
+    refuse()
+  }
+
+  const upload = readUpload(params.upload)
   const capture = params.capture
-  const multiple = optBool(params.multiple, false)
+
+  // A recording goes with `accept: audio` and only with it, and `accept: audio` takes a recording or none (README
+  // 5.1): the gateway never builds a frame that asks for a recording of an image or a photo of a recording.
+  if (
+    (capture === 'audio' || capture === 'photo' || capture === 'scan') &&
+    (capture === 'audio') !== (accept === 'audio')
+  ) {
+    refuse()
+  }
 
   return {
     ...envelope,
@@ -1033,15 +1137,88 @@ function readFile(params: Rec): FileAsk {
     accept: accept as FileAccept,
     // A preference: one this build does not know is no preference.
     ...(capture === 'photo' || capture === 'scan' || capture === 'audio' ? { capture } : {}),
-    multiple,
-    upload: {
-      dir: dir as string,
-      maxBytes: maxBytes as number,
-      maxTotalBytes: maxTotalBytes as number,
-      maxFiles: maxFiles as number,
-      stripMetadata: optBool(upload.strip_metadata, false)
-    }
+    multiple: optBool(params.multiple, false),
+    upload
   }
+}
+
+function readSignature(params: Rec): SignatureAsk {
+  const envelope = readEnvelope(params, true)
+  const { statement, signer_name: signer } = params
+
+  // The statement is what is signed: shown whole and hashed as it came, so one the gateway could not show as it is
+  // (hidden characters, spacing that hides text) is not one this page can have signed for.
+  if (!isStr(statement) || statement === '' || lengthOf(statement) > LIMITS.statement || verbatimProblem(statement)) {
+    refuse()
+  }
+
+  const named =
+    signer === undefined
+      ? ''
+      : isStr(signer) && lengthOf(signer) <= LIMITS.signerName && !LINE_BREAK.test(signer)
+        ? displayText(signer, LIMITS.signerName)
+        : refuse()
+  const upload = readUpload(params.upload)
+
+  // One slot per file: the PNG and the SVG.
+  if (upload.maxFiles < 2) {
+    refuse()
+  }
+
+  return {
+    ...envelope,
+    method: 'input.signature',
+    statement: statement as string,
+    ...(named === '' ? {} : { signerName: named }),
+    upload
+  }
+}
+
+/** 1 to all of `names`, each once; `undefined` for a key that is absent and not `required`. */
+function readNames<T extends string>(raw: unknown, names: readonly T[], required: boolean): readonly T[] | undefined {
+  if (raw === undefined && !required) {
+    return undefined
+  }
+
+  if (
+    !Array.isArray(raw) ||
+    raw.length < 1 ||
+    raw.length > names.length ||
+    !raw.every(name => (names as readonly unknown[]).includes(name)) ||
+    new Set(raw).size !== raw.length
+  ) {
+    return refuse()
+  }
+
+  return raw as T[]
+}
+
+function readLocation(params: Rec): LocationAsk {
+  const envelope = readEnvelope(params, true)
+  const { precision } = params
+
+  if (precision !== 'approximate' && precision !== 'precise') {
+    refuse()
+  }
+
+  return { ...envelope, method: 'device.location', precision: precision as LocationPrecision }
+}
+
+function readContact(params: Rec): ContactAsk {
+  const envelope = readEnvelope(params, true)
+
+  return {
+    ...envelope,
+    method: 'device.contact',
+    fields: readNames(params.fields, CONTACT_FIELDS, true) as readonly ContactField[]
+  }
+}
+
+function readScan(params: Rec): ScanAsk {
+  const envelope = readEnvelope(params, true)
+  const formats = readNames(params.formats, SYMBOLOGIES, false)
+
+  return { ...envelope, method: 'device.scan', ...(formats === undefined ? {} : { formats }) }
 }
 
 /**
@@ -1620,6 +1797,14 @@ export function readInteractiveParams(method: string, params: unknown): ReadResu
         return { ok: true, ask: readDraft(params) }
       case 'review.diff':
         return { ok: true, ask: readDiff(params) }
+      case 'input.signature':
+        return { ok: true, ask: readSignature(params) }
+      case 'device.location':
+        return { ok: true, ask: readLocation(params) }
+      case 'device.contact':
+        return { ok: true, ask: readContact(params) }
+      case 'device.scan':
+        return { ok: true, ask: readScan(params) }
       default:
         return { ok: false, reason: 'not_supported_on_device' }
     }

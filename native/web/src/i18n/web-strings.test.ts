@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { LOCALES, resetActiveLocale, setActiveLocale, TRANSLATED_LOCALES, type Locale } from './active-locale'
 import { CRON_STRINGS_SOURCE, cronWebStrings } from './cron-strings'
+import { DEVICE_STRINGS_SOURCE } from './device-strings'
 import { MANAGE_STRINGS_SOURCE } from './manage-strings'
+import { RECORD_STRINGS_SOURCE } from './record-strings'
 import { SHEET_STRINGS_SOURCE, sheetStrings } from './sheet-strings'
 import { WEB_STRINGS_SOURCE, webStrings } from './web-strings'
 
@@ -38,6 +40,14 @@ const SAME_AS_ENGLISH: Readonly<Record<string, readonly Locale[]>> = {
   'sheets.settings.about.commit': ['nl', 'de'],
   // "Later" is the Dutch word too.
   'sheets.interactive.later': ['nl'],
+  // The names of the kinds of code are the symbologies' own, and "Contact" is the Dutch word too.
+  'record.kind.contact': ['nl'],
+  'record.symbology.ean13': ['nl', 'de'],
+  'record.symbology.ean8': ['nl', 'de'],
+  'record.symbology.code128': ['nl', 'de'],
+  'record.symbology.pdf417': ['nl', 'de'],
+  'record.symbology.datamatrix': ['nl', 'de'],
+  'record.symbology.aztec': ['nl', 'de'],
   // "YOLO" is the mode's name in every language.
   'sheets.chat.yolo.badge': ['nl', 'de'],
   // "Minimal" is the German word too; "Max" and "Ultra" are the same word in all three.
@@ -105,7 +115,9 @@ const all = [
   ...leaves(WEB_STRINGS_SOURCE as unknown as Source),
   ...leaves(SHEET_STRINGS_SOURCE as unknown as Source, 'sheets'),
   ...leaves(CRON_STRINGS_SOURCE as unknown as Source, 'cron'),
-  ...leaves(MANAGE_STRINGS_SOURCE as unknown as Source, 'manage')
+  ...leaves(MANAGE_STRINGS_SOURCE as unknown as Source, 'manage'),
+  ...leaves(RECORD_STRINGS_SOURCE as unknown as Source, 'record'),
+  ...leaves(DEVICE_STRINGS_SOURCE as unknown as Source, 'device')
 ]
 
 /** Sample arguments for the function leaves: every parameter is a recognisable string. */
@@ -156,6 +168,10 @@ const SAMPLE = {
   what: MARKER,
   line: MARKER,
   title: MARKER,
+  // The device sheets: the fields a contact is asked for, the kinds of code looked for, one kind, the size of a recording.
+  fields: MARKER,
+  kinds: MARKER,
+  kind: MARKER,
   // A diff review: which hunk, and how many of them are decided which way.
   n: MARKER,
   approved: MARKER,
@@ -196,7 +212,9 @@ describe('the web-only strings', () => {
     for (const [key] of [
       ...leaves(SHEET_STRINGS_SOURCE as unknown as Source),
       ...leaves(CRON_STRINGS_SOURCE as unknown as Source),
-      ...leaves(MANAGE_STRINGS_SOURCE as unknown as Source)
+      ...leaves(MANAGE_STRINGS_SOURCE as unknown as Source),
+      ...leaves(RECORD_STRINGS_SOURCE as unknown as Source),
+      ...leaves(DEVICE_STRINGS_SOURCE as unknown as Source)
     ]) {
       expect(entry.has(key), key).toBe(false)
     }

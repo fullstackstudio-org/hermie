@@ -40,6 +40,18 @@ const ON_DEMAND = [
     'SecureSheet'
   ].map(name => `features/requests/${name}.tsx`),
   'features/requests/sheets.ts',
+  // The sheets that reach for the device (a pad, the location, the contact picker, the camera, the microphone) are a
+  // chunk behind that one (`device-sheets.ts`), with what only they use and the words only they and the transcript's
+  // record of them say. The entry reads only `device-support.ts` and the loader.
+  ...['ContactSheet', 'LocationSheet', 'ScanSheet', 'SignatureSheet', 'VoiceSheet'].map(
+    name => `features/requests/${name}.tsx`
+  ),
+  'features/requests/device-sheets.ts',
+  'features/requests/device-frame.tsx',
+  'features/requests/device-answers.ts',
+  'features/requests/signature-export.ts',
+  'i18n/device-strings.ts',
+  'i18n/record-strings.ts',
   'features/requests/interactive-frame.tsx',
   'features/requests/FormFields.tsx',
   'i18n/sheet-strings.ts',

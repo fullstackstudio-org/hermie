@@ -91,7 +91,9 @@ import {
 import { monotonicNow } from '../../platform/monotonic-clock'
 import type { ReplaySignal } from '../chat-controller'
 import type { ChatGateway } from '../link'
+import { type DeviceSupport, detectDeviceSupport, isShowable } from './device-support'
 import {
+  CONTACT_FIELDS,
   type InteractiveAnswer,
   type InteractiveAsk,
   type InteractiveMethod,
@@ -185,15 +187,19 @@ export interface RequestsAdvert {
 }
 
 /**
- * The methods of `serverRequests` this page can show: the contract's three, each only where this browser can do
- * what it takes. `input.file` needs `File` and `FormData` (always, in a browser); `capture: scan` is a preference
- * the web ignores, so it never holds anything back.
+ * The methods of `serverRequests` this page can show, each only where this browser can do what it takes
+ * (`device-support.ts`: `input.file` needs `File` and `FormData`; the signature a canvas and pointer events; the
+ * location, the contact picker and the code scanner the browser's own API for them). `capture: scan` and `capture:
+ * photo` are preferences the web may ignore, so they never hold anything back. `device.calendar` is never listed.
+ * `has` overrides what the browser reports, for a test.
  */
 export function showableMethods(
   serverRequests: readonly string[],
-  has: { file: boolean } = { file: typeof File === 'function' && typeof FormData === 'function' }
+  has: Partial<DeviceSupport> = {}
 ): InteractiveMethod[] {
-  return INTERACTIVE_METHODS.filter(method => serverRequests.includes(method) && (method !== 'input.file' || has.file))
+  const support = { ...detectDeviceSupport(), ...has }
+
+  return INTERACTIVE_METHODS.filter(method => serverRequests.includes(method) && isShowable(method, support))
 }
 
 /**
@@ -202,9 +208,9 @@ export function showableMethods(
  */
 export const interactiveAdvert = (
   model: Pick<InteractiveModel, 'reconcile' | 'advertSettled'>,
-  { enabled = ADVERTISE_INTERACTIVE_REQUESTS }: { enabled?: boolean } = {}
+  { enabled = ADVERTISE_INTERACTIVE_REQUESTS, support }: { enabled?: boolean; support?: Partial<DeviceSupport> } = {}
 ): RequestsAdvert => ({
-  methods: serverRequests => (enabled ? showableMethods(serverRequests) : []),
+  methods: serverRequests => (enabled ? showableMethods(serverRequests, support) : []),
   settled: outcome => model.advertSettled(outcome),
   openRequests: (sessionId, ids, askedAt) => model.reconcile(sessionId, ids, askedAt)
 })
@@ -824,12 +830,29 @@ export class InteractiveModel {
       return { status: 'skipped' }
     }
 
-    return {
-      status: 'answered',
-      ...(entry.ask.method === 'input.file' && 'files' in result && Array.isArray(result.files)
-        ? { count: result.files.length }
-        : {})
+    // What kind of thing was shared, never the thing: how many files and whether one is a recording, how precise a
+    // location (not where), which fields of a contact (not what they say), which symbology (not what it read).
+    if (entry.ask.method === 'input.file' && 'files' in result && Array.isArray(result.files)) {
+      return {
+        status: 'answered',
+        count: result.files.length,
+        ...(result.files.some(file => file.mime.startsWith('audio/')) ? { audio: true } : {})
+      }
     }
+
+    if (entry.ask.method === 'device.location' && 'precision' in result) {
+      return { status: 'answered', precision: result.precision }
+    }
+
+    if (entry.ask.method === 'device.contact' && 'contact' in result) {
+      return { status: 'answered', fields: CONTACT_FIELDS.filter(field => field in result.contact) }
+    }
+
+    if (entry.ask.method === 'device.scan' && 'symbology' in result) {
+      return { status: 'answered', symbology: result.symbology }
+    }
+
+    return { status: 'answered' }
   }
 
   // ── arriving ──────────────────────────────────────────────────────────────────────────────────
