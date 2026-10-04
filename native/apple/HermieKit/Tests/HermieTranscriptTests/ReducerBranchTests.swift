@@ -579,6 +579,32 @@ private let fixture = #"""
       ["applyEvent",{"type":"message.complete","turn_id":"T9","payload":{"text":"final","status":"complete","row_id":7.5,"persisted_turn":{"final_assistant_row_id":8}}},1790000005000]
     ],
     "expected": {"botName":"bot","byApprovalId":{},"byCallKey":{},"byDelegationId":{},"byProcessId":{},"byRequestId":{},"byRowId":{"8":"a:3000"},"byToolId":{},"compacting":false,"draft":"","hydration":"cold","items":{"a:2000":{"id":"a:2000","interim":true,"kind":"assistant","origin":"live","seq":2000,"streaming":false,"text":"note","ts":1790000002,"version":2},"a:3000":{"durationS":4,"id":"a:3000","interim":false,"kind":"assistant","origin":"live","rowId":8,"seq":3000,"status":"complete","streaming":false,"text":"final","ts":1790000004,"version":2},"f:1000":{"id":"f:1000","kind":"user","origin":"foreign","seq":1000,"text":"","ts":1790000001,"turnId":"T9","unknownAuthor":true,"version":0}},"lastSeq":0,"order":["f:1000","a:2000","a:3000"],"resolvedSessionId":"resolved","storedSessionId":"stored","subagents":{},"turn":{"active":false,"foreignReconcilePending":true,"interrupted":false,"local":false,"nextSeq":4000},"unreadCount":0}
+  },
+  {
+    "name": "identity-reply-ends-on-call-settled-by-history",
+    "covers": "a completion that names no row, for a reply whose words all came before its one call, lands on that call's row though a history read mid-turn already settled it (no longer an interim note)",
+    "steps": [
+      ["applyEvent",{"type":"message.start","turn_id":"T10","payload":{}},1790000001000],
+      ["applyEvent",{"type":"message.delta","turn_id":"T10","payload":{"text":"Looking that up."}},1790000002000],
+      ["applyEvent",{"type":"tool.start","turn_id":"T10","payload":{"tool_id":"c1","name":"read_file","call_row_id":12,"call_index":0}},1790000003000],
+      ["reconcileTail",[{"id":"r:11","kind":"user","origin":"history","rowId":11,"seq":0,"text":"look it up","turnId":"T10","version":0},{"id":"r:12","kind":"assistant","origin":"history","rowId":12,"seq":1000,"text":"Looking that up.","streaming":false,"interim":false,"version":0}]],
+      ["applyEvent",{"type":"tool.complete","turn_id":"T10","payload":{"tool_id":"c1","name":"read_file","result":"ok","call_row_id":12,"call_index":0,"row_id":13}},1790000004000],
+      ["applyEvent",{"type":"message.complete","turn_id":"T10","payload":{"text":"Looking that up.","status":"complete","persisted_turn":{"complete":true,"user_row_id":11,"row_ids":[11,12,13]}}},1790000005000]
+    ],
+    "expected": {"botName":"bot","byApprovalId":{},"byCallKey":{"12/0":"t:c1"},"byDelegationId":{},"byProcessId":{},"byRequestId":{},"byRowId":{"11":"f:1000","12":"a:2000","13":"t:c1"},"byToolId":{"c1":"t:c1"},"compacting":false,"draft":"","hydration":"cold","items":{"a:2000":{"id":"a:2000","interim":false,"kind":"assistant","origin":"history","rowId":12,"seq":1000,"status":"complete","streaming":false,"text":"Looking that up.","version":5},"f:1000":{"id":"f:1000","kind":"user","origin":"history","rowId":11,"seq":0,"text":"look it up","turnId":"T10","version":1},"t:c1":{"callKey":"12/0","id":"t:c1","isError":false,"kind":"tool","name":"read_file","origin":"live","result":"ok","resultKnown":true,"rowId":13,"seq":2000,"status":"complete","toolId":"c1","ts":1790000003,"version":2}},"lastSeq":0,"order":["f:1000","a:2000","t:c1"],"resolvedSessionId":"resolved","storedSessionId":"stored","subagents":{},"turn":{"active":false,"interrupted":false,"local":false,"nextSeq":4000},"unreadCount":0}
+  },
+  {
+    "name": "identity-different-reply-after-call-row-is-its-own",
+    "covers": "the same, but the completion says something else: the receipt's last assistant row is not the reply, so it gets a bubble of its own",
+    "steps": [
+      ["applyEvent",{"type":"message.start","turn_id":"T10","payload":{}},1790000001000],
+      ["applyEvent",{"type":"message.delta","turn_id":"T10","payload":{"text":"Looking that up."}},1790000002000],
+      ["applyEvent",{"type":"tool.start","turn_id":"T10","payload":{"tool_id":"c1","name":"read_file","call_row_id":12,"call_index":0}},1790000003000],
+      ["reconcileTail",[{"id":"r:11","kind":"user","origin":"history","rowId":11,"seq":0,"text":"look it up","turnId":"T10","version":0},{"id":"r:12","kind":"assistant","origin":"history","rowId":12,"seq":1000,"text":"Looking that up.","streaming":false,"interim":false,"version":0}]],
+      ["applyEvent",{"type":"tool.complete","turn_id":"T10","payload":{"tool_id":"c1","name":"read_file","result":"ok","call_row_id":12,"call_index":0,"row_id":13}},1790000004000],
+      ["applyEvent",{"type":"message.complete","turn_id":"T10","payload":{"text":"The file says hello.","status":"complete","persisted_turn":{"complete":true,"user_row_id":11,"row_ids":[11,12,13]}}},1790000005000]
+    ],
+    "expected": {"botName":"bot","byApprovalId":{},"byCallKey":{"12/0":"t:c1"},"byDelegationId":{},"byProcessId":{},"byRequestId":{},"byRowId":{"11":"f:1000","12":"a:2000","13":"t:c1"},"byToolId":{"c1":"t:c1"},"compacting":false,"draft":"","hydration":"cold","items":{"a:2000":{"id":"a:2000","interim":false,"kind":"assistant","origin":"history","rowId":12,"seq":1000,"streaming":false,"text":"Looking that up.","version":4},"a:4000":{"durationS":4,"id":"a:4000","interim":false,"kind":"assistant","origin":"live","seq":4000,"status":"complete","streaming":false,"text":"The file says hello.","ts":1790000005,"version":1},"f:1000":{"id":"f:1000","kind":"user","origin":"history","rowId":11,"seq":0,"text":"look it up","turnId":"T10","version":1},"t:c1":{"callKey":"12/0","id":"t:c1","isError":false,"kind":"tool","name":"read_file","origin":"live","result":"ok","resultKnown":true,"rowId":13,"seq":2000,"status":"complete","toolId":"c1","ts":1790000003,"version":2}},"lastSeq":0,"order":["f:1000","a:2000","t:c1","a:4000"],"resolvedSessionId":"resolved","storedSessionId":"stored","subagents":{},"turn":{"active":false,"interrupted":false,"local":false,"nextSeq":5000},"unreadCount":0}
   }
 ]
 """#

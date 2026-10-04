@@ -417,11 +417,59 @@ function interimContinuedBy(next: ChatState, finalText: string): string | undefi
   const sealed = item.text.trim()
   const final = finalText.trim()
 
-  if (!sealed || !final) {
+  return continuesNote(sealed, final) ? id : undefined
+}
+
+/** Either text being a prefix of the other: the same message, one side a little behind. */
+function continuesNote(sealed: string, final: string): boolean {
+  return Boolean(sealed) && Boolean(final) && (final === sealed || final.startsWith(sealed) || sealed.startsWith(final))
+}
+
+/**
+ * The row a completion that names none still rests on: the turn's last assistant
+ * row, when its words are the reply's.
+ *
+ * A reply whose words all came before its one tool call has no text left for a
+ * row of its own, so the row that holds the call is the row that holds the
+ * answer, and the fork reports a final row only for one without `tool_calls`:
+ * the completion names none, but its receipt lists the turn's rows. Live, that
+ * row is the note the call sealed, which `interimContinuedBy` finds by its
+ * `interim` flag. A history read in the middle of the turn (a socket that
+ * dropped and came back) settles that note onto its row, which is no longer an
+ * interim note, and the completion then had nowhere to land and stood the same
+ * words up a second time with no row to pair with.
+ *
+ * The receipt bounds the search to this turn: rows are walked from the last one
+ * back past the cards, to the first reply or the prompt. A row nothing on screen
+ * stands for ends the search, since an earlier note is not the reply then.
+ */
+function replyHeldByCallRow(
+  next: ChatState,
+  payload: Record<string, unknown>,
+  finalText: string
+): AssistantItem | undefined {
+  const rowIds = rec(payload.persisted_turn).row_ids
+
+  if (!Array.isArray(rowIds)) {
     return undefined
   }
 
-  return final === sealed || final.startsWith(sealed) || sealed.startsWith(final) ? id : undefined
+  for (let index = rowIds.length - 1; index >= 0; index -= 1) {
+    const rowId = rowIdOf({ row_id: rowIds[index] })
+    const item = rowId === undefined ? undefined : itemAtRow(next, rowId)
+
+    if (!item || item.kind === 'user') {
+      return undefined
+    }
+
+    if (item.kind !== 'assistant') {
+      continue
+    }
+
+    return !item.streaming && !item.error && continuesNote(item.text.trim(), finalText.trim()) ? item : undefined
+  }
+
+  return undefined
 }
 
 /**
@@ -1400,8 +1448,15 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
       // A row id held by something that is not a reply is a renumbered store,
       // not this reply; the frame is then read as if it carried no id at all.
       const byIdentity = finalRowId !== undefined && (finalRow === undefined || finalRow.kind === 'assistant')
+      // No row named and no note left to continue: the row that holds the call may
+      // already be the reply.
+      const heldByCall =
+        finalRowId === undefined && !next.turn.assistantId && !continued
+          ? replyHeldByCallRow(next, payload, finalText)
+          : undefined
+      const landedRow = (byIdentity ? finalRow : undefined) ?? heldByCall
 
-      if (byIdentity && finalRow) {
+      if (landedRow) {
         // The reply is on screen already, as its row. Whatever was standing in
         // for it settles onto that row; the row keeps its words and is given
         // only the verdict. No duration: see `settleOntoRow`.
@@ -1411,10 +1466,10 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
           unpersistedNote(next, continued)
 
         if (target) {
-          settleOntoRow(next, target, finalRow.id)
+          settleOntoRow(next, target, landedRow.id)
         }
 
-        patchItem<AssistantItem>(next, finalRow.id, draft => {
+        patchItem<AssistantItem>(next, landedRow.id, draft => {
           draft.streaming = false
           draft.interim = false
           draft.status = status

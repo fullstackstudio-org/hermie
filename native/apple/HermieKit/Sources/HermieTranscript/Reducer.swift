@@ -470,11 +470,53 @@ extension TranscriptReducer {
     let sealed = JS.trim(item.text)
     let final = JS.trim(finalText)
 
-    if sealed.isEmpty || final.isEmpty {
-      return nil
+    return continuesNote(sealed, final) ? id : nil
+  }
+
+  /// Either text being a prefix of the other: the same message, one side a little behind.
+  ///
+  /// `continuesNote`.
+  static func continuesNote(_ sealed: String, _ final: String) -> Bool {
+    !sealed.isEmpty && !final.isEmpty
+      && (JS.same(final, sealed) || JS.hasPrefix(final, sealed) || JS.hasPrefix(sealed, final))
+  }
+
+  /// The row a completion that names none still rests on: the turn's last assistant
+  /// row, when its words are the reply's.
+  ///
+  /// A reply whose words all came before its one tool call has no text left for a
+  /// row of its own, so the row that holds the call is the row that holds the
+  /// answer, and the fork reports a final row only for one without `tool_calls`:
+  /// the completion names none, but its receipt lists the turn's rows. Live, that
+  /// row is the note the call sealed, which `interimContinuedBy` finds by its
+  /// `interim` flag. A history read in the middle of the turn (a socket that
+  /// dropped and came back) settles that note onto its row, which is no longer an
+  /// interim note, and the completion then had nowhere to land and stood the same
+  /// words up a second time with no row to pair with.
+  ///
+  /// The receipt bounds the search to this turn: rows are walked from the last one
+  /// back past the cards, to the first reply or the prompt. A row nothing on screen
+  /// stands for ends the search, since an earlier note is not the reply then.
+  ///
+  /// `replyHeldByCallRow`.
+  static func replyHeldByCallRow(_ next: ChatState, _ payload: JSONObject, _ finalText: String) -> AssistantItem? {
+    guard case .array(let rowIDs)? = rec(payload["persisted_turn"])["row_ids"] else { return nil }
+
+    for rowID in rowIDs.reversed() {
+      guard let rowID = rowIDOf(["row_id": rowID]), let item = itemAtRow(next, rowID) else { return nil }
+
+      switch item {
+      case .user:
+        return nil
+      case .assistant(let assistant):
+        return !assistant.streaming && assistant.error == nil
+          && continuesNote(JS.trim(assistant.text), JS.trim(finalText)) ? assistant : nil
+      default:
+        continue
+      }
     }
 
-    return JS.same(final, sealed) || JS.hasPrefix(final, sealed) || JS.hasPrefix(sealed, final) ? id : nil
+    return nil
   }
 
   /// A tool call interrupts the reply: seal what the bubble already said as

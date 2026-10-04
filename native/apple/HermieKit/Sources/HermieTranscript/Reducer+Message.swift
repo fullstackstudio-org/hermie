@@ -211,9 +211,15 @@ extension TranscriptReducer {
     // A row id held by something that is not a reply is a renumbered store,
     // not this reply; the frame is then read as if it carried no id at all.
     let byIdentity = finalRowID != nil && (finalRow == nil || finalRow?.kind == .assistant)
+    // No row named and no note left to continue: the row that holds the call may
+    // already be the reply.
+    let heldByCall =
+      finalRowID == nil && JS.nonEmpty(next.turn.assistantID) == nil && continued == nil
+      ? replyHeldByCallRow(next, payload, finalText) : nil
+    let landedRow: TranscriptItem? = (byIdentity ? finalRow : nil) ?? heldByCall.map { .assistant($0) }
     let usage = JS.truthy(payload["usage"]) ? Usage(json: rec(payload["usage"])) : nil
 
-    if byIdentity, let finalRow {
+    if let finalRow = landedRow {
       // The reply is on screen already, as its row. Whatever was standing in
       // for it settles onto that row; the row keeps its words and is given
       // only the verdict. No duration: see `settleOntoRow`.

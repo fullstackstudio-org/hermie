@@ -547,6 +547,86 @@ describe('message.complete naming its row', () => {
   })
 })
 
+describe('a reply that ends on its call', () => {
+  // Every word came before the one tool call, so the row that holds the call is
+  // the row that holds the answer: the completion names no row of its own (the
+  // fork reports a final row only for one without `tool_calls`), and its receipt
+  // lists the turn's rows.
+  const REPLY = 'Looking that up for you.'
+  const ROWS: TranscriptRow[] = [
+    { role: 'user', row_id: 11, text: PROMPT, display_metadata: { turn_id: TURN }, timestamp: 1_790_000_000 },
+    { role: 'assistant', row_id: 12, text: REPLY, timestamp: 1_790_000_001 }
+  ]
+  const RECEIPT = { complete: true, user_row_id: 11, row_ids: [11, 12, 13] }
+
+  const frames = (upto: 'start' | 'complete'): TranscriptEvent[] =>
+    framesOf(TURN, [
+      { type: 'message.start', seq: 1 },
+      { type: 'message.delta', seq: 2, payload: { text: REPLY } },
+      { type: 'tool.start', seq: 3, payload: { tool_id: 'tool-1', name: 'read_file', call_row_id: 12, call_index: 0 } },
+      ...(upto === 'start'
+        ? []
+        : [
+            {
+              type: 'tool.complete',
+              seq: 4,
+              payload: {
+                tool_id: 'tool-1',
+                name: 'read_file',
+                result: 'ok',
+                call_row_id: 12,
+                call_index: 0,
+                row_id: 13
+              }
+            },
+            {
+              type: 'message.complete',
+              seq: 5,
+              payload: { text: REPLY, status: 'complete', usage: USAGE, persisted_turn: RECEIPT }
+            }
+          ])
+    ])
+
+  it('settles onto the note the call sealed, as it always did', () => {
+    const state = apply(sentTurn(), frames('complete'))
+
+    expect(assistants(state).map(item => [item.text, item.rowId, item.interim])).toEqual([
+      [EARLIER_REPLY, 2, false],
+      [REPLY, 12, false]
+    ])
+  })
+
+  it('settles onto it when history already brought its row before the completion', () => {
+    // A socket that dropped mid-turn: the history read on the way back holds the
+    // note's row, which stops it being an interim note.
+    const midTurn = apply(sentTurn(), frames('start'))
+    const swept = reconcileTail(midTurn, rowsToItems([...EARLIER_ROWS, ...ROWS], 'rpc'))
+    const state = apply(swept, frames('complete').slice(3))
+
+    expect(assistants(state).map(item => [item.text, item.rowId, item.interim, item.status])).toEqual([
+      [EARLIER_REPLY, 2, false, 'complete'],
+      [REPLY, 12, false, 'complete']
+    ])
+    expect(state.turn.active).toBe(false)
+  })
+
+  it('still paints a different reply as its own bubble', () => {
+    const midTurn = apply(sentTurn(), frames('start'))
+    const swept = reconcileTail(midTurn, rowsToItems([...EARLIER_ROWS, ...ROWS], 'rpc'))
+    const state = apply(swept, [
+      ...frames('complete').slice(3, 4),
+      {
+        type: 'message.complete',
+        seq: 5,
+        turn_id: TURN,
+        payload: { text: 'The README says hello.', status: 'complete', persisted_turn: RECEIPT }
+      }
+    ])
+
+    expect(assistants(state).map(item => item.text)).toEqual([EARLIER_REPLY, REPLY, 'The README says hello.'])
+  })
+})
+
 describe('a turn the cache cut mid-stream', () => {
   const half = framesOf('turn-h', [
     { type: 'message.start', seq: 1 },
