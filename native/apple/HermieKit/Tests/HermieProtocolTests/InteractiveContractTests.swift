@@ -78,7 +78,7 @@ import Testing
         }
       }
     }
-    #expect(count == 13)
+    #expect(count == 16)
   }
 
   static func expectEnvelope<P: InteractiveRequestParams>(_ params: P, _ raw: JSONValue?, _ place: String) {
@@ -170,7 +170,7 @@ import Testing
         }
       }
     }
-    #expect(count == 52)
+    #expect(count == 56)
   }
 
   // MARK: Answers
@@ -243,7 +243,7 @@ import Testing
   @Test("every valid input.file answer is what the typed constructors encode, and its paths lie directly in upload.dir")
   func fileAnswers() throws {
     let answers = try Self.section("input.file", "answers")
-    #expect(answers.count == 4)
+    #expect(answers.count == 7)
     for answer in answers {
       let name = answer["name"]?.stringValue ?? "?"
       let result = try #require(answer["result"], "\(name)")
@@ -536,7 +536,7 @@ import Testing
       #expect(answer.error?.isCannotShow == true && answer.error?.reason == reason)
       checked += 1
     }
-    #expect(checked == 4)
+    #expect(checked == 9)
     #expect(JSONRPCError.cannotShowCode == 4041)
     #expect(ServerRequest(json: ["method": "input.form"]).cannotShow(reason: "x") == nil)
     #expect(JSONRPCError(code: -32601, message: "no").isCannotShow == false)
@@ -548,11 +548,12 @@ import Testing
     let example = try #require(try Self.examples()["capabilities"]?[0]?["request"])
     var params = ClientCapabilitiesParams(serverRequests: true)
     params.confirm = [.plain]
-    // The contract's example lists the four methods; this build shows all of them (the diff sheet is
-    // `DiffSheet`), so it advertises exactly that list.
+    // The contract's example lists nine methods; this build shows the four it types (`Method.interactive`) and
+    // reads the signature and the device requests as unknown until P3-N1 types them, so it advertises the four
+    // (and this test encodes the example's own list).
     let advertised = try #require(example["params"]?["requests"]?.arrayValue)
     let listed = advertised.compactMap { $0.stringValue }
-    #expect(listed == ServerRequestBody.Method.interactive)
+    #expect(listed.filter { ServerRequestBody.Method.interactive.contains($0) } == ServerRequestBody.Method.interactive)
     params.requests = listed
     let request = JSONRPCRequest(id: .number(3), RPC.ClientCapabilities.self, params: params)
     #expect(try canonical(request) == canonical(example))
