@@ -1342,8 +1342,12 @@
 	<string>Could not register. Hermie tries again later.</string>
 	<key>native.push.limited</key>
 	<string>Not registered: one device can register with at most eight gateways.</string>
+	<key>native.push.noTypeWanted</key>
+	<string>Every kind is off, so this device is not told about anything.</string>
 	<key>native.push.notRegistered</key>
 	<string>Not registered</string>
+	<key>native.push.preferencesWriteFailed</key>
+	<string>That choice could not be saved. Try again.</string>
 	<key>native.push.registered</key>
 	<string>Registered</string>
 	<key>native.push.relay</key>

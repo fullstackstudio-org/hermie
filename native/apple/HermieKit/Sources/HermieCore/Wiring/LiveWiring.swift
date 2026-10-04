@@ -206,6 +206,15 @@ public final class LiveWiring {
 
       Task { await meta.addressesChanged(ids) }
     }
+
+    // The kinds of notification the reader switched, and the preview: written into this device's row.
+    push.onPreferencesChanged = { [weak self] in
+      guard let self, let meta = self.meta else {
+        return
+      }
+
+      meta.apply(self.launch.push.preferences)
+    }
   }
 
   /// Whether the app lock is open: read, and open (a lock not read yet counts as closed).
@@ -315,6 +324,7 @@ public final class LiveWiring {
     )
 
     meta = bridge
+    bridge.writer.apply(launch.push.preferences)
     bridge.setForeground(foreground)
     bridge.setOpenChat(openChat?.gatewayId == session.gatewayID ? openChat?.bot : nil)
     bridge.start()

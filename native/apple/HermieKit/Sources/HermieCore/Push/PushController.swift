@@ -191,6 +191,10 @@ public final class PushController {
   public private(set) var trouble: PushTrouble?
   /// The last change of the switch could not be stored; the switch stayed where it was.
   public private(set) var switchWriteFailed = false
+  /// Which kinds of notification this device wants, and whether it wants a preview.
+  public private(set) var preferences = PushPreferences.standard
+  /// The last change of a preference could not be stored; it stayed where it was.
+  public private(set) var preferencesWriteFailed = false
   /// Gateways a reset could not revoke at the relay (their secrets are kept for another try).
   public private(set) var resetLeftovers: [String] = []
   /// Whether each gateway's notifier will deliver to this device, as its row writer read it.
@@ -203,6 +207,10 @@ public final class PushController {
   /// Called with the gateways whose relay address changed, after the pass that changed it: the
   /// ui_meta push row writer rewrites (or removes) those rows, reading `addressState(for:)`.
   @ObservationIgnored public var onAddressesChanged: (@MainActor (Set<String>) -> Void)?
+
+  /// Called after the preferences changed and were stored: the ui_meta push row writer puts them in
+  /// this installation's row on the live gateway (the others pick them up when they next write).
+  @ObservationIgnored public var onPreferencesChanged: (@MainActor () -> Void)?
 
   /// The session seam for reading one bot's open requests. Until it is set, reading fails and an
   /// action opens the chat.
@@ -235,6 +243,7 @@ public final class PushController {
   @ObservationIgnored private var pendingResponses: [(action: String, payload: PushPayload)] = []
   @ObservationIgnored private var heldFallback: Task<Void, Never>?
   @ObservationIgnored private var answering: Set<String> = []
+  @ObservationIgnored private var writingPreferences = false
   @ObservationIgnored private let heldTapTimeout: Duration
 
   @ObservationIgnored public let system: any PushSystem
@@ -309,6 +318,9 @@ public final class PushController {
     system.setCategories(PushCategoryDescriptor.all(title: \.contractTitle))
     enabled = stored ?? false
     retired = Set(signedOut ?? [])
+    // Unreadable choices are the standard ones: every type, no preview. Nothing is lost by it, and the
+    // next change writes them again.
+    preferences = PushPreferences.decoded(try? await settings.string(forKey: StoreKeys.pushPreferences))
     permission = await system.permission()
 
     if let held = await registrar.registrations() {
@@ -380,6 +392,62 @@ public final class PushController {
     }
 
     await reconcile()
+  }
+
+  /// Switch one kind of notification on or off. Ignored before `start()`, and for a name this build
+  /// does not know. Like the switch, it moves only once it is stored.
+  public func setType(_ type: String, _ on: Bool) async {
+    await change { $0.setting(type, on) }
+  }
+
+  /// Whether a notification may carry the words of a message (`preview`).
+  public func setPreview(_ on: Bool) async {
+    await change {
+      var next = $0
+      next.preview = on
+
+      return next
+    }
+  }
+
+  /// One change at a time, each made from the choices as they are when its turn comes, so two quick
+  /// taps are two changes in order and never one that overwrote the other.
+  private func change(_ transform: (PushPreferences) -> PushPreferences) async {
+    guard started else {
+      return
+    }
+
+    while writingPreferences {
+      await Task.yield()
+    }
+
+    writingPreferences = true
+
+    defer {
+      writingPreferences = false
+    }
+
+    let next = transform(preferences)
+
+    guard next != preferences else {
+      return
+    }
+
+    guard let text = next.encoded() else {
+      preferencesWriteFailed = true
+      return
+    }
+
+    do {
+      try await settings.setString(text, forKey: StoreKeys.pushPreferences)
+    } catch {
+      preferencesWriteFailed = true
+      return
+    }
+
+    preferencesWriteFailed = false
+    preferences = next
+    onPreferencesChanged?()
   }
 
   /// Every configured gateway, in the registry's order (`GatewayDirectory.pushGateways`). Only ever
@@ -469,10 +537,13 @@ public final class PushController {
 
     try? await settings.removeValue(forKey: StoreKeys.pushEnabled)
     try? await settings.removeValue(forKey: StoreKeys.pushRetired)
+    try? await settings.removeValue(forKey: StoreKeys.pushPreferences)
 
     let rows = Set(gateways.map(\.id)).union(registrations.keys)
 
     enabled = false
+    preferences = .standard
+    preferencesWriteFailed = false
     retired = []
     registrations = [:]
     failures = [:]

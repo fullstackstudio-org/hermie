@@ -45,7 +45,8 @@ public final class PushRowWriter: UIMetaContributor {
   public let gatewayKey: String
   public let installation: String
 
-  /// The types this device asks for. Every type until the reader turns one off (a later task).
+  /// The types this device asks for: every type until the reader turns one off
+  /// (`PushController.preferences`, which `LiveWiring` hands over).
   public var types: JSONObject = PushRows.defaultTypes
   /// Whether this device wants message text. Senders ignore it for a relay row until the row
   /// carries an encryption key (D29); written so the row says what the reader chose.
@@ -109,6 +110,12 @@ public final class PushRowWriter: UIMetaContributor {
   }
 
   // MARK: The row
+
+  /// Take the reader's choices: what the next write of the row says. Writes nothing by itself.
+  public func apply(_ preferences: PushPreferences) {
+    types = preferences.types
+    preview = preferences.preview
+  }
 
   /// `PushController.onAddressesChanged`: rewrite the row when this gateway is among them.
   public func addressesChanged(_ gatewayIds: Set<String>) async {

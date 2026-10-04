@@ -16049,6 +16049,30 @@
         }
       }
     },
+    "native.push.noTypeWanted" : {
+      "comment" : "Under the list of kinds of notification when every one is switched off.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles ist aus, daher meldet dieses Gerät nichts."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every kind is off, so this device is not told about anything."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles staat uit, dus dit apparaat krijgt nergens melding van."
+          }
+        }
+      }
+    },
     "native.push.notRegistered" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16068,6 +16092,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Niet geregistreerd"
+          }
+        }
+      }
+    },
+    "native.push.preferencesWriteFailed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Auswahl konnte nicht gespeichert werden. Versuche es erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That choice could not be saved. Try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die keuze kon niet worden opgeslagen. Probeer het opnieuw."
           }
         }
       }

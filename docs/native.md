@@ -1707,6 +1707,17 @@ input and passkey sheets that `PushRoute.request` is the seam for come with thei
 `security` notice opens Settings → Account for the gateway it names (`PushRoute.security`, made
 the live gateway first when it is not).
 
+**What the device is told about.** Settings → Notifications has a switch for each of the seven kinds and one for the
+preview, shown while notifications are on (`PushPreferences`, `PushController.setType` and `setPreview`). Every kind
+is on until the reader turns one off, and a kind a stored choice says nothing about takes the default, so a release
+that adds a type does not leave existing devices with it off. The preview is off: a notification says who and what
+kind, never what was said, because a lock screen is where it is read; senders ignore it for a relay row until the row
+carries an encryption key (D29), and it is written so the row says what was chosen. The choices are device-wide, like
+the switch (`hermie.push.preferences`), and go into this device's row on the live gateway (`LiveWiring` hands them to
+the bridge's `PushRowWriter` when the bridge is built and when they change); a device with every kind off has no row
+anywhere, and the page says so. A change moves only once it is stored, one at a time, so two quick taps never undo
+each other.
+
 **Still held.** Showing a request opened from `PushRoute.request` in its own sheet; a named
 conversation (`PushRoute.conversation`) opens the bot's chat until the conversation viewer lands;
 the row of a gateway that is not the live one is written the next time it is (only the live

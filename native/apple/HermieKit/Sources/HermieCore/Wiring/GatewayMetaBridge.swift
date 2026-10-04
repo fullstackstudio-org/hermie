@@ -142,6 +142,12 @@ public final class GatewayMetaBridge {
     writer.setOpenChat(bot)
   }
 
+  /// The reader changed what this device is told about: the row says so now.
+  public func apply(_ preferences: PushPreferences) {
+    writer.apply(preferences)
+    Task { await writer.refresh() }
+  }
+
   /// `PushController.onAddressesChanged`: rewrite this gateway's row when it is among them.
   public func addressesChanged(_ gatewayIds: Set<String>) async {
     await writer.addressesChanged(gatewayIds)

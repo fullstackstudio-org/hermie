@@ -1342,8 +1342,12 @@
 	<string>Registrierung fehlgeschlagen. Hermie versucht es später erneut.</string>
 	<key>native.push.limited</key>
 	<string>Nicht registriert: Ein Gerät kann sich bei höchstens acht Gateways registrieren.</string>
+	<key>native.push.noTypeWanted</key>
+	<string>Alles ist aus, daher meldet dieses Gerät nichts.</string>
 	<key>native.push.notRegistered</key>
 	<string>Nicht registriert</string>
+	<key>native.push.preferencesWriteFailed</key>
+	<string>Diese Auswahl konnte nicht gespeichert werden. Versuche es erneut.</string>
 	<key>native.push.registered</key>
 	<string>Registriert</string>
 	<key>native.push.relay</key>

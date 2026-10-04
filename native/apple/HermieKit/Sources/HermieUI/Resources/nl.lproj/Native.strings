@@ -1342,8 +1342,12 @@
 	<string>Registreren lukte niet. Hermie probeert het later opnieuw.</string>
 	<key>native.push.limited</key>
 	<string>Niet geregistreerd: één apparaat kan zich bij hoogstens acht gateways registreren.</string>
+	<key>native.push.noTypeWanted</key>
+	<string>Alles staat uit, dus dit apparaat krijgt nergens melding van.</string>
 	<key>native.push.notRegistered</key>
 	<string>Niet geregistreerd</string>
+	<key>native.push.preferencesWriteFailed</key>
+	<string>Die keuze kon niet worden opgeslagen. Probeer het opnieuw.</string>
 	<key>native.push.registered</key>
 	<string>Geregistreerd</string>
 	<key>native.push.relay</key>

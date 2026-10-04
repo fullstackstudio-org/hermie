@@ -62,6 +62,9 @@ public enum StoreKeys {
   public static let context = "hermie.context"
   /// Whether the reader switched notifications on for this device: `true` or `false`. Device-wide.
   public static let pushEnabled = "hermie.push.enabled"
+  /// Which kinds of notification this device wants and whether it wants a preview:
+  /// `{"types": {…}, "preview": bool}` (`PushPreferences`). Device-wide, like the switch.
+  public static let pushPreferences = "hermie.push.preferences"
   /**
    This device's push relay registrations, one map keyed by gateway id: handle, environment, token
    fingerprint and last refresh. Device-wide ON PURPOSE, not namespaced: removing a gateway (here or

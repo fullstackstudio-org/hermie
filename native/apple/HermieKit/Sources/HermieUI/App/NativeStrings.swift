@@ -319,6 +319,14 @@ enum NativeStrings {
     static var switchWriteFailed: String {
       String(localized: "native.push.switchWriteFailed", table: "Native", bundle: .module)
     }
+    /// That choice could not be saved. Try again. (a kind of notification, or the preview)
+    static var preferencesWriteFailed: String {
+      String(localized: "native.push.preferencesWriteFailed", table: "Native", bundle: .module)
+    }
+    /// Every kind is off, so this device is not told about anything.
+    static var noTypeWanted: String {
+      String(localized: "native.push.noTypeWanted", table: "Native", bundle: .module)
+    }
     /// Hermie cannot read this device’s notification settings, so notifications are paused here.
     static var troubleSettings: String {
       String(localized: "native.push.troubleSettings", table: "Native", bundle: .module)

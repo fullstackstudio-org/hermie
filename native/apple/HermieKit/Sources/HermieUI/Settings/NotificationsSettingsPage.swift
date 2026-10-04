@@ -6,8 +6,9 @@ import SwiftUI
  registration stands. A debug build adds a developer row per gateway (handle prefix, last refresh)
  and the APNs environment.
 
- Turning the switch on is the one place the system's permission question is asked. Which kinds of
- notification a gateway sends, and previews, belong to the push row on the gateway (a later task).
+ Turning the switch on is the one place the system's permission question is asked. While it is on,
+ the page also has a switch for each kind of notification and one for the preview
+ (`PushController.preferences`), which go into this device's row on every gateway.
  */
 struct NotificationsSettingsPage: View {
   @Environment(AppLaunch.self) private var launch
@@ -62,6 +63,11 @@ struct NotificationsSettingsPage: View {
         Text(NativeStrings.Push.resetLeftovers)
       }
 
+      if push.enabled {
+        typesSection(push)
+        previewSection(push)
+      }
+
       if push.enabled, !launch.gateways.entries.isEmpty {
         Section {
           ForEach(launch.gateways.entries) { entry in
@@ -96,6 +102,48 @@ struct NotificationsSettingsPage: View {
       Button(Strings.App.Common.cancel, role: .cancel) {}
     } message: {
       Text(NativeStrings.Push.resetHint)
+    }
+  }
+
+  /// "Tell me about": one switch for each kind of notification, shown only while notifications are on
+  /// (a column of controls that do nothing is a column somebody has to reason about).
+  @ViewBuilder private func typesSection(_ push: PushController) -> some View {
+    Section {
+      ForEach(PushContract.types, id: \.self) { type in
+        Toggle(
+          PushTypeText.label(type),
+          isOn: Binding(get: { push.preferences.wants(type) }, set: { on in Task { await push.setType(type, on) } })
+        )
+        .accessibilityIdentifier("hermie.settings.notifications.type.\(type)")
+      }
+
+      if push.preferences.wantsNothing {
+        Text(NativeStrings.Push.noTypeWanted)
+          .accessibilityIdentifier("hermie.settings.notifications.noTypeWanted")
+      }
+
+      if push.preferencesWriteFailed {
+        Text(NativeStrings.Push.preferencesWriteFailed)
+          .accessibilityIdentifier("hermie.settings.notifications.preferencesWriteFailed")
+      }
+    } header: {
+      SettingsNote(Strings.App.Settings.Notifications.types)
+    } footer: {
+      SettingsNote(Strings.App.Settings.Notifications.typesHint)
+    }
+  }
+
+  /// Whether a notification carries the words of a message. Off: who and what kind, never what was
+  /// said, because a lock screen is where it is read.
+  @ViewBuilder private func previewSection(_ push: PushController) -> some View {
+    Section {
+      Toggle(
+        Strings.App.Settings.Notifications.preview,
+        isOn: Binding(get: { push.preferences.preview }, set: { on in Task { await push.setPreview(on) } })
+      )
+      .accessibilityIdentifier("hermie.settings.notifications.preview")
+    } footer: {
+      SettingsNote(Strings.App.Settings.Notifications.previewHint)
     }
   }
 
@@ -180,3 +228,19 @@ struct NotificationsSettingsPage: View {
     }
   }
 #endif
+
+/// The kinds of notification, in the reader's language (`PushContract.types`).
+enum PushTypeText {
+  static func label(_ type: String) -> String {
+    switch type {
+    case "message": Strings.App.Settings.Notifications.typeMessage
+    case "request": Strings.App.Settings.Notifications.typeRequest
+    case "cron": Strings.App.Settings.Notifications.typeCron
+    case "cron_done": Strings.App.Settings.Notifications.typeCronDone
+    case "cron_failed": Strings.App.Settings.Notifications.typeCronFailed
+    case "turn_done": Strings.App.Settings.Notifications.typeTurnDone
+    case "turn_failed": Strings.App.Settings.Notifications.typeTurnFailed
+    default: type
+    }
+  }
+}
