@@ -376,9 +376,89 @@ describe('a reconnect', () => {
     expect(notice('researcher')).toEqual({ kind: 'lapsed' })
     expect(model.answer('srq-1', SECRET)).toBe('closed')
     expect(gw.replies).toEqual([])
-    // And a copy that turns up later is not opened again: the gateway stopped waiting.
+  })
+
+  it('opens a prompt the list left out when the gateway delivers it again: the list can be short (turn isolation)', () => {
+    gw.deliver('srq-1', 'sudo', { session_id: 'rt-1' })
+    gw.deliver('srq-2', 'secret', { session_id: 'rt-1', env_var: 'X', prompt: 'p' })
+    timers.advance(1_000)
+    model.reconcile('rt-1', ['srq-2'], timers.now())
+
+    expect(prompts().map(prompt => prompt.id)).toEqual(['srq-2'])
+    expect(notice('researcher')).toEqual({ kind: 'lapsed' })
+
     gw.deliver('srq-1', 'sudo', { session_id: 'rt-1' }, true)
-    expect(prompts().map(prompt => prompt.id)).toEqual(['srq-2', 'srq-3'])
+
+    expect(prompts().map(prompt => prompt.id)).toEqual(['srq-2', 'srq-1'])
+    // Not a lost answer: nothing was ever sent, and the line that said it ended is gone.
+    expect(prompts()[1]?.earlierLost).toBeNull()
+    expect(notice('researcher')).toBeUndefined()
+    expect(model.answer('srq-1', SECRET)).toBe('sent')
+  })
+
+  it('does not open one the gateway withdrew again, however it is delivered', () => {
+    gw.deliver('srq-1', 'sudo', { session_id: 'rt-1' })
+    model.replayedCancel('srq-1', 'interrupted')
+    gw.deliver('srq-1', 'sudo', { session_id: 'rt-1' }, true)
+
+    expect(prompts()).toEqual([])
+  })
+
+  it('keeps a live prompt when the system clock jumps back before the list is read', () => {
+    let wall = timers.now()
+    let tick = 5_000
+
+    model.stop()
+    gw = fakeSecureGateway()
+    model = new SecureInputModel({
+      gateway: gw.gateway,
+      store,
+      chatFor: id => sessions[id],
+      now: () => wall,
+      monotonic: () => tick,
+      timers
+    })
+    model.start()
+
+    // The call goes out at monotonic 5 000 ms; the prompt arrives after it, then the wall clock is set back an hour.
+    const askedAt = tick
+
+    tick += 10
+    gw.deliver('srq-1', 'sudo', { session_id: 'rt-1' })
+    wall -= 3_600_000
+    tick += 10
+    model.reconcile('rt-1', [], askedAt)
+
+    expect(prompts().map(prompt => prompt.id)).toEqual(['srq-1'])
+  })
+
+  it('closes a prompt the list left out although the wall clock stands before the call: only the monotonic clock orders them', () => {
+    let wall = timers.now()
+    let tick = 5_000
+
+    model.stop()
+    gw = fakeSecureGateway()
+    model = new SecureInputModel({
+      gateway: gw.gateway,
+      store,
+      chatFor: id => sessions[id],
+      now: () => wall,
+      monotonic: () => tick,
+      timers
+    })
+    model.start()
+    gw.deliver('srq-1', 'sudo', { session_id: 'rt-1' })
+    // The wall clock goes back before the prompt arrived, then the call goes out and answers without it.
+    wall -= 3_600_000
+    tick += 10
+
+    const askedAt = tick
+
+    tick += 10
+    model.reconcile('rt-1', [], askedAt)
+
+    expect(prompts()).toEqual([])
+    expect(notice('researcher')).toEqual({ kind: 'lapsed' })
   })
 
   it('keeps a prompt first seen after the call went out: it may be newer than the snapshot', () => {

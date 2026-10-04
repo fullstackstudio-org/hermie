@@ -69,6 +69,7 @@
 import { JsonRpcGatewayError, type ServerRequest } from '@hermes/shared/json-rpc-channel'
 import type { StoreApi } from 'zustand/vanilla'
 
+import { monotonicNow } from '../../platform/monotonic-clock'
 import type { PasskeyPinStore } from '../../platform/passkey-pins'
 import { type CeremonyProblem, CeremonyError, type WebAuthnSeam } from '../../platform/webauthn'
 import {
@@ -158,6 +159,12 @@ export interface PasskeyModelOptions {
   requests?: RequestsAdvert
   /** Unix seconds. */
   now?: () => number
+  /**
+   * The clock a list of open requests is stamped with (`askedAt`, milliseconds): it never runs backward, so a system
+   * clock set back cannot make a live request look newer than the list that really listed it. Absent: `now` when it
+   * is given (a test that fakes the clock fakes both), else the page's own (`monotonicNow`).
+   */
+  monotonic?: () => number
 }
 
 /** Why an enrolment, an invite or a revoke did not happen. */
@@ -544,7 +551,7 @@ export class PasskeyModel {
           .confirmations.filter(entry => entry.sessionId === sessionId && isOpenPhase(entry.phase))
           .map(entry => entry.id)
         let result: unknown
-        const askedAt = this.now * 1000
+        const askedAt = this.options.monotonic?.() ?? (this.options.now ? this.now * 1000 : monotonicNow())
 
         try {
           result = await this.options.gateway.request('session.events.since', {

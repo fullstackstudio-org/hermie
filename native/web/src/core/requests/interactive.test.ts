@@ -961,9 +961,91 @@ describe('a reconnect', () => {
     expect(engine.calls.at(-1)).toEqual({ call: 'ended', bot: 'researcher', id: 'srq-1', reason: 'lapsed' })
     await expect(model.answer('srq-1', FORM_ANSWER)).resolves.toEqual({ kind: 'closed' })
     expect(gw.calls).toEqual([])
-    // And a copy that turns up later is not opened again: the gateway stopped waiting.
+  })
+
+  it('opens a request the list left out when the gateway delivers it again: the list can be short (turn isolation)', () => {
+    gw.deliver('srq-1', 'input.form', formParams())
+    gw.deliver('srq-2', 'input.file', fileParams())
+    timers.advance(1_000)
+    model.reconcile('rt-1', ['srq-2'], timers.now())
+
+    expect(requests().map(request => request.id)).toEqual(['srq-2'])
+    expect(notice('researcher')).toEqual({ kind: 'lapsed' })
+
     gw.deliver('srq-1', 'input.form', formParams(), true)
-    expect(requests().map(request => request.id)).toEqual(['srq-2', 'srq-3'])
+
+    expect(requests().map(request => request.id)).toEqual(['srq-2', 'srq-1'])
+    // Not a lost answer: nothing was ever sent, and the line that said it ended is gone.
+    expect(requests()[1]?.earlierLost).toBeNull()
+    expect(notice('researcher')).toBeUndefined()
+    expect(engine.calls.at(-1)).toMatchObject({ call: 'asked', bot: 'researcher' })
+  })
+
+  it('does not open one the gateway withdrew again, however it is delivered', () => {
+    gw.deliver('srq-1', 'input.form', formParams())
+    model.replayedCancel('srq-1', 'interrupted')
+    gw.deliver('srq-1', 'input.form', formParams(), true)
+
+    expect(requests()).toEqual([])
+  })
+
+  it('keeps a live request when the system clock jumps back before the list is read', () => {
+    let wall = timers.now()
+    let tick = 5_000
+
+    model.stop()
+    gw = fakeInteractiveGateway()
+    model = new InteractiveModel({
+      gateway: gw.gateway,
+      store,
+      chatFor: id => sessions[id],
+      now: () => wall,
+      monotonic: () => tick,
+      timers
+    })
+    model.start()
+
+    // The call goes out at monotonic 5 000 ms; the request arrives after it, then the wall clock is set back an hour.
+    const askedAt = tick
+
+    tick += 10
+    gw.deliver('srq-1', 'input.form', formParams())
+    wall -= 3_600_000
+    tick += 10
+    model.reconcile('rt-1', [], askedAt)
+
+    expect(requests().map(request => request.id)).toEqual(['srq-1'])
+  })
+
+  it('counts a list as asked after the advert was accepted by the monotonic clock, not the wall clock', () => {
+    let wall = timers.now()
+    let tick = 5_000
+
+    model.stop()
+    gw = fakeInteractiveGateway()
+    model = new InteractiveModel({
+      gateway: gw.gateway,
+      store,
+      chatFor: id => sessions[id],
+      now: () => wall,
+      monotonic: () => tick,
+      timers
+    })
+    model.start()
+    gw.deliver('srq-1', 'input.form', formParams())
+    tick += 10
+    model.advertSettled('accepted')
+    // A list asked for before the advert says nothing, even though the wall clock has been set back since.
+    wall -= 3_600_000
+    interactiveAdvert(model).openRequests('rt-1', [], 5_000)
+
+    expect(requests().map(request => request.id)).toEqual(['srq-1'])
+
+    // And one asked for after it counts.
+    tick += 10
+    interactiveAdvert(model).openRequests('rt-1', [], tick)
+
+    expect(requests()).toEqual([])
   })
 
   it('keeps a request first seen after the call went out: it may be newer than the snapshot', () => {

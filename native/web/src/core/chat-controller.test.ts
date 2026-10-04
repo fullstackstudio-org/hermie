@@ -44,6 +44,7 @@ function setup(
     cache?: MemoryChatCache | null
     onRpcFailure?: (failure: RpcFailure) => void
     ownAuthor?: () => MessageAuthor | undefined
+    monotonic?: () => number
   } = {}
 ) {
   const gateway = new FakeChatGateway()
@@ -57,7 +58,8 @@ function setup(
     botsController,
     cache,
     ...(options.onRpcFailure ? { onRpcFailure: options.onRpcFailure } : {}),
-    ...(options.ownAuthor ? { ownAuthor: options.ownAuthor } : {})
+    ...(options.ownAuthor ? { ownAuthor: options.ownAuthor } : {}),
+    ...(options.monotonic ? { monotonic: options.monotonic } : {})
   })
 
   gateway
@@ -2451,6 +2453,21 @@ describe('what a reconnect tells the requests answered beside the engine', () =>
       ids: ['srq-7'],
       askedAt: expect.any(Number)
     })
+  })
+
+  it('stamps each list with the monotonic clock, not the wall clock', async () => {
+    let tick = 8_000
+    const { controller } = setup({ monotonic: () => (tick += 1) })
+    const signals: ReplaySignal[] = []
+
+    controller.onReplaySignal(signal => signals.push(signal))
+    controller.start()
+    await controller.openChat(RESEARCHER)
+
+    const stamps = signals.flatMap(signal => (signal.kind === 'open_requests' ? [signal.askedAt] : []))
+
+    expect(stamps.length).toBeGreaterThan(0)
+    expect(stamps.every(stamp => stamp > 8_000 && stamp < 8_100)).toBe(true)
   })
 
   it('says nothing about open requests when the gateway sent no list', async () => {

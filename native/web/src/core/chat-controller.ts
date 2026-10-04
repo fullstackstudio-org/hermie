@@ -85,6 +85,7 @@ import { parseCommandDispatch, parseSlashCommand } from '@hermes/shared/slash'
 import type { StoreApi as ZustandStoreApi } from 'zustand/vanilla'
 
 import type { ChatCache } from '../platform/chat-cache'
+import { monotonicNow } from '../platform/monotonic-clock'
 import { type VisibilityWatcher, visibilityWatcher } from '../platform/visibility'
 import type { Bot, BotCanonicalSession, BotsState } from '../state/bots'
 import type { ChatsState, ChatsStore, QueuedMessage } from '../state/chats'
@@ -258,6 +259,12 @@ export interface ChatControllerOptions {
   http?: GatewayHttp | null
   cache?: ChatCache | null
   now?: () => number
+  /**
+   * The clock a list of open requests is stamped with (`ReplaySignal.askedAt`): it never runs backward, so a system
+   * clock set back cannot make a live request look newer than the list that really listed it. Absent: `now` when it
+   * is given (a test that fakes the clock fakes both), else the page's own (`monotonicNow`).
+   */
+  monotonic?: () => number
   /**
    * Where the reader's own chats live (ADR-0007, amended).
    *
@@ -468,6 +475,8 @@ export class ChatController {
   private readonly http: GatewayHttp | null
   private readonly cache: ChatCache | null
   private readonly now: () => number
+  /** The monotonic clock the replay signals' `askedAt` is on. */
+  private readonly monotonic: () => number
   private readonly onRpcFailure: ((failure: RpcFailure) => void) | undefined
   private readonly ownAuthor: () => MessageAuthor | undefined
   private readonly plugin: StoreApi<PluginState>
@@ -609,6 +618,7 @@ export class ChatController {
     this.http = options.http ?? null
     this.cache = options.cache ?? null
     this.now = options.now ?? (() => Date.now())
+    this.monotonic = options.monotonic ?? options.now ?? monotonicNow
     this.userChats = options.userChats ?? null
     this.onRpcFailure = options.onRpcFailure
     this.ownAuthor = options.ownAuthor ?? (() => undefined)
@@ -1037,7 +1047,7 @@ export class ChatController {
     this.chats.getState().setHydration(key, 'hydrating')
 
     let resume: SessionResumeResult
-    const resumeAskedAt = this.now()
+    const resumeAskedAt = this.monotonic()
 
     try {
       resume = await this.gateway.request('session.resume', {
@@ -1229,7 +1239,7 @@ export class ChatController {
     }
 
     const knownEpoch = chat.epoch
-    const askedAt = this.now()
+    const askedAt = this.monotonic()
     let result
 
     try {
@@ -1772,7 +1782,7 @@ export class ChatController {
         }
 
         try {
-          const resumeAskedAt = this.now()
+          const resumeAskedAt = this.monotonic()
           const resume = await this.gateway.request('session.resume', {
             session_id: chat.storedSessionId,
             profile: name,

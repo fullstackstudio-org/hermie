@@ -37,7 +37,9 @@
  *     replay (`replayedCancel`). After a reconnect, a prompt its session's
  *     `open_requests` no longer lists ended while the page was not listening and
  *     closes with a notice saying so (`reconcile`): an answer to it would be
- *     dropped. A cancel that crosses an answer sent from here says the answer may
+ *     dropped. The list can be short, though (with turn isolation the gateway
+ *     mirrors one request per session), so it closes as let go of here, not as
+ *     withdrawn: the gateway delivering it again opens it again (rule 5). A cancel that crosses an answer sent from here says the answer may
  *     not have arrived. A prompt whose session no chat holds any more is answered
  *     `''` with a "withdrawn" notice, and `stop` (a sign-out) answers every open
  *     one `''` before the socket closes.
@@ -78,6 +80,7 @@ import {
   type SecureNoticeKind,
   type SecurePrompt
 } from '../../state/secure-input'
+import { monotonicNow } from '../../platform/monotonic-clock'
 import type { ReplaySignal } from '../chat-controller'
 import type { ChatGateway } from '../link'
 import { declineUnsupported, isUnsupportedMethod, UNSUPPORTED_CODE } from './unsupported'
@@ -302,6 +305,13 @@ export interface SecureInputModelOptions {
   gatewayName?: string
   /** Epoch milliseconds. */
   now?: () => number
+  /**
+   * A clock that never runs backward, for ordering what this page saw against a list the gateway answered
+   * (`arrivedAt` against `askedAt`): the system clock jumping back must not make a live prompt look newer than a
+   * list that really listed it, or the other way round. Absent: `now` when it is given (a test that fakes the clock
+   * fakes both), else the page's own (`monotonicNow`).
+   */
+  monotonic?: () => number
   timers?: SecureInputTimers
 }
 
@@ -309,7 +319,10 @@ export interface SecureInputModelOptions {
 type CloseReason =
   /** An answer (a value or `''`) went out from here. */
   | 'answered'
-  /** Let go of here without an answer of the person's: its chat let go of it, or it was declined. */
+  /**
+   * Let go of here without an answer of the person's: its chat let go of it, it was declined, or a reconnect's list of
+   * open requests did not name it (a list that can be short: a re-delivery opens it again).
+   */
   | 'closed_here'
   /** Its deadline passed. */
   | 'expired'
@@ -334,7 +347,7 @@ interface Entry {
   deadline: number | null
   /** When this page ends it: the deadline, or for one first seen re-delivered its arrival plus the timeout. */
   expiry: number
-  /** When this page first saw it, on its clock. */
+  /** When this page first saw it, on its monotonic clock (`tick`). */
   arrivedAt: number
   earlierLost: SecurePrompt['earlierLost']
 }
@@ -374,6 +387,11 @@ export class SecureInputModel {
 
   private now(): number {
     return this.options.now?.() ?? Date.now()
+  }
+
+  /** The monotonic clock: `arrivedAt` is read from it, and a list's `askedAt` is on it. */
+  private tick(): number {
+    return this.options.monotonic?.() ?? this.options.now?.() ?? monotonicNow()
   }
 
   // ── lifecycle ─────────────────────────────────────────────────────────────────────────────────
@@ -504,11 +522,29 @@ export class SecureInputModel {
 
       const prompt = this.store.getState().prompts.find(candidate => candidate.id === id)
 
-      this.finish(id, 'cancelled')
+      // Closed as let go of here, not as withdrawn: the list is no proof it ended. With turn isolation the gateway
+      // mirrors one open request per session into its `open_requests`, so a second prompt that is still open is
+      // missing from it. The gateway's own re-delivery of a request it still waits for opens it again (rule 5).
+      this.finish(id, 'closed_here')
 
       if (prompt) {
         this.show(prompt.bot, id, { kind: 'lapsed' })
       }
+    }
+  }
+
+  /** A "no longer listed" notice about a prompt the gateway then delivered again: it is open, so the line goes. */
+  private dropLapsedNotice(id: string): void {
+    const notices = this.store.getState().notices
+    const held = Object.entries(notices).find(
+      ([, notice]) => notice.requestId === id && notice.notice.kind === 'lapsed'
+    )
+
+    if (held) {
+      const next = { ...notices }
+
+      delete next[held[0]]
+      this.store.setState({ notices: next })
     }
   }
 
@@ -617,6 +653,7 @@ export class SecureInputModel {
 
       this.closed.delete(id)
       reopening = done
+      this.dropLapsedNotice(id)
     }
 
     const existing = this.entries.get(id)
@@ -676,7 +713,7 @@ export class SecureInputModel {
       ask,
       deadline,
       expiry,
-      arrivedAt: now,
+      arrivedAt: this.tick(),
       // Only an answer of the person's that went out from here can have been lost; one let go of here was not.
       earlierLost: reopening?.reason === 'answered' ? (reopening.skipped ? 'skip' : 'answer') : null
     }

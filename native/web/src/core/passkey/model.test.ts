@@ -142,6 +142,7 @@ function setUp(
     sessions?: readonly OpenSession[]
     watch?: (listener: () => void) => () => void
     requests?: RequestsAdvert
+    monotonic?: () => number
   } = {}
 ) {
   const hand = handGateway()
@@ -175,6 +176,7 @@ function setUp(
     ...(options.sessions ? { openSessions: () => options.sessions as readonly OpenSession[] } : {}),
     ...(options.watch ? { watchSessions: options.watch } : {}),
     ...(options.requests ? { requests: options.requests } : {}),
+    ...(options.monotonic ? { monotonic: options.monotonic } : {}),
     failWithData: (request, code, _message, data) => void failures.push({ id: request.id, code, data })
   })
 
@@ -1024,6 +1026,7 @@ describe('advertising the interactive requests', () => {
       /** Whether the gateway offers the passkey level in its first answer. */
       passkey?: boolean
       second?: () => unknown
+      monotonic?: () => number
     } = {}
   ) {
     const hooks = {
@@ -1034,6 +1037,7 @@ describe('advertising the interactive requests', () => {
     const page = setUp({
       requests: hooks,
       sessions: [{ sessionId: 'sess-1', lastSeen: 0 }],
+      ...(options.monotonic ? { monotonic: options.monotonic } : {}),
       client: { status: vi.fn(async () => GATEWAY_STATUS()) }
     })
 
@@ -1155,6 +1159,14 @@ describe('advertising the interactive requests', () => {
       page.hooks.openRequests.mock.invocationCallOrder[0] ?? 0
     )
     expect(page.hooks.openRequests).toHaveBeenCalledWith('sess-1', ['srq-9'], before)
+  })
+
+  it('stamps the list with the monotonic clock, not the wall clock', async () => {
+    const page = withRequests({ passkey: false, monotonic: () => 4_242 })
+
+    await page.model.advertise()
+
+    expect(page.hooks.openRequests).toHaveBeenCalledWith('sess-1', ['srq-9'], 4_242)
   })
 
   it('reads nothing again when the gateway accepted none of them, and says the advert was not accepted', async () => {

@@ -1006,7 +1006,11 @@ browser"):
   reconnect learns (`ReplaySignal`): a `request.cancel` in the `session.events.since` replay closes the prompt as a
   live one would, and a prompt the resume's or replay's `open_requests` no longer lists for its session closes with a
   notice saying it ended while the connection was down. An answer to it would only be dropped by the gateway. A
-  prompt first seen after that call went out is left alone: it may be newer than the list.
+  prompt first seen after that call went out is left alone: it may be newer than the list. "First seen" and "went out"
+  are both read from the page's monotonic clock (`performance.now()`), so a system clock set back cannot close a live
+  prompt. The list can be short (with turn isolation the gateway mirrors one request per session), so such a prompt is
+  closed as let go of here, not as withdrawn: the gateway delivering it again opens it again, and the line that said it
+  ended goes. The same holds for the interactive requests.
 - **Restored** from `open_requests`: a re-delivered copy of one already answered here means the answer never arrived,
   and the sheet asks again and says so (a lost Skip in its own words). The reply goes out on the newest copy, under
   the session that copy names.
