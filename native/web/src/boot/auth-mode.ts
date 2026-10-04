@@ -7,8 +7,13 @@
  *    no auth header, every socket dial mints a ticket, a rejection is always
  *    "sign in again". The client never sees, stores or sends a credential of
  *    its own.
- *  - Otherwise the gateway authenticates with a session token. Until W-23 the
- *    client does not handle that and says so.
+ *  - Otherwise the gateway authenticates with one shared session token (plan
+ *    W-23): `X-Hermes-Session-Token` on REST, `?token=` on the socket, which is
+ *    what the fork's `auth_middleware` and its socket accept on an ungated
+ *    gateway and what the native apps send. The token is read from the
+ *    dashboard's own bootstrap (`dashboard-token.ts`) or typed by the person
+ *    (`features/shell/TokenPrompt.tsx`), and lives in the `SessionTokenCredentials`
+ *    made here and nowhere else: memory only, gone with the page.
  *
  * `SameOriginCookieCredentials` is `CookieSessionCredentials` with one change:
  * `credentials: 'same-origin'` instead of `'include'`. The package's default
@@ -27,7 +32,8 @@ import {
   isGatewayError,
   ownAuthorOf,
   probeGateway,
-  type ProbeResult
+  type ProbeResult,
+  SessionTokenCredentials
 } from '@hermie/gateway-client'
 
 export type AuthMode = { kind: 'cookie'; probe: ProbeResult } | { kind: 'token'; probe: ProbeResult }
@@ -97,5 +103,52 @@ export async function readIdentity(http: GatewayHttp): Promise<IdentityResult> {
     throw error instanceof GatewayError
       ? error
       : new GatewayError('network', 'Reading the signed-in identity failed.', { cause: error })
+  }
+}
+
+/** The REST and socket half of a gateway without sign-in, on one session token held in memory. */
+export interface TokenSession {
+  credentials: SessionTokenCredentials
+  http: GatewayHttp
+}
+
+/**
+ * The session on `token`. The token goes into the credentials and nowhere
+ * else; dropping this object (and the connection built on it) is what forgets
+ * it. The package's provider sets no `credentials` mode, so every REST call is
+ * the browser's default, `same-origin`: there is no cookie to send here anyway.
+ */
+export function createTokenSession(baseUrl: string, token: string, fetchImpl?: FetchLike): TokenSession {
+  const credentials = new SessionTokenCredentials({ token })
+  const http = new GatewayHttp({ baseUrl, credentials, fetchImpl: fetchImpl ?? defaultFetch })
+
+  return { credentials, http }
+}
+
+export type TokenCheck = { kind: 'accepted' } | { kind: 'rejected' }
+
+/**
+ * Whether the gateway takes the session's token: `GET /api/profiles`, which an
+ * ungated gateway answers only with the right one (the native apps' check,
+ * `OnboardingModel.checkSessionToken`). `/api/auth/me` would not do: on an
+ * ungated gateway nobody is signed in, and it answers 401 whatever the token.
+ *
+ * A 401 is `rejected`. Anything else that fails (a 403 from something in front
+ * of the gateway, a 5xx, the network) is thrown for the caller to show, as
+ * `readIdentity` does: a person retyping a token would not fix it.
+ */
+export async function checkToken(http: GatewayHttp): Promise<TokenCheck> {
+  try {
+    await http.get('/api/profiles')
+
+    return { kind: 'accepted' }
+  } catch (error) {
+    if (isGatewayError(error) && error.kind === 'auth' && error.status === 401) {
+      return { kind: 'rejected' }
+    }
+
+    throw error instanceof GatewayError
+      ? error
+      : new GatewayError('network', 'Checking the session token failed.', { cause: error })
   }
 }

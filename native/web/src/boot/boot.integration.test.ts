@@ -19,7 +19,7 @@ import { createKeyValueStore } from '../platform/key-value-store'
 import { browserFetch } from '../test-support/browser-fetch'
 import { createFakeIndexedDb } from '../test-support/fake-indexed-db'
 import { APP_DOCUMENT_PATH, deriveBasePath, type ResolvedBasePath } from './base-path'
-import { boot } from './boot'
+import { boot, bootWithToken } from './boot'
 import { claimForOwner, type BounceEnvironment, loginUrl, signOut } from './login-bounce'
 
 const gateways: FakeGateway[] = []
@@ -155,12 +155,58 @@ describe('boot against the fake gateway (cookie mode)', () => {
   })
 })
 
-describe('boot against the fake gateway (no browser session)', () => {
-  it.each(['token', 'none'] as const)('stops at token mode on an ungated gateway (--auth %s)', async auth => {
-    const { basePath } = await start(auth)
+describe('boot against the fake gateway (session token)', () => {
+  it('reads the token from the dashboard’s bootstrap and connects on it', async () => {
+    const { gateway, basePath } = await start('token')
+    const browser = browserFetch(new URL(gateway.url).origin)
+    const state = await boot(basePath, { fetchImpl: browser.fetch })
+
+    expect(state).toMatchObject({ kind: 'token_ready', probe: { authRequired: false } })
+
+    if (state.kind !== 'token_ready') {
+      return
+    }
+
+    // The REST half carries the gateway's own token as the header the gateway reads.
+    expect(await state.session.http.requestHeaders()).toEqual({ 'X-Hermes-Session-Token': gateway.state.token })
+    // No cookie was needed or set.
+    expect(browser.cookies.size).toBe(0)
+
+    // The socket half: `?token=` on the gateway's socket address, which the gateway takes.
+    const plan = await state.session.credentials.dialPlan(wsUrlFor(basePath.baseUrl), {})
+
+    expect(new URL(plan.url).searchParams.get('token')).toBe(gateway.state.token)
+  })
+
+  it('needs the token typed once the gateway has another one, and takes the right one', async () => {
+    const { gateway, basePath } = await start('token')
+    const fetchImpl = browserFetch(new URL(gateway.url).origin).fetch
+    const first = await boot(basePath, { fetchImpl })
+
+    if (first.kind !== 'token_ready') {
+      throw new Error(`expected token_ready, got ${first.kind}`)
+    }
+
+    // The gateway restarted with a fresh token: the old one is refused.
+    const old = gateway.state.token
+
+    gateway.state.token = 'rotated-token'
+
+    expect(await bootWithToken(basePath, first.probe, old, { fetchImpl })).toMatchObject({
+      kind: 'needs_token',
+      reason: 'rejected'
+    })
+    expect(await bootWithToken(basePath, first.probe, 'rotated-token', { fetchImpl })).toMatchObject({
+      kind: 'token_ready'
+    })
+  })
+
+  it('asks for the token on a gateway whose index carries none (--auth none)', async () => {
+    const { basePath } = await start('none')
 
     expect(await boot(basePath, { fetchImpl: browserFetch(new URL(basePath.baseUrl).origin).fetch })).toMatchObject({
-      kind: 'token_mode',
+      kind: 'needs_token',
+      reason: 'absent',
       probe: { authRequired: false }
     })
   })

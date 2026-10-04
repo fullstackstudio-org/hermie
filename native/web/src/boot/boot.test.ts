@@ -2,9 +2,9 @@ import { GatewayError } from '@hermie/gateway-client'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { resetLocale, setLanguageChoice } from '../i18n/locale'
-import { fakeFetch, gatedRoutes, json, meRoute, ungatedRoutes } from '../test-support/fake-fetch'
+import { fakeFetch, gatedRoutes, json, meRoute, type RecordedCall, ungatedRoutes } from '../test-support/fake-fetch'
 import { deriveBasePath, type ResolvedBasePath } from './base-path'
-import { boot, describeBootFailure } from './boot'
+import { boot, bootWithToken, describeBootFailure } from './boot'
 
 const basePath = deriveBasePath({
   origin: 'https://gateway.example.com',
@@ -60,11 +60,89 @@ describe('the boot state machine', () => {
     expect(said).not.toMatch(/Advanced/u)
   })
 
-  it('stops at token mode on an ungated gateway, without asking who is signed in', async () => {
-    const { fetch, calls } = fakeFetch(ungatedRoutes)
+  describe('on a gateway without sign-in', () => {
+    const TOKEN = 'tok-Abc_123'
+    const dashboard = (token: string | null) => () =>
+      new Response(
+        `<!doctype html><html><head><script>${token === null ? '' : `window.__HERMES_SESSION_TOKEN__="${token}";`}` +
+          'window.__HERMES_AUTH_REQUIRED__=false;</script></head><body></body></html>',
+        { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } }
+      )
+    /** `/api/profiles` as an ungated gateway answers it: only with the right token. */
+    const profiles = (accepted: string) => (call: RecordedCall) =>
+      call.headers['x-hermes-session-token'] === accepted
+        ? json(200, { profiles: [] })
+        : json(401, { detail: 'Unauthorized' })
 
-    expect(await boot(basePath, { fetchImpl: fetch })).toMatchObject({ kind: 'token_mode' })
-    expect(calls.map(call => new URL(call.url).pathname)).toEqual(['/api/status'])
+    it('reads the token from the dashboard’s bootstrap, checks it, and never asks who is signed in', async () => {
+      const { fetch, calls } = fakeFetch({
+        ...ungatedRoutes,
+        'GET /': dashboard(TOKEN),
+        'GET /api/profiles': profiles(TOKEN)
+      })
+      const state = await boot(basePath, { fetchImpl: fetch })
+
+      expect(state).toMatchObject({ kind: 'token_ready', basePath, probe: { authRequired: false } })
+      expect(calls.map(call => `${call.method} ${new URL(call.url).pathname}`)).toEqual([
+        'GET /api/status',
+        'GET /',
+        'GET /api/profiles'
+      ])
+      // The token rides as the header, and in no address.
+      expect(calls[2]?.headers['x-hermes-session-token']).toBe(TOKEN)
+      expect(calls.some(call => call.url.includes(TOKEN))).toBe(false)
+
+      if (state.kind !== 'token_ready') {
+        throw new Error(`expected token_ready, got ${state.kind}`)
+      }
+
+      // The socket gets it as `?token=`, the one address it may appear in.
+      const plan = await state.session.credentials.dialPlan('wss://gateway.example.com/api/ws', {})
+
+      expect(new URL(plan.url).searchParams.get('token')).toBe(TOKEN)
+    })
+
+    it('needs the token typed when the bootstrap carries none', async () => {
+      const { fetch, calls } = fakeFetch({ ...ungatedRoutes, 'GET /': dashboard(null) })
+
+      expect(await boot(basePath, { fetchImpl: fetch })).toMatchObject({ kind: 'needs_token', reason: 'absent' })
+      expect(calls.map(call => new URL(call.url).pathname)).toEqual(['/api/status', '/'])
+    })
+
+    it('needs the token typed when the gateway refuses the one its bootstrap gave', async () => {
+      const { fetch } = fakeFetch({
+        ...ungatedRoutes,
+        'GET /': dashboard('stale-token'),
+        'GET /api/profiles': profiles(TOKEN)
+      })
+
+      expect(await boot(basePath, { fetchImpl: fetch })).toMatchObject({ kind: 'needs_token', reason: 'rejected' })
+    })
+
+    it('is unreachable, not a token prompt, when the check fails for another reason', async () => {
+      const { fetch } = fakeFetch({
+        ...ungatedRoutes,
+        'GET /': dashboard(TOKEN),
+        'GET /api/profiles': () => json(403, { detail: 'Forbidden' })
+      })
+
+      expect(await boot(basePath, { fetchImpl: fetch })).toMatchObject({
+        kind: 'unreachable',
+        error: { kind: 'auth', status: 403 }
+      })
+    })
+
+    it('checks a typed token the same way', async () => {
+      const { fetch, calls } = fakeFetch({ ...ungatedRoutes, 'GET /api/profiles': profiles(TOKEN) })
+      const probe = { authRequired: false } as Parameters<typeof bootWithToken>[1]
+
+      expect(await bootWithToken(basePath, probe, 'wrong', { fetchImpl: fetch })).toMatchObject({
+        kind: 'needs_token',
+        reason: 'rejected'
+      })
+      expect(await bootWithToken(basePath, probe, TOKEN, { fetchImpl: fetch })).toMatchObject({ kind: 'token_ready' })
+      expect(calls.map(call => new URL(call.url).pathname)).toEqual(['/api/profiles', '/api/profiles'])
+    })
   })
 
   it('is unreachable when the probe fails, and when the identity read fails for another reason', async () => {

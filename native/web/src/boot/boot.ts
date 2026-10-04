@@ -6,7 +6,13 @@
  *   frame guard (main.tsx, before anything)      framed        → one sentence, stop
  *   base path                                    misconfigured → names the expected path
  *   probe  GET /api/status                       unreachable   → the probe's error, retry
- *     auth_required false                        token_mode    → open it in the native app (until W-23)
+ *     auth_required false → session token (W-23)
+ *       GET {prefix}/  (the dashboard's bootstrap, dashboard-token.ts)
+ *         no usable token                        needs_token (absent)   → the token prompt
+ *       GET /api/profiles with it
+ *         401                                    needs_token (rejected) → the token prompt
+ *         other failure                          unreachable            → retry
+ *         200                                    token_ready            → the session, nobody named
  *     auth_required true → cookie session
  *   identity  GET /api/auth/me
  *     401 / 403                                  needs_signin  → "Sign in again" (login bounce)
@@ -15,24 +21,36 @@
  *
  * The base path is derived synchronously by the caller first, because the
  * route stash and the storage namespace hang off it; this function takes the
- * resolved path and does the network half.
+ * resolved path and does the network half. A token the person typed into the
+ * prompt goes through `bootWithToken`, the same check as the bootstrap's.
  */
 import { GatewayError, type FetchLike, type ProbeResult } from '@hermie/gateway-client'
 
 import { strings } from '../generated/strings'
 import { webStrings } from '../i18n/web-strings'
 import {
+  checkToken,
   createCookieSession,
+  createTokenSession,
   detectAuthMode,
   readIdentity,
   type CookieSession,
-  type SignedInIdentity
+  type SignedInIdentity,
+  type TokenSession
 } from './auth-mode'
 import type { ResolvedBasePath } from './base-path'
+import { readDashboardToken } from './dashboard-token'
+
+/**
+ * Why the token prompt is shown: the dashboard's bootstrap gave no usable token
+ * (`absent`), or the gateway refused the token it was given (`rejected`).
+ */
+export type NeedsTokenReason = 'absent' | 'rejected'
 
 export type BootState =
   | { kind: 'unreachable'; basePath: ResolvedBasePath; error: GatewayError }
-  | { kind: 'token_mode'; basePath: ResolvedBasePath; probe: ProbeResult }
+  | { kind: 'needs_token'; basePath: ResolvedBasePath; probe: ProbeResult; reason: NeedsTokenReason }
+  | { kind: 'token_ready'; basePath: ResolvedBasePath; probe: ProbeResult; session: TokenSession }
   | { kind: 'needs_signin'; basePath: ResolvedBasePath; probe: ProbeResult; session: CookieSession }
   | ({ kind: 'signed_in'; basePath: ResolvedBasePath; probe: ProbeResult; session: CookieSession } & SignedInIdentity)
 
@@ -55,7 +73,11 @@ export async function boot(basePath: ResolvedBasePath, options: BootOptions = {}
   }
 
   if (mode.kind === 'token') {
-    return { kind: 'token_mode', basePath, probe: mode.probe }
+    const token = await readDashboardToken(basePath.baseUrl, options.fetchImpl)
+
+    return token === null
+      ? { kind: 'needs_token', basePath, probe: mode.probe, reason: 'absent' }
+      : bootWithToken(basePath, mode.probe, token, options)
   }
 
   const session = createCookieSession(basePath.baseUrl, options.fetchImpl)
@@ -66,6 +88,33 @@ export async function boot(basePath: ResolvedBasePath, options: BootOptions = {}
     return identity.kind === 'needs_signin'
       ? { kind: 'needs_signin', basePath, probe: mode.probe, session }
       : { kind: 'signed_in', basePath, probe: mode.probe, session, ...identity.signedIn }
+  } catch (error) {
+    return { kind: 'unreachable', basePath, error: asError(error) }
+  }
+}
+
+/** The token-mode states `bootWithToken` ends in. */
+export type TokenBootState = Extract<BootState, { kind: 'token_ready' | 'needs_token' | 'unreachable' }>
+
+/**
+ * Check `token` against the gateway and make the session on it: `token_ready`
+ * when it is taken, `needs_token` (`rejected`) on a 401, `unreachable` for any
+ * other failure. The token is held by the session's credentials only.
+ */
+export async function bootWithToken(
+  basePath: ResolvedBasePath,
+  probe: ProbeResult,
+  token: string,
+  options: BootOptions = {}
+): Promise<TokenBootState> {
+  const session = createTokenSession(basePath.baseUrl, token, options.fetchImpl)
+
+  try {
+    const check = await checkToken(session.http)
+
+    return check.kind === 'accepted'
+      ? { kind: 'token_ready', basePath, probe, session }
+      : { kind: 'needs_token', basePath, probe, reason: 'rejected' }
   } catch (error) {
     return { kind: 'unreachable', basePath, error: asError(error) }
   }
