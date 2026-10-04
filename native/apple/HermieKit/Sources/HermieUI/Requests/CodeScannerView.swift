@@ -2,18 +2,19 @@ import AVFoundation
 import HermieCore
 import HermieProtocol
 import SwiftUI
+import Vision
 
 #if os(iOS)
   import UIKit
-  import Vision
   import VisionKit
 #else
   import AppKit
 #endif
 
 /// The camera view of the code scanner: VisionKit's `DataScannerViewController` where the device has it (iPhone and
-/// iPad), a plain capture session with a metadata output everywhere else (a Mac with a camera, an iPhone or iPad
-/// whose scanner is not available). It looks only for the symbologies it is given, reports the first code it reads
+/// iPad), a plain capture session everywhere else (a Mac with a camera, an iPhone or iPad whose scanner is not
+/// available): its metadata output where that offers barcode types, and where it offers none (the Mac's does not)
+/// Vision on the video frames. It looks only for the symbologies it is given, reports the first code it reads
 /// (decoded text and kind) and nothing else, and never opens what it reads.
 ///
 /// It is made only once the person pressed Scan on our sheet and the system let the camera be used: it does not ask
@@ -40,22 +41,32 @@ struct CodeScannerView: View {
 
 // MARK: - The capture session (every platform)
 
-/// `AVCaptureSession` with an `AVCaptureMetadataOutput`, confined to its own queue (starting a session blocks). The
-/// delegate reports on that queue; the callbacks hop to the main actor.
-final class CodeCaptureSession: NSObject, AVCaptureMetadataOutputObjectsDelegate, @unchecked Sendable {
+/// `AVCaptureSession` with an `AVCaptureMetadataOutput`, or, where that offers no barcode type, a video data output
+/// whose frames go to Vision. Confined to its own queue (starting a session blocks). The delegates report on that
+/// queue; the callbacks hop to the main actor.
+final class CodeCaptureSession: NSObject, AVCaptureMetadataOutputObjectsDelegate,
+  AVCaptureVideoDataOutputSampleBufferDelegate, @unchecked Sendable
+{
   let session = AVCaptureSession()
 
+  /// How often a frame is read in Vision's mode: five a second is plenty for a code held still, and spares the
+  /// battery.
+  static let frameInterval: UInt64 = 200_000_000
+
   private let queue = DispatchQueue(label: "dev.hermie.code-scan")
+  private let symbologies: [ScanSymbology]
   private let types: [AVMetadataObject.ObjectType]
   private let report: @Sendable (String, ScanSymbology) -> Void
   private let failed: @Sendable () -> Void
   private var configured = false
   private var reported = false
+  private var lastFrame: UInt64 = 0
 
   init(
     symbologies: [ScanSymbology], report: @escaping @Sendable (String, ScanSymbology) -> Void,
     failed: @escaping @Sendable () -> Void
   ) {
+    self.symbologies = symbologies
     self.types = symbologies.compactMap(Self.metadataType(of:))
     self.report = report
     self.failed = failed
@@ -137,14 +148,37 @@ final class CodeCaptureSession: NSObject, AVCaptureMetadataOutputObjectsDelegate
     session.addOutput(output)
     output.setMetadataObjectsDelegate(self, queue: queue)
 
+    // The types an output offers are only known once it is in a session with an input.
     let available = Set(output.availableMetadataObjectTypes)
     let wanted = types.filter(available.contains)
 
-    guard !wanted.isEmpty else {
+    if !wanted.isEmpty {
+      output.metadataObjectTypes = wanted
+      configured = true
+      return true
+    }
+
+    // The metadata output offers none of the kinds asked for (on the Mac it offers no barcode type at all): read
+    // the frames with Vision instead, rather than a scanner that never sees a code.
+    session.removeOutput(output)
+    return configureFrameReading()
+  }
+
+  /// On the queue, in the session's configuration.
+  private func configureFrameReading() -> Bool {
+    guard !VisionCodeReader.visionTypes(for: symbologies).isEmpty else {
       return false
     }
 
-    output.metadataObjectTypes = wanted
+    let video = AVCaptureVideoDataOutput()
+    video.alwaysDiscardsLateVideoFrames = true
+
+    guard session.canAddOutput(video) else {
+      return false
+    }
+
+    session.addOutput(video)
+    video.setSampleBufferDelegate(self, queue: queue)
     configured = true
     return true
   }
@@ -169,6 +203,69 @@ final class CodeCaptureSession: NSObject, AVCaptureMetadataOutputObjectsDelegate
       report(value, symbology)
       return
     }
+  }
+
+  // MARK: AVCaptureVideoDataOutputSampleBufferDelegate (Vision's mode)
+
+  func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+    guard !reported, let pixels = CMSampleBufferGetImageBuffer(sampleBuffer) else {
+      return
+    }
+
+    let now = DispatchTime.now().uptimeNanoseconds
+
+    guard now &- lastFrame >= Self.frameInterval else {
+      return
+    }
+
+    lastFrame = now
+
+    // A frame that cannot be read is no code; the next one is tried. Late frames are dropped by the output while
+    // this one is read, on the queue.
+    guard let code = try? VisionCodeReader.read(VNImageRequestHandler(cvPixelBuffer: pixels), wanting: symbologies) else {
+      return
+    }
+
+    reported = true
+    report(code.value, code.symbology)
+  }
+}
+
+/// Reads one code out of an image with Vision, only of the kinds asked for. Where a platform's capture metadata
+/// output reads none, this is the reader.
+enum VisionCodeReader {
+  /// The Vision kinds for these symbologies, those this device reads.
+  static func visionTypes(for symbologies: [ScanSymbology]) -> [VNBarcodeSymbology] {
+    let reads = Set(CodeReaders.visionReads())
+    return symbologies.filter(reads.contains).compactMap(\.visionSymbology)
+  }
+
+  /// The first code in what `handler` holds, its decoded text and kind; nil when there is none of the kinds
+  /// asked for. Throws when Vision could not run at all.
+  static func read(_ handler: VNImageRequestHandler, wanting symbologies: [ScanSymbology]) throws -> (
+    value: String, symbology: ScanSymbology
+  )? {
+    let wanted = visionTypes(for: symbologies)
+
+    guard !wanted.isEmpty else {
+      return nil
+    }
+
+    let request = VNDetectBarcodesRequest()
+    request.symbologies = wanted
+    try handler.perform([request])
+
+    for observation in request.results ?? [] {
+      guard let value = observation.payloadStringValue, !value.isEmpty,
+        let symbology = ScanSymbology(vision: observation.symbology), symbologies.contains(symbology)
+      else {
+        continue
+      }
+
+      return (value, symbology)
+    }
+
+    return nil
   }
 }
 
@@ -234,20 +331,11 @@ final class CodeCaptureSession: NSObject, AVCaptureMetadataOutputObjectsDelegate
     }
 
     static func visionSymbology(of symbology: ScanSymbology) -> VNBarcodeSymbology? {
-      switch symbology {
-      case .qr: .qr
-      case .ean13: .ean13
-      case .ean8: .ean8
-      case .code128: .code128
-      case .pdf417: .pdf417
-      case .datamatrix: .dataMatrix
-      case .aztec: .aztec
-      case .unknown: nil
-      }
+      symbology.visionSymbology
     }
 
     static func symbology(of vision: VNBarcodeSymbology) -> ScanSymbology? {
-      ScanSymbology.knownCases.first { visionSymbology(of: $0) == vision }
+      ScanSymbology(vision: vision)
     }
 
     func makeCoordinator() -> Coordinator {
