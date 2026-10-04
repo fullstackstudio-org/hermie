@@ -486,9 +486,11 @@ public final class UIMetaSync: Sendable {
   private func send(_ write: UIMetaWrite) async {
     for _ in 0...max(options.retries, 0) {
       // The bytes and the marks they carry, in one step; nothing for a write
-      // taken out before a sign-out or a change of person.
+      // taken out before a sign-out or a change of person. A bot section this
+      // build cannot read (as the latest roster has it, a conflict's re-read
+      // included) is left out and stays dirty.
       let attempt = core.withLock { core -> (JSONObject, UIMetaWrite)? in
-        guard core.state.isCurrent(write) else {
+        guard core.state.isCurrent(write), let write = core.state.withoutHeld(write) else {
           return nil
         }
 

@@ -37,6 +37,15 @@ public struct UIMetaState: Sendable, Hashable {
   public private(set) var dirtyBots: [String] = []
   public private(set) var dirtyApp = false
 
+  /// Bots whose roster section this build cannot read (a newer build's `v`, or not an object),
+  /// as the last roster had them. A change held for one is kept back, still dirty, rather than
+  /// written over that section or sent as `null` to remove it (HERM-191; `holdBot` in
+  /// `packages/gateway-client/src/ui-meta.ts`, `unreadableBots` in the web client's bridge).
+  /// Every other section still goes out. Asked at every attempt, so a section a conflict's
+  /// re-read has just shown to be unreadable is held from the retry on. Kept across a sign-out:
+  /// it is this gateway's answer, and the next roster replaces it.
+  public private(set) var heldBots: Set<String> = []
+
   /// Whether the app section's unsent change includes a CHOICE, or only chores (housekeeping
   /// nobody decided: the roster folded into the order, a lapsed mute swept, a push row). A chore
   /// never wins over a section the gateway holds (HERM-191): undated against undated would
@@ -139,12 +148,14 @@ public struct UIMetaState: Sendable, Hashable {
     let markCount = self.markCount
     let dirtyBots = self.dirtyBots
     let botMarks = self.botMarks
+    let heldBots = self.heldBots
 
     self = UIMetaState()
     self.epoch = epoch
     self.markCount = markCount
     self.dirtyBots = dirtyBots
     self.botMarks = botMarks
+    self.heldBots = heldBots
   }
 
   // MARK: - Reading the roster
@@ -162,6 +173,7 @@ public struct UIMetaState: Sendable, Hashable {
     let appKey = self.appKey
     var app: JSONObject?
     var legacy: JSONObject?
+    var unreadable: Set<String> = []
     let known = Double(UIMeta.botSectionVersion)
     let knownApp = Double(UIMeta.appSectionVersion)
 
@@ -177,6 +189,9 @@ public struct UIMetaState: Sendable, Hashable {
 
       if let section = UIMeta.readSection(meta, key: UIMeta.botKey, known: known) {
         bots[name] = section
+      } else if let present = meta?[UIMeta.botKey], present != .null {
+        // There is a section, and this build cannot read it: absent here, never written over.
+        unreadable.insert(name)
       }
 
       if row["is_default"] == .bool(true) {
@@ -194,6 +209,7 @@ public struct UIMetaState: Sendable, Hashable {
     mode = .synced
     perUser = UIMetaPlugin.hasCapability(plugin, UIMeta.perUserCapability)
     legacyApp = legacy
+    heldBots = unreadable
 
     let advert: UIMetaAdvert = plugin.map(UIMetaAdvert.advert) ?? .absent
 
@@ -321,7 +337,7 @@ public struct UIMetaState: Sendable, Hashable {
       }
     }
 
-    for name in dirtyBots {
+    for name in dirtyBots where !heldBots.contains(name) {
       add(UIMeta.botKey, to: name)
     }
 
@@ -403,6 +419,18 @@ public struct UIMetaState: Sendable, Hashable {
   /// Whether a write was taken out under the current epoch.
   public func isCurrent(_ write: UIMetaWrite) -> Bool {
     write.epoch == epoch
+  }
+
+  /// The write as one attempt may send it: a held bot section left out (it stays dirty), or
+  /// `nil` when nothing is left to send. Asked at every attempt, with the bytes it sends.
+  public func withoutHeld(_ write: UIMetaWrite) -> UIMetaWrite? {
+    guard heldBots.contains(write.profile) else {
+      return write
+    }
+
+    var write = write
+    write.keys.removeAll { $0 == UIMeta.botKey }
+    return write.keys.isEmpty ? nil : write
   }
 
   /// The write with the marks its sections carry now, taken at the moment of an

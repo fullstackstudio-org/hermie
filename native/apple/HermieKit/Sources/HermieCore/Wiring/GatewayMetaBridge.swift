@@ -150,7 +150,9 @@ public final class GatewayMetaBridge {
     // The send is not cancellable, so it is left to finish on its own and only waited for.
     Task { await sync.flush() }
 
-    while sync.pending, ContinuousClock.now < deadline {
+    // The app section, which holds the row: a bot change held back for a section this build
+    // cannot read stays pending for good and is not what this waits for.
+    while sync.state.dirtyApp, ContinuousClock.now < deadline {
       try? await Task.sleep(for: .milliseconds(20))
     }
   }
