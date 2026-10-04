@@ -64,7 +64,23 @@ const VALID_LANGUAGE_RE = /^[a-z0-9][a-z0-9+#-]*$/i
 
 // `[1]` / `[1, 2]` glued to the end of a word: a citation marker from a search
 // tool, not a link and not a footnote we can resolve.
-const CITATION_MARKER_RE = /(?<=[\p{L}\p{N})\].,!?:;"'”’])\[(?:\d+(?:\s*,\s*\d+)*)\](?!\()/gu
+//
+// Two things that look like a citation are NOT one. `\sqrt[3]{x}` carries a
+// numeric root index glued to a LaTeX command, so a marker directly after
+// `\name` is left alone (bounded, because the Swift port runs the same pattern
+// through ICU, which refuses an unbounded lookbehind). And nothing inside a math
+// span is ever stripped: see `MATH_SPAN_SPLIT_RE`.
+const CITATION_MARKER_RE = /(?<=[\p{L}\p{N})\].,!?:;"'”’])(?<!\\[A-Za-z]{1,32})\[(?:\d+(?:\s*,\s*\d+)*)\](?!\()/gu
+
+// The four math delimiters as one capturing split, so prose and mathematics can
+// be told apart without masking and unmasking: `$$…$$`, `$…$`, `\(…\)` and
+// `\[…\]`. The `$` form carries the same defences as the tokenizer in
+// `math/marked-math.ts` (no space inside the fences, no digit after the closing
+// one), so a sentence about prices is not mistaken for an expression. The
+// backslash forms may not cross a blank line, which keeps an unterminated one
+// mid-stream from claiming the rest of the reply.
+const MATH_SPAN_SPLIT_RE =
+  /(\$\$[^$][\s\S]*?\$\$|\$(?![\s$])(?:[^$\n]|\n(?!\s*\n))*?[^\s$]\$(?!\d)|\\\((?:[^\n]|\n(?!\s*\n))*?\\\)|\\\[(?:[^\n]|\n(?!\s*\n))*?\\\])/g
 
 // Bare-URL autolink. The character classes exclude `*` so a URL that abuts
 // emphasis with no separating space (`**see https://x**`, a very common model
@@ -444,8 +460,16 @@ function autolinkBareUrls(segment: string): string {
   })
 }
 
+/** Citation markers out of the prose, never out of a math span. */
+function stripCitationMarkers(segment: string): string {
+  return segment
+    .split(MATH_SPAN_SPLIT_RE)
+    .map((part, index) => (index % 2 === 1 ? part : part.replace(CITATION_MARKER_RE, '')))
+    .join('')
+}
+
 function rewriteProseSegment(segment: string): string {
-  const withoutCitations = segment.replace(CITATION_MARKER_RE, '')
+  const withoutCitations = stripCitationMarkers(segment)
 
   return withoutCitations
     .split(LINK_SYNTAX_SPLIT_RE)

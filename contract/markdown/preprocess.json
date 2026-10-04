@@ -362,5 +362,185 @@
     "input": "- ** listed**",
     "name": "stray emphasis in a list",
     "preprocessed": "- **listed**"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "The sky is blue and grass is green."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "The sky is blue[1] and grass is green[2, 3].",
+    "name": "citation marker is stripped",
+    "preprocessed": "The sky is blue and grass is green."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "The cube root is "
+          },
+          {
+            "marks": [
+              "math"
+            ],
+            "text": "\\sqrt[3]{x}"
+          },
+          {
+            "text": "[1] today."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "The cube root is $\\sqrt[3]{x}$[1] today.",
+    "name": "root index in dollar math is kept",
+    "preprocessed": "The cube root is $\\sqrt[3]{x}$[1] today."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "The cube root is "
+          },
+          {
+            "marks": [
+              "math"
+            ],
+            "text": "\\sqrt[3]{x}"
+          },
+          {
+            "text": "[1] today."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "The cube root is \\(\\sqrt[3]{x}\\)[1] today.",
+    "name": "root index in paren math is kept",
+    "preprocessed": "The cube root is \\(\\sqrt[3]{x}\\)[1] today."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Before"
+          }
+        ],
+        "kind": "paragraph"
+      },
+      {
+        "kind": "math",
+        "text": "\n\\sqrt[3]{x}\n"
+      },
+      {
+        "inline": [
+          {
+            "text": "After"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Before[1]\n\n$$\n\\sqrt[3]{x}\n$$\n\nAfter[2]",
+    "name": "root index in display math is kept",
+    "preprocessed": "Before\n\n$$\n\\sqrt[3]{x}\n$$\n\nAfter"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Before"
+          }
+        ],
+        "kind": "paragraph"
+      },
+      {
+        "kind": "math",
+        "text": "\n\\sqrt[3]{x}\n"
+      },
+      {
+        "inline": [
+          {
+            "text": "After"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Before[1]\n\n\\[\n\\sqrt[3]{x}\n\\]\n\nAfter[2]",
+    "name": "root index in bracket math is kept",
+    "preprocessed": "Before\n\n\\[\n\\sqrt[3]{x}\n\\]\n\nAfter"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "half an expression $x = \\sqrt[3]"
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "half an expression $x = \\sqrt[3]",
+    "name": "root index after an open command is kept",
+    "preprocessed": "half an expression $x = \\sqrt[3]"
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "Roots "
+          },
+          {
+            "marks": [
+              "math"
+            ],
+            "text": "\\sqrt[3]{x}"
+          },
+          {
+            "text": " are odd and "
+          },
+          {
+            "marks": [
+              "math"
+            ],
+            "text": "y[2]"
+          },
+          {
+            "text": " stays."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "Roots $\\sqrt[3]{x}$ are odd[1] and $y[2]$ stays.",
+    "name": "citation beside math is stripped",
+    "preprocessed": "Roots $\\sqrt[3]{x}$ are odd and $y[2]$ stays."
+  },
+  {
+    "blocks": [
+      {
+        "inline": [
+          {
+            "text": "It costs $5 and $7 today."
+          }
+        ],
+        "kind": "paragraph"
+      }
+    ],
+    "input": "It costs $5 and $7 today[1].",
+    "name": "citation after prices is stripped",
+    "preprocessed": "It costs $5 and $7 today."
   }
 ]

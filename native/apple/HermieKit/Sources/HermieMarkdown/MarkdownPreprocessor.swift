@@ -66,7 +66,12 @@ public enum MarkdownPreprocessor {
     static let whitespaceRun = JSRegex(#"\s+"#)
 
     // `\d` is written `[0-9]`: JavaScript's `\d` is ASCII even under `u`, ICU's is not.
-    static let citationMarker = JSRegex(#"(?<=[\p{L}\p{N})\].,!?:;"'”’])\[(?:[0-9]+(?:\s*,\s*[0-9]+)*)\](?!\()"#)
+    // A marker directly after a LaTeX command (`\sqrt[3]{x}`) is a root index, not a citation.
+    static let citationMarker = JSRegex(
+      #"(?<=[\p{L}\p{N})\].,!?:;"'”’])(?<!\\[A-Za-z]{1,32})\[(?:[0-9]+(?:\s*,\s*[0-9]+)*)\](?!\()"#)
+    // `$$…$$`, `$…$`, `\(…\)` and `\[…\]`: citation markers are never stripped inside them.
+    static let mathSpanSplit = JSRegex(
+      #"(\$\$[^$][\s\S]*?\$\$|\$(?![\s$])(?:[^$\n]|\n(?!\s*\n))*?[^\s$]\$(?![0-9])|\\\((?:[^\n]|\n(?!\s*\n))*?\\\)|\\\[(?:[^\n]|\n(?!\s*\n))*?\\\])"#)
     static let rawURL = JSRegex(#"https?://[^\s<>"'`*]+[^\s<>"'`*.,;:!?]"#)
 
     static let linkSyntax = #"!?\[[^\]\n]*\](?:\([^)\n]*\)|\[[^\]\n]*\])|<[^\s<>]*>"#
@@ -339,7 +344,9 @@ public enum MarkdownPreprocessor {
   }
 
   private static func rewriteProseSegment(_ segment: String) -> String {
-    let withoutCitations = Patterns.citationMarker.replace(segment, with: "")
+    let withoutCitations = Patterns.mathSpanSplit.split(segment).enumerated()
+      .map { $0.offset % 2 == 1 ? $0.element : Patterns.citationMarker.replace($0.element, with: "") }
+      .joined()
     return Patterns.linkSyntaxSplit.split(withoutCitations)
       .map { Patterns.linkSyntaxWhole.test($0) ? $0 : autolinkBareURLs($0) }
       .joined()

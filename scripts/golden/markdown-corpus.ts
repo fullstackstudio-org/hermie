@@ -205,7 +205,21 @@ export const PREPROCESS_CASES: MarkdownCase[] = [
   { name: 'unterminated fence with nothing yet', input: lines('Here you go:', '', '```ts') },
   { name: 'unterminated fence after code', input: lines('```py', 'a = 1', '```', '', 'Then:', '', '```py', 'b = 2') },
   { name: 'fence language sanitised', input: lines('```C++ extra words', 'int x;', '```') },
-  { name: 'stray emphasis in a list', input: '- ** listed**' }
+  { name: 'stray emphasis in a list', input: '- ** listed**' },
+  { name: 'citation marker is stripped', input: 'The sky is blue[1] and grass is green[2, 3].' },
+  { name: 'root index in dollar math is kept', input: 'The cube root is $\\sqrt[3]{x}$[1] today.' },
+  { name: 'root index in paren math is kept', input: 'The cube root is \\(\\sqrt[3]{x}\\)[1] today.' },
+  {
+    name: 'root index in display math is kept',
+    input: lines('Before[1]', '', '$$', '\\sqrt[3]{x}', '$$', '', 'After[2]')
+  },
+  {
+    name: 'root index in bracket math is kept',
+    input: lines('Before[1]', '', '\\[', '\\sqrt[3]{x}', '\\]', '', 'After[2]')
+  },
+  { name: 'root index after an open command is kept', input: 'half an expression $x = \\sqrt[3]' },
+  { name: 'citation beside math is stripped', input: 'Roots $\\sqrt[3]{x}$ are odd[1] and $y[2]$ stays.' },
+  { name: 'citation after prices is stripped', input: 'It costs $5 and $7 today[1].' }
 ]
 
 /** Documents whose every prefix is a case of `streaming.json`. */
