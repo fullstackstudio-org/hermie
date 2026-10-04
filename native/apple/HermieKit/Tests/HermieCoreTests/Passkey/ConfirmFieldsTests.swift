@@ -147,7 +147,7 @@ struct ConfirmFieldRulesTests {
       "a\tb", "a\u{0007}b", "a\u{0000}b", "a\u{007F}b",  // controls
       "a\u{202E}b", "a\u{2066}b", "a\u{200B}b", "a\u{200D}b", "a\u{FEFF}b", "a\u{00AD}b",  // format
       "a\u{00A0}b", "a\u{3000}b", "a\u{2003}b",  // other whitespace
-      "a\u{3164}b", "a\u{2800}b", "a\u{FE0F}b", "a\u{034F}b",  // invisible letters, default-ignorable
+      "a\u{3164}b", "a\u{2800}b", "a\u{16FE4}b", "a\u{FE0F}b", "a\u{034F}b",  // invisible letters, default-ignorable
       "a\u{E000}b", "a\u{0378}b",  // private use, unassigned
       " a", "a ", " ", "a" + String(repeating: " ", count: 17) + "b",  // spaces at an end, a run of 17
       "a" + String(repeating: "\u{0301}", count: 5)  // five combining marks

@@ -193,16 +193,22 @@ public struct ReviewDiff: Sendable, Equatable {
     return ReviewDiff(kind: kind, path: path, oldPath: oldPath, hunks: hunks)
   }
 
-  /// One to 300 code points, one line, relative: never absolute, never a `..` or `.git` segment (§7).
+  /// A path as the gateway's builder holds it (§7): 1 to 300 code points of one line of verbatim text
+  /// (no control, format or hidden character), relative (no leading `/`, no backslash), and no segment
+  /// that is empty, `.`, `..`, `.git` in any case, starts or ends with a space, or ends with a dot.
   static func isPath(_ text: String) -> Bool {
     let count = text.unicodeScalars.count
 
-    guard count >= 1, count <= DiffTextRules.maxPathChars, DiffTextRules.isOneLine(text), !text.hasPrefix("/") else {
+    guard count >= 1, count <= DiffTextRules.maxPathChars, !text.hasPrefix("/"), !text.contains("\\"),
+      !text.unicodeScalars.contains(where: { $0 == "\n" || DraftText.isNotVerbatim($0) })
+    else {
       return false
     }
 
-    return !text.split(separator: "/", omittingEmptySubsequences: false)
-      .contains { $0 == ".." || $0.lowercased() == ".git" }
+    return !text.split(separator: "/", omittingEmptySubsequences: false).contains { segment in
+      segment.isEmpty || segment == "." || segment == ".." || segment.lowercased() == ".git"
+        || segment.first == " " || segment.last == " " || segment.last == "."
+    }
   }
 
   /// `^h[1-9][0-9]{0,2}$`.

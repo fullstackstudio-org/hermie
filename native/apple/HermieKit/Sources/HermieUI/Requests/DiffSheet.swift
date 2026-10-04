@@ -171,13 +171,22 @@ struct DiffFileHeader: View {
           .foregroundStyle(.secondary)
       }
 
-      Text(verbatim: DraftText.reveal(path))
+      // Each path is a text of its own (its own paragraph for the bidirectional algorithm) and is
+      // isolated left to right, so a right-to-left path can neither reorder itself against the other
+      // path nor swap sides with it.
+      Text(verbatim: Self.isolated(DraftText.reveal(path)))
         .font(.callout.monospaced().weight(.semibold))
         .fixedSize(horizontal: false, vertical: true)
         .textSelection(.enabled)
+        .accessibilityLabel(path)
         .accessibilityIdentifier(identifier)
     }
     .accessibilityElement(children: .combine)
+  }
+
+  /// `path` as a left-to-right isolate (U+2066 … U+2069): drawn in this order whatever its letters are.
+  static func isolated(_ path: String) -> String {
+    "\u{2066}" + path + "\u{2069}"
   }
 }
 

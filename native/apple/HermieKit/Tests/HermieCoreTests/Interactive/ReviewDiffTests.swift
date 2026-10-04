@@ -357,7 +357,11 @@ struct ReviewDiffReadingTests {
     #expect(problem(diff(kind: "rename", path: "b", oldPath: "x\ny", hunks: [hunk()])) == .oldPathInvalid)
 
     // Never absolute, never a `..` or `.git` segment (§7).
-    for bad in ["/etc/passwd", "../x", "a/../b", "a/..", "..", ".git/config", "a/.git/hooks", "a/.GIT", ".git"] {
+    for bad in [
+      "/etc/passwd", "../x", "a/../b", "a/..", "..", ".git/config", "a/.git/hooks", "a/.GIT", ".git", ".Git/x",
+      "a//b", "a/", "/", "./a", "a/./b", ".", " a", "a /b", "a/ b", "a ", "a/b.", "a./b", "dir\\file", "a\\b/c",
+      "a\u{0007}b", "a\tb", "a\u{202E}b", "a\u{200B}b", "a\u{16FE4}b"
+    ] {
       #expect(problem(diff(path: bad, hunks: [hunk()])) == .pathInvalid, "\(bad)")
       #expect(problem(diff(kind: "rename", path: "b", oldPath: bad, hunks: [hunk()])) == .oldPathInvalid, "\(bad)")
     }
@@ -366,9 +370,19 @@ struct ReviewDiffReadingTests {
       #expect(try read(diff(path: good, hunks: [hunk()])).path == good, "\(good)")
     }
 
-    // An odd character in a path is shown as a visible code, not refused.
-    #expect(try read(diff(path: "a\u{202E}b", hunks: [hunk()])).path == "a\u{202E}b")
-    #expect(DraftText.reveal("a\u{202E}b") == "a\u{27E8}U+202E\u{27E9}b")
+    // Inner spaces and dots are fine.
+    #expect(try read(diff(path: "my docs/a.b.txt", hunks: [hunk()])).path == "my docs/a.b.txt")
+  }
+
+  @Test("U+16FE4, the Khitan filler, is refused in a diff line (4041) and in a confirm field (4040)")
+  func khitanFiller() throws {
+    let filler = "\u{16FE4}"
+    #expect(!DiffTextRules.isShowable("a" + filler + "b"))
+    #expect(ReviewDiff.parseLine("+a" + filler) == nil)
+    #expect(problem(diff(hunks: [hunk(lines: [" a", "-b" + filler, "+B", " c"])])) == .lineInvalid(hunk: "h1", index: 1))
+    #expect(DraftText.isNotVerbatim(Unicode.Scalar(0x16FE4)!))
+    #expect(!ConfirmFieldRules.isLine("pay" + filler, max: 40))
+    #expect(ConfirmFieldRules.isLine("pay", max: 40))
   }
 
   @Test("an unknown kind is not shown; nor is a missing hunks list or a hunks list that is not a list")

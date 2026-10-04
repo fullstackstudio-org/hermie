@@ -79,6 +79,36 @@ struct DiffSheetTests {
     #expect(shown?.contains("-2") == false && shown?.contains("+2") == false && shown?.contains("@@") == false)
   }
 
+  @Test("a rename draws the old path and the new one as separate left-to-right isolates, so right-to-left paths cannot swap sides")
+  func renamePathsAreIsolated() throws {
+    let hebrew = "\u{05E9}\u{05DC}\u{05D5}\u{05DD}/\u{05E7}\u{05D5}\u{05D1}\u{05E5}.txt"
+    let arabic = "\u{0645}\u{0644}\u{0641}/\u{0646}\u{0635}.txt"
+    let old = DiffFileHeader.isolated(DraftText.reveal(hebrew))
+    let new = DiffFileHeader.isolated(DraftText.reveal(arabic))
+
+    for text in [old, new] {
+      #expect(text.hasPrefix("\u{2066}") && text.hasSuffix("\u{2069}"), "an LTR isolate")
+    }
+
+    #expect(old.dropFirst().dropLast() == hebrew[...] && new.dropFirst().dropLast() == arabic[...], "the path itself, unchanged")
+    #expect(old != new)
+
+    // The header holds the two as two views: there is no single string with both paths.
+    guard case .success(let diff) = ReviewDiff.read(
+      ReviewDiffParams(json: [
+        "v": 1, "kind": "rename", "path": .string(arabic), "old_path": .string(hebrew),
+        "hunks": [["id": "h1", "header": "@@ -1,2 +1,2 @@", "lines": [" a", "-b", "+B"], "anchor": "both"]]
+      ]))
+    else {
+      Issue.record("refused")
+      return
+    }
+
+    #expect(diff.oldPath == hebrew && diff.path == arabic)
+    let rendered = ImageRenderer(content: DiffFileHeader(diff: diff).frame(width: 320).padding())
+    #expect((try #require(rendered.cgImage)).height > 0)
+  }
+
   // MARK: Lines
 
   @Test("added and removed lines differ by their marker and a band, not by colour alone; the note has its own marker")
