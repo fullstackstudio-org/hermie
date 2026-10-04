@@ -618,15 +618,16 @@ public struct UploadTarget: JSONObjectBacked {
     set { json[field: "strip_metadata"] = newValue }
   }
 
-  /// Whether `path` is absolute and, after resolving `.` and `..` segments lexically, starts with
-  /// `dir` followed by `/`. A sibling directory sharing a prefix is not under it.
+  /// Whether `path` sits DIRECTLY in `dir`: both absolute, resolved lexically (`.`, `..` and empty
+  /// segments), the path's parent is `dir` exactly and its last segment is a name. The layout is flat:
+  /// a sibling sharing a prefix, `dir` itself and a file in a subdirectory are all outside.
   public func contains(path: String) -> Bool {
     guard let dir, let root = Self.normalized(dir), let target = Self.normalized(path) else { return false }
-    return target.count > root.count && target.starts(with: root)
+    return target.count == root.count + 1 && target.starts(with: root)
   }
 
-  /// The segments of an absolute path with `.` and `..` resolved, `nil` for a relative path or one
-  /// that climbs above the root.
+  /// The segments of an absolute path with `.`, `..` and empty segments resolved, `nil` for a relative
+  /// path or one that climbs above the root.
   private static func normalized(_ path: String) -> [Substring]? {
     guard path.hasPrefix("/") else { return nil }
     var segments: [Substring] = []
@@ -672,7 +673,7 @@ public struct UploadedFile: JSONObjectBacked {
     self.sha256 = sha256
   }
 
-  /// Absolute and under `upload.dir`.
+  /// Absolute, at most 4,096 characters, and directly in `upload.dir`.
   public var path: String? { get { json[field: "path"] } set { json[field: "path"] = newValue } }
   public var name: String? { get { json[field: "name"] } set { json[field: "name"] = newValue } }
   public var mime: String? { get { json[field: "mime"] } set { json[field: "mime"] = newValue } }

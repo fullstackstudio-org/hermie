@@ -235,7 +235,7 @@ import Testing
     #expect(FormValue(jsonValue: ["a", 1]) == nil)
   }
 
-  @Test("every valid input.file answer is what the typed constructors encode, and its paths lie under upload.dir")
+  @Test("every valid input.file answer is what the typed constructors encode, and its paths lie directly in upload.dir")
   func fileAnswers() throws {
     let answers = try Self.section("input.file", "answers")
     #expect(answers.count == 4)
@@ -286,12 +286,17 @@ import Testing
       #expect(try #require(params.upload).contains(path: path) == false, "\(invalid["name"]?.stringValue ?? "")")
       checked += 1
     }
-    #expect(checked == 2)
+    #expect(checked == 3)
 
     let target = UploadTarget(json: ["dir": "/uploads/a"])
     #expect(target.contains(path: "/uploads/a/x.jpg"))
     #expect(target.contains(path: "/uploads/./a/b/../x.jpg"))
+    #expect(target.contains(path: "/uploads//a/./x.jpg"))
     #expect(!target.contains(path: "/uploads/a"))
+    #expect(!target.contains(path: "/uploads/a/"))
+    #expect(!target.contains(path: "/uploads/a/b/x.jpg"))
+    #expect(!target.contains(path: "/uploads/a/.."))
+    #expect(!target.contains(path: "/uploads"))
     #expect(!target.contains(path: "/uploads/a/../b/x.jpg"))
     #expect(!target.contains(path: "/uploads/ab/x.jpg"))
     #expect(!target.contains(path: "uploads/a/x.jpg"))

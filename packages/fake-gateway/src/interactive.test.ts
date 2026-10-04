@@ -16,7 +16,7 @@ import { type FakeGateway, startFakeGateway } from './server'
 import {
   defaultParams,
   INTERACTIVE_METHODS,
-  isUnder,
+  isDirectlyIn,
   loadContract,
   matches,
   matchesParams,
@@ -217,13 +217,33 @@ describe('the rules the schema cannot say', () => {
     ).toBe('field:at:zone')
   })
 
-  it('resolves . and .. lexically and keeps a sibling that shares a prefix out', () => {
+  it('resolves . .. and empty segments lexically; a path that is not absolute or climbs above / resolves to nothing', () => {
     expect(resolveLexically('/a/b/../c/./d')).toBe('/a/c/d')
-    expect(resolveLexically('/../../x')).toBe('/x')
-    expect(isUnder('/up/2026', '/up/2026/f.jpg')).toBe(true)
-    expect(isUnder('/up/2026/', '/up/2026/../2026/f.jpg')).toBe(true)
-    expect(isUnder('/up/2026', '/up/2026-old/f.jpg')).toBe(false)
-    expect(isUnder('/up/2026', '/up/2026')).toBe(false)
+    expect(resolveLexically('/a//b/')).toBe('/a/b')
+    expect(resolveLexically('/')).toBe('/')
+    expect(resolveLexically('/../x')).toBeNull()
+    expect(resolveLexically('/a/../../x')).toBeNull()
+    expect(resolveLexically('a/b')).toBeNull()
+  })
+
+  it('takes a file only directly in upload.dir', () => {
+    expect(isDirectlyIn('/up/2026', '/up/2026/f.jpg')).toBe(true)
+    expect(isDirectlyIn('/up/2026/', '/up/2026/../2026/f.jpg')).toBe(true)
+    expect(isDirectlyIn('/up//2026/./', '/up/2026//f.jpg')).toBe(true)
+    expect(isDirectlyIn('/', '/f.jpg')).toBe(true)
+    // A sibling that shares a prefix, the directory itself, a subdirectory and the parent are outside.
+    expect(isDirectlyIn('/up/2026', '/up/2026-old/f.jpg')).toBe(false)
+    expect(isDirectlyIn('/up/2026', '/up/2026')).toBe(false)
+    expect(isDirectlyIn('/up/2026', '/up/2026/')).toBe(false)
+    expect(isDirectlyIn('/up/2026', '/up/2026/sub/f.jpg')).toBe(false)
+    expect(isDirectlyIn('/up/2026', '/up/2026/sub/../f.jpg')).toBe(true)
+    expect(isDirectlyIn('/up/2026', '/up/2026/..')).toBe(false)
+    expect(isDirectlyIn('/up/2026', '/up/f.jpg')).toBe(false)
+    // Not absolute, or climbing above /: outside, in the path and in the directory.
+    expect(isDirectlyIn('/up/2026', 'f.jpg')).toBe(false)
+    expect(isDirectlyIn('/up/2026', '/../up/2026/f.jpg')).toBe(false)
+    expect(isDirectlyIn('/../up', '/up/f.jpg')).toBe(false)
+    expect(isDirectlyIn('up', '/up/f.jpg')).toBe(false)
   })
 
   it('adds the files up against the total after each file passed on its own', () => {
@@ -247,6 +267,23 @@ describe('the rules the schema cannot say', () => {
     expect(refusalFor('input.file', params, { status: 'answered', files: [file('a', 101), file('b', 1)] })).toBe(
       'file:0:too_large'
     )
+  })
+
+  it('refuses a file that is not directly in upload.dir, and a path longer than 4,096 characters as bad_shape', () => {
+    const params = { ...defaultParams('input.file', 0), upload: { dir: '/up', max_bytes: 100, max_total_bytes: 100 } }
+    const answer = (path: string) => ({
+      status: 'answered',
+      files: [{ path, name: 'a', mime: 'text/plain', bytes: 1, sha256: 'a'.repeat(64) }]
+    })
+
+    expect(refusalFor('input.file', params, answer('/up/0123456789abcdef-a'))).toBeNull()
+    expect(refusalFor('input.file', params, answer('/up/./x/../0123456789abcdef-a'))).toBeNull()
+    expect(refusalFor('input.file', params, answer('/up/sub/0123456789abcdef-a'))).toBe('file:0:outside_dir')
+    expect(refusalFor('input.file', params, answer('/up'))).toBe('file:0:outside_dir')
+    expect(refusalFor('input.file', params, answer('/up/..'))).toBe('file:0:outside_dir')
+    expect(refusalFor('input.file', params, answer('/../up/a'))).toBe('file:0:outside_dir')
+    expect(refusalFor('input.file', params, answer(`/up/${'a'.repeat(4092)}`))).toBeNull()
+    expect(refusalFor('input.file', params, answer(`/up/${'a'.repeat(4093)}`))).toBe('bad_shape')
   })
 
   it('removes trailing whitespace before looking at a draft, and refuses what cannot be shown as it is', () => {

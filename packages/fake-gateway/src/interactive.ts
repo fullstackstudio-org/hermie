@@ -247,18 +247,6 @@ export function defaultParams(method: InteractiveMethod, nowMs: number, contract
 
 // ── answers ──────────────────────────────────────────────────────────────────
 
-const FIELD_ID = /^[a-z][a-z0-9_]{0,31}$/
-
-/**
- * A form's `values` key that is not a well-formed field id fails the shape (the schema's `propertyNames`),
- * and is never echoed into a reason: `field:<id>:unknown` is for a well-formed id the form does not have.
- */
-function hasMalformedValueKey(method: InteractiveMethod, result: unknown): boolean {
-  const values = method === 'input.form' && isObject(result) ? result.values : undefined
-
-  return isObject(values) && Object.keys(values).some(key => !FIELD_ID.test(key))
-}
-
 /** The first reason an answer is refused for, or `null` when the gateway takes it. */
 export function refusalFor(
   method: InteractiveMethod,
@@ -266,7 +254,7 @@ export function refusalFor(
   result: unknown,
   contract = loadContract()
 ): string | null {
-  if (!matchesResult(method, result, contract) || hasMalformedValueKey(method, result)) {
+  if (!matchesResult(method, result, contract)) {
     return 'bad_shape'
   }
 
@@ -640,8 +628,15 @@ function refuseChoice(field: Obj, value: unknown): string | null {
 
 // ── input.file ───────────────────────────────────────────────────────────────
 
-/** `.` and `..` resolved lexically, as `README.md` section 5 says; `..` above the root stays at the root. */
-export function resolveLexically(path: string): string {
+/**
+ * `.`, `..` and empty segments of an absolute path resolved lexically (`README.md` section 5); `null` when
+ * the path is not absolute or climbs above `/`.
+ */
+export function resolveLexically(path: string): string | null {
+  if (!path.startsWith('/')) {
+    return null
+  }
+
   const out: string[] = []
 
   for (const segment of path.split('/')) {
@@ -650,6 +645,10 @@ export function resolveLexically(path: string): string {
     }
 
     if (segment === '..') {
+      if (out.length === 0) {
+        return null
+      }
+
       out.pop()
     } else {
       out.push(segment)
@@ -659,11 +658,24 @@ export function resolveLexically(path: string): string {
   return `/${out.join('/')}`
 }
 
-/** Is `path` under `dir`: the directory followed by `/`, so a sibling that shares a prefix is not. */
-export function isUnder(dir: string, path: string): boolean {
+/**
+ * Is `path` an entry DIRECTLY in `dir`: both resolved lexically, the path is not the directory itself, its
+ * parent is the directory exactly and its last segment is a name. The upload layout is flat, so a file in a
+ * subdirectory, the directory itself and a sibling that shares a prefix are all outside.
+ */
+export function isDirectlyIn(dir: string, path: string): boolean {
   const base = resolveLexically(dir)
+  const resolved = resolveLexically(path)
 
-  return resolveLexically(path).startsWith(base === '/' ? '/' : `${base}/`)
+  if (base === null || resolved === null || resolved === base) {
+    return false
+  }
+
+  const cut = resolved.lastIndexOf('/')
+  const parent = cut === 0 ? '/' : resolved.slice(0, cut)
+  const name = resolved.slice(cut + 1)
+
+  return parent === base && name !== '' && name !== '.' && name !== '..'
 }
 
 function refuseFiles(params: Obj, answer: Obj): string | null {
@@ -678,7 +690,7 @@ function refuseFiles(params: Obj, answer: Obj): string | null {
   let total = 0
 
   for (const [index, file] of files.entries()) {
-    if (typeof upload.dir === 'string' && !isUnder(upload.dir, String(file.path))) {
+    if (typeof upload.dir === 'string' && !isDirectlyIn(upload.dir, String(file.path))) {
       return `file:${index}:outside_dir`
     }
 
