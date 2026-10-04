@@ -36,6 +36,7 @@
 import { createStore, type StoreApi } from 'zustand/vanilla'
 
 import type { WebKeyValueStore } from '../platform/key-value-store'
+import { applyTextSize } from '../platform/theme-target'
 
 export type TextSize = 'small' | 'default' | 'large' | 'xlarge'
 
@@ -126,3 +127,21 @@ export function createTextSizeStore(): StoreApi<TextSizeState> {
 
 /** The page's store. */
 export const textSizeStore: StoreApi<TextSizeState> = createTextSizeStore()
+
+/**
+ * Keep the document's `data-text-size` in step with the store: applied now and on every change
+ * (a pick here, or a size another device sent). `ui/theme.css` holds the factor each name stands for
+ * and `chat.css` multiplies the words of a message by it. Returns the unsubscribe.
+ */
+export function bindTextSize(
+  store: StoreApi<TextSizeState> = textSizeStore,
+  apply: (size: TextSize) => void = size => applyTextSize(size)
+): () => void {
+  apply(store.getState().textSize)
+
+  return store.subscribe((state, previous) => {
+    if (state.textSize !== previous.textSize) {
+      apply(state.textSize)
+    }
+  })
+}

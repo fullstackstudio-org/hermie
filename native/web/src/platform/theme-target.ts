@@ -43,3 +43,14 @@ export function applyTheme(theme: AppliedTheme, target: ThemeTarget | null = pag
 
   target.setAttribute(TINT_ATTRIBUTE, theme.tint)
 }
+
+/**
+ * The attribute that names the transcript's text size (`small`, `default`, `large`, `xlarge`);
+ * `ui/theme.css` turns it into the factor the conversation's type is multiplied by.
+ */
+export const TEXT_SIZE_ATTRIBUTE = 'data-text-size'
+
+/** Put the transcript's text size on the page (or on `target`). */
+export function applyTextSize(size: string, target: ThemeTarget | null = pageRoot()): void {
+  target?.setAttribute(TEXT_SIZE_ATTRIBUTE, size)
+}

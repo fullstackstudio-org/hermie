@@ -1,5 +1,6 @@
 /**
- * The reader's device settings: the colour scheme and the one tint.
+ * The reader's device settings: the colour scheme, the one tint and whether this
+ * browser keeps transcripts.
  *
  * Both belong to the browser profile, like the language (`i18n/locale.ts`): they
  * are stored under `device.*` keys of the base-path namespace
@@ -11,8 +12,14 @@
  * `prefers-color-scheme`, and the stylesheet does the following itself
  * (`ui/theme.css`); `light` and `dark` pin it. The page applies the choice to
  * the document element (`platform/theme-target.ts`), and `bindTheme` is the one
- * line that connects the two. There is no screen that changes it yet; Settings
- * (W-20b) is that screen, and it will call `setScheme` and `setTint`.
+ * line that connects the two. Settings, Appearance (`features/settings`) is the screen
+ * that changes them, through `setScheme` and `setTint`.
+ *
+ * **The transcript cache.** Whether this browser keeps a copy of the conversations it
+ * has read (IndexedDB, `platform/chat-cache.ts`) is a choice about the browser, not about a
+ * person, so it is stored the same way (`device.transcriptCache`, kept on sign-out, never sent
+ * to a gateway). Absent means on: only an explicit `off` is stored. The cache honours it
+ * through `GatedChatCache`; this store only holds the choice.
  *
  * A vanilla zustand store (`settingsStore`, and `createSettingsStore` for
  * tests), read by `features/` through `useStore`.
@@ -35,6 +42,7 @@ export const DEFAULT_TINT: Tint = 'blue'
 /** Device-local keys (the `device.` prefix survives a sign-out). */
 export const SCHEME_KEY = 'device.scheme'
 export const TINT_KEY = 'device.tint'
+export const TRANSCRIPT_CACHE_KEY = 'device.transcriptCache'
 
 const SCHEMES: readonly SchemeChoice[] = ['system', 'light', 'dark']
 
@@ -51,6 +59,8 @@ export function asTint(value: unknown): Tint {
 export interface SettingsState {
   scheme: SchemeChoice
   tint: Tint
+  /** Whether this browser keeps the transcripts it has read. On unless the reader switched it off. */
+  transcriptCache: boolean
   /** Where the choices are written; null before the page's store is known (nothing is persisted then). */
   storage: WebKeyValueStore | null
 
@@ -58,6 +68,7 @@ export interface SettingsState {
   hydrate: (storage: WebKeyValueStore) => void
   setScheme: (scheme: SchemeChoice) => void
   setTint: (tint: Tint) => void
+  setTranscriptCache: (enabled: boolean) => void
   /** Back to the defaults, and forget the store (tests). A stored choice stays stored. */
   reset: () => void
 }
@@ -66,13 +77,15 @@ export function createSettingsStore(): StoreApi<SettingsState> {
   return createStore<SettingsState>((set, get) => ({
     scheme: DEFAULT_SCHEME,
     tint: DEFAULT_TINT,
+    transcriptCache: true,
     storage: null,
 
     hydrate(storage) {
       set({
         storage,
         scheme: asSchemeChoice(storage.getSync(SCHEME_KEY)),
-        tint: asTint(storage.getSync(TINT_KEY))
+        tint: asTint(storage.getSync(TINT_KEY)),
+        transcriptCache: storage.getSync(TRANSCRIPT_CACHE_KEY) !== 'off'
       })
     },
 
@@ -94,8 +107,23 @@ export function createSettingsStore(): StoreApi<SettingsState> {
       get().storage?.setSync(TINT_KEY, tint)
     },
 
+    setTranscriptCache(enabled) {
+      if (enabled === get().transcriptCache) {
+        return
+      }
+
+      set({ transcriptCache: enabled })
+
+      // Only the departure from the default is stored, so a later change of the default reaches everybody who never chose.
+      if (enabled) {
+        get().storage?.deleteSync(TRANSCRIPT_CACHE_KEY)
+      } else {
+        get().storage?.setSync(TRANSCRIPT_CACHE_KEY, 'off')
+      }
+    },
+
     reset() {
-      set({ scheme: DEFAULT_SCHEME, tint: DEFAULT_TINT, storage: null })
+      set({ scheme: DEFAULT_SCHEME, tint: DEFAULT_TINT, transcriptCache: true, storage: null })
     }
   }))
 }

@@ -2,11 +2,16 @@
  * The transcript's text size: the helpers ported from the Expo app's
  * `store/text-size.ts`, and the store this client keeps it in.
  */
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { createKeyValueStore } from '../platform/key-value-store'
 import {
   asTextSize,
+  bindTextSize,
   createTextSizeStore,
   DEFAULT_TEXT_SIZE,
   TEXT_SIZE_KEY,
@@ -79,5 +84,31 @@ describe('the store', () => {
     store().applyRemote('default')
 
     expect(notified).toBe(0)
+  })
+})
+
+describe('bindTextSize', () => {
+  it('applies the size now and on every change, and only on a change', () => {
+    const applied: string[] = []
+    const stop = bindTextSize(sizes, size => applied.push(size))
+
+    store().setTextSize('large')
+    store().setTextSize('large')
+    store().applyRemote('small')
+    stop()
+    store().setTextSize('xlarge')
+
+    expect(applied).toEqual(['default', 'large', 'small'])
+  })
+})
+
+describe('the stylesheet', () => {
+  const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'ui', 'theme.css'), 'utf8')
+
+  it.each(TEXT_SIZE_ORDER)('multiplies by the factor the store says for %s', size => {
+    const rule = new RegExp(`:root\\[data-text-size='${size}'\\]\\s*\\{\\s*--hm-chat-scale:\\s*([0-9.]+);`).exec(css)
+
+    expect(rule, `theme.css has no rule for ${size}`).not.toBeNull()
+    expect(Number(rule?.[1])).toBe(textSizeScale(size))
   })
 })

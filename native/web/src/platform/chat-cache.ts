@@ -172,6 +172,45 @@ export class FallbackChatCache implements ChatCache {
   }
 }
 
+/**
+ * A cache the reader can switch off (Settings › Chats): while `enabled()` says no, nothing is read from the
+ * inner cache and nothing is written to it, so a chat opens from the gateway as it does on a first visit and
+ * nothing of it stays in the browser. `forget` and `clear` always reach the inner cache, because leaving
+ * something behind is the one thing a switched-off cache must not do.
+ *
+ * It asks on every call rather than once, so a switch takes effect between two writes without a reload.
+ */
+export class GatedChatCache implements ChatCache {
+  constructor(
+    private readonly inner: ChatCache,
+    private readonly enabled: () => boolean
+  ) {}
+
+  read(bot: string): Promise<CachedTranscriptRow | null> {
+    return this.enabled() ? this.inner.read(bot) : Promise.resolve(null)
+  }
+
+  write(snapshot: CachedTranscriptRow): Promise<void> {
+    return this.enabled() ? this.inner.write(snapshot) : Promise.resolve()
+  }
+
+  forget(bot: string): Promise<void> {
+    return this.inner.forget(bot)
+  }
+
+  readBots(): Promise<CachedBotRow[]> {
+    return this.enabled() ? this.inner.readBots() : Promise.resolve([])
+  }
+
+  writeBots(rows: CachedBotRow[]): Promise<void> {
+    return this.enabled() ? this.inner.writeBots(rows) : Promise.resolve()
+  }
+
+  clear(): Promise<void> {
+    return this.inner.clear()
+  }
+}
+
 /** A stored record: a row plus the namespace it belongs to. */
 type Stored<T> = T & { ns?: string }
 

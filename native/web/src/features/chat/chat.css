@@ -267,6 +267,8 @@
   border-bottom-left-radius: 6px;
   background: var(--hm-surface);
   color: var(--hm-text);
+  /* The reader's text size (Settings, Appearance) multiplies the words of a message and nothing around them. */
+  font-size: calc(1rem * var(--hm-chat-scale, 1));
   overflow-wrap: anywhere;
 }
 

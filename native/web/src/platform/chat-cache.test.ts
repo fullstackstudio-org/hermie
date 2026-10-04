@@ -9,6 +9,7 @@ import {
   type CachedTranscriptRow,
   type ChatCache,
   FallbackChatCache,
+  GatedChatCache,
   IndexedDbChatCache,
   MemoryChatCache
 } from './chat-cache'
@@ -183,5 +184,55 @@ describe('chatCacheFor', () => {
   it('shares one instance per namespace', () => {
     expect(chatCacheFor('/')).toBe(chatCacheFor('/'))
     expect(chatCacheFor('/')).not.toBe(chatCacheFor('/hermes'))
+  })
+})
+
+describe('GatedChatCache', () => {
+  it('passes everything through while the cache is on', async () => {
+    const inner = new MemoryChatCache()
+    const cache = new GatedChatCache(inner, () => true)
+
+    await cache.write(transcript('researcher'))
+    await cache.writeBots([{ name: 'researcher', json: '{}', avatarRev: 0, updatedAt: 1 }])
+
+    expect(await cache.read('researcher')).toEqual(transcript('researcher'))
+    expect(await cache.readBots()).toHaveLength(1)
+  })
+
+  it('reads nothing and writes nothing while it is off, and asks again on every call', async () => {
+    const inner = new MemoryChatCache()
+    let on = true
+    const cache = new GatedChatCache(inner, () => on)
+
+    await cache.write(transcript('researcher'))
+    on = false
+
+    expect(await cache.read('researcher')).toBeNull()
+    expect(await cache.readBots()).toEqual([])
+
+    await cache.write(transcript('writer'))
+    await cache.writeBots([{ name: 'writer', json: '{}', avatarRev: 0, updatedAt: 1 }])
+    expect(await inner.read('writer')).toBeNull()
+    expect(await inner.readBots()).toEqual([])
+
+    on = true
+    expect(await cache.read('researcher')).toEqual(transcript('researcher'))
+  })
+
+  it('still forgets and clears while it is off: nothing may be left behind', async () => {
+    const inner = new MemoryChatCache()
+    const cache = new GatedChatCache(inner, () => true)
+
+    await cache.write(transcript('researcher'))
+    await cache.write(transcript('writer'))
+
+    const off = new GatedChatCache(inner, () => false)
+
+    await off.forget('researcher')
+    expect(await inner.read('researcher')).toBeNull()
+    expect(await inner.read('writer')).not.toBeNull()
+
+    await off.clear()
+    expect(await inner.read('writer')).toBeNull()
   })
 })

@@ -9,6 +9,7 @@ import {
   DEFAULT_SCHEME,
   DEFAULT_TINT,
   SCHEME_KEY,
+  TRANSCRIPT_CACHE_KEY,
   TINT_KEY,
   TINTS
 } from './settings'
@@ -100,6 +101,41 @@ describe('the settings store', () => {
   it('offers a tint for every name the stylesheet has a block for', () => {
     expect(TINTS).toContain(DEFAULT_TINT)
     expect(new Set(TINTS).size).toBe(TINTS.length)
+  })
+})
+
+describe('the transcript cache choice', () => {
+  it('is on until the reader switches it off', () => {
+    expect(createSettingsStore().getState().transcriptCache).toBe(true)
+  })
+
+  it('stores only the departure from the default, on this browser, and keeps it on sign-out', () => {
+    const { data, storage } = memoryStorage()
+    const kv = createKeyValueStore({ namespace: '/', storage })
+    const store = createSettingsStore()
+
+    store.getState().hydrate(kv)
+    store.getState().setTranscriptCache(false)
+    expect(data.get(`hermie:/:${TRANSCRIPT_CACHE_KEY}`)).toBe('off')
+    expect(kv.clearIdentityBound()).toEqual([])
+
+    const later = createSettingsStore()
+
+    later.getState().hydrate(createKeyValueStore({ namespace: '/', storage }))
+    expect(later.getState().transcriptCache).toBe(false)
+
+    later.getState().setTranscriptCache(true)
+    expect(data.has(`hermie:/:${TRANSCRIPT_CACHE_KEY}`)).toBe(false)
+  })
+
+  it('does not notify for the choice it already has', () => {
+    const store = createSettingsStore()
+    let notified = 0
+
+    store.subscribe(() => (notified += 1))
+    store.getState().setTranscriptCache(true)
+
+    expect(notified).toBe(0)
   })
 })
 
