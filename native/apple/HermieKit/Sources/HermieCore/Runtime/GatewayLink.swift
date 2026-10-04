@@ -64,6 +64,12 @@ public protocol GatewayLink: Sendable {
     onProgress: (@Sendable (Double) -> Void)?
   ) async throws -> String
 
+  /// `GET /api/sessions/search`: one profile's conversations whose messages hold `query`, at most one
+  /// hit per conversation (`SessionSearch`). Throws `GatewayError`; cancelling the task cancels the
+  /// request. A blank query answers no hits without a request. A link without a REST side refuses
+  /// (the default).
+  func searchSessions(profile: String, query: String, limit: Int, timeoutMs: Int) async throws -> [SessionSearchHit]
+
   /// Every session a reconnect replay could not make whole
   /// (`GatewayConnection.replayGaps`). Subscribed before `start()`, like `events`.
   /// A link without a replay of its own has none (the default).
@@ -280,6 +286,13 @@ extension GatewayLink {
 
   /// A link with no writer of its own has nothing to wait for.
   public func flushWrites(within limit: Duration) async {}
+
+  /// A link with no REST side cannot search messages.
+  public func searchSessions(profile: String, query: String, limit: Int, timeoutMs: Int) async throws
+    -> [SessionSearchHit]
+  {
+    throw GatewayError(.config, "This connection cannot search messages.")
+  }
 
   /// A link with no REST side cannot take a file.
   public func uploadFile(

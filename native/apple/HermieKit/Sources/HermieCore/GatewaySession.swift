@@ -707,6 +707,16 @@ public struct ConnectionLink: GatewayLink {
     try await http.uploadFile(from: file, name: name, mimeType: mimeType, to: path, onProgress: onProgress)
   }
 
+  public func searchSessions(profile: String, query: String, limit: Int, timeoutMs: Int) async throws
+    -> [SessionSearchHit]
+  {
+    guard let path = SessionSearch.path(query: query, profile: profile, limit: limit) else {
+      return []
+    }
+
+    return SessionSearch.parse(try await http.get(path, timeoutMs: timeoutMs))
+  }
+
   public func claimTurn(_ runtimeSessionID: String) async {
     let baseURL = http.baseURL
     let credentials = self.credentials
