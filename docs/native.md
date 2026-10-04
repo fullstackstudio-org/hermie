@@ -475,8 +475,56 @@ contract says (a phone number or address too long for its bound is left out, nev
 opens `EKEventEditViewController` prefilled: the answer is `done` only when the person saved there and `skipped` when
 they cancelled (or the sheet is back with Add when the request offers no skip); where there is no system sheet (the Mac,
 and a reminder anywhere) Add saves through `EKEventStore` after `requestWriteOnlyAccessToEvents` or
-`requestFullAccessToReminders`, which the sheet says before it asks. The usage strings are in `Info.plist` and the iOS
-`InfoPlist.strings` (en, nl, de); the Mac app's sandbox has the location and calendars entitlements.
+`requestFullAccessToReminders`, which the sheet says before it asks (EventKit offers only full access to Reminders; the
+note says Hermie adds the one reminder and reads no other). **On the Mac the system has no edit sheet, so Add is the
+save**: the contract's text about the system sheet is the iPhone and iPad route. A saved entry stays saved
+(`InteractiveCalendarModel.Phase.saved`): if the answer to the agent then fails to send, Try again sends only the answer
+and never writes (or opens the editor) a second time. A Mac whose store gives no default calendar after access was
+granted answers `4041 not_supported_on_device` (`CalendarSaveOutcome.noCalendar`) instead of offering Add for ever. The
+usage strings are in `Info.plist` and the `InfoPlist.strings` of both apps (en, nl, de); the Mac app's sandbox has the
+location and calendars entitlements.
+
+What a device announces is checked, not assumed (`DeviceAvailability`). On the Mac `device.contact` is **not**
+announced: `CNContactPicker` runs in its own process, but nothing in this repository can show that a sandboxed app
+without the address book entitlement is handed the chosen contact's details, and the other way (the entitlement and the
+system's "all your contacts" question) is more than one contact deserves; `macContactPickerVerified` turns it on once a
+Mac has proven it, and the Mac manifest then declares Contacts. `device.calendar` is not announced when events and
+reminders are both restricted, nor on a Mac whose granted store has no default calendar. `device.scan` needs a camera
+and a reader (`CodeReaders`). The first read happens off the main thread at launch (`DeviceAvailability.warmUp`).
+Concurrent location requests (two windows) take turns on the one shared provider (`SerialTurns`), so none loses its
+continuation and none hangs in "locating".
+
+**Signature, code scan and voice note (HERM-260, part B).** Three more requests have a sheet and a model each, on the
+same rules as the device requests: nothing is asked of the system, and nothing is made or sent, before the person
+presses the sheet's own button.
+
+- **`input.signature`** (`SignatureSheet`, `InteractiveSignatureModel`): the statement is shown verbatim above the pad;
+  Sign writes a PNG and an SVG from the strokes (`SignatureFiles`; the SVG stays inside the contract's allowlist),
+  uploads both the way an `input.file` answer is uploaded, and answers with the two references, the client's clock and
+  the SHA-256 of the statement the request carried.
+- **`device.scan`** (`ScanSheet`, `InteractiveScanModel`): Scan asks for the camera (the system's prompt comes after
+  it), then one code is read: VisionKit's scanner on iPhone and iPad, a capture session with barcode metadata where the
+  device offers it, and Vision on the video frames (`VNDetectBarcodesRequest`, five a second) where the capture
+  metadata output offers no barcode type, which is the Mac. The value is untrusted: it is cleaned the way the gateway
+  cleans it, shown as plain text (never a link, never opened), and sent only on Send. **What is sent is what is shown**:
+  the preview is the whole value whenever it can be sent (up to 4,096 code points; the box starts expanded), and is cut
+  only for a value too long to send, which cannot be sent anyway.
+- **A voice note** (`input.file` with `accept: audio` and `capture: audio`; `VoiceSheet`, `InteractiveVoiceModel`):
+  Record asks for the microphone, the note is recorded as AAC in MP4, rewritten with no metadata, played back, and
+  uploaded only on Send, with an on-device transcript as `text` when the device can make one (and the person has not
+  left it out). A microphone that is busy for a moment (a call, another app) is a notice on the sheet and Record works
+  again; only a missing microphone is `no_microphone`.
+
+**Privacy manifests.** The iOS app, the Mac app, the share extension and the widgets each carry a
+`PrivacyInfo.xcprivacy` beside their sources (`native/ios/App`, `native/macos/App`, `native/apple/Extensions/Share`,
+`native/apple/Extensions/Widgets`), so XcodeGen bundles them with no extra setting. None tracks and none names a tracking
+domain. The apps declare the data that can leave the device for the gateway the person signed in to (location, audio,
+other user content, photos or videos, and contacts on iPhone and iPad), linked and for app functionality; the share
+extension declares the content it forwards; the widgets collect nothing. Required-reason APIs are declared by what each
+target's own code calls: the apps use `UserDefaults` (CA92.1), file timestamps in their own containers (C617.1) and the
+system uptime (35F9.1); the extensions call none. The App Intents are compiled into the app and covered by its manifest.
+`PrivacyManifestTests` keeps their shape; change a manifest when a target starts using one of these APIs or sends a new
+kind of data.
 
 One sheet is up at a time on a chat (`ChatSheetOrder`). An approval, a passkey confirmation or a secure
 prompt is time-critical and goes first: a form, file request or draft review on screen steps aside the

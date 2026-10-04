@@ -40,6 +40,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **An agent can ask for a signature, a code scan or a voice note, in the native Apple apps.** An
+  `input.signature` request shows the statement in full above a pad; Sign makes a PNG and an SVG of the drawing,
+  uploads both and answers with the hash of the statement that was shown. A `device.scan` request opens the camera
+  only after you press Scan and reads one QR code or barcode (with VisionKit on iPhone and iPad, and with Vision on
+  the Mac, whose capture session reads no barcodes itself); the value is shown to you as plain text, never opened,
+  and in full whenever it can be sent, and goes out only when you press Send. A request for a voice note records on
+  the device, plays it back and uploads it only on Send, with an on-device transcript when there is one; a microphone
+  that is busy for a moment is a notice you can retry. The apps and the extensions now carry privacy manifests, and
+  the Mac texts for the new permission prompts are in English, Dutch and German (`contract/requests`,
+  `docs/native.md`).
+
 - **The web client manages the gateway as the old Expo app did.** Settings gets Memory (both files of a bot's
   memory, edited in place, searched, with the raw documents and the providers that cannot be listed), Skills (a
   bot's switches, the hub browsed and searched, a skill's details, install), MCP servers (the servers a bot
@@ -162,6 +173,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   server, are still in `expo/hermie` (frozen) but no longer have a build or a server.
 
 ### Fixed
+
+- **A calendar entry is no longer saved twice when its answer fails to send, and the Mac says what it cannot do.**
+  Try again after a failed answer wrote a second event or reminder (on iPhone and iPad it reopened the system
+  editor); it now only sends the answer again. On the Mac a contact request is not announced (the picker cannot be
+  shown to work without access to your address book), and a calendar request says so when there is no calendar to
+  save into instead of offering Add for ever. Two location requests at once (two windows) no longer leave one sheet
+  stuck on "Finding your location...".
 
 - **A long failure under the web composer no longer makes it tall, and a chat open elsewhere is explained.**
   The paragraph that says why a send was refused took as many lines as the gateway's words, so a long error
