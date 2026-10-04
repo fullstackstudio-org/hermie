@@ -78,6 +78,12 @@ describe('marking a verbatim detail', () => {
     { name: 'a run of unassigned code points', detail: 'a\u0378\u0378\u0378b', text: 'a[U+0378×3]b' },
     { name: 'an unassigned code point in a far plane', detail: 'a\u{50000}b', text: 'a[U+50000]b' },
     { name: 'a noncharacter', detail: 'a\uFFFFb', text: 'a[U+FFFF]b' },
+    // Private-use characters have no standard glyph, and a lone surrogate is not text at all.
+    { name: 'a private-use character', detail: 'a\uE000b', text: 'a[U+E000]b' },
+    { name: 'a private-use character of a far plane', detail: 'a\u{F0000}b', text: 'a[U+F0000]b' },
+    { name: 'a run of private-use characters', detail: 'a\uE000\uE000b', text: 'a[U+E000×2]b' },
+    { name: 'a lone high surrogate', detail: 'a\uD800b', text: 'a[U+D800]b' },
+    { name: 'a lone low surrogate', detail: 'a\uDC00b', text: 'a[U+DC00]b' },
     { name: 'a line of only default-ignorable code points', detail: 'a\n\u034F\n\n\nb', text: 'a\n[U+034F]\n\n\nb' },
     { name: 'letters, accents and emoji', detail: 'café ✓ 😀 não', text: 'café ✓ 😀 não' }
   ]
@@ -129,6 +135,15 @@ describe('marking what a draft hides', () => {
     expect(markHiddenCharacters('a\tb', { tabs: true })).toBe('a[U+0009]b')
     expect(countHiddenCharacters('a\tb')).toBe(0)
     expect(countHiddenCharacters('a\tb', { tabs: true })).toBe(1)
+  })
+
+  it('shows a private-use character and a lone surrogate by code point, and counts them', () => {
+    const text = 'a\uE000b\uD800c'
+
+    expect(markHiddenCharacters(text)).toBe('a[U+E000]b[U+D800]c')
+    expect(countHiddenCharacters(text)).toBe(2)
+    // A surrogate pair is one character, an emoji, and is left as it is.
+    expect(markHiddenCharacters('a😀b')).toBe('a😀b')
   })
 
   it('counts them', () => {
