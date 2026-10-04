@@ -9,6 +9,7 @@
  * context line by their marker in the gutter, not by colour alone.
  */
 .hm-review__path {
+  unicode-bidi: isolate;
   margin: 0;
   font-family: var(--hm-mono);
   font-size: 0.9375rem;

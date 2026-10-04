@@ -500,9 +500,11 @@ export class PasskeyModel {
 
     // Structured fields (§4.1, §8): a gateway that knows them lists `confirm_fields` in every result, and `versions` lists
     // the `confirm_passkey.v` it accepts. This page draws the fields and computes digest version 2 from them, so it says
-    // both; one that says neither (an older gateway) is never sent a request with fields, and a key it does not know would
+    // both, and says it only when the gateway lists both (`confirm_fields: true` goes with `v: 2`: a page that cannot sign
+    // version 2 must not ask for requests it could only show); one that lists neither (an older gateway) is never sent a
+    // request with fields, and a key it does not know would
     // be refused with 4000 and the whole call with it.
-    const fieldsKnown = 'confirm_fields' in first
+    const fieldsKnown = 'confirm_fields' in first // the key says the gateway knows fields at all
     const versions =
       isRecord(first.confirm_passkey) && Array.isArray(first.confirm_passkey.versions)
         ? first.confirm_passkey.versions
@@ -516,7 +518,7 @@ export class PasskeyModel {
           ...(verdict.kind === 'advertised'
             ? {
                 confirm: ['passkey'],
-                ...(fieldsKnown ? { confirm_fields: true } : {}),
+                ...(v2 ? { confirm_fields: true } : {}),
                 confirm_passkey: { v: v2 ? 2 : 1, kind: 'web', rp_id: webauthn.rpId }
               }
             : {}),

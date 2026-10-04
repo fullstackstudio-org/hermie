@@ -9,14 +9,18 @@
 import type { ConnectionStatus } from '@hermie/gateway-client'
 import type { GatewayEvent } from '@hermes/shared/gateway-events'
 import { JsonRpcGatewayError, type ServerRequest, type ServerRequestHandler } from '@hermes/shared/json-rpc-channel'
+import { webcrypto } from 'node:crypto'
+
 import { describe, expect, it, vi } from 'vitest'
 
+import vectorsSource from '../../../../../contract/confirm-passkey/vectors.json?raw'
 import { createKeyValueStore, type StorageLike } from '../../platform/key-value-store'
 import { createPasskeyPins } from '../../platform/passkey-pins'
 import { createPasskeysStore } from '../../state/passkeys'
 import { softWebAuthn } from '../../test-support/soft-webauthn'
 import { type RequestsAdvert, showableMethods } from '../requests/interactive'
 import { NAME_LIMIT } from '../requests/secure-input'
+import { b64uEncode, textDigest } from './challenge'
 import { createPasskeyClient, PasskeyRouteError, type PasskeyClient, type PasskeyStatus } from './client'
 import {
   credentialName,
@@ -32,6 +36,17 @@ import {
   phaseAfter,
   type SelfEnrolmentSeam
 } from './model'
+
+const vectors = JSON.parse(vectorsSource) as {
+  text_digest_v2_vectors: {
+    name: string
+    title: string
+    summary: string
+    detail: string | null
+    fields: unknown
+    text_digest: string
+  }[]
+}
 
 const BASE = 'https://gw.example.test'
 const GATEWAY_ID = 'AAECAwQFBgcICQoLDA0ODw'
@@ -247,6 +262,28 @@ describe('reading a confirm frame', () => {
     ])
   })
 
+  it('hashes what the sheet holds to the contract’s text_digest_v2, frame to digest, for every vector', async () => {
+    const sha256 = async (data: Uint8Array): Promise<Uint8Array> =>
+      new Uint8Array(await webcrypto.subtle.digest('SHA-256', data))
+
+    for (const vector of vectors.text_digest_v2_vectors) {
+      const page = setUp()
+
+      // The frame as the gateway builds it from the vector's text, through the reader into the store the sheet draws.
+      page.deliver(
+        'srq-v',
+        frame({ title: vector.title, summary: vector.summary, detail: vector.detail, fields: vector.fields }, { v: 2 })
+      )
+
+      const held = page.store.getState().confirmations[0]
+
+      expect(held?.fields, vector.name).toEqual(vector.fields)
+      expect(b64uEncode(await textDigest(sha256, held as NonNullable<typeof held>)), vector.name).toBe(
+        vector.text_digest
+      )
+    }
+  })
+
   it('still takes a version 1 frame, which has no fields', () => {
     const page = setUp()
 
@@ -273,6 +310,8 @@ describe('reading a confirm frame', () => {
     ['a right-to-left override in a label', [{ ...FIELDS[1], label: 'Mod‮el' }]],
     ['a zero-width character in a currency', [{ ...FIELDS[0], currency: '​€' }]],
     ['a no-break space in a value', [{ ...FIELDS[1], value: 'a b' }]],
+    ['a Khitan small script filler in a value', [{ ...FIELDS[1], value: 'a\u{16fe4}b' }]],
+    ['fields that are null', null],
     ['a space at the end of a value', [{ ...FIELDS[1], value: 'claude ' }]],
     ['one bad field among good ones', [FIELDS[0], { ...FIELDS[1], value: 'bad\tvalue' }]]
   ]
@@ -888,17 +927,18 @@ describe('structured fields in the second capabilities call (§8)', () => {
     })
   })
 
-  it('does not send version 2 without confirm_fields, or without the gateway listing 2', async () => {
+  it('sends neither version 2 nor confirm_fields without the key, or without the gateway listing 2', async () => {
     // Versions but no `confirm_fields` key: version 2 would be refused (a client sends 2 only with the fields).
     expect(await secondCall({ fields: { versions: [1, 2], withKey: false } })).toEqual({
       server_requests: true,
       confirm: ['passkey'],
       confirm_passkey: { v: 1, kind: 'web', rp_id: 'gw.example.test' }
     })
-    // The key but only version 1 listed: the fields are shown, the digest stays at 1.
-    expect(await secondCall({ fields: { versions: [1] } })).toMatchObject({
-      confirm_fields: true,
-      confirm_passkey: { v: 1 }
+    // The key but only version 1 listed: `confirm_fields` goes with version 2 only, so neither is sent.
+    expect(await secondCall({ fields: { versions: [1] } })).toEqual({
+      server_requests: true,
+      confirm: ['passkey'],
+      confirm_passkey: { v: 1, kind: 'web', rp_id: 'gw.example.test' }
     })
   })
 

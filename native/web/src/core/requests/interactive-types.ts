@@ -367,7 +367,7 @@ const IGNORABLE: readonly (readonly [number, number])[] = [
   [0xe0000, 0xe0fff]
 ]
 /** Letters that render as blank space (the gateway's `_INVISIBLE_LETTERS`). */
-const INVISIBLE_LETTERS: ReadonlySet<number> = new Set([0x115f, 0x1160, 0x3164, 0xffa0, 0x2800, 0x1d159])
+const INVISIBLE_LETTERS: ReadonlySet<number> = new Set([0x115f, 0x1160, 0x3164, 0xffa0, 0x2800, 0x1d159, 0x16fe4])
 /** What Python's `str.isspace()` is true for: the gateway strips it from the end of each line of an approved draft. */
 const PYTHON_SPACE: ReadonlySet<number> = new Set([
   0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x1c, 0x1d, 0x1e, 0x1f, 0x20, 0x85, 0xa0, 0x1680, 0x2000, 0x2001, 0x2002, 0x2003,
@@ -1408,14 +1408,37 @@ function readHunk(raw: unknown, last: boolean): DiffHunk {
 
   const read = (lines as unknown[]).map(readDiffLine)
 
-  // The note belongs to a `+` or `-` line before it, and only the last hunk of a request can end a file.
+  // git's no-newline note (README §7): only in the LAST hunk of a request (only it can end a file), and only directly
+  // after the last `-` line and/or the last `+` line of that hunk, once per side. Anywhere else the line before it would
+  // be glued to the next line of the file when the patch is applied, invisibly: so nothing of that side and no context
+  // line may follow it either.
+  const lastIndex = (type: 'added' | 'removed'): number => read.map(line => line.type).lastIndexOf(type)
+  const lastRemoved = lastIndex('removed')
+  const lastAdded = lastIndex('added')
+  const noted = { removed: false, added: false }
+
   read.forEach((line, index) => {
-    if (
-      line.type === 'note' &&
-      (!last || index === 0 || read[index - 1]?.type === 'context' || read[index - 1]?.type === 'note')
-    ) {
+    if (line.type === 'context' && read.slice(0, index).some(earlier => earlier.type === 'note')) {
       refuse()
     }
+
+    if (line.type !== 'note') {
+      return
+    }
+
+    const before = index === 0 ? undefined : read[index - 1]?.type
+    const side =
+      before === 'removed' && index - 1 === lastRemoved
+        ? 'removed'
+        : before === 'added' && index - 1 === lastAdded
+          ? 'added'
+          : null
+
+    if (!last || side === null || noted[side]) {
+      refuse()
+    }
+
+    noted[side as 'removed' | 'added'] = true
   })
 
   // The header's counts say how many old and new lines the hunk has: a hunk that disagrees is not one the gateway built.
@@ -1445,12 +1468,25 @@ function readHunk(raw: unknown, last: boolean): DiffHunk {
   return { ...hunk, ...(computed === undefined ? {} : { anchor: computed }) }
 }
 
-const PATH_PROBLEM = (path: string): boolean =>
-  path === '' ||
-  lengthOf(path) > DIFF_LIMITS.path ||
-  path.startsWith('/') ||
-  path.split('/').some(segment => segment === '..' || segment === '.git') ||
-  lineCharProblem(path)
+/**
+ * A path the gateway's builder would refuse (`diff-hunks.ts`, README §7): absolute, with an empty, `.` or `..` segment,
+ * a `.git` segment in any case, a segment that starts with a space or ends with a space or a dot (the file system would
+ * name another file), a backslash, a character that cannot be shown as it is, or longer than 300 code points.
+ */
+const PATH_PROBLEM = (path: string): boolean => {
+  const segments = path.split('/')
+
+  return (
+    path === '' ||
+    lengthOf(path) > DIFF_LIMITS.path ||
+    path.startsWith('/') ||
+    segments.some(segment => segment === '' || segment === '.' || segment === '..') ||
+    segments.some(segment => segment.toLowerCase() === '.git') ||
+    segments.some(segment => segment.startsWith(' ') || segment.endsWith(' ') || segment.endsWith('.')) ||
+    path.includes('\\') ||
+    lineCharProblem(path)
+  )
+}
 
 function readDiff(params: Rec): DiffAsk {
   const envelope = readEnvelope(params, false)
@@ -1494,6 +1530,21 @@ function readDiff(params: Rec): DiffAsk {
     read.some(hunk => hunk.lines.some(line => line.type === foreign || line.type === 'context'))
   ) {
     refuse()
+  }
+
+  // The header must say what the kind says: a new file has no old side (`-0,0`) and a deleted file no new one (`+0,0`).
+  // Otherwise "New file" or "Delete file" would head a change that is an edit of something that exists.
+  const zero = (start: number, count: number): boolean => start === 0 && count === 0
+
+  for (const hunk of read) {
+    const numbers = parseHunkHeader(hunk.header)
+
+    if (
+      (kind === 'new' && !zero(numbers?.oldStart ?? 1, numbers?.oldCount ?? 1)) ||
+      (kind === 'delete' && !zero(numbers?.newStart ?? 1, numbers?.newCount ?? 1))
+    ) {
+      refuse()
+    }
   }
 
   return {

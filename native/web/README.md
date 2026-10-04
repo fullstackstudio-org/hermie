@@ -1143,8 +1143,8 @@ of the secure input model: what a person fills in, picks or edits never reaches 
     (`readDiff` in `interactive-types.ts`, held to the contract's examples by `interactive-types.test.ts` and
     `interactive-diff.test.ts`) refuses what the gateway never builds: a line with no marker, a hidden character, a
     carriage return, whitespace at its end, an indent or run wider than §7.1's limits (counted in columns, a tab to the
-    next multiple of 8), a header whose counts are not the lines', a no-newline note out of place, a path that is
-    absolute or holds `..` or `.git`, and an anchor the lines contradict (an `end` with a context line after the change,
+    next multiple of 8), a header whose counts are not the lines', a no-newline note anywhere but directly after the last `-` or last `+` line of the last hunk (once per side, no context after it), a kind that its header contradicts (`new` without `-0,0`, `delete` without `+0,0`), a path that is
+    absolute or that the gateway's builder refuses (`..`, `.git` in any case, empty or `.` segments, a segment that starts with a space or ends with a space or a dot, a backslash), and an anchor the lines contradict (an `end` with a context line after the change,
     `start` for a hunk at line 40, an `end` on a hunk that is not the last). What the lines pin is shown whether or not the
     gateway said so (`hunkAnchor`). The sheet draws a hunk monospaced with the marker in a gutter, `+` and `-` told apart
     from context by the marker and a word for a screen reader as well as the colour, a tab as a stop of 8 columns, and
@@ -1315,9 +1315,9 @@ not held to it. The channel already sends the first
 call on `gateway.ready` and throws its answer away, so the model sends it again after every arrival at `ready` and reads
 it, then sends the second: `{server_requests: true, confirm: ["passkey"], confirm_passkey: {v: 1, kind: "web", rp_id}}`.
 `plain` is not advertised: this client has no sheet for it yet, so a `confirm` at `plain` (with fields or without) never
-reaches this page. **Structured fields** (§4.1): when the first result carries the key `confirm_fields` the second call
-adds `confirm_fields: true`, and `confirm_passkey: {v: 2, ...}` when `versions` lists 2 too (a page sends 2 only with the
-fields); a gateway that knows neither is never sent a request with fields. A frame with `fields` is version 2: the sheet
+reaches this page. **Structured fields** (§4.1): when the first result carries the key `confirm_fields` and its `versions` lists 2, the second call
+adds `confirm_fields: true` together with `confirm_passkey: {v: 2, ...}` (a page sends 2 only with the
+fields, and never one without the other); a gateway that lists neither is never sent a request with fields. A frame with `fields` is version 2: the sheet
 draws them (`ConfirmFields`: an amount large and bold with its currency, a recipient and a domain monospaced, never a
 link, nothing truncated: it wraps), the challenge commits to `text_digest_v2` over that very list
 (`core/passkey/challenge.ts`, held to the contract's `text_digest_v2_vectors` and `assertion_vectors_v2`), and the

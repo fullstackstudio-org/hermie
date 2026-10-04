@@ -365,7 +365,22 @@ export function DiffSheet({
       <div className="hm-requests__detail-box">
         <p className="hm-requests__label">{words.file}</p>
         <p className="hm-review__path" data-agent-text="" data-kind={ask.kind}>
-          {ask.kind === 'rename' && ask.oldPath !== undefined ? `${ask.oldPath} → ${ask.path}` : ask.path}
+          {/* Each path is its own isolated, left-to-right run: one cannot reorder the other or the arrow between. */}
+          {ask.kind === 'rename' && ask.oldPath !== undefined ? (
+            <>
+              <bdi dir="ltr" data-path="old">
+                {ask.oldPath}
+              </bdi>
+              {' → '}
+              <bdi dir="ltr" data-path="new">
+                {ask.path}
+              </bdi>
+            </>
+          ) : (
+            <bdi dir="ltr" data-path="new">
+              {ask.path}
+            </bdi>
+          )}
         </p>
         <p className="hm-requests__meta" data-file-kind="">
           {kindWord}

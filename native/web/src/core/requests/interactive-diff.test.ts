@@ -295,6 +295,8 @@ describe('what a line is allowed to be (README §7.1)', () => {
     ['a byte order mark', 'a﻿b'],
     ['a no-break space', 'a b'],
     ['a blank Hangul letter', 'aㅤb'],
+    ['a Khitan small script filler (U+16FE4)', 'a\u{16fe4}b'],
+    ['a musical null notehead (U+1D159)', 'a\u{1d159}b'],
     ['a variation selector', 'a️b'],
     ['a tag character', 'a\u{e0041}b'],
     ['a control character', 'a\u0007b'],
@@ -466,6 +468,25 @@ describe('a frame that is not what the gateway builds (README §7)', () => {
     expect(refused([{ id: 'h1', header: '@@ -10,1 +10,1 @@', lines: ['-old', '\\ No newline', '+new'] }])).toBe(true)
   })
 
+  it('puts the note only directly after the LAST `-` and the LAST `+` line, once per side, with no context after it', () => {
+    const note = '\\ No newline at end of file'
+    const one = (header: string, lines: string[]): boolean => refused([{ id: 'h1', header, lines }])
+
+    // A context line after the note: the line before it would be glued to the next one.
+    expect(one('@@ -10,2 +10,2 @@', ['-old', note, '+new', ' after'])).toBe(true)
+    // Another `-` line of the same side follows it.
+    expect(one('@@ -10,2 +10,1 @@', ['-a', note, '-b', '+c'])).toBe(true)
+    // The first `+` line is not the last one, and a second note for the same side.
+    expect(one('@@ -10,1 +10,2 @@', ['-a', '+b', note, '+c', note])).toBe(true)
+    expect(one('@@ -10,1 +10,1 @@', ['-a', '+b', note, note])).toBe(true)
+    expect(one('@@ -10,1 +10,2 @@', ['-a', '+b', '+c', note, note])).toBe(true)
+    // What the contract allows: a note after the last of each side, or after one of them.
+    expect(one('@@ -10,2 +10,1 @@', ['-a', '-b', note, '+c', note])).toBe(false)
+    expect(one('@@ -10,1 +10,2 @@', ['-a', '+b', '+c', note])).toBe(false)
+    expect(one('@@ -10,2 +10,2 @@', [' ctx', '-a', '+b', note])).toBe(false)
+    expect(one('@@ -10,2 +10,2 @@', [' ctx', '-a', note, '+b'])).toBe(false)
+  })
+
   it('has a path that is relative, of one line, without a .. or .git segment', () => {
     for (const path of [
       '',
@@ -474,6 +495,19 @@ describe('a frame that is not what the gateway builds (README §7)', () => {
       'a/../x',
       '.git/config',
       'a/.git/hooks',
+      '.GIT/config',
+      'a/.Git/hooks',
+      'a//b',
+      'a/',
+      './a',
+      'a/./b',
+      ' a/b',
+      'a /b',
+      'a/b ',
+      'a/b.',
+      'a./b',
+      'a\\b',
+      'C:\\x',
       'a\nb',
       'a‮b',
       'p'.repeat(301)
@@ -482,6 +516,12 @@ describe('a frame that is not what the gateway builds (README §7)', () => {
     }
 
     expect(refused([hunk()], { path: 'src/.gitignore' })).toBe(false)
+    expect(refused([hunk()], { path: 'a b/c d.txt' })).toBe(false)
+    expect(refused([hunk()], { path: 'src/.github/x.yml' })).toBe(false)
+    // The same rules for the old path of a rename.
+    expect(refused([hunk()], { kind: 'rename', old_path: 'a/.GIT/x' })).toBe(true)
+    expect(refused([hunk()], { kind: 'rename', old_path: 'a\\b' })).toBe(true)
+    expect(refused([hunk()], { kind: 'rename', old_path: 'a/b.' })).toBe(true)
     expect(refused([hunk()], { path: 'p'.repeat(300) })).toBe(false)
     expect(refused([hunk()], { path: undefined })).toBe(true)
   })
@@ -503,5 +543,21 @@ describe('a frame that is not what the gateway builds (README §7)', () => {
     expect(refused([removed], { kind: 'new' })).toBe(true)
     expect(refused([added], { kind: 'delete' })).toBe(true)
     expect(refused([{ id: 'h1', header: '@@ -1,3 +1,3 @@', lines: ['+a', ' b', '-c'] }], { kind: 'new' })).toBe(true)
+  })
+
+  it('has a header that says what the kind says: a new file has no old side, a deleted file no new one', () => {
+    // Only added lines, but the old side is not `-0,0`: an edit of a file that exists, headed "New file".
+    const added = (header: string): unknown => ({ id: 'h1', header, lines: ['+a', '+b'] })
+    const removed = (header: string): unknown => ({ id: 'h1', header, lines: ['-a', '-b'] })
+
+    expect(refused([added('@@ -0,0 +1,2 @@')], { kind: 'new' })).toBe(false)
+    expect(refused([added('@@ -5,0 +6,2 @@')], { kind: 'new' })).toBe(true)
+    expect(refused([added('@@ -1,0 +2,2 @@')], { kind: 'new' })).toBe(true)
+    expect(refused([added('@@ -0 +1,2 @@')], { kind: 'new' })).toBe(true)
+    expect(refused([removed('@@ -1,2 +0,0 @@')], { kind: 'delete' })).toBe(false)
+    expect(refused([removed('@@ -3,2 +2,0 @@')], { kind: 'delete' })).toBe(true)
+    expect(refused([removed('@@ -1,2 +1,0 @@')], { kind: 'delete' })).toBe(true)
+    // A modify is not held to it.
+    expect(refused([added('@@ -5,0 +6,2 @@')], { kind: 'modify' })).toBe(false)
   })
 })

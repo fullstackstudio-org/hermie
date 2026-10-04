@@ -56,9 +56,9 @@ function oneLine(value: unknown, max: number): value is string {
   )
 }
 
-/** The fields of a `confirm` frame's params: absent (or `null`), or 1 to 8 objects the contract describes. */
+/** The fields of a `confirm` frame's params: absent, or 1 to 8 objects the contract describes (`null` is not absent). */
 export function readConfirmFields(raw: unknown): ConfirmFieldsRead {
-  if (raw === undefined || raw === null) {
+  if (raw === undefined) {
     return { ok: true, fields: undefined }
   }
 

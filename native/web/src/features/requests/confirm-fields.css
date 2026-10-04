@@ -50,10 +50,12 @@
   font-size: 1.75rem;
   font-weight: 700;
   line-height: 1.2;
+  unicode-bidi: isolate;
   overflow-wrap: anywhere;
 }
 
 .hm-confirm__currency {
+  unicode-bidi: isolate;
   font-size: 1.25rem;
   font-weight: 700;
   overflow-wrap: anywhere;
@@ -61,6 +63,8 @@
 
 /* A recipient and a domain: monospaced, so a look-alike character or a stray dot shows, and never a link. */
 .hm-confirm__mono {
+  direction: ltr;
+  unicode-bidi: bidi-override;
   font-family: var(--hm-mono);
   font-size: 0.9375rem;
   overflow-wrap: anywhere;

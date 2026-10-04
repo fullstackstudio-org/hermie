@@ -21,9 +21,9 @@ const field = (patch: Record<string, unknown> = {}): Record<string, unknown> => 
 const refused = (raw: unknown): boolean => !readConfirmFields(raw).ok
 
 describe('fields that are fine', () => {
-  it('is absent, or null, for a frame without any', () => {
+  it('is absent for a frame without any, and null is not absent', () => {
     expect(readConfirmFields(undefined)).toEqual({ ok: true, fields: undefined })
-    expect(readConfirmFields(null)).toEqual({ ok: true, fields: undefined })
+    expect(readConfirmFields(null)).toEqual({ ok: false })
   })
 
   it('reads every field of the contract’s vectors, exactly as it came', () => {
@@ -145,6 +145,8 @@ describe('a frame whose fields break §4.1 is refused whole', () => {
     ['an ideographic space', 'a　b'],
     ['a blank Hangul letter', 'aㅤb'],
     ['a blank Braille pattern', 'a⠀b'],
+    ['a Khitan small script filler (U+16FE4)', 'a\u{16fe4}b'],
+    ['a musical null notehead (U+1D159)', 'a\u{1d159}b'],
     ['a variation selector', 'a️b'],
     ['a tag character', 'a\u{e0041}b'],
     ['a soft hyphen', 'a­b'],

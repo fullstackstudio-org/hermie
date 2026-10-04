@@ -102,6 +102,13 @@ describe('the sheet', () => {
 
     expect(dialog().querySelector('.hm-review__path')?.textContent).toBe('app/users.py → app/accounts.py')
     expect(dialog().querySelector('[data-file-kind]')?.textContent).toBe('Renamed file')
+    // Each path is an isolated left-to-right element of its own: neither can reorder the other or the arrow.
+    const parts = Array.from(dialog().querySelectorAll('.hm-review__path > bdi'))
+
+    expect(parts.map(part => part.textContent)).toEqual(['app/users.py', 'app/accounts.py'])
+    expect(parts.map(part => part.getAttribute('dir'))).toEqual(['ltr', 'ltr'])
+    expect(parts[0]).not.toBe(parts[1])
+    expect(parts[0]?.contains(parts[1] ?? null)).toBe(false)
   })
 
   it.each([
