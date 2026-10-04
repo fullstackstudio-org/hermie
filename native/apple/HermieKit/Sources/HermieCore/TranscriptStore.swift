@@ -1131,7 +1131,8 @@ public actor TranscriptStore {
       canLoadOlder: !(record.window?.reachedStart ?? false),
       revision: revision,
       yolo: state.info?.yolo ?? false,
-      options: ChatSessionOptions(state: state)
+      options: ChatSessionOptions(state: state),
+      subagents: SubagentRow.rows(of: state)
     )
   }
 }

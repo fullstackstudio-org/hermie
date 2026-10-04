@@ -1502,6 +1502,22 @@
 	<string>Tags</string>
 	<key>native.skills.trust</key>
 	<string>Vertrauen</string>
+	<key>native.subagents.barHint</key>
+	<string>Öffnet die Liste der Agents, in der du sie steuern oder stoppen kannst.</string>
+	<key>native.subagents.failed</key>
+	<string>Der Agent war nicht erreichbar: %@</string>
+	<key>native.subagents.finished</key>
+	<string>Dieser Agent ist bereits fertig.</string>
+	<key>native.subagents.level</key>
+	<string>Ebene %lld</string>
+	<key>native.subagents.send</key>
+	<string>Senden</string>
+	<key>native.subagents.steerFor</key>
+	<string>%@ steuern</string>
+	<key>native.subagents.stopFor</key>
+	<string>%@ stoppen</string>
+	<key>native.subagents.transcriptFor</key>
+	<string>Transkript von %@ öffnen</string>
 	<key>native.tool.editedFile</key>
 	<string>Datei bearbeitet</string>
 	<key>native.tool.ranCode</key>

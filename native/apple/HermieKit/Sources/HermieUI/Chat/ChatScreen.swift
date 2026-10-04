@@ -492,17 +492,22 @@ struct ComposerSlot<Composer: View>: View {
 
   var body: some View {
     let name = session.chatList.rows[chat.bot]?.bot.displayName ?? chat.bot
-    composer(
-      ChatComposerContext(
-        chat: chat,
-        model: feed.model,
-        session: session,
-        composer: feed.composer,
-        requests: feed.requests,
-        secureInput: feed.secureInput,
-        botName: name
+    VStack(spacing: 0) {
+      // While a delegation runs: how many agents work, and the way to steer or stop them.
+      SubagentsBar(chat: chat, model: feed.model)
+
+      composer(
+        ChatComposerContext(
+          chat: chat,
+          model: feed.model,
+          session: session,
+          composer: feed.composer,
+          requests: feed.requests,
+          secureInput: feed.secureInput,
+          botName: name
+        )
       )
-    )
+    }
     // On every platform: under a request's sheet (iPhone, iPad) or pane (Mac) the field is off and
     // gives up the keyboard, so nothing typed for the request lands in the draft or goes out.
     .disabled(feed.requestUp)

@@ -1502,6 +1502,22 @@
 	<string>Tags</string>
 	<key>native.skills.trust</key>
 	<string>Trust</string>
+	<key>native.subagents.barHint</key>
+	<string>Opens the list of agents, where each can be steered or stopped.</string>
+	<key>native.subagents.failed</key>
+	<string>The agent could not be reached: %@</string>
+	<key>native.subagents.finished</key>
+	<string>That agent has already finished.</string>
+	<key>native.subagents.level</key>
+	<string>Level %lld</string>
+	<key>native.subagents.send</key>
+	<string>Send</string>
+	<key>native.subagents.steerFor</key>
+	<string>Steer %@</string>
+	<key>native.subagents.stopFor</key>
+	<string>Stop %@</string>
+	<key>native.subagents.transcriptFor</key>
+	<string>Open the transcript of %@</string>
 	<key>native.tool.editedFile</key>
 	<string>Edited a file</string>
 	<key>native.tool.ranCode</key>

@@ -367,6 +367,26 @@ public final class ChatModel {
     await perform { _ = try await $0.steerQueued($1, queuedID) }
   }
 
+  /// The children of a delegation this chat has, parents first (the agents bar and its sheet).
+  public var subagents: [SubagentRow] { snapshot?.subagents ?? [] }
+
+  /// What the bar over the composer says; hidden while `isShown` is false.
+  public var subagentBar: SubagentBar { SubagentBar(subagents) }
+
+  /// The model behind the agents sheet: steer, stop and the live tail of one child. A sheet builds one
+  /// each time it opens.
+  public func subagentPanel() -> SubagentPanelModel {
+    let store = self.store
+    let key = self.key
+
+    return SubagentPanelModel(
+      gateway: SubagentGateway(
+        steer: { try await store.steerSubagent(key, id: $0, text: $1) },
+        interrupt: { try await store.interruptSubagent(key, id: $0) },
+        tail: { try await store.tailSubagent(key, id: $0) }
+      ))
+  }
+
   /// Take a parked message back into the draft.
   public func edit(_ queuedID: String) async {
     if let text = await store.editQueued(key, queuedID) {

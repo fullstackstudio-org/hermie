@@ -242,6 +242,9 @@ public struct ChatSnapshot: Sendable, Equatable {
   public var yolo: Bool = false
   /// Fast mode, reasoning effort, model and context usage, as the gateway last said.
   public var options = ChatSessionOptions()
+  /// The children of a delegation, parents first (`SubagentRow.rows`): the agents bar's list. Empty
+  /// when nothing was delegated.
+  public var subagents: [SubagentRow] = []
 }
 
 /// One chat-list row's worth of a chat, recomputed only for chats that changed.

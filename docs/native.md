@@ -2189,3 +2189,28 @@ button and File › New Bot…; when the bot is made its chat is opened. The mod
 - **A bot with no model** (nothing pinned, nothing inherited) is told so on a page of its own before its chat opens.
 - Tests: `ProfileNameTests` and `NewBotModelTests` (HermieCoreTests, against a scripted gateway),
   `NewBotViewTests` (HermieUITests) and `NewBotIntegrationTests` (the fake gateway over a real socket).
+
+## Agents bar
+
+While a delegation runs, a bar over the composer says "3 agents working · 0:42 · Show" (`SubagentsBar`,
+`HermieUI/Subagents`, placed by `ComposerSlot`). It opens `SubagentsSheet`: the delegation tree (parents first,
+indented by depth), what each child is doing, and its actions. The children are the engine's own state
+(`ChatState.subagents`, kept by the `subagent.*` events and the `subagent.list` poll), carried to the screen as
+`ChatSnapshot.subagents` (`SubagentRow.rows(of:)`, empty and free for every chat that delegated nothing).
+
+- **Bar.** `SubagentBar` counts the queued or running children and starts its clock from the oldest one (epoch
+  milliseconds, the engine's unit for `startedAt`). The dots are still: only a bot that needs an answer moves.
+  VoiceOver reads the count, not the clock. The bar stays up while its sheet is, so a delegation that ends under
+  the sheet can still be read.
+- **Steer** hands the words to a live child as written (`subagent.steer`, hidden when the gateway said the child
+  stopped taking corrections). The answer is `queued` or `rejected`; queued is not delivered, and the sheet says so
+  in the Expo app's words. **Stop** is one child (`subagent.interrupt`); `found: false` is a child that already
+  finished. Both go to the chat's own runtime session.
+- **Transcript.** A running child's is its live tail (`subagent.tail`, the last 16 KB, read again every few seconds
+  while the page is open and labelled as live, because it stops existing with the child). A finished child that
+  has a session of its own is opened from that session in the conversation viewer, over the chat.
+- Everything a child or the gateway says here is untrusted text, drawn plain.
+- Tests: `SubagentRowsTests`, `SubagentBarTests`, `SubagentPanelModelTests` and `SubagentChatTests` (HermieCoreTests,
+  a scripted link for the three calls), `SubagentViewTests` (HermieUITests). The fake gateway fans subagent
+  events out for a "delegate" prompt but has no `subagent.steer`, `.interrupt`, `.tail` or `.list` methods, so there
+  is no integration test for the calls themselves.
