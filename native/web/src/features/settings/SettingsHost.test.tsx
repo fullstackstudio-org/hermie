@@ -38,12 +38,13 @@ const mount = (section?: string) =>
   )
 
 describe('the sections', () => {
-  it('are the ten this client has, in the order the home lists them, and nothing else', () => {
+  it('are the ones this client has, in the order the home lists them, and nothing else', () => {
     expect(SETTINGS_SECTIONS).toEqual([
       'account',
       'gateway',
       'passkeys',
       'mcp',
+      'memory',
       'chats',
       'notifications',
       'chat-list',
@@ -83,6 +84,7 @@ describe('the home', () => {
       'This gateway',
       'Passkeys',
       'MCP',
+      'Memory',
       'Chats & messages',
       'Notifications',
       'Chat list',

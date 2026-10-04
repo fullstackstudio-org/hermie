@@ -20,6 +20,7 @@ export const SETTINGS_SECTIONS = [
   'gateway',
   'passkeys',
   'mcp',
+  'memory',
   'chats',
   'notifications',
   'chat-list',
@@ -51,6 +52,8 @@ export function sectionTitle(section: SettingsSection): string {
       return webStrings.passkeys.settings.title
     case 'mcp':
       return webStrings.mcp.settings.title
+    case 'memory':
+      return strings.memory.botsTitle
     case 'chats':
       return strings.app.settings.categories.chats
     case 'notifications':
@@ -78,6 +81,8 @@ export function sectionBlurb(section: SettingsSection): string {
       return blurb.passkeys
     case 'mcp':
       return blurb.mcp
+    case 'memory':
+      return strings.memory.botsHint
     case 'chats':
       return blurb.chats
     case 'notifications':
@@ -102,6 +107,7 @@ export const SECTION_LOADERS = {
   gateway: () => import('./Gateway'),
   passkeys: () => import('./Passkeys'),
   mcp: () => import('./MCP'),
+  memory: () => import('./Memory'),
   chats: () => import('./Chats'),
   notifications: () => import('./Notifications'),
   'chat-list': () => import('./Arrangement'),

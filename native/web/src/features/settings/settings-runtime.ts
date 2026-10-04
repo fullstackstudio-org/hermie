@@ -8,6 +8,8 @@
  */
 import { createContext, useContext } from 'react'
 
+import type { ManageRuntime } from './manage-runtime'
+
 /** `/api/auth/me`, as far as Settings shows it. Every field may be empty. */
 export interface AccountIdentity {
   displayName: string
@@ -42,6 +44,8 @@ export interface SettingsRuntime {
    * sign-out); on a gateway without sign-in, stop the session, forget the token and clear the same state.
    */
   signOut: () => void
+  /** What the gateway-management pages (Memory, Skills, MCP servers, Connectors, Boards) talk to the gateway with. */
+  manage?: ManageRuntime
 }
 
 export const SettingsRuntimeContext = createContext<SettingsRuntime | null>(null)

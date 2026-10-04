@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { LOCALES, resetActiveLocale, setActiveLocale, TRANSLATED_LOCALES, type Locale } from './active-locale'
 import { CRON_STRINGS_SOURCE, cronWebStrings } from './cron-strings'
+import { MANAGE_STRINGS_SOURCE } from './manage-strings'
 import { SHEET_STRINGS_SOURCE, sheetStrings } from './sheet-strings'
 import { WEB_STRINGS_SOURCE, webStrings } from './web-strings'
 
@@ -88,7 +89,8 @@ function leaves(
 const all = [
   ...leaves(WEB_STRINGS_SOURCE as unknown as Source),
   ...leaves(SHEET_STRINGS_SOURCE as unknown as Source, 'sheets'),
-  ...leaves(CRON_STRINGS_SOURCE as unknown as Source, 'cron')
+  ...leaves(CRON_STRINGS_SOURCE as unknown as Source, 'cron'),
+  ...leaves(MANAGE_STRINGS_SOURCE as unknown as Source, 'manage')
 ]
 
 /** Sample arguments for the function leaves: every parameter is a recognisable string. */
@@ -148,7 +150,9 @@ const SAMPLE = {
   days: MARKER,
   day: MARKER,
   when: MARKER,
-  action: MARKER
+  action: MARKER,
+  // The management pages: a file's name in an entry's control.
+  file: MARKER
 }
 
 describe('the web-only strings', () => {
@@ -161,7 +165,8 @@ describe('the web-only strings', () => {
 
     for (const [key] of [
       ...leaves(SHEET_STRINGS_SOURCE as unknown as Source),
-      ...leaves(CRON_STRINGS_SOURCE as unknown as Source)
+      ...leaves(CRON_STRINGS_SOURCE as unknown as Source),
+      ...leaves(MANAGE_STRINGS_SOURCE as unknown as Source)
     ]) {
       expect(entry.has(key), key).toBe(false)
     }

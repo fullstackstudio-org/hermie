@@ -50,6 +50,12 @@ const ON_DEMAND = [
   'features/cron/CronsPage.tsx',
   'features/activity/ActivityPage.tsx',
   'i18n/cron-strings.ts',
+  // The gateway-management pages (Memory, Skills, MCP servers, Connectors, Boards), what they share, and their words.
+  'features/settings/Memory.tsx',
+  'features/settings/manage-parts.tsx',
+  'core/manage/memory.ts',
+  'core/manage/route-error.ts',
+  'i18n/manage-strings.ts',
   // Web Push is loaded once the session has started; only the launch click's reader is in the first load.
   'features/push/push-runtime.ts',
   'features/settings/Notifications.tsx',
@@ -196,6 +202,11 @@ describe('the first load’s words', () => {
 
     expect(split.entry).not.toBeNull()
     expect(under('cron.')).toEqual([])
+    expect(under('memory.')).toEqual([])
+    expect(under('skills.')).toEqual([])
+    expect(under('kanban.')).toEqual([])
+    expect(under('connectors.')).toEqual([])
+    expect(under('mcp.')).toEqual([])
     expect(under('app.settings.')).toEqual(['app.settings.title'])
     expect(under('chat.approval.')).toEqual([])
     expect(under('chat.composer.')).toEqual([])

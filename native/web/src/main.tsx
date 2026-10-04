@@ -408,7 +408,8 @@ async function startApp(page: Page, ready: Ready): Promise<void> {
         },
         // Beside the page, where the build put it (`public/licenses.json`).
         licencesUrl: `${basePath.baseUrl}${APP_DIRECTORY_PATH}licenses.json`,
-        clearTranscriptCache: () => cache.clear()
+        clearTranscriptCache: () => cache.clear(),
+        manage: { transport: { gateway: session.client.gateway, http: session.client.http } }
       }}
       secureInput={session.secureInput}
       interactive={session.interactive}

@@ -1,0 +1,301 @@
+/*
+ * The gateway-management Settings pages (Memory, Skills, MCP servers, Connectors, Boards) and the bot profile's
+ * personality and model. Colours, radii and gutters are the theme's (`ui/theme.css`); the policy forbids inline
+ * styles, so every variation is a class or a data attribute.
+ */
+
+.hm-manage__field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hm-manage__label {
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+}
+
+.hm-manage__select,
+.hm-manage__input,
+.hm-manage__textarea {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+  color: var(--hm-text);
+  font: inherit;
+}
+
+.hm-manage__input,
+.hm-manage__textarea {
+  width: 100%;
+}
+
+.hm-manage__textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+.hm-manage__textarea[data-mono='true'],
+.hm-manage__input[data-mono='true'] {
+  font-family: var(--hm-mono);
+  font-size: 0.9375rem;
+}
+
+.hm-manage__select:focus-visible,
+.hm-manage__input:focus-visible,
+.hm-manage__textarea:focus-visible {
+  outline: var(--hm-focus-width) solid var(--hm-focus);
+  outline-offset: 1px;
+}
+
+.hm-manage__status {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.hm-manage__status:empty {
+  display: none;
+}
+
+.hm-manage__status[data-tone='danger'] {
+  color: var(--hm-danger-text);
+}
+
+.hm-manage__problem {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.hm-manage__problem-text {
+  margin: 0;
+  color: var(--hm-danger-text);
+  overflow-wrap: anywhere;
+}
+
+.hm-manage__hint,
+.hm-manage__text {
+  margin: 0;
+  color: var(--hm-text-muted);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.hm-manage__hint {
+  font-size: 0.875rem;
+}
+
+.hm-manage__heading {
+  margin: 12px 0 0;
+  font-size: 1.0625rem;
+}
+
+.hm-manage__heading:focus {
+  outline: none;
+}
+
+.hm-manage__heading:focus-visible {
+  outline: var(--hm-focus-width) solid var(--hm-focus);
+  outline-offset: 2px;
+}
+
+.hm-manage__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hm-manage__confirm {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.hm-manage__confirm-question {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* A list of things the gateway holds: one row each, the text first and the actions under it. */
+.hm-manage__list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-manage__item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--hm-line);
+}
+
+.hm-manage__item-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+
+.hm-manage__name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.hm-manage__meta {
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+/* What an entry says: the gateway's own text, with its line breaks. */
+.hm-manage__body {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.hm-manage__badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius-pill);
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+}
+
+.hm-manage__badge[data-tone='ok'] {
+  color: var(--hm-tint-text);
+}
+
+.hm-manage__badge[data-tone='danger'] {
+  color: var(--hm-danger-text);
+}
+
+.hm-manage__badge[data-tone='warn'] {
+  color: var(--hm-warn-text);
+}
+
+/* How full a file is: the bar and the numbers beside it. */
+.hm-manage__usage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+}
+
+.hm-manage__meter {
+  flex: 1 1 10rem;
+  min-width: 8rem;
+  height: 12px;
+  accent-color: var(--hm-tint);
+}
+
+/* A long text the page shows in a box of its own height: it scrolls inside, and the box can be reached by keyboard. */
+.hm-manage__scroll {
+  box-sizing: border-box;
+  max-height: 16rem;
+  margin: 0;
+  padding: 8px 12px;
+  overflow: auto;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+  font-family: var(--hm-mono);
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.hm-manage__scroll:focus-visible {
+  outline: var(--hm-focus-width) solid var(--hm-focus);
+  outline-offset: 1px;
+}
+
+.hm-manage__code {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+  font-family: var(--hm-mono);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.hm-manage__disclosure {
+  border-top: 1px solid var(--hm-line);
+  padding-top: 8px;
+}
+
+.hm-manage__summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.hm-manage__summary:focus-visible {
+  outline: var(--hm-focus-width) solid var(--hm-focus);
+  outline-offset: 2px;
+}
+
+.hm-manage__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.hm-manage__row > .hm-manage__field {
+  flex: 1 1 14rem;
+}
+
+/* A form's field and the hint under it. */
+.hm-manage__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* The boards: the columns of one board, one after the other; each column is a list of cards. */
+.hm-manage__columns {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hm-manage__card {
+  padding: 10px 12px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-surface);
+}
+
+.hm-manage__card-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.hm-manage__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
