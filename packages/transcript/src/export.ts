@@ -201,13 +201,19 @@ function entryFor(item: TranscriptItem, options: TranscriptExportOptions): Entry
       // An empty reply is a turn that failed or was interrupted; the error line
       // under it is the whole of what happened, so the row is kept for that and
       // dropped when there is neither.
-      if (!item.text.trim() && !item.error) {
+      if (!item.text.trim() && !item.error && !item.outbox?.length) {
         return null
       }
 
       return {
         ...base,
-        body: item.error && !item.text.trim() ? `(${item.error.message})` : item.text.trim(),
+        body: [
+          item.error && !item.text.trim() ? `(${item.error.message})` : item.text.trim(),
+          // The files the bot shared are named, as an attachment of the reader's own is (`[reference]`).
+          ...(item.outbox ?? []).map(file => `[${file.name}]`)
+        ]
+          .filter(Boolean)
+          .join('\n'),
         who: bot
       }
 

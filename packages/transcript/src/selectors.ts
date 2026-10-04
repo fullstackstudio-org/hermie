@@ -159,7 +159,8 @@ export function visibleItems(state: ChatState, options: VisibilityOptions): Visi
         const hasThought = item.reasoning !== undefined || item.reasoningVerbose !== undefined
         const shown =
           showThinking || !hasThought ? item : { ...item, reasoning: undefined, reasoningVerbose: undefined }
-        const empty = !item.text.trim() && !item.error
+        // A reply that shares a file has something to show, whatever it says (`contract/outbox/`).
+        const empty = !item.text.trim() && !item.error && !item.outbox?.length
 
         if (empty && (!showThinking || !item.reasoning?.trim() || level === 'quiet')) {
           break
@@ -419,7 +420,7 @@ function countsAsMessage(item: TranscriptItem): boolean {
   }
 
   // An empty or interim bubble is the turn in progress, not a message.
-  return !item.interim && item.text.trim() !== ''
+  return !item.interim && (item.text.trim() !== '' || Boolean(item.outbox?.length))
 }
 
 /**

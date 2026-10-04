@@ -158,8 +158,8 @@ function previewOfItem(item: TranscriptItem | undefined, options: ChatPreviewOpt
 
     case 'assistant':
       // An empty bubble is the turn in progress; there is nothing to preview
-      // until the first token lands.
-      return text(item.text)
+      // until the first token lands. A reply of nothing but a shared file previews as the file's name.
+      return text(item.text) ?? (item.outbox?.[0] ? { text: item.outbox[0].name, system: false } : null)
 
     case 'bot_dm_in': {
       const body = item.text.trim()

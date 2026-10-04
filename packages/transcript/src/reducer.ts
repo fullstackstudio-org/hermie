@@ -15,6 +15,7 @@ import type { ParsedCronDelivery } from './cron-delivery'
 import { callKeyOf, promptRowsOf, rowIdOf, turnIdOfMetadata } from './identity'
 import { type InjectedRow, isInjectedNotice } from './injected'
 import type { InlineImage } from './inline-images'
+import { parseOutboxAttachments } from './outbox'
 import {
   attachmentsMatchKey,
   classifyUserRow,
@@ -1440,6 +1441,8 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
 
     case 'message.complete': {
       const finalText = str(payload.text) || str(payload.rendered)
+      // The files this reply shares (`contract/outbox/`): absent or empty when it named none.
+      const shared = parseOutboxAttachments(payload.attachments)
       const wasInterrupted = next.turn.interrupted === true
       const rawStatus = str(payload.status)
       const status: AssistantItem['status'] =
@@ -1494,6 +1497,10 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
           draft.interim = false
           draft.status = status
 
+          if (shared.length) {
+            draft.outbox = shared
+          }
+
           if (failure) {
             draft.error = failure
           }
@@ -1512,11 +1519,11 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
           ? (unpersistedNote(next, next.turn.assistantId) ??
             unpersistedNote(next, previewed) ??
             unpersistedNote(next, continued) ??
-            (finalText || failure ? currentAssistantId(next, now) : undefined))
+            (finalText || failure || shared.length ? currentAssistantId(next, now) : undefined))
           : (next.turn.assistantId ??
             previewed ??
             continued ??
-            (finalText || failure ? currentAssistantId(next, now) : undefined))
+            (finalText || failure || shared.length ? currentAssistantId(next, now) : undefined))
 
         if (id) {
           patchItem<AssistantItem>(next, id, draft => {
@@ -1527,6 +1534,10 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
             draft.streaming = false
             draft.interim = false
             draft.status = status
+
+            if (shared.length) {
+              draft.outbox = shared
+            }
 
             if (failure) {
               draft.error = failure

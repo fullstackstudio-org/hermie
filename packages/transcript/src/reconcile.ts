@@ -294,6 +294,7 @@ function mergeWithLive(fresh: TranscriptItem, current: TranscriptItem): Transcri
     carried.reasoningVerbose = carried.reasoningVerbose ?? current.reasoningVerbose
     carried.durationS = carried.durationS ?? current.durationS
     carried.usage = carried.usage ?? current.usage
+    carried.outbox = carried.outbox ?? current.outbox
     // A failed turn is not persisted as a failure; keep the local verdict.
     carried.error = carried.error ?? current.error
     carried.status = current.error ? (current.status ?? carried.status) : carried.status

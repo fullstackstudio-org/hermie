@@ -23,6 +23,7 @@ import { type ParsedCronDelivery, parseCronDelivery } from './cron-delivery'
 import { authorViaOf } from './author'
 import { callKeyOf, turnIdOfMetadata } from './identity'
 import { type InlineImage, scanInlineImages } from './inline-images'
+import { parseOutboxAttachments } from './outbox'
 import { type InjectedRow, parseInjectedRow, stripSteerWrapper, unwrapSystemNote } from './injected'
 import {
   type AssistantItem,
@@ -60,6 +61,8 @@ export interface TranscriptRow {
   reasoning?: string | null
   reasoning_content?: string | null
   reasoning_details?: unknown
+  /** The files the bot shared with an assistant row (`contract/outbox/`). */
+  attachments?: unknown
   codex_message_items?: unknown
   [key: string]: unknown
 }
@@ -526,8 +529,10 @@ export function rowsToItems(rows: readonly TranscriptRow[], shape: RowShape, opt
         ''
       const scan = scanInlineImages(content || codexMessageItemText(row.codex_message_items))
       const text = scan.text
+      // The files the bot shared with this reply (`contract/outbox/`), beside its text.
+      const shared = parseOutboxAttachments(row.attachments)
 
-      if (!text && !reasoning && !scan.images.length && !scan.references.length) {
+      if (!text && !reasoning && !scan.images.length && !scan.references.length && !shared.length) {
         return
       }
 
@@ -537,6 +542,7 @@ export function rowsToItems(rows: readonly TranscriptRow[], shape: RowShape, opt
         text,
         ...(scan.images.length ? { inlineImages: scan.images } : {}),
         ...(scan.references.length ? { attachments: scan.references } : {}),
+        ...(shared.length ? { outbox: shared } : {}),
         ...(reasoning ? { reasoning } : {}),
         streaming: false,
         interim: false,

@@ -11,6 +11,7 @@
  */
 import type { CronDeliveryShape } from './cron-delivery'
 import type { InlineImage } from './inline-images'
+import type { OutboxAttachment } from './outbox'
 import type { ErrorSurface, SessionLiveInfo, Usage } from '@hermes/shared/gateway-events'
 
 /** Client-side verbosity filter. Purely a read-time concern. */
@@ -167,6 +168,11 @@ export interface AssistantItem extends ItemBase {
   inlineImages?: InlineImage[]
   /** `@image:` references for handles in a persisted reply whose picture it does not hold. */
   attachments?: string[]
+  /**
+   * The files the bot shared with this reply (`contract/outbox/`): validated by `parseOutboxAttachments`,
+   * absent when it shared none. Fetched from each one's `url`, never named by a path.
+   */
+  outbox?: OutboxAttachment[]
 }
 
 export type ToolStatus = 'generating' | 'running' | 'complete' | 'error' | 'unknown'
