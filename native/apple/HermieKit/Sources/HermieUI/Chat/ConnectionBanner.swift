@@ -13,6 +13,8 @@ struct ConnectionBanner: View {
   let status: ConnectionStatus
   var retry: (() -> Void)?
   var signIn: (() -> Void)?
+  /// How long a drop has to last before it is said. Only a test sets it.
+  var grace: Duration = .milliseconds(900)
 
   @State private var shown: ConnectionPhase?
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -59,7 +61,7 @@ struct ConnectionBanner: View {
 
       // Sign-in and an incompatible gateway are not going to fix themselves: say so at once.
       if phase != .needsSignin, phase != .incompatible {
-        try? await Task.sleep(for: .milliseconds(900))
+        try? await Task.sleep(for: grace)
         guard !Task.isCancelled else { return }
       }
 

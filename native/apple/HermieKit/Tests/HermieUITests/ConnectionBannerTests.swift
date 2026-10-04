@@ -19,16 +19,17 @@
     /// session's. It takes no room while hidden, so its height says whether it shows.
     struct Host: View {
       let connection: Connection
+      var grace: Duration = .milliseconds(900)
 
       var body: some View {
-        ConnectionBanner(status: connection.status)
+        ConnectionBanner(status: connection.status, grace: grace)
           .frame(width: 320)
           .fixedSize(horizontal: false, vertical: true)
       }
     }
 
-    private func host(_ connection: Connection) -> (NSHostingView<Host>, NSWindow) {
-      let view = NSHostingView(rootView: Host(connection: connection))
+    private func host(_ connection: Connection, grace: Duration = .milliseconds(900)) -> (NSHostingView<Host>, NSWindow) {
+      let view = NSHostingView(rootView: Host(connection: connection, grace: grace))
       view.frame = NSRect(x: 0, y: 0, width: 320, height: 240)
       let window = NSWindow(contentRect: view.frame, styleMask: [.titled], backing: .buffered, defer: false)
       window.isReleasedWhenClosed = false
@@ -90,34 +91,38 @@
       defer { window.close() }
 
       connection.status = ConnectionStatus(.reconnecting)
-      await spin(1.4)
-      #expect(bannerShown(view))
+      #expect(await settles(view, shown: true, within: 10), "reconnecting: the banner is up")
       connection.status = ConnectionStatus(.connecting)
       await spin(0.05)
       connection.status = ConnectionStatus(.ready)
-      await spin(1.4)
-      #expect(!bannerShown(view), "ready: the banner is gone")
+      #expect(await settles(view, shown: false, within: 10), "ready: the banner is gone")
+
+      // The grace connecting started is let go with it: a banner that comes back later is a task not cancelled.
+      await spin(1.2)
+      #expect(!bannerShown(view), "and it stays gone")
     }
 
     @Test func signInShowsAtOnce() async {
+      // A grace of an hour: a banner that shows within seconds did not wait for any grace at all.
       let connection = Connection()
-      let (view, window) = host(connection)
+      let (view, window) = host(connection, grace: .seconds(3600))
       defer { window.close() }
       #expect(!bannerShown(view))
       connection.status = ConnectionStatus(.needsSignin)
-      await spin(0.6)
-      #expect(bannerShown(view))
+      #expect(await settles(view, shown: true, within: 10), "sign-in does not wait out the grace")
     }
 
     @Test func aConnectionThatIsReadyWithinTheGraceNeverShowsTheBanner() async {
+      // The grace is long next to anything the test does, so "within the grace" holds however slowly
+      // the main actor gets to it.
       let connection = Connection()
-      let (view, window) = host(connection)
+      let (view, window) = host(connection, grace: .seconds(2))
       defer { window.close() }
 
       connection.status = ConnectionStatus(.connecting)
-      await spin(0.3)
+      await spin(0.1)
       connection.status = ConnectionStatus(.ready)
-      await spin(1.4)
+      await spin(2.5)
       #expect(!bannerShown(view), "ready before the grace ran out: nothing shows, then or later")
     }
   }
