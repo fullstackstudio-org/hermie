@@ -38,3 +38,5 @@ native/web/src/generated
 contract/confirm-passkey/
 # Byte-identical copy of the fork's interactive-requests contract; its SHA256SUMS must keep passing.
 contract/requests/
+# Byte-identical copy of the fork's shared-files contract; its SHA256SUMS must keep passing.
+contract/outbox/

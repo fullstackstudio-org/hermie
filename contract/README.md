@@ -26,6 +26,7 @@ changes and the port does not follow.
 | `gateway/mcp.md`                         | the gateway MCP page's REST shapes (`/api/auth/mcp`), `mcp.changed`, and the `author.via` marker on rows | by hand                                           |
 | `confirm-passkey/`                       | the passkey confirm contract: challenge construction, base-URL serialisation, CBOR subset, test vectors  | the fork (`contract/confirm-passkey/generate.py`) |
 | `requests/`                              | the interactive-requests contract: JSON Schema, examples and the rules for requests the gateway raises   | the fork (`contract/requests/`)                   |
+| `outbox/`                                | the shared-files contract: the attachment a reply carries, the route its bytes come from, ranges         | the fork (`contract/outbox/`)                     |
 
 `i18n/` has a pipeline of its own: `npm run i18n` writes it (with the Apple String
 Catalog made from it) and `npm run i18n:check` guards it; `golden` leaves it alone.
@@ -332,8 +333,21 @@ A byte-identical copy of the fork's `contract/requests/` (its `README.md`, `sche
 `SHA256SUMS`): the schema and worked examples for interactive requests, which every sender and every client
 conforms to. The fork is the source; this copy is refreshed by hand when the fork's changes and is never edited
 here. `npm run contract:check` (run in CI) verifies every directory under `contract/` that has a `SHA256SUMS`
-(this one and `confirm-passkey/`): each listed file must hash to its listed sha256, and no unlisted file may sit
+(this one, `outbox/` and `confirm-passkey/`): each listed file must hash to its listed sha256, and no unlisted file may sit
 beside them. `golden` leaves it alone.
+
+## `outbox/`
+
+A byte-identical copy of the fork's `contract/outbox/` (its `README.md`, `schema.json`, `examples.json` and
+`SHA256SUMS`): the files a bot shares with a reply. `message.complete` and the assistant rows of `session.history`
+carry `attachments: [{id, name, mime, kind, size, sha256, created_at, url}]`, and `url` is
+`GET /api/files/outbox/{id}/{name}?profile=<profile>`, answered with byte ranges (`206`/`416`), a sandboxing CSP and an
+`inline` disposition only for `image`, `video`, `audio` and `pdf`. The fork is the source; this copy is refreshed by hand
+when the fork's changes and is never edited here. `npm run contract:check` verifies it like `requests/`, and its examples
+are what the readers are tested against (`native/web/src/core/outbox.test.ts`, the web client's strict reader;
+`packages/fake-gateway/src/outbox.test.ts`, the fake's route). `golden` leaves it alone, and the golden corpus holds
+no case for it yet: the engine reads `attachments` in `@hermie/transcript` (`outbox.ts`), and a port follows the
+contract's own examples until the corpus grows one.
 
 ## Counts
 
