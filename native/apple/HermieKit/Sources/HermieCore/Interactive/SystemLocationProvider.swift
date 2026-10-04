@@ -29,6 +29,8 @@ import HermieProtocol
     private var authorization: CheckedContinuation<CLAuthorizationStatus, Never>?
     private var fix: CheckedContinuation<LocationOutcome, Never>?
     private var deadline: Task<Void, Never>?
+    /// The manager answers one question at a time (one continuation each): callers take turns.
+    private let turns = SerialTurns()
 
     public init(timeout: Duration = .seconds(20)) {
       self.timeout = timeout
@@ -36,10 +38,14 @@ import HermieProtocol
     }
 
     public func locate(precision: LocationPrecision) async -> LocationOutcome {
-      guard fix == nil, authorization == nil else {
-        return .unavailable
+      // Two sheets (two windows) can ask at once on this shared instance. The turn is taken before the
+      // first await, so neither can overwrite the other's continuation; the second asks when the first is done.
+      await turns.run(ifCancelled: .unavailable) {
+        await locateNow(precision: precision)
       }
+    }
 
+    private func locateNow(precision: LocationPrecision) async -> LocationOutcome {
       // `locationServicesEnabled` can block, so it is asked off the main actor.
       guard await Task.detached(operation: { CLLocationManager.locationServicesEnabled() }).value else {
         return .unavailable
