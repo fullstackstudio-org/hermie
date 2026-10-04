@@ -287,6 +287,7 @@ private func status(_ id: String, presentation: Presentation = .full) -> Visible
 }
 
 /// The owner's "in a chat, when someone else sends something: put the name next to the time".
+@MainActor
 @Suite struct ForeignSenderLineTests {
   @Test func someoneElsesBubbleShowsTheirNameBeforeTheTime() {
     #expect(UserBubbleView.metaLine(sender: "Sam", clock: "21:42") == "\u{2068}Sam\u{2069} · 21:42")
