@@ -1087,6 +1087,54 @@
         }
       }
     },
+    "native.capability.bot" : {
+      "comment" : "The label of the picker that says which bot a capability page is reading about.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bot"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bot"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bot"
+          }
+        }
+      }
+    },
+    "native.capability.noGateway" : {
+      "comment" : "A capability page (Memory, Skills, MCP servers, Connectors, Boards) while there is no live gateway.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbinde dich mit einem Gateway, um das zu nutzen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect to a gateway to use this."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maak verbinding met een gateway om dit te gebruiken."
+          }
+        }
+      }
+    },
     "native.chat.attachment.failed" : {
       "comment" : "Above a chat, after a file the gateway serves could not be fetched to open it. The argument is the file's name.",
       "extractionState" : "manual",

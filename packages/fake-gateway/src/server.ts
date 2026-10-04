@@ -351,6 +351,14 @@ export interface FakeGatewayOptions {
    */
   turnClaim?: boolean
   /**
+   * Whether the plugin lets memory be changed (`memory.edit`).
+   *
+   * Default true. `false` drops the capability from whichever advert is in play, and the plugin's
+   * `edit` route then answers 403 with its own sentence: a gateway where memory can be read and
+   * not written, the state the Memory page has to draw without any control that could only fail.
+   */
+  memoryEdit?: boolean
+  /**
    * Whether the plugin advertises `push.relay`.
    *
    * Default true: the plugin can deliver to a `transport: "relay"` row. `false`
@@ -1615,6 +1623,9 @@ const DISPLAY_NAME_CAPABILITY = 'profiles.display_name'
 /** `context.turn_claim`, which `turnClaim: false` takes away. */
 const TURN_CLAIM_CAPABILITY = 'context.turn_claim'
 
+/** `memory.edit`, which `memoryEdit: false` takes away. */
+const MEMORY_EDIT_CAPABILITY = 'memory.edit'
+
 /** `push.relay`, which `pushRelay: false` takes away. */
 const PUSH_RELAY_CAPABILITY = 'push.relay'
 
@@ -1650,6 +1661,10 @@ function advertOf(options: FakeGatewayOptions): Record<string, unknown> | null {
 
   if (options.turnClaim === false) {
     drop.add(TURN_CLAIM_CAPABILITY)
+  }
+
+  if (options.memoryEdit === false) {
+    drop.add(MEMORY_EDIT_CAPABILITY)
   }
 
   if (options.pushRelay === false) {

@@ -96,6 +96,10 @@
 	<string>Deze schakelaars bepalen wat de bot kan gebruiken in chats in Hermie. Dezelfde bot via een berichtenapp, en zijn geplande taken, houden hun eigen lijsten op de gateway.</string>
 	<key>native.botSettings.unsupported</key>
 	<string>Deze gateway biedt deze instellingen niet aan.</string>
+	<key>native.capability.bot</key>
+	<string>Bot</string>
+	<key>native.capability.noGateway</key>
+	<string>Maak verbinding met een gateway om dit te gebruiken.</string>
 	<key>native.chat.attachment.failed</key>
 	<string>“%@” kon niet van de gateway worden opgehaald.</string>
 	<key>native.chat.attachment.unavailable</key>

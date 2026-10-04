@@ -11,7 +11,7 @@ import HermieProtocol
 /// A link without a REST side (a test's scripted one) simply is not one, and a feature that needs it
 /// says so (`GatewaySession.cronService` is nil).
 public protocol GatewayREST: Sendable {
-  /// One JSON call: `GET`, `POST`, `PUT` or `DELETE`. `nil` for an empty body; throws `GatewayError`
+  /// One JSON call: `GET`, `POST`, `PUT`, `PATCH` or `DELETE`. `nil` for an empty body; throws `GatewayError`
   /// for a refusal, with the gateway's own `detail` as its message.
   func restJSON(_ method: String, _ path: String, body: JSONValue?) async throws -> JSONValue?
 }
@@ -22,6 +22,7 @@ extension ConnectionLink: GatewayREST {
     case "GET": try await http.get(path)
     case "POST": try await http.post(path, body: body)
     case "PUT": try await http.put(path, body: body)
+    case "PATCH": try await http.patch(path, body: body)
     case "DELETE": try await http.delete(path)
     default: throw GatewayError(.config, "This connection cannot send a \(method) request.")
     }

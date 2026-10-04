@@ -111,6 +111,8 @@ public final class ChatListModel {
   public private(set) var rosterError: String?
   /// False while only the cached roster is painted.
   public private(set) var refreshed = false
+  /// What the gateway's Hermie plugin offers (`memory.browse`, `memory.edit`, …), from the last roster read.
+  public private(set) var pluginCapabilities: Set<String> = []
 
   @ObservationIgnored private var roster = BotRoster.Snapshot()
   @ObservationIgnored private var summaries: [String: ChatSummary] = [:]
@@ -123,6 +125,10 @@ public final class ChatListModel {
     loading = snapshot.loading
     rosterError = snapshot.error
     refreshed = snapshot.refreshed
+
+    if pluginCapabilities != snapshot.pluginCapabilities {
+      pluginCapabilities = snapshot.pluginCapabilities
+    }
 
     let fresh = snapshot.bots.map(\.name)
 

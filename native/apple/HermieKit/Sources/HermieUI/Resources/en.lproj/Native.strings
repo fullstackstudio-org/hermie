@@ -96,6 +96,10 @@
 	<string>These switches decide what the bot can use in chats in Hermie. The same bot reached through a messaging app, and its scheduled jobs, keep their own lists on the gateway.</string>
 	<key>native.botSettings.unsupported</key>
 	<string>This gateway does not offer these settings.</string>
+	<key>native.capability.bot</key>
+	<string>Bot</string>
+	<key>native.capability.noGateway</key>
+	<string>Connect to a gateway to use this.</string>
 	<key>native.chat.attachment.failed</key>
 	<string>“%@” could not be fetched from the gateway.</string>
 	<key>native.chat.attachment.unavailable</key>

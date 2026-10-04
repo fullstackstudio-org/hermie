@@ -88,7 +88,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
  the `Settings` window with a sidebar on the Mac.
 
  Implemented: Account, Privacy (the app lock), Gateways, MCP, Chats (the defaults, the cache and the folders),
- Notifications, Appearance, Voice and About. Every other category is a placeholder page until its task lands.
+ Notifications, Memory, Appearance, Voice and About. Every other category is a placeholder page until its task lands.
  */
 public struct SettingsView: View {
   private let onAddGateway: @MainActor () -> Void
@@ -235,6 +235,8 @@ struct SettingsPage: View {
         MCPSettingsEntry()
       case .chats:
         ChatListSettingsEntry()
+      case .memory:
+        MemorySettingsEntry()
       case .notifications:
         NotificationsSettingsPage()
       case .appearance:

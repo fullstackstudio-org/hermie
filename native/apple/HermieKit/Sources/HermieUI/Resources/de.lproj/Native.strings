@@ -96,6 +96,10 @@
 	<string>Diese Schalter bestimmen, was der Bot in Chats in Hermie nutzen kann. Derselbe Bot über eine Messaging-App und seine geplanten Aufgaben behalten ihre eigenen Listen auf dem Gateway.</string>
 	<key>native.botSettings.unsupported</key>
 	<string>Dieses Gateway bietet diese Einstellungen nicht an.</string>
+	<key>native.capability.bot</key>
+	<string>Bot</string>
+	<key>native.capability.noGateway</key>
+	<string>Verbinde dich mit einem Gateway, um das zu nutzen.</string>
 	<key>native.chat.attachment.failed</key>
 	<string>„%@“ konnte nicht vom Gateway geladen werden.</string>
 	<key>native.chat.attachment.unavailable</key>
