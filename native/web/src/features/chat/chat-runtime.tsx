@@ -27,7 +27,9 @@ import type { DraftStore } from './drafts'
  * commands and uploads (the composer), and answering the two request kinds
  * (the request layer, which is over every chat and so is given the same
  * controller), and a bot's other conversations (`features/sessions`: list,
- * rename, delete, make one the Bot Chat, start a new one, branch the chat at a message). `uploadFile` is the
+ * rename, delete, make one the Bot Chat, start a new one, branch the chat at a message), and the choice between the
+ * shared Bot Chat and the reader's own (`chooseChat`, with `ownChatsAvailable` saying whether the gateway has an
+ * identity to write the title of an own chat from; `features/chat/ChatChoice.tsx`). `uploadFile` is the
  * attachment tray's (`use-attachment-tray.ts`), the Agents bar's are the three `*Subagent` calls and
  * `childTranscript` (`AgentsBar.tsx`), and the Activity timeline's are `loadActivity` (every bot's recent
  * tail into the chat store) and the two counters (`features/activity`).
@@ -69,6 +71,8 @@ export type ChatScreenController = Pick<
   | 'refreshUsage'
   | 'loadActivity'
   | 'activeSubagentCount'
+  | 'chooseChat'
+  | 'ownChatsAvailable'
   | 'steerSubagent'
   | 'interruptSubagent'
   | 'tailSubagent'

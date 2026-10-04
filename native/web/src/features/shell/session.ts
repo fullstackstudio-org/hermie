@@ -49,6 +49,10 @@
  *     click this page was opened for read out of the address at once. A chunk of its own as well
  *     (`push`); `retirePush` is the sign-out's first step, while the connection is still there.
  *
+ * The reader's own chats (`features/shell/user-chats.ts`, ADR-0007 amended) are built with the connection: one
+ * switch, over the connection's gateway and this page's arrangement (`myChats`, `current`), is handed to the roster
+ * and to the chat controller, and the roster is placed on the remembered chats whenever that memory changes.
+ *
  * `stop()` is the order the sign-out needs: the poll, the `ui_meta` bridge, then the secure prompts
  * (each open one answered `''` while the socket is still there; the interactive requests fail with `4041 shutting_down`), the notices, the
  * connection cards, the session status, the passkeys and the chats, then the client (which closes the socket and empties its stores). It
@@ -86,6 +90,7 @@ import { interactiveStore } from '../../state/interactive'
 import { passkeysStore } from '../../state/passkeys'
 import { bindRequests } from '../../state/requests'
 import { secureInputStore } from '../../state/secure-input'
+import { followChosenChats, userChatsFor } from './user-chats'
 
 export interface StartSessionOptions {
   /** The gateway's base URL (`ResolvedBasePath.baseUrl`). */
@@ -197,6 +202,8 @@ export function startSession(options: StartSessionOptions): Session {
     storage: options.storage,
     cache: options.cache,
     socketFactory: createSocketFactoryWithOutbox(outbox, replayGaps),
+    // The reader's own chats (ADR-0007, amended): one switch for the roster and the chat controller.
+    userChats: userChatsFor,
     ...(options.visibility ? { visibility: options.visibility } : {}),
     ...options.connect
   })
@@ -457,6 +464,12 @@ export function startSession(options: StartSessionOptions): Session {
     ])
   }
 
+  /*
+    The reader's memory of which conversation each bot is on changed (picked here, or another device's arrived
+    through `ui_meta`): place the roster on it, for every bot whose chat is not open on this page.
+  */
+  const stopFollowingChats = followChosenChats(client.bots)
+
   /** The request layer's queue is the open requests of the chats just started, the confirmations and the prompts. */
   const stopRequests = bindRequests(
     chats.chats,
@@ -517,6 +530,7 @@ export function startSession(options: StartSessionOptions): Session {
       stopped = true
       stopVisibility()
       stopStatus()
+      stopFollowingChats()
       release?.()
       release = undefined
       uiMetaStopped = true

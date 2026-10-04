@@ -121,6 +121,23 @@ describe('the chat options', () => {
     expect(document.activeElement).toBe(screen.getByRole('radio', { name: 'Quiet' }))
   })
 
+  it('puts the focus on the verbosity, not on the choice of whose chat, when it is reset', async () => {
+    const runtime = {
+      controller: { ownChatsAvailable: () => true, chooseChat: vi.fn(async () => undefined) },
+      gatewayBaseUrl: 'http://gateway.test'
+    }
+
+    render(<ChatOptions bot="researcher" runtime={runtime as never} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Chat options' }))
+
+    // The choice is the first radio group of the panel, and is checked too.
+    expect((await screen.findByRole('radio', { name: 'Shared Bot Chat' })) as HTMLInputElement).toBeTruthy()
+    fireEvent.click(screen.getByRole('radio', { name: 'Verbose' }))
+    fireEvent.click(screen.getByRole('button', { name: "Reset this conversation's view" }))
+
+    expect(document.activeElement).toBe(screen.getByRole('radio', { name: 'Quiet' }))
+  })
+
   it('closes on Escape back to its button, and on a press outside', async () => {
     render(
       <>

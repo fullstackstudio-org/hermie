@@ -128,6 +128,37 @@ describe('startSession', () => {
     expect(connectGateway.mock.invocationCallOrder[0]).toBeLessThan(connectChats.mock.invocationCallOrder[0]!)
   })
 
+  it('builds the reader’s own chats with the connection, and places the roster on them while the session runs', async () => {
+    const placeCurrentChats = vi.fn(async () => undefined)
+
+    connectGateway.mockImplementation(() => ({
+      bots: { watchRunning, refreshRunning, placeCurrentChats },
+      stores: { connection },
+      gateway: { request: vi.fn(), onAny: () => () => {}, onRequest: () => () => {}, onStatus: () => () => {} },
+      http: { authMe },
+      stop: clientStop
+    }))
+
+    const session = startSession(options())
+    const { userChats } = connectGateway.mock.calls[0]![0] as { userChats: (gateway: unknown) => { title: string } }
+
+    // A factory over the connection's gateway: the roster and the chat controller get the one switch it builds.
+    expect(typeof userChats).toBe('function')
+    expect(userChats(session.client.gateway).title).toBe('')
+
+    const { layoutStore } = await import('../../state/layout')
+
+    layoutStore.getState().setCurrent('researcher', 'stored-mine')
+    await Promise.resolve()
+    expect(placeCurrentChats).toHaveBeenCalledTimes(1)
+
+    session.stop()
+    layoutStore.getState().setCurrent('researcher', null)
+    await Promise.resolve()
+    expect(placeCurrentChats).toHaveBeenCalledTimes(1)
+    layoutStore.getState().reset()
+  })
+
   it('follows the person’s ui_meta on the same connection, under the key the boot’s identity names', async () => {
     const settings = { ...options(), identity: { userId: 'tester@example.invalid', email: '', displayName: 'Ann' } }
     const session = startSession(settings)

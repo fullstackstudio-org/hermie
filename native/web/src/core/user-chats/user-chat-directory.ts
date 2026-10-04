@@ -1,11 +1,6 @@
-/*
-  Copied from the Expo app's `src/features/user-chats/user-chat-directory.ts`, unchanged but for
-  the import paths, so the ported sub-chats controller test drives the same
-  directory. Test support only: this client has no reader's-own-chat switch
-  yet (the `ui_meta` bridge that keeps the choice is W-20a).
-*/
 /**
- * Which of a bot's two chats this reader is in, and where the private one is.
+ * Which of a bot's two chats this reader is in, and where the private one is. Ported from the Expo app's
+ * `features/user-chats/user-chat-directory.ts`, with the import paths changed and nothing else.
  *
  * `user-chat.ts` holds the rules; this holds the state that makes them cheap.
  * Three jobs, and the third is the one worth reading:
@@ -24,9 +19,9 @@
  * one person is not the other person's chat. That happens on a sign-out, on a
  * gateway switch, and nowhere else.
  */
-import type { ChatGateway } from '../../core/link'
 import type { Bot, BotCanonicalSession } from '../../state/bots'
-import type { CurrentResolution } from '../../core/bots-controller'
+import type { CurrentResolution } from '../bots-controller'
+import type { ChatGateway } from '../link'
 import {
   type ChatChoice,
   type ChatIdentity,

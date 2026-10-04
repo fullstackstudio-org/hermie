@@ -18,7 +18,8 @@
  * cannot offer Delete on the one chat that may never be deleted.
  *
  * **My chat** (the reader's own chat, where the gateway names the reader and the
- * client has one) may only be opened. **Branches** and **Past conversations**
+ * client has one) may only be opened; the choice between it and the shared chat is the control above the groups
+ * (`ChatChoice`). **Branches** and **Past conversations**
  * carry the same four actions, because both are ordinary sessions and the
  * grouping is presentational: a branch renamed out of its prefix moves group and
  * loses nothing.
@@ -55,6 +56,7 @@ import { botsStore } from '../../state/bots'
 import { chatsStore } from '../../state/chats'
 import { Button } from '../../ui/primitives'
 import { formatListTime } from '../bots/list-time'
+import { ChatChoice } from '../chat/ChatChoice'
 import { useChatRuntime } from '../chat/chat-runtime'
 import { WithName } from '../requests/with-name'
 import { chatHref, conversationHref } from '../shell/router'
@@ -210,6 +212,12 @@ export function ConversationsPage({ bot, router = pageHashRouter }: Conversation
           {notice.text}
         </p>
       ) : null}
+
+      {/*
+        The switch sits ABOVE the groups, because it decides which of them the bot's row in the chat list opens: it
+        is not one of the conversations, it is the question the list below is an answer to.
+      */}
+      <ChatChoice bot={bot} controller={controller} onChosen={() => void reload()} />
 
       {controller && record ? (
         <div className="hm-conversations__new">

@@ -42,9 +42,10 @@
  *    connection this controller runs on.
  *  - `ChatChoice` and `UserChatSwitch` are declared here, unchanged, rather
  *    than imported from `features/user-chats`, which this client does not have
- *    (the `ui_meta` bridge that keeps the reader's choice is W-20a). Nothing
- *    builds one yet, so `userChats` is absent and every bot opens its group
- *    chat, which is the Expo app's behaviour on a gateway that names nobody.
+ *    (the directory is `core/user-chats/`). The page builds one when the session starts
+ *    (`features/shell/user-chats.ts`) and hands it to the roster and to this controller through
+ *    `connectGateway` and `connectChats`; absent, every bot opens its group chat, which is the Expo app's
+ *    behaviour on a gateway that names nobody.
  *  - **New at the bottom: `connectChats`**, the React-free half of the Expo
  *    app's `ChatRuntime` provider (start, page shown and hidden, the cache
  *    write on hide, the own author), with the share outbox and the intents
@@ -232,9 +233,9 @@ export type ChatChoice = 'shared' | 'mine'
 
 /**
  * The reader's own chats as the controller asks about them: the Expo app's
- * `features/user-chats/user-chat-switch.ts` interface, unchanged. Nothing in
- * this client builds one yet (the `ui_meta` bridge that remembers the choice
- * is W-20a), so `userChats` is absent and every bot opens its group chat.
+ * `features/user-chats/user-chat-switch.ts` interface, unchanged. The page builds one
+ * (`features/shell/user-chats.ts`); where there is none, `userChats` is absent and every bot opens its
+ * group chat.
  */
 export interface UserChatSwitch extends UserChatSource {
   /** Whether this gateway named somebody, and therefore has a switch at all. */
@@ -268,9 +269,8 @@ export interface ChatControllerOptions {
   /**
    * Where the reader's own chats live (ADR-0007, amended).
    *
-   * Only `chooseChat` reads it. Absent means this deployment offers no private
-   * chats, which is every session-token gateway with no owner identity and
-   * every build that predates them.
+   * Absent means this deployment offers no private chats, which is every
+   * gateway that named nobody and every build that predates them.
    */
   userChats?: UserChatSwitch | null
   /**
@@ -964,6 +964,15 @@ export class ChatController {
   /** The lead this reader's own chats carry, or '' on a gateway that named nobody. */
   private get lead(): string {
     return this.userChats?.available ? this.userChats.title : ''
+  }
+
+  /**
+   * Whether this gateway has said who the reader is, and a chat of their own can therefore sit beside the shared
+   * Bot Chat. False where it named nobody (the switch is then not drawn at all, rather than disabled: a disabled
+   * control promises that something could be turned on).
+   */
+  ownChatsAvailable(): boolean {
+    return Boolean(this.userChats?.available)
   }
 
   private rememberContract(contract: number | null): void {
@@ -5218,6 +5227,8 @@ export function connectChats(options: ConnectChatsOptions): ChatRuntime {
     botsController: client.bots,
     http: client.http,
     cache: options.cache ?? null,
+    // The switch the roster was built with: one directory, so the two cannot disagree about which chat is whose.
+    userChats: client.userChats,
     ownAuthor: () => ownAuthorOn(ownAuthor),
     onRpcFailure: failure => client.stores.connection.getState().noteRpcFailure(failure),
     plugin: client.stores.plugin,

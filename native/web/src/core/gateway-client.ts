@@ -95,6 +95,7 @@ import { connectionStore, type ConnectionStoreState } from '../state/connection'
 import { pluginStore, type PluginState } from '../state/plugin'
 import { webPluginAdvert } from './advert'
 import { BotsController, type ChatSessionIdSource } from './bots-controller'
+import type { UserChatSwitch } from './chat-controller'
 import { type ChatGateway, chatGatewayFor } from './link'
 
 /** How long a hidden page keeps its socket (rule 3 above). */
@@ -261,6 +262,12 @@ export interface ConnectGatewayOptions extends CreateConnectionOptions, Lifecycl
    */
   chats?: ChatSessionIdSource
   stores?: Partial<GatewayStores>
+  /**
+   * Where the reader's own chats live (ADR-0007, amended): built from the connection's gateway, because the
+   * directory resolves sessions over it, and handed to the roster and (through `GatewayClient.userChats`) to the
+   * chat controller, so both consult one switch. Absent: no private chats, and every bot opens its group chat.
+   */
+  userChats?: (gateway: ChatGateway) => UserChatSwitch | null
 }
 
 /** What W-7b's chat controller and the shell program against. */
@@ -271,6 +278,8 @@ export interface GatewayClient {
   /** The REST half, on the same session. */
   readonly http: GatewayHttp
   readonly bots: BotsController
+  /** The reader's own chats' switch, as built by `ConnectGatewayOptions.userChats`; `null` without one. */
+  readonly userChats: UserChatSwitch | null
   readonly stores: GatewayStores
   /** Settles once the watermarks are read and the cached roster is painted. Never rejects. */
   readonly hydrated: Promise<void>
@@ -301,11 +310,13 @@ export function connectGateway(options: ConnectGatewayOptions): GatewayClient {
     options.timeline ?? new AuthTimeline({ sink: snapshot => stores.connection.getState().setAuthTimeline(snapshot) })
   const connection = createGatewayConnection({ ...options, timeline })
   const gateway = chatGatewayFor(connection)
+  const userChats = options.userChats?.(gateway) ?? null
   const bots = new BotsController({
     gateway,
     store: stores.bots,
     cache: options.cache ?? null,
     chats: options.chats ?? chatsStore,
+    userChats,
     onRoster: result => stores.plugin.getState().apply(webPluginAdvert(result))
   })
 
@@ -358,6 +369,7 @@ export function connectGateway(options: ConnectGatewayOptions): GatewayClient {
     gateway,
     http: connection.http,
     bots,
+    userChats,
     stores,
     hydrated,
     stop() {

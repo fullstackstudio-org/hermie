@@ -1,6 +1,6 @@
 /**
- * The panel of the chat's options (`ChatOptions`): the verbosity as a radio
- * group, bot-to-bot and thinking as checkboxes, and the way back to the default;
+ * The panel of the chat's options (`ChatOptions`): whose chat it is where the gateway has a reader to name
+ * (`ChatChoice`), the verbosity as a radio group, bot-to-bot and thinking as checkboxes, and the way back to the default;
  * then, where the gateway has a notifier, what this chat may notify about.
  *
  * Its own module so it loads when the reader first opens the options, not with
@@ -21,6 +21,7 @@ import { webStrings } from '../../i18n/web-strings'
 import { chatViewFor, chatViewStore, hasChatViewOverride, VERBOSITIES } from '../../state/chat-view'
 import type { ExportFormat } from './chat-export'
 import { ExportOptions, SessionOptions } from './ConversationOptions'
+import { ChatChoice } from './ChatChoice'
 import type { ChatSessionRuntime } from './chat-runtime'
 import { useSessionOptions } from './use-session-options'
 import { pluginStore } from '../../state/plugin'
@@ -228,11 +229,14 @@ export function ChatOptionsPanel({
 
   return (
     <div ref={panelRef} className="hm-chat-options__panel" role="group" aria-labelledby={headingId}>
+      {/* The shared Bot Chat or the reader's own (ADR-0007, amended): drawn only where the gateway named the reader. */}
+      {viewer ? null : <ChatChoice bot={bot} controller={runtime?.controller} />}
+
       <p className="hm-chat-options__heading" id={headingId}>
         {strings.chat.options.viewHeader}
       </p>
 
-      <fieldset className="hm-chat-options__set">
+      <fieldset className="hm-chat-options__set" data-verbosity="">
         <legend>{strings.chat.options.verbosity}</legend>
         {VERBOSITIES.map(level => (
           <label className="hm-chat-options__choice" key={level}>
@@ -280,7 +284,7 @@ export function ChatOptionsPanel({
               // Drawn at once, so the radio in force is the one checked when focus lands on it.
               flushSync(() => resetChatView(bot))
               // This button goes with the override; focus stays in the panel, on the verbosity now in force.
-              panelRef.current?.querySelector<HTMLInputElement>('input[type="radio"]:checked')?.focus()
+              panelRef.current?.querySelector<HTMLInputElement>('[data-verbosity] input[type="radio"]:checked')?.focus()
             }}
           >
             {strings.chat.options.useDefault}

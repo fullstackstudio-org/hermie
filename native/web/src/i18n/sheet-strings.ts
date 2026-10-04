@@ -659,6 +659,31 @@ export const SHEET_STRINGS_SOURCE = {
     }
   },
   /**
+   * The choice between the shared Bot Chat and the reader's own (`features/chat/ChatChoice.tsx`): what is said once
+   * a switch has happened. The labels, the notes and the busy sentence are the catalogue's (`strings.chat.sessions`).
+   */
+  chatChoice: {
+    /**
+     * The group's name. Not the catalogue's "This conversation", which the options panel already uses for the
+     * heading of its session options: two groups of one panel with one name cannot be told apart by ear.
+     */
+    legend: {
+      en: 'Whose chat',
+      nl: 'Van wie de chat is',
+      de: 'Wessen Chat'
+    },
+    nowMine: {
+      en: 'Now in your own chat.',
+      nl: 'Nu in je eigen chat.',
+      de: 'Jetzt in deinem eigenen Chat.'
+    },
+    nowShared: {
+      en: 'Now in the shared Bot Chat.',
+      nl: 'Nu in de gedeelde Bot Chat.',
+      de: 'Jetzt im gemeinsamen Bot Chat.'
+    }
+  },
+  /**
    * The Agents bar over a chat's composer and the panel it opens (`features/chat/AgentsBar.tsx`, in the chat
    * screen's chunk). The words it shares with the apps (the count, Show, the statuses, Steer, Stop, the transcript's
    * two sources) are the catalogue's (`strings.chat.subagents`).

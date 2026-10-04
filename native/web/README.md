@@ -1277,6 +1277,30 @@ is on. Every action says what happened (polite) or why it did not (an alert, the
 words of its own) and reads the list again rather than patching it. Titles are cleaned and bounded by
 `displayText` and isolated in `<bdi>`.
 
+**Whose chat** (`features/chat/ChatChoice.tsx`, the Expo app's `ChatChoiceRow`, ADR-0007 amended). Where the gateway has
+said who the reader is (`ChatController.ownChatsAvailable()`; a gateway without sign-in names the owner, as on the other
+clients), a bot has the shared Bot Chat and a chat of the reader's own beside it (`Chat · <name>`, visible, under the
+shared chat). The choice is a labelled group of two radios, "Shared Bot Chat" and "My chat", with a note under it that says
+who else reads, on the chat's options panel and above the groups of the Conversations page; where the gateway named
+nobody it is not drawn at all (a disabled control promises something could be turned on). Choosing My chat is
+`chooseChat`: it finds the reader's chat on that bot or makes it the first time (one lookup shared between callers, and
+it fails closed: a listing that failed is never read as "no chat"), opens it, and a polite line says so; a busy bot (a
+reply running, a queue waiting) is refused before anything changes, with the Conversations page's own sentence; any other
+refusal is an alert in the gateway's words as plain text, and the radio goes back. The radio moves at the press and a press
+while a switch is on its way does nothing. The choice is the arrangement's `myChats` and `current` (`state/layout.ts`),
+which follow the person through `ui_meta` to every device, and a reload opens the chat that was chosen.
+
+It is wired when the session starts (`features/shell/user-chats.ts`, `core/user-chats/`): one switch over the connection's
+gateway is handed to the roster (`connectGateway`'s `userChats`) and to the chat controller (`connectChats`, from
+`GatewayClient.userChats`). Whether there is an own chat and what it is called (`title.ts`) and the arrangement's memory are
+answered from the stores in the first load; the part that talks to the gateway (`UserChatDirectory`: find the chat or make
+it, look a remembered id up) is a chunk of its own, fetched the first time one of those is asked for. The identity is read late (the boot's `/api/auth/me`, put in
+`deviceContextStore` after the connection is made), and the roster is placed on the remembered chats whenever the memory
+changes (`followChosenChats`: this device's pick, or another device's arriving through `ui_meta`; a chat that is open here
+is left where it is and follows on its next open). The page lists one own chat in its "My chat" group; the controller's
+other own chats (`startOwnChat`, which `/new` inside an own chat runs) are not listed there yet. `ChatChoice.test.tsx`,
+`user-chat.test.ts` (ported from the Expo app), `features/shell/user-chats.test.ts` and `e2e/own-chat.spec.ts`.
+
 **The viewer.** A branch or a past conversation opens read-only (`openConversation`, under `bot#<id>`): a line says
 so, with links back to the chat and to the bot's conversations, there is no composer, and nothing is marked read.
 

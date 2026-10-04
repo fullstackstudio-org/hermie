@@ -1,0 +1,54 @@
+/*
+ * The choice between the shared Bot Chat and the reader's own (`ChatChoice.tsx`). Native radios, so the browser draws
+ * their states and their focus; the colours, radii and gutters are the theme's (`ui/theme.css`).
+ */
+
+.hm-chatchoice {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.hm-chatchoice__legend {
+  padding: 0;
+  font-weight: 600;
+}
+
+.hm-chatchoice__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.hm-chatchoice__option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  cursor: pointer;
+}
+
+.hm-chatchoice__option input {
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0;
+  accent-color: var(--hm-tint);
+}
+
+.hm-chatchoice__note {
+  margin: 0;
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+}
+
+.hm-chatchoice__failure {
+  margin: 0;
+  color: var(--hm-danger-text);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
