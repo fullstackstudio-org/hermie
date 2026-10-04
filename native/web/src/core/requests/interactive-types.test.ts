@@ -1,0 +1,450 @@
+/**
+ * The readers of the interactive requests' params, held to the contract's own examples
+ * (`contract/requests/examples.json`, normative): every valid frame decodes into the
+ * types, every frame the gateway never sends is refused or comes out clean, and what a
+ * later contract adds cannot crash a reader.
+ */
+import { describe, expect, it } from 'vitest'
+
+import examplesSource from '../../../../../contract/requests/examples.json?raw'
+import {
+  type DraftAsk,
+  type FileAsk,
+  type FormAsk,
+  type FormField,
+  instantSeconds,
+  type InteractiveAsk,
+  INTERACTIVE_METHODS,
+  isInteractiveMethod,
+  LIMITS,
+  readInteractiveParams,
+  unknownFields
+} from './interactive-types'
+
+interface Frame {
+  id: string
+  method: string
+  params: Record<string, unknown>
+}
+
+interface Examples {
+  methods: Record<
+    string,
+    {
+      frames: Frame[]
+      invalid_frames: { name: string; layer: string; params: Record<string, unknown> }[]
+      answers: { name: string; request: string; result: Record<string, unknown> }[]
+    }
+  >
+  form_fields: { name: string; field: Record<string, unknown> }[]
+}
+
+const examples = JSON.parse(examplesSource) as Examples
+
+const frames = Object.entries(examples.methods).flatMap(([method, entry]) =>
+  entry.frames.map(frame => ({ method, frame }))
+)
+
+const form = (params: Record<string, unknown>): ReturnType<typeof readInteractiveParams> =>
+  readInteractiveParams('input.form', params)
+
+/** A form frame with `fields`, the envelope the contract's own example uses. */
+const formWith = (...fields: Record<string, unknown>[]): Record<string, unknown> => ({
+  session_id: 's_x',
+  v: 1,
+  title: 'T',
+  summary: 'S',
+  expires_at: 1_791_119_400,
+  optional: true,
+  fields
+})
+
+const ask = (result: ReturnType<typeof readInteractiveParams>): InteractiveAsk => {
+  if (!result.ok) {
+    throw new Error(`refused: ${result.reason}`)
+  }
+
+  return result.ask
+}
+
+describe('the methods', () => {
+  it('are the contract’s three, and nothing else is read', () => {
+    expect(examples.methods).toBeDefined()
+    expect(Object.keys(examples.methods).sort()).toEqual([...INTERACTIVE_METHODS].sort())
+    expect(isInteractiveMethod('input.form')).toBe(true)
+    expect(isInteractiveMethod('confirm')).toBe(false)
+    expect(readInteractiveParams('confirm', formWith({ id: 'a', kind: 'toggle', label: 'A' }))).toEqual({
+      ok: false,
+      reason: 'not_supported_on_device'
+    })
+  })
+})
+
+describe('every valid frame of the examples', () => {
+  it.each(frames.map(entry => [entry.frame.id, entry] as const))('decodes %s', (_id, { method, frame }) => {
+    const result = readInteractiveParams(method, frame.params)
+
+    expect(result.ok).toBe(true)
+
+    if (!result.ok) {
+      return
+    }
+
+    expect(result.ask.method).toBe(method)
+    expect(result.ask.title).toBe(frame.params.title)
+    expect(result.ask.summary).toBe(frame.params.summary)
+    expect(result.ask.expiresAt).toBe(frame.params.expires_at)
+    expect(result.ask.optional).toBe(frame.params.optional)
+    expect(unknownFields(result.ask)).toEqual([])
+  })
+
+  it('reads the booking form field by field', () => {
+    const booking = frames.find(entry => entry.frame.id === 'req_form_booking')
+
+    if (!booking) {
+      throw new Error('example gone')
+    }
+
+    const read = ask(readInteractiveParams(booking.method, booking.frame.params)) as FormAsk
+
+    expect(read.actingUser).toBe('Ada')
+    expect(read.fields.map(field => field.kind)).toEqual([
+      'text',
+      'number',
+      'daterange',
+      'amount',
+      'date',
+      'time',
+      'datetime',
+      'choice',
+      'choice',
+      'toggle',
+      'text'
+    ])
+    expect(read.fields[0]).toMatchObject({
+      id: 'name',
+      required: true,
+      maxLength: 20,
+      multiline: false,
+      input: 'plain'
+    })
+    expect(read.fields[1]).toMatchObject({ kind: 'number', min: 1, max: 12, integer: true, default: 2 })
+    expect(read.fields[3]).toMatchObject({ kind: 'amount', currency: 'EUR', min: '0', max: '5000' })
+    expect(read.fields[4]).toMatchObject({ kind: 'date', tz: 'Europe/Amsterdam' })
+    expect(read.fields[7]).toMatchObject({ kind: 'choice', multiple: false })
+    expect(read.fields[8]).toMatchObject({ kind: 'choice', multiple: true, maxSelected: 2 })
+    expect(read.fields[9]).toMatchObject({ kind: 'toggle', default: false })
+    expect(read.fields[10]).toMatchObject({ kind: 'text', multiline: true, maxLength: LIMITS.textMaxLength })
+  })
+
+  it('reads a file request, its upload rules and its preference for the camera', () => {
+    const receipt = frames.find(entry => entry.frame.id === 'req_file_receipt')
+    const contracts = frames.find(entry => entry.frame.id === 'req_file_contracts')
+
+    if (!receipt || !contracts) {
+      throw new Error('example gone')
+    }
+
+    const photo = ask(readInteractiveParams(receipt.method, receipt.frame.params)) as FileAsk
+    const documents = ask(readInteractiveParams(contracts.method, contracts.frame.params)) as FileAsk
+
+    expect(photo).toMatchObject({
+      accept: 'image',
+      capture: 'photo',
+      multiple: false,
+      optional: true,
+      upload: {
+        dir: '/home/ada/work/uploads/hermie/2026-10-04',
+        maxBytes: 10_485_760,
+        maxFiles: 1,
+        stripMetadata: true
+      }
+    })
+    expect(documents).toMatchObject({ accept: 'document', multiple: true, optional: false })
+    expect(documents.capture).toBeUndefined()
+    expect(documents.upload.maxTotalBytes).toBe(52_428_800)
+  })
+
+  it('reads a draft verbatim: its blank lines are the draft’s', () => {
+    const mail = frames.find(entry => entry.frame.id === 'req_draft_mail')
+
+    if (!mail) {
+      throw new Error('example gone')
+    }
+
+    const read = ask(readInteractiveParams(mail.method, mail.frame.params)) as DraftAsk
+
+    expect(read.text).toBe(mail.frame.params.text)
+    expect(read.text).toContain('\n\n')
+    expect(read).toMatchObject({
+      kind: 'mail',
+      subject: 'Re: Flat on the Oudegracht',
+      recipients: ['Bram de Vries <bram@example.com>'],
+      editable: true,
+      optional: false
+    })
+  })
+
+  it('reads every field definition of the examples', () => {
+    expect(examples.form_fields.length).toBeGreaterThan(10)
+
+    for (const { name, field } of examples.form_fields) {
+      const result = form(formWith(field))
+
+      expect(result.ok, name).toBe(true)
+      expect(unknownFields(ask(result)), name).toEqual([])
+    }
+  })
+})
+
+describe('every frame the gateway never sends', () => {
+  const invalid = Object.entries(examples.methods).flatMap(([method, entry]) =>
+    entry.invalid_frames.map(frame => ({ method, ...frame }))
+  )
+
+  it('is there to be held to', () => {
+    expect(invalid.length).toBeGreaterThan(25)
+  })
+
+  it.each(invalid.map(entry => [`${entry.method} ${entry.name}`, entry] as const))(
+    '%s is refused or comes out clean',
+    (_name, entry) => {
+      const result = readInteractiveParams(entry.method, entry.params)
+
+      if (!result.ok) {
+        expect(result.reason).toBe('not_supported_on_device')
+
+        return
+      }
+
+      // Only a text the gateway refused for a character it cannot show may pass, and then without that character.
+      expect(entry.name).toMatch(/separator/u)
+      expect(result.ask.title).not.toMatch(/[\u2028\u2029]/u)
+    }
+  )
+
+  it('refuses every contradiction between fields (the contract’s cross_field layer)', () => {
+    const contradictions = invalid.filter(entry => entry.layer === 'cross_field')
+
+    expect(contradictions.length).toBeGreaterThan(20)
+
+    for (const entry of contradictions) {
+      expect(readInteractiveParams(entry.method, entry.params).ok, entry.name).toBe(false)
+    }
+  })
+})
+
+describe('the envelope', () => {
+  const draft = (): Record<string, unknown> => {
+    const mail = frames.find(entry => entry.frame.id === 'req_draft_post')
+
+    return { ...(mail?.frame.params ?? {}) }
+  }
+
+  it('declines a version it does not know with its own reason', () => {
+    expect(readInteractiveParams('review.draft', { ...draft(), v: 2 })).toEqual({
+      ok: false,
+      reason: 'unsupported_version'
+    })
+    expect(readInteractiveParams('review.draft', { ...draft(), v: undefined })).toEqual({
+      ok: false,
+      reason: 'unsupported_version'
+    })
+  })
+
+  it('declines what is not params, and never throws', () => {
+    for (const nonsense of [null, undefined, 'x', 7, [], [{}], { v: 1 }]) {
+      expect(readInteractiveParams('input.form', nonsense).ok).toBe(false)
+    }
+  })
+
+  it('needs a heading, words, and a deadline', () => {
+    expect(readInteractiveParams('review.draft', { ...draft(), title: '' }).ok).toBe(false)
+    expect(readInteractiveParams('review.draft', { ...draft(), title: '\u202E\u0000' }).ok).toBe(false)
+    expect(readInteractiveParams('review.draft', { ...draft(), summary: 7 }).ok).toBe(false)
+    expect(readInteractiveParams('review.draft', { ...draft(), expires_at: undefined }).ok).toBe(false)
+    expect(readInteractiveParams('review.draft', { ...draft(), expires_at: '1791119400' }).ok).toBe(false)
+  })
+
+  it('cleans and bounds every text the sheet will draw', () => {
+    const read = ask(
+      readInteractiveParams('review.draft', {
+        ...draft(),
+        title: `Pay\u202E now\u0000!${'x'.repeat(200)}`,
+        summary: 'Line\n\n\n\none  \t two',
+        detail: `Detail\u200B text`,
+        subject: 'Re:\u202E hi',
+        recipients: ['bram\u202E@example.com', 'a'.repeat(500)],
+        acting_user: { id: 'u', name: 'Ada\u202E Lovelace' }
+      })
+    ) as DraftAsk
+
+    expect(read.title).not.toMatch(/\u202E/u)
+    expect(read.title).not.toContain('\u0000')
+    expect(Array.from(read.title).length).toBeLessThanOrEqual(LIMITS.title + 1)
+    expect(read.title.endsWith('…')).toBe(true)
+    expect(read.summary).toBe('Line\none two')
+    expect(read.detail).toBe('Detail text')
+    expect(read.subject).toBe('Re: hi')
+    expect(read.recipients[0]).toBe('bram@example.com')
+    expect(Array.from(read.recipients[1] ?? '').length).toBeLessThanOrEqual(LIMITS.draftRecipient + 1)
+    expect(read.actingUser).toBe('Ada Lovelace')
+  })
+
+  it('defaults Skip the way the contract does: offered for input, never for a review', () => {
+    const { optional: _optional, ...bare } = formWith({ id: 'a', kind: 'toggle', label: 'A' })
+    const { optional: _optionalDraft, ...bareDraft } = draft()
+
+    expect(ask(form(bare)).optional).toBe(true)
+    expect(ask(readInteractiveParams('review.draft', bareDraft)).optional).toBe(false)
+  })
+})
+
+describe('a form', () => {
+  it('has one to twelve fields', () => {
+    const field = (index: number): Record<string, unknown> => ({ id: `f${index}`, kind: 'toggle', label: 'F' })
+
+    expect(form(formWith()).ok).toBe(false)
+    expect(form(formWith(...Array.from({ length: 12 }, (_, index) => field(index)))).ok).toBe(true)
+    expect(form(formWith(...Array.from({ length: 13 }, (_, index) => field(index)))).ok).toBe(false)
+  })
+
+  it('reads a kind it does not know as an unknown field, and says which', () => {
+    const read = ask(
+      form(
+        formWith(
+          { id: 'name', kind: 'text', label: 'Name' },
+          { id: 'sig', kind: 'signature\u202E', label: 'Sign here', required: true }
+        )
+      )
+    )
+    const unknown = unknownFields(read)
+
+    expect(unknown).toEqual([{ kind: 'unknown', rawKind: 'signature', id: 'sig', label: 'Sign here', required: true }])
+    expect((read as FormAsk).fields.map((field: FormField) => field.kind)).toEqual(['text', 'unknown'])
+  })
+
+  it('refuses a field with no usable id, and ids that repeat', () => {
+    expect(form(formWith({ id: 'Name', kind: 'toggle', label: 'N' })).ok).toBe(false)
+    expect(form(formWith({ kind: 'toggle', label: 'N' })).ok).toBe(false)
+    expect(form(formWith({ id: 'a', kind: 'toggle', label: 'N' }, { id: 'a', kind: 'toggle', label: 'M' })).ok).toBe(
+      false
+    )
+    expect(form(formWith({ id: 'a', kind: 'toggle', label: '' })).ok).toBe(false)
+    expect(form(formWith({ id: 'a', kind: 'toggle', label: 'x'.repeat(61) })).ok).toBe(false)
+  })
+
+  it('cleans labels, hints, option labels and a text’s default, and keeps option values and ids exactly', () => {
+    const read = ask(
+      form(
+        formWith(
+          { id: 'name', kind: 'text', label: 'Na\u202Eme', hint: 'Your\u0000 name', default: 'Ada\u200B' },
+          { id: 'room', kind: 'choice', label: 'Room', options: [{ value: 'dbl_1', label: 'Dou\u202Eble' }] }
+        )
+      )
+    ) as FormAsk
+
+    expect(read.fields[0]).toMatchObject({ id: 'name', label: 'Name', hint: 'Your name', default: 'Ada' })
+    expect(read.fields[1]).toMatchObject({ options: [{ value: 'dbl_1', label: 'Double' }] })
+  })
+
+  it('reads amounts in thousandths, and refuses the decimals a currency does not have', () => {
+    expect(form(formWith({ id: 'a', kind: 'amount', label: 'A', currency: 'EUR', max: '10.50' })).ok).toBe(true)
+    expect(form(formWith({ id: 'a', kind: 'amount', label: 'A', currency: 'EUR', max: '10.505' })).ok).toBe(false)
+    expect(form(formWith({ id: 'a', kind: 'amount', label: 'A', currency: 'JPY', max: '10.5' })).ok).toBe(false)
+    expect(form(formWith({ id: 'a', kind: 'amount', label: 'A', currency: 'KWD', max: '10.505' })).ok).toBe(true)
+    expect(form(formWith({ id: 'a', kind: 'amount', label: 'A', currency: 'eur' })).ok).toBe(false)
+    expect(form(formWith({ id: 'a', kind: 'amount', label: 'A', currency: 'EUR', max: 10 })).ok).toBe(false)
+    expect(form(formWith({ id: 'a', kind: 'amount', label: 'A', currency: 'EUR', min: '1.00', max: '0.99' })).ok).toBe(
+      false
+    )
+  })
+
+  it('reads instants with their offset, never Z and never fractions', () => {
+    expect(instantSeconds('2026-10-05T00:00+02:00')).toBe(Date.UTC(2026, 9, 4, 22, 0, 0) / 1000)
+    expect(instantSeconds('2026-10-05T00:00:30-05:30')).toBe(Date.UTC(2026, 9, 5, 5, 30, 30) / 1000)
+    expect(instantSeconds('2026-10-05T00:00:00Z')).toBeNull()
+    expect(instantSeconds('2026-10-05T00:00:00.5+02:00')).toBeNull()
+    expect(instantSeconds('2026-02-30T00:00+02:00')).toBeNull()
+    expect(instantSeconds('2026-10-05T24:00+02:00')).toBeNull()
+    expect(instantSeconds(5)).toBeNull()
+  })
+
+  it('refuses a zone this runtime does not know, and a number that is not a number', () => {
+    expect(form(formWith({ id: 'a', kind: 'date', label: 'A', tz: 'Mars/Olympus_Mons' })).ok).toBe(false)
+    expect(form(formWith({ id: 'a', kind: 'date', label: 'A', tz: 'Europe/Amsterdam' })).ok).toBe(true)
+    expect(form(formWith({ id: 'a', kind: 'number', label: 'A', min: '1' })).ok).toBe(false)
+    expect(form(formWith({ id: 'a', kind: 'number', label: 'A', step: 0 })).ok).toBe(false)
+  })
+
+  it('refuses a choice with no options, too many, or a selection bound that makes no sense', () => {
+    const options = (count: number): Record<string, unknown>[] =>
+      Array.from({ length: count }, (_, index) => ({ value: `o${index}`, label: `O${index}` }))
+    const choice = (extra: Record<string, unknown>, count = 3): Record<string, unknown> => ({
+      id: 'c',
+      kind: 'choice',
+      label: 'C',
+      options: options(count),
+      ...extra
+    })
+
+    expect(form(formWith(choice({}, 0))).ok).toBe(false)
+    expect(form(formWith(choice({}, 13))).ok).toBe(false)
+    expect(form(formWith(choice({}, 12))).ok).toBe(true)
+    expect(form(formWith(choice({ multiple: true, min_selected: 1, max_selected: 3 }))).ok).toBe(true)
+    expect(form(formWith(choice({ multiple: true, min_selected: 4 }))).ok).toBe(false)
+    expect(form(formWith(choice({ min_selected: 1 }))).ok).toBe(false)
+    expect(form(formWith(choice({ multiple: true, default: ['o0', 'o0'] }))).ok).toBe(false)
+  })
+})
+
+describe('a file request', () => {
+  const base = (): Record<string, unknown> => {
+    const frame = frames.find(entry => entry.frame.id === 'req_file_receipt')
+
+    return JSON.parse(JSON.stringify(frame?.frame.params ?? {})) as Record<string, unknown>
+  }
+
+  it('ignores a capture preference it does not know, and refuses an accept it does not know', () => {
+    expect((ask(readInteractiveParams('input.file', { ...base(), capture: 'hologram' })) as FileAsk).capture).toBe(
+      undefined
+    )
+    expect(readInteractiveParams('input.file', { ...base(), accept: 'video' }).ok).toBe(false)
+  })
+
+  it('keeps `capture: scan` as a preference the page may ignore', () => {
+    expect((ask(readInteractiveParams('input.file', { ...base(), capture: 'scan' })) as FileAsk).capture).toBe('scan')
+  })
+
+  it('refuses upload rules that are not bounded', () => {
+    const upload = (patch: Record<string, unknown>): Record<string, unknown> => ({
+      ...base(),
+      upload: { ...(base().upload as Record<string, unknown>), ...patch }
+    })
+
+    expect(readInteractiveParams('input.file', upload({ dir: '' })).ok).toBe(false)
+    expect(readInteractiveParams('input.file', upload({ max_files: 11 })).ok).toBe(false)
+    expect(readInteractiveParams('input.file', upload({ max_files: 0 })).ok).toBe(false)
+    expect(readInteractiveParams('input.file', upload({ max_bytes: LIMITS.uploadBytes + 1 })).ok).toBe(false)
+    expect(readInteractiveParams('input.file', upload({ max_total_bytes: 1 })).ok).toBe(false)
+    expect(readInteractiveParams('input.file', { ...base(), upload: 'here' }).ok).toBe(false)
+  })
+})
+
+describe('a draft', () => {
+  const base = (): Record<string, unknown> => {
+    const frame = frames.find(entry => entry.frame.id === 'req_draft_mail')
+
+    return JSON.parse(JSON.stringify(frame?.frame.params ?? {})) as Record<string, unknown>
+  }
+
+  it('is carried verbatim, trailing blanks and all, and bounded', () => {
+    const text = 'One  \n\n\nTwo  \u00A0'
+
+    expect((ask(readInteractiveParams('review.draft', { ...base(), text })) as DraftAsk).text).toBe(text)
+    expect(readInteractiveParams('review.draft', { ...base(), text: '' }).ok).toBe(false)
+    expect(readInteractiveParams('review.draft', { ...base(), text: 'x'.repeat(LIMITS.draftText + 1) }).ok).toBe(false)
+    expect(readInteractiveParams('review.draft', { ...base(), kind: 'tweet' }).ok).toBe(false)
+    expect(readInteractiveParams('review.draft', { ...base(), recipients: Array(11).fill('a@b.c') }).ok).toBe(false)
+  })
+})
