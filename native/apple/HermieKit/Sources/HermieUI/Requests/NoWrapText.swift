@@ -163,7 +163,7 @@ struct NoWrapTextEditor {
     }
 
     /// No wrapping, no help.
-    static func configure(_ view: UITextView, editable: Bool = true, compact: Bool = false) {
+    @MainActor static func configure(_ view: UITextView, editable: Bool = true, compact: Bool = false) {
       view.font = font(compact: compact)
       view.adjustsFontForContentSizeCategory = true
       view.backgroundColor = .clear
@@ -246,7 +246,7 @@ struct NoWrapTextEditor {
 
     /// No wrapping, no help. An `NSTextView` that is horizontally resizable grows to its longest line
     /// inside the scroll view, so the width is exact.
-    static func configure(_ view: NSTextView, in scroll: NSScrollView, editable: Bool = true, compact: Bool = false) {
+    @MainActor static func configure(_ view: NSTextView, in scroll: NSScrollView, editable: Bool = true, compact: Bool = false) {
       scroll.hasVerticalScroller = true
       scroll.hasHorizontalScroller = true
       scroll.autohidesScrollers = true
