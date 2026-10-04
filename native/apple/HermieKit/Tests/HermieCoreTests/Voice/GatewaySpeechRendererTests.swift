@@ -453,10 +453,13 @@ import Testing
       renderer.prefetch(request, rate: 1, voice: nil)
     }
 
-    await eventually { transport.cancelled == 2 }
+    // Each fetch starts its request on a task of its own, so neither the four requests nor the two
+    // let-goes have necessarily happened when `prefetch` returns, and not in any order: wait for both.
+    await eventually { transport.streamCalls.count == 4 && transport.cancelled == 2 }
 
     #expect(transport.streamCalls.count == 4)
     #expect(transport.cancelled == 2, "the oldest two were let go of")
+    #expect(Set(transport.cancelledTexts) == ["Sentence 0.", "Sentence 1."], "and they were the oldest")
   }
 
   @Test func discardingWhatWasFetchedAheadLetsGoOfIt() async {
