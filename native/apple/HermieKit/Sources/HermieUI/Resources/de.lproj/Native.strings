@@ -220,6 +220,8 @@
 	<string>Datei auswählen…</string>
 	<key>native.composer.attach.drop</key>
 	<string>Zum Anhängen ablegen</string>
+	<key>native.composer.attach.dropBlocked</key>
+	<string>Schließe zuerst die offene Anfrage ab, dann lege Dateien hier ab</string>
 	<key>native.composer.attach.files</key>
 	<string>Dateien</string>
 	<key>native.composer.attach.item</key>
@@ -232,8 +234,12 @@
 	<string>Fotomediathek</string>
 	<key>native.composer.attach.problem.failed</key>
 	<string>Hochladen fehlgeschlagen: %@</string>
+	<key>native.composer.attach.problem.folder</key>
+	<string>Ein Ordner kann nicht angehängt werden, lege die Dateien darin ab</string>
 	<key>native.composer.attach.problem.noWorkspace</key>
 	<string>Dieser Chat hat noch keinen Arbeitsordner, daher kann keine Datei angehängt werden</string>
+	<key>native.composer.attach.problem.notAttachable</key>
+	<string>Das lässt sich nicht anhängen, nur Dateien und Bilder</string>
 	<key>native.composer.attach.problem.refused</key>
 	<string>Das Gateway hat es abgelehnt: %@</string>
 	<key>native.composer.attach.problem.tooLarge</key>

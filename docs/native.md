@@ -551,8 +551,20 @@ ends the socket first.
 ### Attachments
 
 The composer's "+" (a menu on iPhone and iPad: Photo Library, Camera where there is one, Files; the
-file picker on the Mac) also takes files dropped on the composer and files or pictures pasted into
-the field. The rules are the web client's (`native/web/src/core/chats/attachments.ts`):
+file picker on the Mac) also takes files and pictures dropped anywhere on the chat (the transcript,
+the empty state, the composer; `attachmentDropTarget` on the chat screen, which shows "Drop to
+attach" over it) and files or pictures pasted into the field. The rules are the web client's
+(`native/web/src/core/chats/attachments.ts`):
+
+- **Drops.** A drag is routed by the type identifiers its item offers (`AttachmentDropRoute`): a
+  file URL (the Finder) is read as a URL, which is what hands a sandboxed Mac app the right to read
+  it, and copied; a picture or other content with no file behind it, or a file a sender promises to
+  write (Photos, Mail, the Files app on an iPad), is asked for as a file by its own type and copied
+  inside the callback that is given it. Words and links are not attachments: a drag of only those
+  does nothing, and inside a mixed drop they become a failed chip that says so, as does a folder.
+  While a request has the composer (HERM-251) the drag is shown and refused with the reason. The
+  Mac's text field does not register for files or pictures (`KeyTextView.registerForDraggedTypes`),
+  or it would answer a drag over it itself and the chat would never see it.
 
 - **Two roads.** An image the gateway reads by its extension (`png jpg jpeg gif webp bmp tiff tif`)
   goes as base64 over the socket (`image.attach_bytes`, 25 MiB) before `prompt.submit`, and is

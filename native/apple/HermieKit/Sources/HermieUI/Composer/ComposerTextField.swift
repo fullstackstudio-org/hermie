@@ -682,6 +682,60 @@ struct ComposerTextField {
       return super.performKeyEquivalent(with: event)
     }
 
+    // MARK: Drags
+
+    // A text view registers for the files and pictures of a drag too, and then is the one that
+    // answers it: a file dropped over the field went in as its path as words (or was refused)
+    // instead of reaching the chat's drop target (`attachmentDropTarget`), which attaches it.
+    // Files and pictures are therefore not registered for here: they pass over the field to the
+    // chat, and words are still the field's own to take.
+    override func registerForDraggedTypes(_ newTypes: [NSPasteboard.PasteboardType]) {
+      super.registerForDraggedTypes(Self.textDragTypes(in: newTypes))
+    }
+
+    /// The types of a drag that the field takes: words, and nothing that is a file or a picture.
+    nonisolated static func textDragTypes(in types: [NSPasteboard.PasteboardType]) -> [NSPasteboard.PasteboardType] {
+      types.filter { !isAttachmentDragType($0) }
+    }
+
+    nonisolated static func isAttachmentDragType(_ type: NSPasteboard.PasteboardType) -> Bool {
+      if attachmentDragTypeNames.contains(type.rawValue) {
+        return true
+      }
+
+      guard let known = UTType(type.rawValue) else {
+        return false
+      }
+
+      return known.conforms(to: .image) || known.conforms(to: .fileURL) || known.conforms(to: .pdf)
+    }
+
+    /// The old names of a file on a drag (and of a file a sender promises to write), which have no
+    /// type of the system's to be recognised by.
+    private nonisolated static let attachmentDragTypeNames: Set<String> = [
+      "NSFilenamesPboardType", "NSFilesPromisePboardType", "NXFileContentsPboardType",
+      "com.apple.NSFilePromiseItemProvider", "com.apple.pasteboard.promised-file-url",
+      "com.apple.pasteboard.promised-file-content-type"
+    ]
+
+    // Said once more where the registration is not enough: a drag that carries files or a picture is
+    // never the field's, whatever else it carries beside them.
+    override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
+      Self.carriesAttachment(sender.draggingPasteboard) ? [] : super.draggingEntered(sender)
+    }
+
+    override func draggingUpdated(_ sender: any NSDraggingInfo) -> NSDragOperation {
+      Self.carriesAttachment(sender.draggingPasteboard) ? [] : super.draggingUpdated(sender)
+    }
+
+    override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
+      Self.carriesAttachment(sender.draggingPasteboard) ? false : super.performDragOperation(sender)
+    }
+
+    static func carriesAttachment(_ board: NSPasteboard) -> Bool {
+      (board.types ?? []).contains(where: isAttachmentDragType)
+    }
+
     // Text goes in as plain text; files and pictures with no text go to be attached.
     override func paste(_ sender: Any?) {
       guard isEnabledForInput else {

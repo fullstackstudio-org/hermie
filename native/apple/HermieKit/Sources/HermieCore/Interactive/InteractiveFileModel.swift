@@ -300,7 +300,8 @@ public final class InteractiveFileModel {
       add(file)
     case .failure(.tooLarge):
       rejection = .tooLarge(name: name, limit: maxBytes)
-    case .failure(.unreadable):
+    case .failure(.unreadable), .failure(.unsupported):
+      // A folder is not one file to hand over: it cannot be read as one.
       rejection = .unreadable(name: name)
     }
   }

@@ -288,6 +288,29 @@ private struct TrayHarness {
     }
   }
 
+  @Test func aFolderOrABundleIsRefusedBeforeAnythingIsCopied() throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent("folder-\(UUID().uuidString)")
+    let folder = root.appendingPathComponent("photos")
+    let bundle = root.appendingPathComponent("Notes.app")
+    try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    try FileManager.default.createDirectory(at: bundle, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: root) }
+
+    #expect(AttachmentStaging.isFolder(folder))
+    #expect(throws: StagingFailure.unsupported(.folder)) {
+      _ = try AttachmentStaging.stage(copying: folder)
+    }
+    #expect(throws: StagingFailure.unsupported(.folder)) {
+      _ = try AttachmentStaging.stage(copying: bundle)
+    }
+
+    let file = root.appendingPathComponent("a.txt")
+    try Data("x".utf8).write(to: file)
+    #expect(!AttachmentStaging.isFolder(file))
+    #expect(AttachmentProblem.unsupported(.folder).retryable == false)
+    #expect(AttachmentProblem.unreadable(message: "x").retryable)
+  }
+
   @Test func discardingACopyRemovesItsFolderAndOnlyInsideTheStagingFolder() throws {
     let staged = try AttachmentStaging.stage(data: Data("x".utf8), name: "a.txt")
     AttachmentStaging.discard(staged.url)

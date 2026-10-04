@@ -123,6 +123,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Dragging a file into a chat works on the Mac and iPad.** Only the composer took a drop, and over the
+  message field the Mac's text view answered the drag itself. The whole chat is now the target, with a
+  "Drop to attach" overlay; a folder, words or a link in the drop become a chip that says why it was not
+  taken, and while a question or approval has the composer the overlay says to answer it first. In the web
+  client a file dropped on a chat that takes no attachments no longer replaces the app in the browser.
 - **Swiping back out of a chat no longer crashes the native apps.** A queued layout pass kept the transcript
   list alive past its coordinator, and its hooks then read a coordinator that was already gone. The hooks now
   let go of it, on iOS, iPadOS and the Mac.

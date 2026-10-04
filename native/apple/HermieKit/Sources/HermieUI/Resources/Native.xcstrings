@@ -2539,6 +2539,30 @@
         }
       }
     },
+    "native.composer.attach.dropBlocked" : {
+      "comment" : "Shown over the chat while a file is dragged onto it but a request (an approval, a question, a form) has the composer: nothing can be attached until it is answered.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schließe zuerst die offene Anfrage ab, dann lege Dateien hier ab"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish the open request first, then drop files here"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rond eerst het openstaande verzoek af, zet daarna bestanden hier neer"
+          }
+        }
+      }
+    },
     "native.composer.attach.files" : {
       "comment" : "Menu item in the composer's plus menu on iPhone and iPad: pick a file from the Files app.",
       "extractionState" : "manual",
@@ -2683,6 +2707,30 @@
         }
       }
     },
+    "native.composer.attach.problem.folder" : {
+      "comment" : "Under an attachment chip: a folder was dropped, and only files can be attached.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Ordner kann nicht angehängt werden, lege die Dateien darin ab"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A folder can't be attached, drop the files inside it"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een map kan niet worden bijgevoegd, zet de bestanden erin neer"
+          }
+        }
+      }
+    },
     "native.composer.attach.problem.noWorkspace" : {
       "comment" : "Under an attachment chip: the chat has not told the app which folder it works in, so a file has nowhere to go.",
       "extractionState" : "manual",
@@ -2703,6 +2751,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Deze chat heeft nog geen werkmap, dus er kan geen bestand worden bijgevoegd"
+          }
+        }
+      }
+    },
+    "native.composer.attach.problem.notAttachable" : {
+      "comment" : "Under an attachment chip: something was dropped that is neither a file nor a picture (words, a link).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das lässt sich nicht anhängen, nur Dateien und Bilder"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This can't be attached, only files and pictures can"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit kan niet worden bijgevoegd, alleen bestanden en afbeeldingen"
           }
         }
       }

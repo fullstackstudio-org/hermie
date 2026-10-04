@@ -194,6 +194,9 @@ struct ChatSessionView<Composer: View>: View {
           .safeAreaInset(edge: .bottom, spacing: 0) {
             ComposerSlot(chat: chat, session: session, feed: feed, composer: composer)
           }
+          // Files and pictures dropped anywhere on the chat (the transcript, the empty state, the
+          // composer) go to the composer's tray; not while a request has the composer (HERM-251).
+          .attachmentDropTarget(tray: feed.composer.tray) { feed.requestUp || feed.composer.held }
           .toolbar {
             // While YOLO mode is on, a capsule says so for as long as it is: the chat never asks.
             if feed.yolo {

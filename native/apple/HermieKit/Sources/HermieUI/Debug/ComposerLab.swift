@@ -42,6 +42,7 @@
               ComposerView(model: composer)
             }
           }
+          .attachmentDropTarget(tray: composer.tray) { composer.held }
           .answeringRequests(with: requests)
           .secureInput(secureInput)
       } else {

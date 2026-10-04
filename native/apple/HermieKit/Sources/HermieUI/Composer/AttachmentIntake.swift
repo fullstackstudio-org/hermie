@@ -60,7 +60,7 @@ enum AttachmentIntake {
     return "\(base).\(ext)"
   }
 
-  private nonisolated static func staged(_ body: () throws(StagingFailure) -> PickedFile) -> Staged {
+  nonisolated static func staged(_ body: () throws(StagingFailure) -> PickedFile) -> Staged {
     do {
       return .success(try body())
     } catch {
@@ -81,7 +81,7 @@ enum AttachmentIntake {
 
   // MARK: Files
 
-  /// Files from the file importer, or pasted from the Finder, or dropped from it.
+  /// Files from the file importer, or pasted from the Finder, or dropped from it as file URLs.
   static func addFiles(_ urls: [URL], to tray: AttachmentTray) {
     let ids = tray.prepare(urls.map { ($0.lastPathComponent, kind(ofFileNamed: $0.lastPathComponent)) })
 
@@ -148,87 +148,6 @@ enum AttachmentIntake {
         }
 
         tray.provide(id, result)
-      }
-    }
-  }
-
-  // MARK: Drops
-
-  /// Whether a dragged item is a file or a picture, as opposed to words or a link, which the
-  /// composer does not take as an attachment.
-  static func isAttachable(_ provider: NSItemProvider) -> Bool {
-    if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
-      return true
-    }
-
-    return provider.registeredContentTypes.contains { $0.conforms(to: .image) || isFileContent($0) }
-  }
-
-  private static func isFileContent(_ type: UTType) -> Bool {
-    type.conforms(to: .data) && !type.conforms(to: .text) && !type.conforms(to: .url)
-  }
-
-  /// Dropped on the composer. A file URL (the Mac's Finder, files in place) is copied as a picked
-  /// file is; anything else (a file from the Files app on an iPad, a picture dragged out of a page)
-  /// is asked for as a file by its own type, and copied inside the callback that is given it.
-  static func addDropped(_ providers: [NSItemProvider], to tray: AttachmentTray) {
-    let usable = providers.filter(isAttachable)
-    let ids = tray.prepare(
-      usable.map { provider in
-        let name = provider.suggestedName ?? NativeStrings.Composer.Attach.item
-        return (name, kind(ofFileNamed: name))
-      })
-
-    for (id, provider) in zip(ids, usable) {
-      Task {
-        let result = await stage(dropped: provider)
-
-        tray.provide(id, result)
-      }
-    }
-  }
-
-  private static func stage(dropped provider: NSItemProvider) async -> Staged {
-    if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier), let url = await fileURL(of: provider) {
-      return await Task.detached(priority: .userInitiated) {
-        staged { () throws(StagingFailure) in
-          try AttachmentStaging.stage(copying: url, mimeType: mimeType(forFileNamed: url.lastPathComponent))
-        }
-      }.value
-    }
-
-    let types = provider.registeredContentTypes
-    guard let type = types.first(where: { $0.conforms(to: .image) }) ?? types.first(where: isFileContent) else {
-      return .failure(.unreadable(message: "Nothing in the drop can be read as a file."))
-    }
-
-    return await file(of: provider, as: type)
-  }
-
-  private static func fileURL(of provider: NSItemProvider) async -> URL? {
-    await withCheckedContinuation { continuation in
-      _ = provider.loadObject(ofClass: URL.self) { url, _ in
-        continuation.resume(returning: url)
-      }
-    }
-  }
-
-  /// The provider's own copy of its item, which is only there inside the callback: copied in it.
-  private static func file(of provider: NSItemProvider, as type: UTType) async -> Staged {
-    let name = named(provider.suggestedName, as: type)
-
-    return await withCheckedContinuation { continuation in
-      provider.loadFileRepresentation(forTypeIdentifier: type.identifier) { url, error in
-        guard let url else {
-          let message = (error.map { ($0 as NSError).localizedDescription }) ?? "The item could not be read."
-          continuation.resume(returning: .failure(.unreadable(message: message)))
-          return
-        }
-
-        continuation.resume(
-          returning: staged { () throws(StagingFailure) in
-            try AttachmentStaging.stage(copying: url, name: name, mimeType: type.preferredMIMEType)
-          })
       }
     }
   }
@@ -311,27 +230,3 @@ struct PickedPhoto: Transferable {
     }
   }
 #endif
-
-/// Dragging a file or a picture over the composer: the hint shows for those, and not for words.
-struct AttachmentDropDelegate: DropDelegate {
-  let tray: AttachmentTray
-  @Binding var targeted: Bool
-
-  func validateDrop(info: DropInfo) -> Bool {
-    info.itemProviders(for: [.fileURL, .image, .item]).contains(where: AttachmentIntake.isAttachable)
-  }
-
-  func dropEntered(info: DropInfo) {
-    targeted = true
-  }
-
-  func dropExited(info: DropInfo) {
-    targeted = false
-  }
-
-  func performDrop(info: DropInfo) -> Bool {
-    targeted = false
-    AttachmentIntake.addDropped(info.itemProviders(for: [.fileURL, .image, .item]), to: tray)
-    return true
-  }
-}

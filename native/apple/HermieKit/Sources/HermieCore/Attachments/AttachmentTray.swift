@@ -33,11 +33,24 @@ public enum AttachmentProblem: Sendable, Equatable {
   case failed(message: String)
   /// The file could not be read from this device.
   case unreadable(message: String)
+  /// What was handed over is not something that can be attached (a folder, words, a link).
+  case unsupported(Unsupported)
 
-  /// Whether trying again could end differently: not for a file over its cap, which would be
-  /// refused the same way.
+  /// What cannot be attached, and why.
+  public enum Unsupported: Sendable, Equatable {
+    /// A folder or a bundle: it is not one file, and only files are uploaded.
+    case folder
+    /// Not a file or a picture at all: words, a link, something the sender could not give as a file.
+    case notAttachable
+  }
+
+  /// Whether trying again could end differently: not for a file over its cap or one that is not
+  /// attachable, which would be refused the same way.
   public var retryable: Bool {
-    if case .tooLarge = self { false } else { true }
+    switch self {
+    case .tooLarge, .unsupported: false
+    default: true
+    }
   }
 
   /// The problem a failed upload came to. Cancellation is not one: the reader asked for it.
@@ -78,11 +91,14 @@ public enum StagingFailure: Error, Sendable, Equatable {
   case tooLarge(limitBytes: Int, size: Int?)
   /// The file could not be read or copied.
   case unreadable(message: String)
+  /// A folder, or something that is not a file at all.
+  case unsupported(AttachmentProblem.Unsupported)
 
   var problem: AttachmentProblem {
     switch self {
     case .tooLarge(let limit, _): .tooLarge(limitBytes: limit)
     case .unreadable(let message): .unreadable(message: message)
+    case .unsupported(let reason): .unsupported(reason)
     }
   }
 }
@@ -510,6 +526,13 @@ public enum AttachmentStaging {
     try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize
   }
 
+  /// Whether `url` is a folder or a bundle: something a file system holds many files in.
+  public static func isFolder(_ url: URL) -> Bool {
+    let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .isPackageKey])
+
+    return values?.isDirectory == true || values?.isPackage == true
+  }
+
   /// Copy a picked file in (reading it inside its security scope), and describe the copy.
   ///
   /// The source's size is read first: a file over the cap of the road it would take (25 MiB as an
@@ -523,6 +546,12 @@ public enum AttachmentStaging {
       if scoped {
         source.stopAccessingSecurityScopedResource()
       }
+    }
+
+    // A folder (or a bundle, which is a folder to the file system) is not one file: refused before
+    // anything is copied, with its own words, rather than copied and then failing to upload.
+    if isFolder(source) {
+      throw .unsupported(.folder)
     }
 
     let display = name ?? source.lastPathComponent

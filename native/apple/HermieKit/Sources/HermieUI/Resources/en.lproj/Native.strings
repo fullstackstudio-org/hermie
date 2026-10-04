@@ -220,6 +220,8 @@
 	<string>Choose File…</string>
 	<key>native.composer.attach.drop</key>
 	<string>Drop to attach</string>
+	<key>native.composer.attach.dropBlocked</key>
+	<string>Finish the open request first, then drop files here</string>
 	<key>native.composer.attach.files</key>
 	<string>Files</string>
 	<key>native.composer.attach.item</key>
@@ -232,8 +234,12 @@
 	<string>Photo Library</string>
 	<key>native.composer.attach.problem.failed</key>
 	<string>Upload failed: %@</string>
+	<key>native.composer.attach.problem.folder</key>
+	<string>A folder can't be attached, drop the files inside it</string>
 	<key>native.composer.attach.problem.noWorkspace</key>
 	<string>This chat has no working folder yet, so a file cannot be attached</string>
+	<key>native.composer.attach.problem.notAttachable</key>
+	<string>This can't be attached, only files and pictures can</string>
 	<key>native.composer.attach.problem.refused</key>
 	<string>The gateway refused it: %@</string>
 	<key>native.composer.attach.problem.tooLarge</key>

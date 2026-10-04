@@ -277,6 +277,8 @@ extension AttachmentProblem {
     case .refused(let detail): NativeStrings.Composer.Attach.refused(detail)
     case .failed(let message): NativeStrings.Composer.Attach.failed(message)
     case .unreadable: NativeStrings.Composer.Attach.unreadable
+    case .unsupported(.folder): NativeStrings.Composer.Attach.folder
+    case .unsupported(.notAttachable): NativeStrings.Composer.Attach.notAttachable
     }
   }
 }
@@ -402,6 +404,14 @@ extension NativeStrings.Composer {
     static var unreadable: String {
       String(localized: "native.composer.attach.problem.unreadable", table: "Native", bundle: .module)
     }
+    /// A folder can't be attached, drop the files inside it
+    static var folder: String {
+      String(localized: "native.composer.attach.problem.folder", table: "Native", bundle: .module)
+    }
+    /// This can't be attached, only files and pictures can
+    static var notAttachable: String {
+      String(localized: "native.composer.attach.problem.notAttachable", table: "Native", bundle: .module)
+    }
     /// Waiting for the attachments to finish
     static var waitingHint: String {
       String(localized: "native.composer.attach.waitingHint", table: "Native", bundle: .module)
@@ -409,6 +419,10 @@ extension NativeStrings.Composer {
     /// Drop to attach
     static var drop: String {
       String(localized: "native.composer.attach.drop", table: "Native", bundle: .module)
+    }
+    /// Finish the open request first, then drop files here
+    static var dropBlocked: String {
+      String(localized: "native.composer.attach.dropBlocked", table: "Native", bundle: .module)
     }
     /// Attachments
     static var list: String {

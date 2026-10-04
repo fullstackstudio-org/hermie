@@ -220,6 +220,8 @@
 	<string>Kies bestand…</string>
 	<key>native.composer.attach.drop</key>
 	<string>Zet neer om bij te voegen</string>
+	<key>native.composer.attach.dropBlocked</key>
+	<string>Rond eerst het openstaande verzoek af, zet daarna bestanden hier neer</string>
 	<key>native.composer.attach.files</key>
 	<string>Bestanden</string>
 	<key>native.composer.attach.item</key>
@@ -232,8 +234,12 @@
 	<string>Fotobibliotheek</string>
 	<key>native.composer.attach.problem.failed</key>
 	<string>Uploaden mislukt: %@</string>
+	<key>native.composer.attach.problem.folder</key>
+	<string>Een map kan niet worden bijgevoegd, zet de bestanden erin neer</string>
 	<key>native.composer.attach.problem.noWorkspace</key>
 	<string>Deze chat heeft nog geen werkmap, dus er kan geen bestand worden bijgevoegd</string>
+	<key>native.composer.attach.problem.notAttachable</key>
+	<string>Dit kan niet worden bijgevoegd, alleen bestanden en afbeeldingen</string>
 	<key>native.composer.attach.problem.refused</key>
 	<string>De gateway weigerde het: %@</string>
 	<key>native.composer.attach.problem.tooLarge</key>

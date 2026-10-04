@@ -24,9 +24,9 @@ import SwiftUI
 ///
 /// A "+" at the leading edge adds attachments, as in Messages: on iPhone and iPad a menu (Photo
 /// Library, Camera where there is one, Files), on the Mac the file picker; files can also be
-/// dropped on the composer and pictures or copied files pasted into the field. Each becomes a chip
-/// above the field (`AttachmentStrip`) that uploads at once; the send button waits until every
-/// chip is ready.
+/// dropped on the chat (`attachmentDropTarget`, set on the whole screen) and pictures or copied files
+/// pasted into the field. Each becomes a chip above the field (`AttachmentStrip`) that uploads at
+/// once; the send button waits until every chip is ready.
 public struct ComposerView: View {
   @Bindable var model: ComposerModel
 
@@ -40,8 +40,6 @@ public struct ComposerView: View {
   @State private var showPhotos = false
   @State private var showFiles = false
   @State private var photoSelection: [PhotosPickerItem] = []
-  /// A file is being dragged over the composer.
-  @State private var dropTargeted = false
   #if os(iOS)
     @State private var showCamera = false
   #endif
@@ -90,8 +88,6 @@ public struct ComposerView: View {
     .padding(.horizontal, Self.edgeInset)
     .padding(.top, 6)
     .padding(.bottom, 8)
-    .overlay { dropHint }
-    .onDrop(of: [.fileURL, .image, .item], delegate: AttachmentDropDelegate(tray: model.tray, targeted: $dropTargeted))
     .attachmentPickers(
       photos: $showPhotos, files: $showFiles, selection: $photoSelection,
       onPhotos: { items in AttachmentIntake.addPhotos(items, to: model.tray) },
@@ -195,23 +191,6 @@ public struct ComposerView: View {
   private var controlHeight: CGFloat { min(scaledControlHeight, Self.baseControlHeight * 1.5) }
 
   // MARK: Attachments
-
-  /// "Drop to attach", over the composer while a file hovers on it.
-  @ViewBuilder private var dropHint: some View {
-    if dropTargeted {
-      RoundedRectangle(cornerRadius: 24)
-        .strokeBorder(.tint, style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
-        .background(.tint.opacity(0.08), in: .rect(cornerRadius: 24))
-        .overlay {
-          Label(NativeStrings.Composer.Attach.drop, systemImage: "paperclip")
-            .font(.callout.weight(.semibold))
-            .foregroundStyle(.tint)
-        }
-        .padding(4)
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-    }
-  }
 
   /// The plus: a menu on iPhone and iPad (Photo Library, Camera where there is one, Files), the
   /// file picker on the Mac.
