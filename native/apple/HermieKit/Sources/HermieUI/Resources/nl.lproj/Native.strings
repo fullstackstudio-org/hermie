@@ -2028,6 +2028,100 @@
 	<string>Bestand geschreven</string>
 	<key>native.transcript.unsupportedItem</key>
 	<string>Dit bericht (%@) heeft een nieuwere versie van Hermie nodig.</string>
+	<key>native.usage.account</key>
+	<string>Provideraccount</string>
+	<key>native.usage.accountNone</key>
+	<string>Nog geen providerlimieten gemeld.</string>
+	<key>native.usage.accountNote</key>
+	<string>De limieten van het account waarop het model van deze bot draait, zoals de gateway ze verwoordt. Ze worden gemeld zolang een chat van deze bot open is.</string>
+	<key>native.usage.alertCost</key>
+	<string>%1$@ vandaag uitgegeven op %2$@, boven je limiet van %3$@.</string>
+	<key>native.usage.alertCostLimit</key>
+	<string>Kosten per dag (Amerikaanse dollars)</string>
+	<key>native.usage.alertCostTop</key>
+	<string>%1$@ vandaag uitgegeven op %2$@, boven je limiet van %3$@. Meeste: %4$@.</string>
+	<key>native.usage.alertFooter</key>
+	<string>Telt elke bot op deze gateway op, in de UTC-dagen van de gateway, en meldt het één keer per dag per limiet. Hermie kijkt zolang de app draait; hij kan zichzelf niet wakker maken om te kijken. Meldingen moeten aan staan (Instellingen, Meldingen).</string>
+	<key>native.usage.alertOff</key>
+	<string>Uit</string>
+	<key>native.usage.alertSwitch</key>
+	<string>Waarschuw me als een dag een limiet bereikt</string>
+	<key>native.usage.alertTitle</key>
+	<string>Gebruikslimiet bereikt</string>
+	<key>native.usage.alertTokenLimit</key>
+	<string>Tokens per dag</string>
+	<key>native.usage.alertTokens</key>
+	<string>%1$@ tokens vandaag gebruikt op %2$@, boven je limiet van %3$@.</string>
+	<key>native.usage.alertTokensTop</key>
+	<string>%1$@ tokens vandaag gebruikt op %2$@, boven je limiet van %3$@. Meeste: %4$@.</string>
+	<key>native.usage.alerts</key>
+	<string>Limiet</string>
+	<key>native.usage.allBots</key>
+	<string>Alle bots</string>
+	<key>native.usage.apiCalls</key>
+	<string>Modelaanroepen</string>
+	<key>native.usage.blurb</key>
+	<string>Tokens en kosten per bot en per dag, en een limiet die je waarschuwt.</string>
+	<key>native.usage.cached</key>
+	<string>%@ uit cache gelezen</string>
+	<key>native.usage.context</key>
+	<string>Contextvenster</string>
+	<key>native.usage.contextDetail</key>
+	<string>%1$@ van %2$@ tokens</string>
+	<key>native.usage.contextNone</key>
+	<string>Onbekend tot de chat van deze bot geopend is geweest.</string>
+	<key>native.usage.dayNote</key>
+	<string>De gateway telt dagen in UTC, naar de dag waarop elk gesprek begon. Een kost met ~ is de schatting van de gateway; de provider meldde hem niet.</string>
+	<key>native.usage.failed</key>
+	<string>Gebruik kon niet worden gelezen: %@</string>
+	<key>native.usage.failedBots</key>
+	<string>Het gebruik van deze kon niet worden gelezen: %@</string>
+	<key>native.usage.inOut</key>
+	<string>%1$@ in, %2$@ uit</string>
+	<key>native.usage.loading</key>
+	<string>Gebruik wordt gelezen…</string>
+	<key>native.usage.messages</key>
+	<string>Berichten</string>
+	<key>native.usage.noUse</key>
+	<string>Geen gebruik in deze periode.</string>
+	<key>native.usage.nous</key>
+	<string>Nous-tegoed</string>
+	<key>native.usage.offline</key>
+	<string>Gebruik kan niet worden gelezen zonder verbinding.</string>
+	<key>native.usage.perBot</key>
+	<string>Per bot</string>
+	<key>native.usage.perDay</key>
+	<string>Per dag</string>
+	<key>native.usage.period</key>
+	<string>Laatste %lld dagen</string>
+	<key>native.usage.plan</key>
+	<string>Abonnement</string>
+	<key>native.usage.remaining</key>
+	<string>%@ over</string>
+	<key>native.usage.renews</key>
+	<string>Verlengt %@</string>
+	<key>native.usage.sessions</key>
+	<string>Sessies</string>
+	<key>native.usage.span</key>
+	<string>Periode</string>
+	<key>native.usage.span.month</key>
+	<string>30 dagen</string>
+	<key>native.usage.span.week</key>
+	<string>7 dagen</string>
+	<key>native.usage.spendable</key>
+	<string>%@ te besteden</string>
+	<key>native.usage.title</key>
+	<string>Gebruik</string>
+	<key>native.usage.today</key>
+	<string>Vandaag</string>
+	<key>native.usage.tokenCount</key>
+	<string>%@ tokens</string>
+	<key>native.usage.topup</key>
+	<string>Opwaardering</string>
+	<key>native.usage.unsupported</key>
+	<string>Deze gateway meldt geen gebruik.</string>
+	<key>native.usage.updated</key>
+	<string>Bijgewerkt %@</string>
 	<key>native.voice.automatic</key>
 	<string>Automatisch</string>
 	<key>native.voice.bargeIn</key>

@@ -41,6 +41,8 @@ public final class LiveWiring {
   public let inbox: NeedsYouInbox?
   /// The emergency stop (NX-16): every running turn of the connected gateways, on request.
   public let emergencyStop: EmergencyStopModel
+  /// The notification for a day's use that reached the limit the reader set, when the shell has one.
+  public let usageAlerts: UsageAlertMonitor?
 
   /// How long a notification action waits for the socket before it gives up and only opens.
   var readyWait: Duration = .seconds(15)
@@ -65,6 +67,9 @@ public final class LiveWiring {
   private let gate = SurfaceGate()
 
   private let installLock: (@escaping @Sendable () -> Bool) -> Void
+  /// Looks at the live gateway's use for `usageAlerts`; one gateway at a time.
+  private let usageDriver: UsageAlertDriver?
+  private weak var usageSession: GatewaySession?
 
   /// - Parameters:
   ///   - installLock: where the surfaces' lock state is installed; `SystemSurfaceLock` in
@@ -81,7 +86,8 @@ public final class LiveWiring {
     surfaces: SystemSurfaces?,
     installLock: @escaping (@escaping @Sendable () -> Bool) -> Void = { SystemSurfaceLock.install($0) },
     alerts: RequestAlerts? = nil,
-    inbox: NeedsYouInbox? = nil
+    inbox: NeedsYouInbox? = nil,
+    usageAlerts: UsageAlertMonitor? = nil
   ) {
     self.launch = launch
     self.accounts = accounts
@@ -90,6 +96,8 @@ public final class LiveWiring {
     self.installLock = installLock
     self.alerts = alerts
     self.inbox = inbox
+    self.usageAlerts = usageAlerts
+    self.usageDriver = usageAlerts.map { UsageAlertDriver(monitor: $0, settings: launch.usageAlerts) }
 
     let directory = launch.gateways
 
@@ -353,6 +361,14 @@ public final class LiveWiring {
     inbox?.sessionEnded(gatewayId: gatewayId)
     showBadge()
 
+    // What was told about its use is forgotten with it, and nothing more is read for it.
+    if usageSession?.gatewayID == gatewayId {
+      usageDriver?.stop()
+      usageSession = nil
+    }
+
+    await usageAlerts?.forget(gatewayID: gatewayId)
+
     if let meta, meta.gatewayID == gatewayId {
       self.meta = nil
       // Nothing is written for this gateway any more: a purge after this stays purged.
@@ -389,6 +405,7 @@ public final class LiveWiring {
     let session = live.session
 
     followRequests(of: session)
+    followUsage(of: session)
 
     // A session rebuilt for the same gateway (new credentials) gets a bridge of its own.
     if let meta, session.map(meta.follows) != true {
@@ -423,6 +440,40 @@ public final class LiveWiring {
     bridge.setOpenChat(openChat?.gatewayId == session.gatewayID ? openChat?.bot : nil)
     bridge.start()
     followSurfaces(session, gatewayKey: entry.key)
+  }
+
+  // MARK: Usage
+
+  /// Watch the live session's gateway for a day's use reaching the reader's limit, in place of the one
+  /// watched before. Nothing is read while the alert is off (`UsageAlertDriver`).
+  private func followUsage(of session: GatewaySession?) {
+    guard let driver = usageDriver else {
+      return
+    }
+
+    if let session, session === usageSession {
+      return
+    }
+
+    guard let session, let entry = launch.gateways.entry(id: session.gatewayID) else {
+      driver.stop()
+      usageSession = nil
+      return
+    }
+
+    usageSession = session
+    driver.start(
+      UsageAlertDriver.Source(
+        gatewayID: session.gatewayID,
+        gatewayName: entry.displayLabel,
+        bots: { [weak session] in
+          guard let session else { return [] }
+
+          return session.chatList.names.map { (name: $0, displayName: session.chatName($0)) }
+        },
+        backend: session.usageService,
+        ready: { [weak session] in session?.status.phase == .ready }
+      ))
   }
 
   // MARK: Open requests

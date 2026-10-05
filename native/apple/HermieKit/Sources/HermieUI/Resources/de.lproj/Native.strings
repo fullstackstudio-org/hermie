@@ -2028,6 +2028,100 @@
 	<string>Datei geschrieben</string>
 	<key>native.transcript.unsupportedItem</key>
 	<string>Diese Nachricht (%@) braucht eine neuere Version von Hermie.</string>
+	<key>native.usage.account</key>
+	<string>Anbieter-Konto</string>
+	<key>native.usage.accountNone</key>
+	<string>Noch keine Anbieter-Limits gemeldet.</string>
+	<key>native.usage.accountNote</key>
+	<string>Die Limits des Kontos, auf dem das Modell dieses Bots läuft, wie das Gateway sie formuliert. Es meldet sie, solange ein Chat dieses Bots geöffnet ist.</string>
+	<key>native.usage.alertCost</key>
+	<string>%1$@ heute auf %2$@ ausgegeben, über deinem Limit von %3$@.</string>
+	<key>native.usage.alertCostLimit</key>
+	<string>Kosten pro Tag (US-Dollar)</string>
+	<key>native.usage.alertCostTop</key>
+	<string>%1$@ heute auf %2$@ ausgegeben, über deinem Limit von %3$@. Am meisten: %4$@.</string>
+	<key>native.usage.alertFooter</key>
+	<string>Zählt jeden Bot dieses Gateways zusammen, in den UTC-Tagen des Gateways, und meldet sich einmal pro Tag und Limit. Hermie schaut nach, solange die App läuft; sie kann sich nicht selbst wecken. Mitteilungen müssen erlaubt sein (Einstellungen, Mitteilungen).</string>
+	<key>native.usage.alertOff</key>
+	<string>Aus</string>
+	<key>native.usage.alertSwitch</key>
+	<string>Warne mich, wenn ein Tag ein Limit erreicht</string>
+	<key>native.usage.alertTitle</key>
+	<string>Nutzungslimit erreicht</string>
+	<key>native.usage.alertTokenLimit</key>
+	<string>Tokens pro Tag</string>
+	<key>native.usage.alertTokens</key>
+	<string>%1$@ Tokens heute auf %2$@ verbraucht, über deinem Limit von %3$@.</string>
+	<key>native.usage.alertTokensTop</key>
+	<string>%1$@ Tokens heute auf %2$@ verbraucht, über deinem Limit von %3$@. Am meisten: %4$@.</string>
+	<key>native.usage.alerts</key>
+	<string>Limit</string>
+	<key>native.usage.allBots</key>
+	<string>Alle Bots</string>
+	<key>native.usage.apiCalls</key>
+	<string>Modellaufrufe</string>
+	<key>native.usage.blurb</key>
+	<string>Tokens und Kosten pro Bot und Tag, und ein Limit, das dich warnt.</string>
+	<key>native.usage.cached</key>
+	<string>%@ aus dem Cache gelesen</string>
+	<key>native.usage.context</key>
+	<string>Kontextfenster</string>
+	<key>native.usage.contextDetail</key>
+	<string>%1$@ von %2$@ Tokens</string>
+	<key>native.usage.contextNone</key>
+	<string>Unbekannt, bis der Chat dieses Bots geöffnet war.</string>
+	<key>native.usage.dayNote</key>
+	<string>Das Gateway zählt Tage in UTC, nach dem Tag, an dem jede Unterhaltung begann. Ein Betrag mit ~ ist die Schätzung des Gateways; der Anbieter hat ihn nicht gemeldet.</string>
+	<key>native.usage.failed</key>
+	<string>Die Nutzung konnte nicht gelesen werden: %@</string>
+	<key>native.usage.failedBots</key>
+	<string>Die Nutzung dieser konnte nicht gelesen werden: %@</string>
+	<key>native.usage.inOut</key>
+	<string>%1$@ ein, %2$@ aus</string>
+	<key>native.usage.loading</key>
+	<string>Nutzung wird gelesen …</string>
+	<key>native.usage.messages</key>
+	<string>Nachrichten</string>
+	<key>native.usage.noUse</key>
+	<string>Keine Nutzung in diesem Zeitraum.</string>
+	<key>native.usage.nous</key>
+	<string>Nous-Guthaben</string>
+	<key>native.usage.offline</key>
+	<string>Die Nutzung kann ohne Verbindung nicht gelesen werden.</string>
+	<key>native.usage.perBot</key>
+	<string>Pro Bot</string>
+	<key>native.usage.perDay</key>
+	<string>Pro Tag</string>
+	<key>native.usage.period</key>
+	<string>Letzte %lld Tage</string>
+	<key>native.usage.plan</key>
+	<string>Tarif</string>
+	<key>native.usage.remaining</key>
+	<string>%@ übrig</string>
+	<key>native.usage.renews</key>
+	<string>Verlängert sich %@</string>
+	<key>native.usage.sessions</key>
+	<string>Sitzungen</string>
+	<key>native.usage.span</key>
+	<string>Zeitraum</string>
+	<key>native.usage.span.month</key>
+	<string>30 Tage</string>
+	<key>native.usage.span.week</key>
+	<string>7 Tage</string>
+	<key>native.usage.spendable</key>
+	<string>%@ verfügbar</string>
+	<key>native.usage.title</key>
+	<string>Nutzung</string>
+	<key>native.usage.today</key>
+	<string>Heute</string>
+	<key>native.usage.tokenCount</key>
+	<string>%@ Tokens</string>
+	<key>native.usage.topup</key>
+	<string>Aufladung</string>
+	<key>native.usage.unsupported</key>
+	<string>Dieses Gateway meldet keine Nutzung.</string>
+	<key>native.usage.updated</key>
+	<string>Aktualisiert %@</string>
 	<key>native.voice.automatic</key>
 	<string>Automatisch</string>
 	<key>native.voice.bargeIn</key>

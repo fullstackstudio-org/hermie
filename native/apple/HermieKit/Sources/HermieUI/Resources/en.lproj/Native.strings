@@ -2028,6 +2028,100 @@
 	<string>Wrote a file</string>
 	<key>native.transcript.unsupportedItem</key>
 	<string>This message (%@) needs a newer version of Hermie.</string>
+	<key>native.usage.account</key>
+	<string>Provider account</string>
+	<key>native.usage.accountNone</key>
+	<string>No provider limits reported yet.</string>
+	<key>native.usage.accountNote</key>
+	<string>The limits of the account this bot's model runs on, as the gateway words them. It reports them while a chat of this bot is open.</string>
+	<key>native.usage.alertCost</key>
+	<string>%1$@ spent today on %2$@, over your limit of %3$@.</string>
+	<key>native.usage.alertCostLimit</key>
+	<string>Cost per day (US dollars)</string>
+	<key>native.usage.alertCostTop</key>
+	<string>%1$@ spent today on %2$@, over your limit of %3$@. Most: %4$@.</string>
+	<key>native.usage.alertFooter</key>
+	<string>Adds up every bot on this gateway, in the gateway’s UTC days, and tells you once a day for each limit. Hermie looks while it is running; it cannot wake itself to look. Notifications have to be allowed (Settings, Notifications).</string>
+	<key>native.usage.alertOff</key>
+	<string>Off</string>
+	<key>native.usage.alertSwitch</key>
+	<string>Warn me when a day reaches a limit</string>
+	<key>native.usage.alertTitle</key>
+	<string>Usage limit reached</string>
+	<key>native.usage.alertTokenLimit</key>
+	<string>Tokens per day</string>
+	<key>native.usage.alertTokens</key>
+	<string>%1$@ tokens used today on %2$@, over your limit of %3$@.</string>
+	<key>native.usage.alertTokensTop</key>
+	<string>%1$@ tokens used today on %2$@, over your limit of %3$@. Most: %4$@.</string>
+	<key>native.usage.alerts</key>
+	<string>Limit</string>
+	<key>native.usage.allBots</key>
+	<string>All bots</string>
+	<key>native.usage.apiCalls</key>
+	<string>Model calls</string>
+	<key>native.usage.blurb</key>
+	<string>Tokens and cost per bot and per day, and a limit that warns you.</string>
+	<key>native.usage.cached</key>
+	<string>%@ read from cache</string>
+	<key>native.usage.context</key>
+	<string>Context window</string>
+	<key>native.usage.contextDetail</key>
+	<string>%1$@ of %2$@ tokens</string>
+	<key>native.usage.contextNone</key>
+	<string>Not known until this bot's chat has been open.</string>
+	<key>native.usage.dayNote</key>
+	<string>The gateway counts days in UTC, by the day each conversation started. A cost marked ~ is the gateway’s estimate; the provider did not report it.</string>
+	<key>native.usage.failed</key>
+	<string>Usage could not be read: %@</string>
+	<key>native.usage.failedBots</key>
+	<string>Could not read the usage of: %@</string>
+	<key>native.usage.inOut</key>
+	<string>%1$@ in, %2$@ out</string>
+	<key>native.usage.loading</key>
+	<string>Reading usage…</string>
+	<key>native.usage.messages</key>
+	<string>Messages</string>
+	<key>native.usage.noUse</key>
+	<string>No use in this period.</string>
+	<key>native.usage.nous</key>
+	<string>Nous credits</string>
+	<key>native.usage.offline</key>
+	<string>Usage cannot be read without a connection.</string>
+	<key>native.usage.perBot</key>
+	<string>Per bot</string>
+	<key>native.usage.perDay</key>
+	<string>Per day</string>
+	<key>native.usage.period</key>
+	<string>Last %lld days</string>
+	<key>native.usage.plan</key>
+	<string>Plan</string>
+	<key>native.usage.remaining</key>
+	<string>%@ left</string>
+	<key>native.usage.renews</key>
+	<string>Renews %@</string>
+	<key>native.usage.sessions</key>
+	<string>Sessions</string>
+	<key>native.usage.span</key>
+	<string>Period</string>
+	<key>native.usage.span.month</key>
+	<string>30 days</string>
+	<key>native.usage.span.week</key>
+	<string>7 days</string>
+	<key>native.usage.spendable</key>
+	<string>%@ spendable</string>
+	<key>native.usage.title</key>
+	<string>Usage</string>
+	<key>native.usage.today</key>
+	<string>Today</string>
+	<key>native.usage.tokenCount</key>
+	<string>%@ tokens</string>
+	<key>native.usage.topup</key>
+	<string>Top-up</string>
+	<key>native.usage.unsupported</key>
+	<string>This gateway does not report usage.</string>
+	<key>native.usage.updated</key>
+	<string>Updated %@</string>
 	<key>native.voice.automatic</key>
 	<string>Automatic</string>
 	<key>native.voice.bargeIn</key>

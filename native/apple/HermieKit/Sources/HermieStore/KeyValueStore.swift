@@ -58,6 +58,11 @@ public enum StoreKeys {
    */
   public static let syncedSettings = "hermie.settings.synced"
   public static let voice = "hermie.voice"
+  /// The limits a day's use is alerted at: `{enabled, dailyCost, dailyTokens}`. Native only. Device-wide.
+  public static let usageAlerts = "hermie.usage.alerts"
+  /// What the usage alert already told the reader, one entry per gateway id: `{day, cost, tokens}`.
+  /// Native only. Device-wide, like the limits; the monitor drops a gateway's entry with the gateway.
+  public static let usageAlertState = "hermie.usage.alertState"
   /// The reader's context switches. Device-wide.
   public static let context = "hermie.context"
   /// Whether the reader switched notifications on for this device: `true` or `false`. Device-wide.

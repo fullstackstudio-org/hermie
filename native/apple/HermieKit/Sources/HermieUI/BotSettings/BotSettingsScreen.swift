@@ -87,6 +87,7 @@ struct BotSettingsContent: View {
       }
 
       BotConversationsSection(chat: chat)
+      BotUsageSection(chat: chat, session: session)
       BotChatViewSection(chat: session.chat(chat.bot))
       BotVoiceSection(chat: chat, session: session)
       BotChatListSection(chat: chat, session: session, editable: metaEditable)

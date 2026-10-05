@@ -9,6 +9,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
   case mcp
   case chats
   case notifications
+  case usage
   case memory
   case appearance
   case privacy
@@ -25,7 +26,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
   /// Grouped the way the list draws them.
   public static let groups: [[SettingsCategory]] = [
     [.account, .gateways, .passkeys, .mcp],
-    [.chats, .notifications, .memory],
+    [.chats, .notifications, .usage, .memory],
     [.appearance, .privacy, .voice],
     [.skills, .mcpServers, .connectors, .kanban],
     [.advanced, .about]
@@ -39,6 +40,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
     case .mcp: NativeStrings.MCP.title
     case .chats: Strings.App.Settings.Categories.chats
     case .notifications: Strings.App.Settings.Categories.notifications
+    case .usage: NativeStrings.Usage.title
     case .memory: Strings.App.Settings.Categories.memory
     case .appearance: Strings.App.Settings.Categories.appearance
     case .privacy: Strings.App.Settings.Categories.privacy
@@ -60,6 +62,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
     case .mcp: NativeStrings.MCP.blurb
     case .chats: Strings.App.Settings.Categories.Blurb.chats
     case .notifications: Strings.App.Settings.Categories.Blurb.notifications
+    case .usage: NativeStrings.Usage.blurb
     case .memory: Strings.App.Settings.Categories.Blurb.memory
     case .appearance: Strings.App.Settings.Categories.Blurb.appearance
     case .privacy: Strings.App.Settings.Categories.Blurb.privacy
@@ -81,6 +84,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
     case .mcp: "puzzlepiece.extension"
     case .chats: "bubble.left.and.bubble.right"
     case .notifications: "bell.badge"
+    case .usage: "chart.bar.xaxis"
     case .memory: "book"
     case .appearance: "circle.lefthalf.filled"
     case .privacy: "lock"
@@ -259,6 +263,8 @@ struct SettingsPage: View {
         KanbanSettingsEntry()
       case .notifications:
         NotificationsSettingsPage()
+      case .usage:
+        UsageSettingsEntry()
       case .appearance:
         AppearanceSettingsPage()
       case .voice:

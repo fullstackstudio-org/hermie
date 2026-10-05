@@ -31,8 +31,22 @@ extension LiveWiring {
       badgeCount: { inbox.count }
     )
 
+    // A day's use that reaches the limit the reader set is a local notification too, while the app runs.
+    // It is posted only where notifications are allowed and switched on, and names the bot that used the
+    // most only where the reader allowed previews.
+    let push = launch.push
+    let usageAlerts = UsageAlertMonitor(
+      center: SystemLocalNotifications(),
+      settings: launch.usageAlerts,
+      keyValues: launch.keyValues,
+      copy: .localized,
+      allowed: { push.permission == .granted && push.enabled },
+      namesBots: { push.preferences.preview }
+    )
+
     let wiring = LiveWiring(
-      launch: launch, accounts: accounts, live: live, surfaces: surfaces, alerts: alerts, inbox: inbox)
+      launch: launch, accounts: accounts, live: live, surfaces: surfaces, alerts: alerts, inbox: inbox,
+      usageAlerts: usageAlerts)
 
     wiring.start()
     return wiring

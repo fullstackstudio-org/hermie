@@ -23880,6 +23880,1134 @@
         }
       }
     },
+    "native.usage.account" : {
+      "comment" : "Header of the provider account limits.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anbieter-Konto"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Provider account"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Provideraccount"
+          }
+        }
+      }
+    },
+    "native.usage.accountNone" : {
+      "comment" : "No provider limits are known.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch keine Anbieter-Limits gemeldet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No provider limits reported yet."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nog geen providerlimieten gemeld."
+          }
+        }
+      }
+    },
+    "native.usage.accountNote" : {
+      "comment" : "Footer under the provider account limits.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Limits des Kontos, auf dem das Modell dieses Bots läuft, wie das Gateway sie formuliert. Es meldet sie, solange ein Chat dieses Bots geöffnet ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The limits of the account this bot's model runs on, as the gateway words them. It reports them while a chat of this bot is open."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De limieten van het account waarop het model van deze bot draait, zoals de gateway ze verwoordt. Ze worden gemeld zolang een chat van deze bot open is."
+          }
+        }
+      }
+    },
+    "native.usage.alertCost" : {
+      "comment" : "Notification: the day's cost reached the limit. {spent} {gateway} {limit}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ heute auf %2$@ ausgegeben, über deinem Limit von %3$@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ spent today on %2$@, over your limit of %3$@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ vandaag uitgegeven op %2$@, boven je limiet van %3$@."
+          }
+        }
+      }
+    },
+    "native.usage.alertCostLimit" : {
+      "comment" : "Field: the day's cost at which to warn.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kosten pro Tag (US-Dollar)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cost per day (US dollars)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kosten per dag (Amerikaanse dollars)"
+          }
+        }
+      }
+    },
+    "native.usage.alertCostTop" : {
+      "comment" : "Notification: as above, naming the bot that used the most. {spent} {gateway} {limit} {bot}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ heute auf %2$@ ausgegeben, über deinem Limit von %3$@. Am meisten: %4$@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ spent today on %2$@, over your limit of %3$@. Most: %4$@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ vandaag uitgegeven op %2$@, boven je limiet van %3$@. Meeste: %4$@."
+          }
+        }
+      }
+    },
+    "native.usage.alertFooter" : {
+      "comment" : "Footer under the limits.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zählt jeden Bot dieses Gateways zusammen, in den UTC-Tagen des Gateways, und meldet sich einmal pro Tag und Limit. Hermie schaut nach, solange die App läuft; sie kann sich nicht selbst wecken. Mitteilungen müssen erlaubt sein (Einstellungen, Mitteilungen)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adds up every bot on this gateway, in the gateway’s UTC days, and tells you once a day for each limit. Hermie looks while it is running; it cannot wake itself to look. Notifications have to be allowed (Settings, Notifications)."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Telt elke bot op deze gateway op, in de UTC-dagen van de gateway, en meldt het één keer per dag per limiet. Hermie kijkt zolang de app draait; hij kan zichzelf niet wakker maken om te kijken. Meldingen moeten aan staan (Instellingen, Meldingen)."
+          }
+        }
+      }
+    },
+    "native.usage.alertOff" : {
+      "comment" : "Placeholder of a limit field with no limit.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uit"
+          }
+        }
+      }
+    },
+    "native.usage.alerts" : {
+      "comment" : "Header of the limits.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limit"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limit"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limiet"
+          }
+        }
+      }
+    },
+    "native.usage.alertSwitch" : {
+      "comment" : "Switch for the alert.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warne mich, wenn ein Tag ein Limit erreicht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warn me when a day reaches a limit"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waarschuw me als een dag een limiet bereikt"
+          }
+        }
+      }
+    },
+    "native.usage.alertTitle" : {
+      "comment" : "Title of the notification when a day reached a limit.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nutzungslimit erreicht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usage limit reached"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gebruikslimiet bereikt"
+          }
+        }
+      }
+    },
+    "native.usage.alertTokenLimit" : {
+      "comment" : "Field: the day's tokens at which to warn.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tokens pro Tag"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tokens per day"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tokens per dag"
+          }
+        }
+      }
+    },
+    "native.usage.alertTokens" : {
+      "comment" : "Notification: the day's tokens reached the limit. {used} {gateway} {limit}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ Tokens heute auf %2$@ verbraucht, über deinem Limit von %3$@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ tokens used today on %2$@, over your limit of %3$@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ tokens vandaag gebruikt op %2$@, boven je limiet van %3$@."
+          }
+        }
+      }
+    },
+    "native.usage.alertTokensTop" : {
+      "comment" : "Notification: as above, naming the bot that used the most. {used} {gateway} {limit} {bot}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ Tokens heute auf %2$@ verbraucht, über deinem Limit von %3$@. Am meisten: %4$@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ tokens used today on %2$@, over your limit of %3$@. Most: %4$@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ tokens vandaag gebruikt op %2$@, boven je limiet van %3$@. Meeste: %4$@."
+          }
+        }
+      }
+    },
+    "native.usage.allBots" : {
+      "comment" : "Row that opens one bot's usage page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Bots"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All bots"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle bots"
+          }
+        }
+      }
+    },
+    "native.usage.apiCalls" : {
+      "comment" : "Row: how many calls to the model the period made.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modellaufrufe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model calls"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modelaanroepen"
+          }
+        }
+      }
+    },
+    "native.usage.blurb" : {
+      "comment" : "Under the Usage category in Settings.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tokens und Kosten pro Bot und Tag, und ein Limit, das dich warnt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tokens and cost per bot and per day, and a limit that warns you."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tokens en kosten per bot en per dag, en een limiet die je waarschuwt."
+          }
+        }
+      }
+    },
+    "native.usage.cached" : {
+      "comment" : "Tokens read from the provider's cache. {count}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ aus dem Cache gelesen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ read from cache"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ uit cache gelezen"
+          }
+        }
+      }
+    },
+    "native.usage.context" : {
+      "comment" : "Row: how full the chat's context window is.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontextfenster"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Context window"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contextvenster"
+          }
+        }
+      }
+    },
+    "native.usage.contextDetail" : {
+      "comment" : "How much of the context window is used. {used} {limit}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ von %2$@ Tokens"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ of %2$@ tokens"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ van %2$@ tokens"
+          }
+        }
+      }
+    },
+    "native.usage.contextNone" : {
+      "comment" : "The chat has not told how full its context window is.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unbekannt, bis der Chat dieses Bots geöffnet war."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not known until this bot's chat has been open."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Onbekend tot de chat van deze bot geopend is geweest."
+          }
+        }
+      }
+    },
+    "native.usage.dayNote" : {
+      "comment" : "Footer under the numbers.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Gateway zählt Tage in UTC, nach dem Tag, an dem jede Unterhaltung begann. Ein Betrag mit ~ ist die Schätzung des Gateways; der Anbieter hat ihn nicht gemeldet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The gateway counts days in UTC, by the day each conversation started. A cost marked ~ is the gateway’s estimate; the provider did not report it."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De gateway telt dagen in UTC, naar de dag waarop elk gesprek begon. Een kost met ~ is de schatting van de gateway; de provider meldde hem niet."
+          }
+        }
+      }
+    },
+    "native.usage.failed" : {
+      "comment" : "The gateway refused. {reason}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Nutzung konnte nicht gelesen werden: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usage could not be read: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gebruik kon niet worden gelezen: %@"
+          }
+        }
+      }
+    },
+    "native.usage.failedBots" : {
+      "comment" : "The bots whose usage could not be read. {names}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Nutzung dieser konnte nicht gelesen werden: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not read the usage of: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het gebruik van deze kon niet worden gelezen: %@"
+          }
+        }
+      }
+    },
+    "native.usage.inOut" : {
+      "comment" : "Tokens read and written. {in} {out}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ ein, %2$@ aus"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ in, %2$@ out"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ in, %2$@ uit"
+          }
+        }
+      }
+    },
+    "native.usage.loading" : {
+      "comment" : "While usage is being read.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nutzung wird gelesen …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reading usage…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gebruik wordt gelezen…"
+          }
+        }
+      }
+    },
+    "native.usage.messages" : {
+      "comment" : "Row: how many messages the period had.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nachrichten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Messages"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Berichten"
+          }
+        }
+      }
+    },
+    "native.usage.nous" : {
+      "comment" : "Header of the Nous account's balance.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nous-Guthaben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nous credits"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nous-tegoed"
+          }
+        }
+      }
+    },
+    "native.usage.noUse" : {
+      "comment" : "Nothing was used in the chosen period.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Nutzung in diesem Zeitraum."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No use in this period."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen gebruik in deze periode."
+          }
+        }
+      }
+    },
+    "native.usage.offline" : {
+      "comment" : "No connection.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Nutzung kann ohne Verbindung nicht gelesen werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usage cannot be read without a connection."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gebruik kan niet worden gelezen zonder verbinding."
+          }
+        }
+      }
+    },
+    "native.usage.perBot" : {
+      "comment" : "Header over the bot by bot list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro Bot"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per bot"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per bot"
+          }
+        }
+      }
+    },
+    "native.usage.perDay" : {
+      "comment" : "Header over the day by day list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro Tag"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per day"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per dag"
+          }
+        }
+      }
+    },
+    "native.usage.period" : {
+      "comment" : "Row: what the chosen period has used. {days}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Letzte %lld Tage"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last %lld days"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laatste %lld dagen"
+          }
+        }
+      }
+    },
+    "native.usage.plan" : {
+      "comment" : "The plan's allowance bar.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tarif"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plan"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abonnement"
+          }
+        }
+      }
+    },
+    "native.usage.remaining" : {
+      "comment" : "What is left of an allowance. {amount}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ übrig"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ left"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ over"
+          }
+        }
+      }
+    },
+    "native.usage.renews" : {
+      "comment" : "When the plan renews. {date}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verlängert sich %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renews %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verlengt %@"
+          }
+        }
+      }
+    },
+    "native.usage.sessions" : {
+      "comment" : "Row: how many sessions the period had.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sitzungen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sessions"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sessies"
+          }
+        }
+      }
+    },
+    "native.usage.span" : {
+      "comment" : "Label of the choice of how far back usage is shown.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeitraum"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Period"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Periode"
+          }
+        }
+      }
+    },
+    "native.usage.span.month" : {
+      "comment" : "Choice of how far back usage is shown.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 Tage"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 days"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 dagen"
+          }
+        }
+      }
+    },
+    "native.usage.span.week" : {
+      "comment" : "Choice of how far back usage is shown.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 Tage"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 days"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 dagen"
+          }
+        }
+      }
+    },
+    "native.usage.spendable" : {
+      "comment" : "What can be spent in total. {amount}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ verfügbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ spendable"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ te besteden"
+          }
+        }
+      }
+    },
+    "native.usage.title" : {
+      "comment" : "Settings category, the bot settings section and the page: tokens and cost per bot and per day.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nutzung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usage"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gebruik"
+          }
+        }
+      }
+    },
+    "native.usage.today" : {
+      "comment" : "Row: what today has used so far.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heute"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vandaag"
+          }
+        }
+      }
+    },
+    "native.usage.tokenCount" : {
+      "comment" : "A number of tokens, already abbreviated. {count}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Tokens"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ tokens"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ tokens"
+          }
+        }
+      }
+    },
+    "native.usage.topup" : {
+      "comment" : "The top-up balance bar.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufladung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Top-up"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opwaardering"
+          }
+        }
+      }
+    },
+    "native.usage.unsupported" : {
+      "comment" : "The gateway has no usage route.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gateway meldet keine Nutzung."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This gateway does not report usage."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateway meldt geen gebruik."
+          }
+        }
+      }
+    },
+    "native.usage.updated" : {
+      "comment" : "When usage was last read. {time}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktualisiert %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updated %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bijgewerkt %@"
+          }
+        }
+      }
+    },
     "native.voice.automatic" : {
       "comment" : "The voice row's value when the system chooses the voice by the reply's language.",
       "extractionState" : "manual",

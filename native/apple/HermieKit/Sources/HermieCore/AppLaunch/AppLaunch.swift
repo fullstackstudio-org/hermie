@@ -158,6 +158,8 @@ public final class AppLaunch {
   /// What the reader decided about voice: the speaking rate, the dictation language, which chats read
   /// their replies aloud. Device-wide.
   public let voice: VoiceSettings
+  /// The limits a day's use is alerted at (Settings, Usage). Device-wide.
+  public let usageAlerts: UsageAlertSettingsModel
   /// Passkeys for every session the live gateway builds (`GatewaySession.Options.passkey`). Set once
   /// by the app shell's wiring (`PasskeySetup.live`) before the first session; `nil` in tests,
   /// previews and anything else that does not set it: no `confirm` level is announced.
@@ -224,6 +226,7 @@ public final class AppLaunch {
     self.iCloudSync = ICloudSyncModel(engine: sync, directory: directory)
     self.settings = AppSettings(keyValues: KeyValueStore(store: store), store: store)
     self.voice = VoiceSettings(keyValues: KeyValueStore(store: store))
+    self.usageAlerts = UsageAlertSettingsModel(keyValues: KeyValueStore(store: store))
     self.push = PushController(
       system: pushSystem ?? InertPushSystem(),
       registrar: PushRegistrar(
@@ -273,6 +276,7 @@ public final class AppLaunch {
     await lock.hydrate()
     await settings.hydrate()
     await voice.hydrate()
+    await usageAlerts.hydrate()
 
     if lock.settingNeedsAttention, !notices.contains(.lockSettingNotRestored) {
       notices.append(.lockSettingNotRestored)
