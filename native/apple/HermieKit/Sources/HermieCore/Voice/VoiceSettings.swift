@@ -26,8 +26,15 @@ public final class VoiceSettings {
   /// "The device's own language", as the dictation language setting stores it.
   public static let automatic = "auto"
   /// The stops on voice mode's pause control, in seconds.
-  public static let silenceSteps: [Double] = [0.8, 1.2, 2, 3]
-  public static let defaultSilence = 1.2
+  public static let silenceSteps: [Double] = [0.8, 1.2, 1.5, 2, 3]
+  /// Long enough for a breath or a moment's thought in the middle of a sentence: a call sends by itself,
+  /// and a pause that is too short sends half of what the reader meant.
+  public static let defaultSilence = 1.5
+  /// The version of what is kept. 2: voice mode sends by itself and does not listen over its own voice
+  /// on the loudspeaker; a blob from before has the old defaults stored, and they are put right once.
+  static let schema = 2
+  /// The pause the first builds kept as their default.
+  static let schema1Silence = 1.2
   public static let defaultExpressivity = 0.5
 
   /// Speaking rate, 1 being the platform's own normal.
@@ -39,16 +46,17 @@ public final class VoiceSettings {
   /// The identifier of the voice replies are read in when it fits the reply's language; nil lets the
   /// system choose by the language of the reply.
   public private(set) var voiceIdentifier: String?
-  /// Voice mode shows what it heard, with Send, Edit and Discard, before it sends it. Dictation does
-  /// not read it: dictation never sends by itself.
-  public private(set) var confirmBeforeSending = true
+  /// Voice mode shows what it heard, with Send, Edit and Discard, before it sends it. Off: a call is
+  /// hands-free, and a pause sends. Dictation does not read it: dictation never sends by itself.
+  public private(set) var confirmBeforeSending = false
   /// Stop reading when the app goes to the background.
   public private(set) var stopOnBackground = true
   /// Voice mode: how long a pause ends what the reader is saying, in seconds (`silenceSteps`).
   public private(set) var voiceModeSilence = VoiceSettings.defaultSilence
-  /// Voice mode: speaking while a reply is read cuts it off and listens (where the device can tell
-  /// the reader's voice from its own speaker's).
-  public private(set) var voiceModeBargeIn = true
+  /// Voice mode: speaking while a reply is read cuts it off and listens, on the loudspeaker too. With
+  /// a headset it always does; on the loudspeaker the device can hear its own voice as the reader's,
+  /// so it is off unless the reader turns it on.
+  public private(set) var voiceModeBargeIn = false
   /// Voice mode: the words being heard and said, small under the orb.
   public private(set) var voiceModeCaptions = true
   /// Voice mode: the orb the call screen draws.
@@ -90,16 +98,24 @@ public final class VoiceSettings {
     }
 
     let stored = try? await keyValues?.value(JSONObject.self, forKey: StoreKeys.voice)
+    var migrated = false
 
     if let stored, !chosenBeforeLoad {
-      apply(stored)
+      migrated = apply(stored)
     }
 
     loaded = true
     chosenBeforeLoad = false
+
+    // Written at once, so it is put right only once: a choice made after it stands.
+    if migrated {
+      persist()
+    }
   }
 
-  private func apply(_ blob: JSONObject) {
+  /// Take what was stored; true when it was from an older schema and was put right.
+  @discardableResult
+  private func apply(_ blob: JSONObject) -> Bool {
     var rest = blob
 
     for field in Field.all {
@@ -110,10 +126,10 @@ public final class VoiceSettings {
     rate = Self.clamped(rate: blob[Field.rate]?.doubleValue) ?? Self.defaultRate
     dictationLanguage = Self.language(blob[Field.dictationLanguage]?.stringValue) ?? Self.automatic
     voiceIdentifier = blob[Field.voice]?.stringValue.flatMap { $0.isEmpty ? nil : $0 }
-    confirmBeforeSending = blob[Field.confirm]?.boolValue != false
+    confirmBeforeSending = blob[Field.confirm]?.boolValue == true
     stopOnBackground = blob[Field.stopOnBackground]?.boolValue != false
     voiceModeSilence = Self.clamped(silence: blob[Field.silence]?.doubleValue) ?? Self.defaultSilence
-    voiceModeBargeIn = blob[Field.bargeIn]?.boolValue != false
+    voiceModeBargeIn = blob[Field.bargeIn]?.boolValue == true
     voiceModeCaptions = blob[Field.captions]?.boolValue != false
     voiceModeOrb = blob[Field.orb]?.stringValue.flatMap(VoiceOrbStyle.init(rawValue:)) ?? .clouds
     voiceModeSetUp = blob[Field.setUp]?.boolValue == true
@@ -124,6 +140,26 @@ public final class VoiceSettings {
     speechSource = blob[Field.speechSource]?.stringValue.flatMap(SpeechSource.init(rawValue:)) ?? .apple
     gatewayVoice = blob[Field.gatewayVoice]?.stringValue.flatMap { $0.isEmpty ? nil : $0 }
     botVoices = (blob[Field.botVoices]?.objectValue ?? [:]).compactMapValues(BotVoice.init(json:))
+
+    return migrate(from: blob[Field.schema]?.intValue ?? 1)
+  }
+
+  /// Put right what an older schema stored. Every build before schema 2 wrote all of its fields, its
+  /// defaults included, so a stored "confirm" or "barge in" says nothing about a choice: both go to the
+  /// new defaults, and a pause still at the old default goes to the new one.
+  private func migrate(from stored: Int) -> Bool {
+    guard stored < Self.schema else {
+      return false
+    }
+
+    confirmBeforeSending = false
+    voiceModeBargeIn = false
+
+    if voiceModeSilence == Self.schema1Silence {
+      voiceModeSilence = Self.defaultSilence
+    }
+
+    return true
   }
 
   /// A rate between the slowest and the fastest stop. Clamped, not rejected: a value from an older
@@ -286,10 +322,10 @@ public final class VoiceSettings {
       $0.rate = Self.defaultRate
       $0.dictationLanguage = Self.automatic
       $0.voiceIdentifier = nil
-      $0.confirmBeforeSending = true
+      $0.confirmBeforeSending = false
       $0.stopOnBackground = true
       $0.voiceModeSilence = Self.defaultSilence
-      $0.voiceModeBargeIn = true
+      $0.voiceModeBargeIn = false
       $0.voiceModeCaptions = true
       $0.voiceModeOrb = .clouds
       $0.expressivity = Self.defaultExpressivity
@@ -318,9 +354,10 @@ public final class VoiceSettings {
     static let speechSource = "speechSource"
     static let gatewayVoice = "gatewayVoice"
     static let botVoices = "botVoices"
+    static let schema = "nativeSchema"
     static let all = [
       rate, dictationLanguage, voice, confirm, stopOnBackground, autoRead, silence, bargeIn, captions, orb, setUp,
-      expressivity, speechSource, gatewayVoice, botVoices
+      expressivity, speechSource, gatewayVoice, botVoices, schema
     ]
   }
 
@@ -352,6 +389,7 @@ public final class VoiceSettings {
 
   private var blob: JSONObject {
     var blob = rest
+    blob[Field.schema] = .number(Double(Self.schema))
     blob[Field.rate] = .number(rate)
     blob[Field.dictationLanguage] = .string(dictationLanguage)
 

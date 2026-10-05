@@ -1941,7 +1941,7 @@
 	<key>native.voice.bargeIn</key>
 	<string>Interrupt by speaking</string>
 	<key>native.voice.bargeInHint</key>
-	<string>Talk while a reply is read to stop it, where the device can tell your voice from its own.</string>
+	<string>With headphones, talking while a reply is read always stops it. Turn this on to do it on the loudspeaker too, where the device can mistake its own voice for yours.</string>
 	<key>native.voice.captions</key>
 	<string>Show captions</string>
 	<key>native.voice.confirmHint</key>

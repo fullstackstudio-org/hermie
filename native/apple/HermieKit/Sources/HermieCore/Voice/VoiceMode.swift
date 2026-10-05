@@ -86,22 +86,27 @@ public struct VoiceChatState: Sendable, Equatable {
  # The rules
 
  1. **Nothing empty is sent.** A pause with nothing in it goes back to listening.
- 2. **Silence ends what the reader says.** `VoiceSettings.voiceModeSilence` after the last word heard
-    (armed only once something has been heard, so a reader who takes a moment to start is not cut off),
-    or a tap on Send now.
- 3. **"Confirm before sending" shows the words first,** with Send, Edit and Discard, and waits: voice
-    mode speaks for the reader, and a misheard sentence should not reach the conversation unseen.
+ 2. **Silence ends what the reader says, and sends it.** `VoiceSettings.voiceModeSilence` after the
+    last word heard (armed only once something has been heard, so a reader who takes a moment to start
+    is not cut off), or a tap on Send now.
+ 3. **"Confirm before sending", where it is turned on, shows the words first,** with Send, Edit and
+    Discard, and waits. Off by default: a call is hands-free.
  4. **The reply is read while it streams**, a sentence at a time as each one can no longer change
     (`SpokenReplyCutter`), code read as its shape. When the last of it has been said and the turn is
     over, the microphone opens again.
- 5. **The reader can cut in.** Where the recogniser cancels the speaker's echo, it stays open while a
-    reply is read, and words heard then stop the reading and become what the reader is saying. Where it
-    cannot, a tap does the same.
- 6. **A request is never answered by voice.** An approval, a question or a form pauses the call; it is
+ 5. **The call never hears itself.** On a loudspeaker the echo canceller lets some of the reply
+    through, and the recogniser writes it down. So the microphone is closed while a reply is read (half
+    duplex), and opens `echoTail` after the last of it; words that repeat what the call said lately
+    are not the reader's (`VoiceEchoFilter`), wherever they are heard.
+ 6. **The reader can cut in.** A tap always stops the reading and listens. Speaking does too where the
+    route keeps the speaker out of the microphone (a headset), or where the reader turned it on, and
+    the recogniser cancels the speaker's echo: then the microphone stays open while a reply is read,
+    and at least `bargeInWords` words of the reader's own stop it and become what the reader is saying.
+ 7. **A request is never answered by voice.** An approval, a question or a form pauses the call; it is
     answered on its own sheet, and the call picks up after.
- 7. **Never silent without a reason.** While the bot works and nothing has been said for a few seconds,
+ 8. **Never silent without a reason.** While the bot works and nothing has been said for a few seconds,
     a short line fitting what it does is said (`VoiceFillerPolicy`), with a soft sound.
- 8. **Leaving ends everything,** from any phase, in one call: no microphone stays open and no speaker
+ 9. **Leaving ends everything,** from any phase, in one call: no microphone stays open and no speaker
     keeps talking after the screen has gone. The app leaving the front closes the microphone.
 
  A `generation` is bumped by every microphone session started or closed, and a recogniser's report
@@ -164,6 +169,8 @@ public final class VoiceModeModel {
   @ObservationIgnored private var sendTicket = 0
   @ObservationIgnored private var sendTask: Task<Void, Never>?
   @ObservationIgnored private var silenceTimer: (any VoiceModeTimer)?
+  /// The microphone opens when it runs out: the echo of what was just said has died away.
+  @ObservationIgnored private var tailTimer: (any VoiceModeTimer)?
   @ObservationIgnored private var fillerTimer: (any VoiceModeTimer)?
   @ObservationIgnored private var turn: Turn?
   @ObservationIgnored private var latest: VoiceChatState?
@@ -181,10 +188,18 @@ public final class VoiceModeModel {
   @ObservationIgnored private var log = VoiceContextLog()
   /// The notice has been raised on this call.
   @ObservationIgnored private var noticed = false
+  /// What the call said lately, so that its echo is not taken for the reader.
+  @ObservationIgnored private var echo = VoiceEchoFilter()
+  /// When the call last stopped speaking.
+  @ObservationIgnored private var quietSince: Double?
 
-  /// Words heard while a reply is read count as the reader cutting in from this many letters on: a
-  /// cough or a stray syllable does not.
-  public static let bargeInLetters = 4
+  /// Words heard while a reply is read count as the reader cutting in from this many words of the
+  /// reader's own on (the call's echo taken out): a cough, a stray syllable or a word of the reply that
+  /// came back through the echo canceller does not.
+  public static let bargeInWords = 2
+  /// How long after the call stops speaking the microphone stays closed, in seconds: the room's echo
+  /// and the speaker's last buffer die away.
+  public static let echoTail = 0.4
   /// A microphone session that ends sooner than this with nothing heard is a quick end.
   static let quickEnd = 0.5
   static let maxQuickEnds = 5
@@ -263,6 +278,8 @@ public final class VoiceModeModel {
     log = VoiceContextLog()
     notice = nil
     noticed = false
+    echo.reset()
+    quietSince = nil
 
     guard recogniser.isAvailable else {
       phase = .failed(.recognition(.unavailable))
@@ -388,6 +405,8 @@ public final class VoiceModeModel {
       }
 
       if phase == .listening {
+        tailTimer?.cancel()
+        tailTimer = nil
         heard = ""
         phase = .muted
       }
@@ -504,6 +523,8 @@ public final class VoiceModeModel {
       }
     case .routeChanged:
       guard let mic else {
+        // A headset came in while a reply is read: the reader may cut in by voice now.
+        watchIfEligible()
         return
       }
 
@@ -551,7 +572,26 @@ public final class VoiceModeModel {
     }
 
     phase = .listening
-    openMic(.utterance)
+
+    // Just after the call spoke, the room still has its voice in it.
+    let wait = quietSince.map { $0 + Self.echoTail - clock.now } ?? 0
+
+    guard wait > 0 else {
+      openMic(.utterance)
+      return
+    }
+
+    tailTimer = clock.after(wait) { [weak self] in
+      guard let self else {
+        return
+      }
+
+      tailTimer = nil
+
+      if phase == .listening, mic == nil, !muted {
+        openMic(.utterance)
+      }
+    }
   }
 
   private func openMic(_ role: MicRole) {
@@ -588,11 +628,13 @@ public final class VoiceModeModel {
       return
     }
 
-    let words = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    // The call's own voice, come back through the microphone, is not the reader's.
+    let own = echo.screen(text, at: clock.now)
+    let words = own.trimmingCharacters(in: .whitespacesAndNewlines)
 
     switch (mic.role, phase) {
     case (.utterance, .listening):
-      heard = text
+      heard = own
 
       if !words.isEmpty {
         quickEnds = 0
@@ -608,7 +650,7 @@ public final class VoiceModeModel {
         return
       }
 
-      bargeIn(text)
+      bargeIn(own)
 
       if final {
         finishUtterance()
@@ -618,9 +660,9 @@ public final class VoiceModeModel {
     }
   }
 
-  /// Words heard over a reply that count as the reader cutting in.
+  /// Words heard over a reply (the call's echo taken out) that count as the reader cutting in.
   static func cutsIn(_ words: String) -> Bool {
-    words.filter(\.isLetter).count >= bargeInLetters
+    words.split(whereSeparator: \.isWhitespace).filter { $0.contains(where: \.isLetter) }.count >= bargeInWords
   }
 
   private func micFailed(_ failure: RecognitionFailure, session: Int) {
@@ -801,6 +843,7 @@ public final class VoiceModeModel {
           id: "\(item.id)#\(turn.pieces.count)", text: words, language: language,
           pitch: VoiceProsody.pitch(expressivity: settings.expressivity, sentence: turn.pieces.count))
         turn.pieces.append(piece)
+        echo.said(words)
         reader.enqueue(piece)
         said = true
       }
@@ -860,11 +903,16 @@ public final class VoiceModeModel {
     watchIfEligible()
   }
 
+  /// Speaking cuts in on a reply: on a headset, or where the reader turned it on. On a loudspeaker the
+  /// echo canceller lets enough of the reply through for the recogniser to hear the bot as the reader,
+  /// so there it takes a tap unless the reader asked for it.
+  public var cutsInBySpeaking: Bool {
+    recogniser.cancelsEcho && (settings.voiceModeBargeIn || audio.headsetRoute)
+  }
+
   /// Open the cut-in microphone, where it can be.
   private func watchIfEligible() {
-    guard phase == .speaking, mic == nil, settings.voiceModeBargeIn, !muted, !watchBroken, !backgroundSpeaking,
-      recogniser.cancelsEcho
-    else {
+    guard phase == .speaking, mic == nil, cutsInBySpeaking, !muted, !watchBroken, !backgroundSpeaking else {
       return
     }
 
@@ -877,7 +925,9 @@ public final class VoiceModeModel {
       return
     }
 
+    // What the cut-in microphone heard while the reply was read is not carried over.
     closeMic()
+    quiet()
 
     if backgroundSpeaking {
       backgroundSpeaking = false
@@ -924,7 +974,15 @@ public final class VoiceModeModel {
     turn = nil
     busy = false
     reader.stop()
+    quiet()
     cancelTimers()
+  }
+
+  /// The call stopped speaking (the reply was said, cut off or put aside): the microphone waits for
+  /// the echo to die away, and the echo filter starts counting.
+  private func quiet() {
+    quietSince = clock.now
+    echo.stopped(at: clock.now)
   }
 
   /// The reply has been read to the end.
@@ -969,9 +1027,11 @@ public final class VoiceModeModel {
     fillerSerial += 1
     speaker.playCue()
     cues += 1
+    let line = fillerText(filler)
+    echo.said(line)
     reader.enqueue(
       ReadRequest(
-        id: "filler#\(fillerSerial)", text: fillerText(filler),
+        id: "filler#\(fillerSerial)", text: line,
         pitch: VoiceProsody.pitch(expressivity: settings.expressivity, sentence: 0)))
 
     if reader.isReading {
@@ -997,6 +1057,11 @@ public final class VoiceModeModel {
   private func pause(_ reason: VoiceModePause) {
     closeMic()
     cancelTimers()
+
+    if reader.isReading {
+      quiet()
+    }
+
     reader.stop()
 
     if var turn, let latest {
@@ -1052,6 +1117,8 @@ public final class VoiceModeModel {
   private func cancelTimers() {
     silenceTimer?.cancel()
     silenceTimer = nil
+    tailTimer?.cancel()
+    tailTimer = nil
     fillerTimer?.cancel()
     fillerTimer = nil
   }

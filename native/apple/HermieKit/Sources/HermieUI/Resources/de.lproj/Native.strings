@@ -1941,7 +1941,7 @@
 	<key>native.voice.bargeIn</key>
 	<string>Durch Sprechen unterbrechen</string>
 	<key>native.voice.bargeInHint</key>
-	<string>Sprich während des Vorlesens, um es zu stoppen, wo das Gerät deine Stimme von seiner eigenen unterscheiden kann.</string>
+	<string>Mit Kopfhörern stoppt Sprechen während des Vorlesens es immer. Schalte dies ein, um das auch über den Lautsprecher zu tun; das Gerät kann dann seine eigene Stimme für deine halten.</string>
 	<key>native.voice.captions</key>
 	<string>Untertitel anzeigen</string>
 	<key>native.voice.confirmHint</key>

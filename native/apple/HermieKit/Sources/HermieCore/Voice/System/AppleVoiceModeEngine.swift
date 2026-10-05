@@ -87,8 +87,11 @@ public final class AppleSpeechRenderer: VoiceSpeechRenderer {
  then hears the speaker. Apple's voice processing (`setVoiceProcessingEnabled` on the input node, the
  same unit as the output) cancels that echo, but only for audio played through the same engine. So
  replies are not played by `AVSpeechSynthesizer` itself: they are rendered to buffers
- (`VoiceSpeechRenderer`) and played on a player node of this engine. Where voice processing cannot be
- turned on, `cancelsEcho` is false and the call does not listen while it speaks.
+ (`VoiceSpeechRenderer`) and played on a player node of this engine: the device's voices and the
+ gateway's alike. Where voice processing cannot be turned on, `cancelsEcho` is false and the call does
+ not listen while it speaks. Where it can, it is still not enough on the loudspeaker at a good volume:
+ some of the reply comes through, and the call only listens over a reply on a headset
+ (`headsetRoute`) or where the reader turned it on (`VoiceModeModel`, rule 5).
 
  **The session.** On iOS the call holds `.playAndRecord` in `.voiceChat` mode (echo cancellation,
  Bluetooth headsets, the speaker rather than the earpiece) from start to end, and the reader's other
@@ -204,6 +207,19 @@ public final class AppleVoiceModeEngine: VoiceModeSpeaking, VoiceModeAudio {
 
   public func deactivate() {
     teardown()
+  }
+
+  public var headsetRoute: Bool {
+    #if os(iOS)
+      // Headphones and headsets only: a car's speakers, AirPlay or a USB speaker are loudspeakers in
+      // the same room as the microphone.
+      let headsets: Set<AVAudioSession.Port> = [.headphones, .bluetoothHFP, .bluetoothA2DP, .bluetoothLE]
+      let outputs = AVAudioSession.sharedInstance().currentRoute.outputs
+      return !outputs.isEmpty && outputs.allSatisfy { headsets.contains($0.portType) }
+    #else
+      // The Mac has no session to ask: its speakers are assumed, and the reader can turn it on.
+      return false
+    #endif
   }
 
   private func startEngine() throws {

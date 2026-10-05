@@ -1941,7 +1941,7 @@
 	<key>native.voice.bargeIn</key>
 	<string>Onderbreken door te praten</string>
 	<key>native.voice.bargeInHint</key>
-	<string>Praat tijdens het voorlezen om het te stoppen, waar het apparaat je stem van de zijne kan onderscheiden.</string>
+	<string>Met een koptelefoon stopt praten tijdens het voorlezen het altijd. Zet dit aan om dat ook via de luidspreker te doen; het apparaat kan dan zijn eigen stem voor de jouwe aanzien.</string>
 	<key>native.voice.captions</key>
 	<string>Ondertiteling tonen</string>
 	<key>native.voice.confirmHint</key>

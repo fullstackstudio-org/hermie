@@ -119,6 +119,8 @@ final class FakeCallAudio: VoiceModeAudio {
   let meters = VoiceMeters()
   var onEvent: (@MainActor (VoiceAudioEvent) -> Void)?
   var failsToActivate = false
+  /// The call is heard on headphones rather than the loudspeaker.
+  var headsetRoute = false
   private(set) var activations = 0
   private(set) var reactivations = 0
   private(set) var deactivations = 0

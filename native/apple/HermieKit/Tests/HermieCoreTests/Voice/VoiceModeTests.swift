@@ -22,9 +22,16 @@ import Testing
     var requestUp = false
     private(set) var model: VoiceModeModel!
 
-    init(confirm: Bool = false, echo: Bool = true) {
-      settings.setConfirmBeforeSending(confirm)
+    /// - Parameters:
+    ///   - confirm: "Confirm before sending"; nil leaves the default.
+    ///   - headset: the call is heard on headphones rather than the loudspeaker.
+    init(confirm: Bool? = nil, echo: Bool = true, headset: Bool = false) {
+      if let confirm {
+        settings.setConfirmBeforeSending(confirm)
+      }
+
       recogniser.cancelsEcho = echo
+      audio.headsetRoute = headset
       model = VoiceModeModel(
         engines: VoiceModeEngines(recogniser: recogniser, speaker: speaker, audio: audio),
         settings: settings, bot: "hermes", gatewayID: "g1", language: { VoiceSettings.automatic }, clock: clock,
@@ -70,6 +77,28 @@ import Testing
     }
 
     var said: [String] { speaker.spoken.map(\.text) }
+
+    /// The echo of what was just said dies away: the microphone opens.
+    func tail() {
+      clock.advance(VoiceModeModel.echoTail)
+    }
+
+    /// Say everything in line, and wait out the tail.
+    func finishSpeaking() {
+      speaker.finishAll()
+      tail()
+    }
+
+    /// Start the call, ask, have the bot answer `reply` and finish the turn, with the reply still being
+    /// read.
+    func answered(_ question: String, _ reply: String) async {
+      await model.start()
+      await say(question)
+      turnStarts("u\(sent.count)", question)
+      self.reply("a\(sent.count)", reply, streaming: false)
+      turnActive = false
+      publish()
+    }
   }
 
   // MARK: The loop
@@ -104,7 +133,10 @@ import Testing
     #expect(call.model.phase == .speaking)
 
     call.speaker.finish()
-    #expect(call.model.phase == .listening, "all said and the turn over: the microphone opens again")
+    #expect(call.model.phase == .listening, "all said and the turn over: the call listens again")
+    #expect(!call.recogniser.listening, "not before the echo of the reply has died away")
+
+    call.tail()
     #expect(call.recogniser.listening)
     #expect(call.recogniser.starts == 2)
   }
@@ -117,7 +149,7 @@ import Testing
     call.reply("a1", "Hello! How can I help?", streaming: false)
     call.turnActive = false
     call.publish()
-    call.speaker.finishAll()
+    call.finishSpeaking()
 
     await call.say("tell me a joke")
 
@@ -255,7 +287,7 @@ import Testing
   // MARK: Cutting in
 
   @Test func speakingOverAReplyStopsItAndBecomesWhatTheReaderSays() async {
-    let call = Harness(echo: true)
+    let call = Harness(echo: true, headset: true)
     await call.model.start()
     await call.say("tell me a story")
     call.turnStarts("u1", "tell me a story")
@@ -265,6 +297,8 @@ import Testing
 
     call.recogniser.hear("uh")
     #expect(call.model.phase == .speaking, "a syllable is not cutting in")
+    call.recogniser.hear("stop")
+    #expect(call.model.phase == .speaking, "nor is one word")
 
     call.recogniser.hear("wait stop")
     #expect(call.model.phase == .listening)
@@ -292,23 +326,13 @@ import Testing
 
     call.model.interrupt()
     #expect(call.model.phase == .listening)
+    #expect(!call.speaker.speaking)
+    call.tail()
     #expect(call.recogniser.listening)
   }
 
-  @Test func bargeInCanBeSwitchedOff() async {
-    let call = Harness(echo: true)
-    call.settings.setVoiceModeBargeIn(false)
-    await call.model.start()
-    await call.say("hello")
-    call.turnStarts("u1", "hello")
-    call.reply("a1", "An answer.", streaming: false)
-
-    #expect(call.model.phase == .speaking)
-    #expect(!call.recogniser.listening)
-  }
-
   @Test func mutedNothingIsListenedToButTheReplyIsStillRead() async {
-    let call = Harness(echo: true)
+    let call = Harness(echo: true, headset: true)
     await call.model.start()
     await call.say("hello")
     call.model.toggleMute()
@@ -326,7 +350,199 @@ import Testing
 
     call.model.toggleMute()
     #expect(call.model.phase == .listening)
+    call.tail()
     #expect(call.recogniser.listening)
+  }
+
+  // MARK: Sending by itself
+
+  @Test func byDefaultAPauseSendsWithoutAskingFirst() async {
+    let call = Harness(echo: false)
+    #expect(!call.settings.confirmBeforeSending)
+    await call.model.start()
+
+    await call.say("what is on my calendar")
+
+    #expect(call.model.phase == .thinking, "no Send to press")
+    #expect(call.sent.map(\.text) == ["what is on my calendar"])
+  }
+
+  // MARK: The call's own voice
+
+  @Test func onTheLoudspeakerNothingListensWhileTheReplyIsRead() async {
+    let call = Harness(echo: true)
+    #expect(!call.settings.voiceModeBargeIn)
+    await call.model.start()
+    await call.say("hello")
+    call.turnStarts("u1", "hello")
+    call.reply("a1", "An answer.", streaming: false)
+
+    #expect(call.model.phase == .speaking)
+    #expect(!call.model.cutsInBySpeaking)
+    #expect(!call.recogniser.listening, "half duplex: the speaker is not heard as the reader")
+  }
+
+  @Test func withAHeadsetOrWhenTurnedOnSpeakingCutsIn() async {
+    let headset = Harness(echo: true, headset: true)
+    #expect(headset.model.cutsInBySpeaking)
+
+    let chosen = Harness(echo: true)
+    chosen.settings.setVoiceModeBargeIn(true)
+    #expect(chosen.model.cutsInBySpeaking)
+
+    let noCanceller = Harness(echo: false, headset: true)
+    #expect(!noCanceller.model.cutsInBySpeaking)
+
+    await headset.model.start()
+    await headset.say("hello")
+    headset.turnStarts("u1", "hello")
+    headset.reply("a1", "An answer. More", streaming: true)
+    #expect(headset.recogniser.listening)
+  }
+
+  @Test func aHeadsetComingInWhileAReplyIsReadOpensTheCutInMicrophone() async {
+    let call = Harness(echo: true)
+    await call.model.start()
+    await call.say("hello")
+    call.turnStarts("u1", "hello")
+    call.reply("a1", "An answer. More", streaming: true)
+    #expect(!call.recogniser.listening)
+
+    call.audio.headsetRoute = true
+    call.audio.post(.routeChanged)
+    #expect(call.recogniser.listening)
+
+    call.audio.headsetRoute = false
+    call.audio.post(.routeChanged)
+    #expect(!call.recogniser.listening, "back on the loudspeaker: closed again")
+    #expect(call.model.phase == .speaking)
+  }
+
+  @Test func theEchoOfTheReplyWhileItIsReadIsNotCuttingIn() async {
+    let call = Harness(echo: true)
+    call.settings.setVoiceModeBargeIn(true)
+    await call.model.start()
+    await call.say("what's the weather")
+    call.turnStarts("u1", "what's the weather")
+    call.reply("a1", "It is sunny in Amsterdam today. Temperatures reach twenty degrees.", streaming: false)
+    #expect(call.recogniser.listening)
+
+    call.recogniser.hear("it is sunny in")
+    call.recogniser.hear("it is sunny in Amsterdam to day")
+    #expect(call.model.phase == .speaking, "its own words, one misheard, are not the reader")
+    #expect(call.speaker.speaking)
+    #expect(call.speaker.stops == 0)
+
+    call.recogniser.hearFinal("it is sunny in Amsterdam to day")
+    call.clock.advance(5)
+    await call.model.settled()
+    #expect(call.sent.count == 1, "and never sent")
+  }
+
+  @Test func theReaderCutsInOverTheEchoAndOnlyTheirWordsAreKept() async {
+    let call = Harness(echo: true)
+    call.settings.setVoiceModeBargeIn(true)
+    await call.model.start()
+    await call.say("what's the weather")
+    call.turnStarts("u1", "what's the weather")
+    call.reply("a1", "It is sunny in Amsterdam today. Temperatures reach twenty degrees.", streaming: false)
+
+    call.recogniser.hear("it is sunny in Amsterdam no wait")
+    #expect(call.model.phase == .listening)
+    #expect(call.model.heard == "no wait")
+
+    call.recogniser.hear("it is sunny in Amsterdam no wait what about Rotterdam")
+    call.clock.advance(call.settings.voiceModeSilence)
+    await call.model.settled()
+    #expect(call.sent.last?.text == "no wait what about Rotterdam")
+  }
+
+  @Test func theEchoRightAfterTheReplyIsNotHeardAndNotSent() async {
+    let call = Harness(echo: true)
+    await call.answered("what's the weather", "It is sunny in Amsterdam today.")
+    #expect(call.model.phase == .speaking)
+
+    call.speaker.finishAll()
+    #expect(call.model.phase == .listening)
+    #expect(!call.recogniser.listening, "the tail: the room still has the reply in it")
+    call.recogniser.hear("Amsterdam today")
+    #expect(call.model.heard.isEmpty)
+
+    call.tail()
+    #expect(call.recogniser.listening)
+    call.recogniser.hear("sunny in Amsterdam today")
+    #expect(call.model.heard.isEmpty, "what leaks through after it is still the call's own voice")
+    call.clock.advance(5)
+    await call.model.settled()
+    #expect(call.sent.map(\.text) == ["what's the weather"])
+
+    call.recogniser.hearFinal("it is sunny in Amsterdam today")
+    await call.model.settled()
+    #expect(call.sent.count == 1, "a final echo listens again")
+    #expect(call.model.phase == .listening)
+  }
+
+  @Test func whatTheReaderSaysAfterTheTailGoesByItself() async {
+    let call = Harness(echo: true)
+    await call.answered("what's the weather", "It is sunny in Amsterdam today.")
+    call.finishSpeaking()
+
+    call.recogniser.hear("and tomorrow")
+    #expect(call.model.heard == "and tomorrow")
+    call.clock.advance(call.settings.voiceModeSilence)
+    await call.model.settled()
+
+    #expect(call.sent.map(\.text) == ["what's the weather", "and tomorrow"])
+    #expect(call.model.phase == .thinking)
+  }
+
+  @Test func aTapAlwaysCutsInAndTheMicrophoneOpensAfterTheTail() async {
+    let call = Harness(echo: true)
+    await call.model.start()
+    await call.say("tell me a story")
+    call.turnStarts("u1", "tell me a story")
+    call.reply("a1", "Once upon a time. There was", streaming: true)
+    #expect(call.model.phase == .speaking)
+    #expect(!call.recogniser.listening)
+
+    call.model.interrupt()
+    #expect(call.model.phase == .listening)
+    #expect(!call.speaker.speaking)
+    #expect(!call.recogniser.listening)
+
+    call.tail()
+    #expect(call.recogniser.listening)
+    call.recogniser.hear("a shorter one please")
+    call.clock.advance(call.settings.voiceModeSilence)
+    await call.model.settled()
+    #expect(call.sent.last?.text == "a shorter one please")
+  }
+
+  @Test func mutedDuringTheTailTheMicrophoneStaysClosed() async {
+    let call = Harness(echo: true)
+    await call.answered("hello", "Hi there.")
+    call.speaker.finishAll()
+    call.model.toggleMute()
+    call.tail()
+
+    #expect(call.model.phase == .muted)
+    #expect(!call.recogniser.listening)
+  }
+
+  @Test func aStillWorkingLineIsNotHeardAsTheReader() async {
+    let call = Harness(echo: true)
+    call.settings.setVoiceModeBargeIn(true)
+    await call.model.start()
+    await call.say("search the news")
+    call.turnStarts("u1", "search the news")
+    call.activity = .tool("web_search")
+    call.publish()
+    call.clock.advance(3.1)
+    #expect(call.model.phase == .speaking)
+    let line = call.said.last ?? ""
+
+    call.recogniser.hear(line + " " + line)
+    #expect(call.model.phase == .speaking)
   }
 
   // MARK: Requests
@@ -567,7 +783,7 @@ import Testing
   // MARK: Ending
 
   @Test func endingStopsEverythingFromAnyPhase() async {
-    let call = Harness(echo: true)
+    let call = Harness(echo: true, headset: true)
     await call.model.start()
     await call.say("hello")
     call.turnStarts("u1", "hello")
@@ -651,7 +867,7 @@ import Testing
     call.reply("a1", "Done.", streaming: false)
     call.turnActive = false
     call.publish()
-    call.speaker.finishAll()
+    call.finishSpeaking()
 
     await call.say("thanks")
     #expect(call.sent.last?.context == "User: work\nAssistant: Done.")

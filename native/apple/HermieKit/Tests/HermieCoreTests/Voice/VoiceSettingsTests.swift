@@ -19,7 +19,9 @@ import Testing
     #expect(settings.rate == 1)
     #expect(settings.dictationLanguage == VoiceSettings.automatic)
     #expect(settings.voiceIdentifier == nil)
-    #expect(settings.confirmBeforeSending)
+    #expect(!settings.confirmBeforeSending, "a call sends by itself")
+    #expect(!settings.voiceModeBargeIn, "on the loudspeaker a call does not listen over its own voice")
+    #expect(settings.voiceModeSilence == 1.5)
     #expect(settings.stopOnBackground)
     #expect(settings.autoReadChats.isEmpty)
   }
@@ -32,7 +34,7 @@ import Testing
     settings.setRate(1.5)
     settings.setDictationLanguage("nl-NL")
     settings.setVoiceIdentifier("com.apple.voice.compact.nl-NL.Xander")
-    settings.setConfirmBeforeSending(false)
+    settings.setConfirmBeforeSending(true)
     settings.setStopOnBackground(false)
     settings.setAutoRead(true, bot: "hermes", gatewayID: "g1")
     await settings.settled()
@@ -43,7 +45,7 @@ import Testing
     #expect(again.rate == 1.5)
     #expect(again.dictationLanguage == "nl-NL")
     #expect(again.voiceIdentifier == "com.apple.voice.compact.nl-NL.Xander")
-    #expect(!again.confirmBeforeSending)
+    #expect(again.confirmBeforeSending)
     #expect(!again.stopOnBackground)
     #expect(again.autoRead(bot: "hermes", gatewayID: "g1"))
   }
@@ -53,15 +55,15 @@ import Testing
     let settings = VoiceSettings(keyValues: keyValues)
     await settings.hydrate()
 
-    #expect(settings.voiceModeSilence == 1.2)
-    #expect(settings.voiceModeBargeIn)
+    #expect(settings.voiceModeSilence == 1.5)
+    #expect(!settings.voiceModeBargeIn)
     #expect(settings.voiceModeCaptions)
     #expect(settings.voiceModeOrb == .clouds)
     #expect(!settings.voiceModeSetUp)
     #expect(settings.expressivity == 0.5)
 
     settings.setVoiceModeSilence(9)
-    settings.setVoiceModeBargeIn(false)
+    settings.setVoiceModeBargeIn(true)
     settings.setVoiceModeCaptions(false)
     settings.setVoiceModeOrb(.light)
     settings.setVoiceModeSetUp(true)
@@ -72,16 +74,73 @@ import Testing
     await again.hydrate()
 
     #expect(again.voiceModeSilence == 3, "clamped to the longest stop")
-    #expect(!again.voiceModeBargeIn)
+    #expect(again.voiceModeBargeIn)
     #expect(!again.voiceModeCaptions)
     #expect(again.voiceModeOrb == .light)
     #expect(again.voiceModeSetUp)
     #expect(again.expressivity == 0)
 
     again.reset()
-    #expect(again.voiceModeSilence == 1.2)
+    #expect(again.voiceModeSilence == 1.5)
+    #expect(!again.voiceModeBargeIn)
+    #expect(!again.confirmBeforeSending)
     #expect(again.voiceModeOrb == .clouds)
     #expect(again.voiceModeSetUp, "having been through the setup is not a choice to reset")
+  }
+
+  // MARK: Schema 2
+
+  /// What every build before schema 2 wrote: all of its fields, its defaults included.
+  private static let schema1 =
+    #"{"rate":1.25,"confirmBeforeSending":true,"voiceModeBargeIn":true,"voiceModeSilence":1.2,"stopOnBackground":false}"#
+
+  @Test func anOlderBlobSendsByItselfAndStopsListeningOverItself() async throws {
+    let keyValues = try open()
+    try await keyValues.setString(Self.schema1, forKey: StoreKeys.voice)
+
+    let settings = VoiceSettings(keyValues: keyValues)
+    await settings.hydrate()
+    await settings.settled()
+
+    #expect(!settings.confirmBeforeSending, "the stored default is put right")
+    #expect(!settings.voiceModeBargeIn)
+    #expect(settings.voiceModeSilence == 1.5, "the old default pause goes to the new one")
+    #expect(settings.rate == 1.25, "a real choice is kept")
+    #expect(!settings.stopOnBackground)
+
+    let stored = try await keyValues.value(JSONObject.self, forKey: StoreKeys.voice)
+    #expect(stored?["nativeSchema"]?.intValue == VoiceSettings.schema, "written at once")
+    #expect(stored?["confirmBeforeSending"] == false)
+    #expect(stored?["voiceModeBargeIn"] == false)
+  }
+
+  @Test func aPauseThatWasChosenIsNotMoved() async throws {
+    let keyValues = try open()
+    try await keyValues.setString(#"{"voiceModeSilence":2}"#, forKey: StoreKeys.voice)
+
+    let settings = VoiceSettings(keyValues: keyValues)
+    await settings.hydrate()
+
+    #expect(settings.voiceModeSilence == 2)
+  }
+
+  @Test func itIsPutRightOnlyOnceAndAChoiceAfterItStands() async throws {
+    let keyValues = try open()
+    try await keyValues.setString(Self.schema1, forKey: StoreKeys.voice)
+
+    let first = VoiceSettings(keyValues: keyValues)
+    await first.hydrate()
+    first.setConfirmBeforeSending(true)
+    first.setVoiceModeBargeIn(true)
+    first.setVoiceModeSilence(1.2)
+    await first.settled()
+
+    let again = VoiceSettings(keyValues: keyValues)
+    await again.hydrate()
+
+    #expect(again.confirmBeforeSending)
+    #expect(again.voiceModeBargeIn)
+    #expect(again.voiceModeSilence == 1.2)
   }
 
   @Test func theBlobKeepsWhatElseWasInIt() async throws {

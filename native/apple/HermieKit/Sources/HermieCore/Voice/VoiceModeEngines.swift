@@ -47,6 +47,15 @@ public protocol VoiceModeAudio: AnyObject {
   func reactivate() throws
   /// Give it back.
   func deactivate()
+  /// The call is heard on headphones (wired, AirPods, a Bluetooth headset) rather than a loudspeaker:
+  /// the microphone does not hear the reply, and the reader can cut in by speaking without the call
+  /// hearing itself. Read when it matters; a route change is reported as `routeChanged`.
+  var headsetRoute: Bool { get }
+}
+
+extension VoiceModeAudio {
+  /// A loudspeaker, unless the audio knows better.
+  public var headsetRoute: Bool { false }
 }
 
 /// One call's engines. In the app a single object is all three (`AppleVoiceModeEngine`: the

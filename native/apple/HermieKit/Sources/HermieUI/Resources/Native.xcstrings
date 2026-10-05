@@ -23307,25 +23307,25 @@
       }
     },
     "native.voice.bargeInHint" : {
-      "comment" : "Settings › Voice: what Interrupt by speaking does, and where.",
+      "comment" : "Settings › Voice: what Interrupt by speaking does: always on with headphones, on the loudspeaker only when turned on.",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sprich während des Vorlesens, um es zu stoppen, wo das Gerät deine Stimme von seiner eigenen unterscheiden kann."
+            "value" : "Mit Kopfhörern stoppt Sprechen während des Vorlesens es immer. Schalte dies ein, um das auch über den Lautsprecher zu tun; das Gerät kann dann seine eigene Stimme für deine halten."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Talk while a reply is read to stop it, where the device can tell your voice from its own."
+            "value" : "With headphones, talking while a reply is read always stops it. Turn this on to do it on the loudspeaker too, where the device can mistake its own voice for yours."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Praat tijdens het voorlezen om het te stoppen, waar het apparaat je stem van de zijne kan onderscheiden."
+            "value" : "Met een koptelefoon stopt praten tijdens het voorlezen het altijd. Zet dit aan om dat ook via de luidspreker te doen; het apparaat kan dan zijn eigen stem voor de jouwe aanzien."
           }
         }
       }
