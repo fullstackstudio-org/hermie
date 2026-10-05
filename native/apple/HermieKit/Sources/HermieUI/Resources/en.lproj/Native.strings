@@ -242,6 +242,8 @@
 	<string>Gateway Settings…</string>
 	<key>native.commands.newChatWindow</key>
 	<string>New Chat Window</string>
+	<key>native.commands.searchEverywhere</key>
+	<string>Search Everywhere…</string>
 	<key>native.commands.stopAll</key>
 	<string>Stop All Running Turns…</string>
 	<key>native.commands.switchGateway</key>
@@ -1862,10 +1864,38 @@
 	<string>Open</string>
 	<key>native.requests.waiting.other</key>
 	<string>%lld requests are waiting for your answer.</string>
+	<key>native.search.botChat</key>
+	<string>Bot Chat</string>
+	<key>native.search.branch</key>
+	<string>Branch</string>
+	<key>native.search.everywhere</key>
+	<string>Search every conversation for “%@”</string>
 	<key>native.search.failed</key>
 	<string>Messages could not be searched. Check the connection and try again.</string>
 	<key>native.search.found</key>
 	<string>Found “%@” in this chat.</string>
+	<key>native.search.hint</key>
+	<string>Search the messages of every bot on every gateway you are signed in to. Tap a result to open the conversation at that message.</string>
+	<key>native.search.none</key>
+	<string>No conversation mentions “%@”.</string>
+	<key>native.search.onDevice</key>
+	<string>Only on this device</string>
+	<key>native.search.openAt</key>
+	<string>Opens the conversation at this message.</string>
+	<key>native.search.ownChat</key>
+	<string>My chat</string>
+	<key>native.search.past</key>
+	<string>Earlier conversation</string>
+	<key>native.search.prompt</key>
+	<string>Search every conversation</string>
+	<key>native.search.resultsHeader</key>
+	<string>Conversations</string>
+	<key>native.search.searching</key>
+	<string>Searching…</string>
+	<key>native.search.title</key>
+	<string>Search Everywhere</string>
+	<key>native.search.unreachable</key>
+	<string>Could not search: %@. Showing what this device kept.</string>
 	<key>native.secureInput.close</key>
 	<string>Close</string>
 	<key>native.secureInput.earlierAnswerLost</key>

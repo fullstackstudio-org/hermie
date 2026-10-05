@@ -2652,7 +2652,7 @@ conversation for …" row under the chat list's own results, which hands its wor
 ## Usage
 
 **Settings, Usage** (`UsageSettingsEntry`) lists every bot of the live gateway side by side, and each bot's
-settings page has a **Usage** section (`BotUsageSection`, the same content); both are `HermieCore/Usage`.
+settings page has a **Usage** row, beside the capability rows, that shows today's cost and opens the bot's own page (`BotUsageSection`, `BotUsagePage`, the same content); the models are in `HermieCore/Usage`.
 
 - **What the gateway can tell.** Four calls say something about use and none says it all:
   `GET /api/analytics/usage?days=<n>&profile=<bot>` (the dashboard's route, scoped to one profile) is the only

@@ -242,6 +242,8 @@
 	<string>Gateway-Einstellungen…</string>
 	<key>native.commands.newChatWindow</key>
 	<string>Neues Chatfenster</string>
+	<key>native.commands.searchEverywhere</key>
+	<string>Überall suchen …</string>
 	<key>native.commands.stopAll</key>
 	<string>Alle laufenden Antworten stoppen…</string>
 	<key>native.commands.switchGateway</key>
@@ -1862,10 +1864,38 @@
 	<string>Öffnen</string>
 	<key>native.requests.waiting.other</key>
 	<string>%lld Anfragen warten auf deine Antwort.</string>
+	<key>native.search.botChat</key>
+	<string>Bot-Chat</string>
+	<key>native.search.branch</key>
+	<string>Verzweigung</string>
+	<key>native.search.everywhere</key>
+	<string>„%@“ in allen Unterhaltungen suchen</string>
 	<key>native.search.failed</key>
 	<string>Nachrichten konnten nicht durchsucht werden. Prüfe die Verbindung und versuche es erneut.</string>
 	<key>native.search.found</key>
 	<string>„%@“ in diesem Chat gefunden.</string>
+	<key>native.search.hint</key>
+	<string>Durchsuche die Nachrichten aller Bots auf allen Gateways, bei denen du angemeldet bist. Tippe auf ein Ergebnis, um die Unterhaltung bei dieser Nachricht zu öffnen.</string>
+	<key>native.search.none</key>
+	<string>Keine Unterhaltung erwähnt „%@“.</string>
+	<key>native.search.onDevice</key>
+	<string>Nur auf diesem Gerät</string>
+	<key>native.search.openAt</key>
+	<string>Öffnet die Unterhaltung bei dieser Nachricht.</string>
+	<key>native.search.ownChat</key>
+	<string>Mein Chat</string>
+	<key>native.search.past</key>
+	<string>Frühere Unterhaltung</string>
+	<key>native.search.prompt</key>
+	<string>In allen Unterhaltungen suchen</string>
+	<key>native.search.resultsHeader</key>
+	<string>Unterhaltungen</string>
+	<key>native.search.searching</key>
+	<string>Suche läuft …</string>
+	<key>native.search.title</key>
+	<string>Überall suchen</string>
+	<key>native.search.unreachable</key>
+	<string>Nicht durchsuchbar: %@. Angezeigt wird, was dieses Gerät gespeichert hat.</string>
 	<key>native.secureInput.close</key>
 	<string>Schließen</string>
 	<key>native.secureInput.earlierAnswerLost</key>

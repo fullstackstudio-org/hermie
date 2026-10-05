@@ -242,6 +242,8 @@
 	<string>Gateway-instellingen…</string>
 	<key>native.commands.newChatWindow</key>
 	<string>Nieuw chatvenster</string>
+	<key>native.commands.searchEverywhere</key>
+	<string>Overal zoeken…</string>
 	<key>native.commands.stopAll</key>
 	<string>Alle lopende antwoorden stoppen…</string>
 	<key>native.commands.switchGateway</key>
@@ -1862,10 +1864,38 @@
 	<string>Openen</string>
 	<key>native.requests.waiting.other</key>
 	<string>Er wachten %lld verzoeken op je antwoord.</string>
+	<key>native.search.botChat</key>
+	<string>Bot Chat</string>
+	<key>native.search.branch</key>
+	<string>Vertakking</string>
+	<key>native.search.everywhere</key>
+	<string>Zoek “%@” in alle gesprekken</string>
 	<key>native.search.failed</key>
 	<string>Berichten konden niet worden doorzocht. Controleer de verbinding en probeer het opnieuw.</string>
 	<key>native.search.found</key>
 	<string>“%@” gevonden in deze chat.</string>
+	<key>native.search.hint</key>
+	<string>Zoek in de berichten van elke bot op elke gateway waarop je bent ingelogd. Tik op een resultaat om het gesprek bij dat bericht te openen.</string>
+	<key>native.search.none</key>
+	<string>Geen gesprek noemt “%@”.</string>
+	<key>native.search.onDevice</key>
+	<string>Alleen op dit apparaat</string>
+	<key>native.search.openAt</key>
+	<string>Opent het gesprek bij dit bericht.</string>
+	<key>native.search.ownChat</key>
+	<string>Mijn chat</string>
+	<key>native.search.past</key>
+	<string>Eerder gesprek</string>
+	<key>native.search.prompt</key>
+	<string>Zoek in alle gesprekken</string>
+	<key>native.search.resultsHeader</key>
+	<string>Gesprekken</string>
+	<key>native.search.searching</key>
+	<string>Zoeken…</string>
+	<key>native.search.title</key>
+	<string>Overal zoeken</string>
+	<key>native.search.unreachable</key>
+	<string>Kon niet doorzoeken: %@. Dit apparaat toont wat het zelf bewaarde.</string>
 	<key>native.secureInput.close</key>
 	<string>Sluiten</string>
 	<key>native.secureInput.earlierAnswerLost</key>

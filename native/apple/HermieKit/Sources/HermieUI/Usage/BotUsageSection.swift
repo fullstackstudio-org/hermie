@@ -2,13 +2,14 @@ import HermieCore
 import SwiftUI
 
 /**
- A bot's Usage, on its settings page: what it used today and over a week or a month (tokens and
- cost), day by day, how full its chat's context window is, how many sessions and messages that was,
- and what the provider account says about its limits.
+ A bot's Usage, on its settings page: one row, in the style of the capability rows, that says what the bot
+ used today and opens its own page (`BotUsagePage`): today and a week or a month (tokens and cost), day by
+ day, how full its chat's context window is, how many sessions and messages that was, and what the provider
+ account says about its limits.
 
  It reads the live gateway (`BotUsageModel`): the days from the gateway's analytics route, the context
  window from the chat, the account's limits from the chat's live session. A gateway without the route
- says so in one line and shows nothing it could not know. Every number is the gateway's, in its UTC
+ says so on the page and shows nothing it could not know. Every number is the gateway's, in its UTC
  days, and a cost it priced itself carries a `~`.
  */
 struct BotUsageSection: View {
@@ -26,12 +27,39 @@ struct BotUsageSection: View {
   var body: some View {
     let connected = session.status.phase == .ready
 
-    BotUsageContent(model: model)
-      .task(id: connected) {
-        if connected {
-          await model.load()
+    Section {
+      NavigationLink {
+        BotUsagePage(session: session, bot: chat.bot)
+      } label: {
+        LabeledContent {
+          summary
+        } label: {
+          Label(NativeStrings.Usage.title, systemImage: "chart.bar.xaxis")
         }
       }
+      .accessibilityIdentifier("hermie.botSettings.usage")
+    }
+    .task(id: connected) {
+      if connected {
+        await model.load()
+      }
+    }
+  }
+
+  /// What the row says on the right: today's use, a spinner while it is read, a dash where there is none.
+  @ViewBuilder private var summary: some View {
+    switch model.phase {
+    case .idle, .loading:
+      ProgressView()
+        .controlSize(.small)
+    case .loaded:
+      Text(verbatim: model.today.isEmpty ? "–" : UsageWords.cost(model.today))
+        .foregroundStyle(.secondary)
+        .monospacedDigit()
+    case .failed:
+      Text(verbatim: "–")
+        .foregroundStyle(.secondary)
+    }
   }
 }
 
