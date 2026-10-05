@@ -113,10 +113,10 @@ import Testing
     let asset = loader.makeAsset()
     let load = Task { try? await asset.load(.duration) }
 
-    for _ in 0..<500 where !started.withLock({ $0 }) { try await Task.sleep(for: .milliseconds(10)) }
+    await waitUntil("the range to be asked for") { started.withLock { $0 } }
     loader.close()
     asset.cancelLoading()
-    for _ in 0..<500 where !cancelled.withLock({ $0 }) { try await Task.sleep(for: .milliseconds(10)) }
+    await waitUntil("the range on its way to be cancelled") { cancelled.withLock { $0 } }
 
     #expect(cancelled.withLock { $0 })
     load.cancel()

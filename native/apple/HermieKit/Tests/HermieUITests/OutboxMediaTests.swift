@@ -27,8 +27,10 @@ enum OutboxUIFixtures {
       url: "/api/files/outbox/\(id)/\(OutboxAttachment.encodedName(name))")
   }
 
-  /// A silent mono 8-bit WAV of `seconds` seconds at 8 kHz.
-  static func wav(seconds: Int = 1) throws -> URL {
+  /// A silent mono 8-bit WAV of `seconds` seconds at 8 kHz. The default is long enough that no clip ends while a test
+  /// waits: the main actor is busy for seconds with other suites, a player plays on in real time meanwhile, and a clip
+  /// that ended in the gap is a player that stopped by itself (`isPlaying` false, the arbiter let go).
+  static func wav(seconds: Int = 300) throws -> URL {
     let rate = 8000
     let samples = rate * seconds
     var data = Data()
@@ -346,7 +348,7 @@ enum OutboxUIFixtures {
     await playback.prepare()
     #expect(playback.phase == .failed)
     playback.retry()
-    for _ in 0..<500 where playback.phase != .ready { try await Task.sleep(for: .milliseconds(10)) }
+    await eventually("the player to be ready") { playback.phase == .ready }
     #expect(playback.phase == .ready)
   }
 }
@@ -367,11 +369,6 @@ private final class Gate: Sendable {
   }
 }
 
-@MainActor
-private func eventually(_ condition: @MainActor () -> Bool) async throws {
-  for _ in 0..<500 where !condition() { try await Task.sleep(for: .milliseconds(10)) }
-}
-
 /// What the reader meant: a stop, a pause or a closed video while the player was still being made keeps it from
 /// starting after; the system's own controls ask the arbiter like the row's button does.
 @MainActor
@@ -390,7 +387,7 @@ private func eventually(_ condition: @MainActor () -> Bool) async throws {
     let audio = center.playback(for: OutboxUIFixtures.attachment(.audio, name: "tone.wav"))
 
     let pressed = Task { await audio.play() }
-    try await eventually { gate.asked > 0 }
+    await eventually("the player to ask for its bytes") { gate.asked > 0 }
     #expect(audio.phase == .preparing)
 
     // The chat is left.
@@ -414,12 +411,12 @@ private func eventually(_ condition: @MainActor () -> Bool) async throws {
     center.present(video: video)
 
     let shown = Task { await video.play() }
-    try await eventually { gate.asked > 0 }
+    await eventually("the player to ask for its bytes") { gate.asked > 0 }
 
     center.dismissVideo()
     gate.open()
     await shown.value
-    try await eventually { video.phase == .ready }
+    await eventually("the player to be made") { video.phase == .ready }
 
     #expect(video.phase == .ready, "the player is made, for the next time")
     #expect(!video.isPlaying)
@@ -436,10 +433,10 @@ private func eventually(_ condition: @MainActor () -> Bool) async throws {
     let audio = center.playback(for: OutboxUIFixtures.attachment(.audio, name: "tone.wav"))
 
     audio.toggle()
-    try await eventually { gate.asked > 0 }
+    await eventually("the player to ask for its bytes") { gate.asked > 0 }
     audio.toggle()
     gate.open()
-    try await eventually { audio.phase == .ready }
+    await eventually("the player to be made") { audio.phase == .ready }
     try await Task.sleep(for: .milliseconds(100))
 
     #expect(!audio.isPlaying)
@@ -448,7 +445,7 @@ private func eventually(_ condition: @MainActor () -> Bool) async throws {
   }
 
   @Test func theSystemsOwnControlsAskTheArbiterLikeTheRowsButton() async throws {
-    let url = try OutboxUIFixtures.wav(seconds: 3)
+    let url = try OutboxUIFixtures.wav()
     defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
     var call = false
     let center = MediaPlaybackCenter(
@@ -462,7 +459,7 @@ private func eventually(_ condition: @MainActor () -> Bool) async throws {
     // The full-screen player's own play button: the sound that played stops.
     let player = try #require(video.player)
     player.play()
-    try await eventually { center.arbiter.activeID == video.id }
+    await eventually("the video to ask the arbiter") { center.arbiter.activeID == video.id }
     #expect(center.arbiter.activeID == video.id)
     #expect(video.isPlaying)
     #expect(!sound.isPlaying)
@@ -470,14 +467,14 @@ private func eventually(_ condition: @MainActor () -> Bool) async throws {
 
     // Its own pause lets go.
     player.pause()
-    try await eventually { center.arbiter.activeID == nil }
+    await eventually("the video's pause to reach the arbiter") { center.arbiter.activeID == nil }
     #expect(center.arbiter.activeID == nil)
     #expect(!video.isPlaying)
 
     // While a call has the audio, the system's controls cannot start it either.
     call = true
     player.play()
-    try await eventually { player.rate == 0 }
+    await eventually("the arbiter's no to pause the player") { player.rate == 0 }
     #expect(player.rate == 0)
     #expect(center.arbiter.activeID == nil)
     center.stopAll()

@@ -146,12 +146,25 @@ private final class Counter: Sendable {
   @discardableResult func bump() -> Int { storage.withLock { $0 += 1; return $0 } }
 }
 
-/// Holds a download until the test lets it go.
+/// Holds a download until the test lets it go, and tells the test when one has reached it.
 private final class Gate: Sendable {
+  private struct Arrival {
+    var arrived = false
+    var waiter: CheckedContinuation<Void, Never>?
+  }
+
   private let continuation = Mutex<CheckedContinuation<Void, Never>?>(nil)
   private let opened = Mutex(false)
+  private let arrival = Mutex(Arrival())
 
   func wait() async {
+    let waiter = arrival.withLock { arrival -> CheckedContinuation<Void, Never>? in
+      arrival.arrived = true
+      defer { arrival.waiter = nil }
+      return arrival.waiter
+    }
+    waiter?.resume()
+
     await withCheckedContinuation { next in
       let go = opened.withLock { $0 }
       if go {
@@ -159,6 +172,18 @@ private final class Gate: Sendable {
       } else {
         continuation.withLock { $0 = next }
       }
+    }
+  }
+
+  /// Until a download is waiting at the gate: it is that one, and not whichever download is made next, that a
+  /// test then acts on. Which of two downloads started together reaches its closure first is up to the scheduler.
+  func untilArrived() async {
+    await withCheckedContinuation { next in
+      let here = arrival.withLock { arrival -> Bool in
+        if !arrival.arrived { arrival.waiter = next }
+        return arrival.arrived
+      }
+      if here { next.resume() }
     }
   }
 
@@ -247,9 +272,7 @@ private final class Gate: Sendable {
     model.load()
     #expect(model.state == .loading(progress: nil))
     // The progress arrives through the main actor, after the download reports it.
-    for _ in 0..<500 where model.state == .loading(progress: nil) {
-      try await Task.sleep(for: .milliseconds(2))
-    }
+    await waitUntil("the progress to arrive") { model.state != .loading(progress: nil) }
     #expect(model.state == .loading(progress: 0.25))
     #expect(!model.state.canRetry)
 
@@ -333,6 +356,9 @@ private final class Gate: Sendable {
 
     model.load()
     #expect(model.state == .loading(progress: nil))
+    // The load that is cancelled is the first one, the one that is waiting. Cancelled before it has started, it
+    // would race the second load for being the first to ask the download.
+    await gate.untilArrived()
     model.cancel()
     #expect(model.state == .idle)
     gate.open()

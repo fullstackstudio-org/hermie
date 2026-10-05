@@ -45,17 +45,31 @@ final class UnreachableLink: GatewayLink, Sendable {
 }
 
 /// Polls `condition` on the main actor until it holds, or fails after `timeout` (generous: a loaded CI runner is slow).
+///
+/// The limit counts only the waiting that is the test's own. The test run is one process whose suites lay windows out on
+/// the main actor for seconds on a quiet machine and for far longer on a loaded runner (a CI run recorded a stall of
+/// nearly forty seconds), and a test that is merely queued behind them has not hung. Time that a pause overran by is
+/// given back.
 @MainActor
 func eventually(_ what: String, timeout: Duration = .seconds(30), _ condition: () -> Bool) async {
-  let deadline = ContinuousClock.now + timeout
+  let pause = Duration.milliseconds(10)
+  var deadline = ContinuousClock.now + timeout
 
   while !condition() {
-    guard ContinuousClock.now < deadline else {
+    let before = ContinuousClock.now
+
+    guard before < deadline else {
       Issue.record("timed out waiting for \(what)")
       return
     }
 
-    try? await Task.sleep(for: .milliseconds(10))
+    try? await Task.sleep(for: pause)
+
+    let overrun = ContinuousClock.now - before - pause
+
+    if overrun > .milliseconds(250) {
+      deadline += overrun
+    }
   }
 }
 
