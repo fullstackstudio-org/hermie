@@ -216,12 +216,40 @@ struct VoiceOrb: View {
   var body: some View {
     let paused = !visible || scenePhase != .active
 
-    TimelineView(.animation(minimumInterval: reduceMotion ? 1.0 / 15 : nil, paused: paused)) { timeline in
-      let follows = mode == .listening || mode == .speaking
-      let frame = driver.frame(
-        at: timeline.date.timeIntervalSinceReferenceDate, mode: mode, busy: busy,
-        rawLevel: follows ? level() : 0, reduceMotion: reduceMotion)
+    Color.clear
+      .frame(width: size, height: size)
+      .overlay {
+        TimelineView(.animation(minimumInterval: reduceMotion ? 1.0 / 15 : nil, paused: paused)) { timeline in
+          let follows = mode == .listening || mode == .speaking
+          let frame = driver.frame(
+            at: timeline.date.timeIntervalSinceReferenceDate, mode: mode, busy: busy,
+            rawLevel: follows ? level() : 0, reduceMotion: reduceMotion)
 
+          VoiceOrbLayers(style: style, frame: frame, reduceMotion: reduceMotion, size: size)
+        }
+      }
+      .onAppear { visible = true }
+      .onDisappear { visible = false }
+      .accessibilityHidden(true)
+  }
+}
+
+/**
+ One frame of the orb, as it is put on the screen: the layers of the chosen look on a canvas
+ `VoiceOrbPainter.bleed` times the orb's frame, centred on it, and faded to nothing at the canvas's rim.
+ None of it paints a background, and it never takes a touch.
+ */
+struct VoiceOrbLayers: View {
+  let style: VoiceOrbStyle
+  let frame: VoiceOrbFrame
+  let reduceMotion: Bool
+  /// The orb's frame; the canvas is bigger than this and overflows it on every side.
+  let size: CGFloat
+
+  var body: some View {
+    let canvas = VoiceOrbPainter.canvasSide(for: size)
+
+    Group {
       switch style {
       case .clouds:
         CloudsOrbView(frame: frame, reduceMotion: reduceMotion, size: size)
@@ -229,25 +257,27 @@ struct VoiceOrb: View {
         LightOrbView(frame: frame, size: size)
       }
     }
-    .frame(width: size, height: size)
-    .onAppear { visible = true }
-    .onDisappear { visible = false }
-    .accessibilityHidden(true)
+    .frame(width: canvas, height: canvas)
+    .mask { Rectangle().fill(VoiceOrbPainter.rimFade(side: canvas)) }
+    .allowsHitTesting(false)
   }
 }
 
 // MARK: The clouds
 
-private struct CloudsOrbView: View {
+struct CloudsOrbView: View {
   let frame: VoiceOrbFrame
   let reduceMotion: Bool
+  /// The orb's frame; the layers are drawn on a canvas `VoiceOrbPainter.bleed` times it, and paint no
+  /// background of their own.
   let size: CGFloat
 
   var body: some View {
     let diameter = size * VoiceOrbPainter.sphereShare
+    let side = VoiceOrbPainter.canvasSide(for: size)
 
     ZStack {
-      Canvas { context, canvas in
+      Canvas(opaque: false) { context, canvas in
         VoiceOrbPainter.drawCloudHalo(&context, size: canvas, frame: frame)
       }
 
@@ -259,11 +289,11 @@ private struct CloudsOrbView: View {
       .frame(width: diameter, height: diameter)
       .clipShape(Circle())
 
-      Canvas { context, canvas in
+      Canvas(opaque: false) { context, canvas in
         VoiceOrbPainter.drawClouds(&context, size: canvas, frame: frame)
       }
     }
-    .frame(width: size, height: size)
+    .frame(width: side, height: side)
     .scaleEffect(frame.effectiveScale)
     .opacity(frame.opacity)
   }
@@ -271,15 +301,18 @@ private struct CloudsOrbView: View {
 
 // MARK: The light
 
-private struct LightOrbView: View {
+struct LightOrbView: View {
   let frame: VoiceOrbFrame
+  /// The orb's frame; drawn on a canvas `VoiceOrbPainter.bleed` times it, with no background.
   let size: CGFloat
 
   var body: some View {
-    Canvas { context, canvas in
+    let side = VoiceOrbPainter.canvasSide(for: size)
+
+    Canvas(opaque: false) { context, canvas in
       VoiceOrbPainter.drawLight(&context, size: canvas, frame: frame)
     }
-    .frame(width: size, height: size)
+    .frame(width: side, height: side)
     .opacity(frame.opacity)
   }
 }
@@ -288,6 +321,72 @@ private struct LightOrbView: View {
 enum VoiceOrbPainter {
   /// The sphere's diameter as a share of the orb's square: the rest is its glow.
   static let sphereShare: CGFloat = 0.8
+
+  /// The farthest any painter reaches from the centre, as a share of the orb's frame and before the
+  /// swell: the clouds' halo (0.512), the light's outermost ring at full ripple (`maxRingExtent`,
+  /// about 0.54), its sparkles (about 0.49) and its glow (0.52). The canvas is sized for this.
+  static let reach: CGFloat = 0.56
+  /// The largest `VoiceOrbFrame.effectiveScale` any mode reaches: listening at full level (1.18) with
+  /// the breathing on top.
+  static let maxScale: CGFloat = 1.2
+
+  /// The drawing is laid out on a canvas this many times the orb's frame, centred on it, so that
+  /// nothing the orb paints (the rings at full swell, the glow, the sparkles) is ever cut at the
+  /// frame's edge. The canvas takes no room: it is an overlay.
+  static let bleed: CGFloat = 1.8
+  /// Where, as a share of the canvas's half-width, the fade to nothing starts. Everything the painters
+  /// draw lies inside this (`VoiceOrbPainter.reach` at the full swell), so the fade is a safety net: an
+  /// edge cannot show, whatever a painter does.
+  static let fadeStart: CGFloat = 0.8
+
+  /// How far from the centre, as a share of the orb's frame, the painted pixels can reach: the largest
+  /// extent of any painter (`VoiceOrbPainter.reach`) at the largest swell.
+  static var paintedReach: CGFloat { reach * maxScale }
+
+  /// The side of the canvas the orb is drawn on.
+  static func canvasSide(for size: CGFloat) -> CGFloat { size * bleed }
+
+  /// The fade at the rim of a canvas `side` points across: opaque inside `fadeStart`, nothing at the edge.
+  static func rimFade(side: CGFloat) -> RadialGradient {
+    RadialGradient(
+      stops: [
+        .init(color: .black, location: 0),
+        .init(color: .black, location: fadeStart),
+        .init(color: .clear, location: 1)
+      ],
+      center: .center, startRadius: 0, endRadius: side / 2)
+  }
+
+  /// The clouds' halo reaches this many times the sphere's radius.
+  static let cloudHaloFactor: CGFloat = 1.28
+  /// The light's core, as a share of the orb's side, and how many times its radius the glow reaches.
+  static let coreShare: CGFloat = 0.2
+  static let glowFactor: CGFloat = 2.6
+  /// The sparkles drift from `sparkleInner` outward by `sparkleSpan`, as shares of the orb's side.
+  static let sparkleInner: Double = 0.14
+  static let sparkleSpan: Double = 0.34
+
+  /// The farthest each painter reaches at rest, as a share of the orb's side (the sparkles are
+  /// points, so they add their size, a few points, on top).
+  static var cloudHaloReach: CGFloat { sphereShare / 2 * cloudHaloFactor }
+  static var lightGlowReach: CGFloat { coreShare * glowFactor }
+  static var sparkleReach: Double { sparkleInner + sparkleSpan }
+
+  /// The orb's own side, in a canvas that is `VoiceOrbPainter.bleed` times it.
+  static func orbSide(in canvas: CGSize) -> CGFloat { min(canvas.width, canvas.height) / VoiceOrbPainter.bleed }
+
+  /// The ring `ring`'s radius at rest, as a share of the orb's side.
+  static func ringBase(_ ring: Int) -> Double { 0.27 + 0.055 * Double(ring) }
+
+  /// How far the ring `ring` waves, as a share of the orb's side, at this ripple.
+  static func ringAmplitude(_ ring: Int, ripple: Double) -> Double {
+    ringBase(ring) * (0.035 + ripple * (1 + 0.4 * Double(ring)))
+  }
+
+  /// The farthest any of the rings gets from the centre at this ripple (the wave is within -1...1).
+  static func maxRingExtent(ripple: Double) -> Double {
+    (0..<petals.count).map { ringBase($0) + ringAmplitude($0, ripple: ripple) }.max() ?? 0
+  }
 
   // MARK: Palette
 
@@ -360,10 +459,10 @@ enum VoiceOrbPainter {
 
   /// The glow around the sphere.
   static func drawCloudHalo(_ context: inout GraphicsContext, size: CGSize, frame: VoiceOrbFrame) {
-    let side = min(size.width, size.height)
+    let side = orbSide(in: size)
     let center = CGPoint(x: size.width / 2, y: size.height / 2)
     let radius = side * sphereShare / 2
-    let reach = radius * 1.28
+    let reach = radius * cloudHaloFactor
     let strength = 0.15 + 0.45 * frame.motion.glow
 
     context.fill(
@@ -380,7 +479,7 @@ enum VoiceOrbPainter {
 
   /// The clouds, the light on the sphere, its rim and the shimmer that circles it.
   static func drawClouds(_ context: inout GraphicsContext, size: CGSize, frame: VoiceOrbFrame) {
-    let side = min(size.width, size.height)
+    let side = orbSide(in: size)
     let center = CGPoint(x: size.width / 2, y: size.height / 2)
     let radius = side * sphereShare / 2
     let sphere = CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)
@@ -471,10 +570,10 @@ enum VoiceOrbPainter {
   private static let petals: [Double] = [5, 6, 7, 8]
 
   static func drawLight(_ context: inout GraphicsContext, size: CGSize, frame: VoiceOrbFrame) {
-    let side = min(size.width, size.height)
+    let side = orbSide(in: size)
     let center = CGPoint(x: size.width / 2, y: size.height / 2)
     let motion = frame.motion
-    let core = side * 0.2
+    let core = side * coreShare
 
     var canvas = context
     canvas.translateBy(x: center.x, y: center.y)
@@ -486,8 +585,8 @@ enum VoiceOrbPainter {
     // The rings: outlines with petals that wave, each at its own speed and direction.
     for ring in 0..<petals.count {
       let index = Double(ring)
-      let base = side * (0.27 + 0.055 * index)
-      let amplitude = base * (0.035 + motion.ripple * (1 + 0.4 * index))
+      let base = side * ringBase(ring)
+      let amplitude = side * ringAmplitude(ring, ripple: motion.ripple)
       let phase = frame.swirlPhase * (0.5 + 0.2 * index) * (ring % 2 == 0 ? 1 : -1)
       let count = petals[ring]
       let segments = 96
@@ -523,7 +622,7 @@ enum VoiceOrbPainter {
         let fade = sin(travel * .pi)
         let twinkle = 0.4 + 0.6 * (0.5 + 0.5 * sin(frame.time * sparkle.twinkle + sparkle.phase))
         let angle = sparkle.angle + frame.swirlPhase * 0.05
-        let distance = side * (0.14 + 0.34 * travel)
+        let distance = side * (sparkleInner + sparkleSpan * travel)
         let dot = sparkle.size
         let box = CGRect(
           x: cos(angle) * distance - dot / 2, y: sin(angle) * distance - dot / 2, width: dot, height: dot)
@@ -536,7 +635,7 @@ enum VoiceOrbPainter {
     canvas.opacity = 1
 
     // The core's glow, then the core, then its iridescent rim.
-    let halo = core * 2.6
+    let halo = core * glowFactor
     canvas.fill(
       Path(ellipseIn: CGRect(x: -halo, y: -halo, width: halo * 2, height: halo * 2)),
       with: .radialGradient(

@@ -53,11 +53,39 @@ struct VoiceModeHost: ViewModifier {
 
   @ViewBuilder
   private func panel(_ call: VoiceModeModel, settings: VoiceSettings) -> some View {
-    let view = VoiceModeView(
-      call: call, settings: settings, botName: botName, onEnd: { feed.endVoiceMode() },
-      onSettings: { feed.openVoiceSetupFromCall() })
-
     #if os(macOS)
+      let compact = true
+    #else
+      let compact = false
+    #endif
+
+    VoiceModePanel(
+      call: call, settings: settings, botName: botName, compact: compact, onEnd: { feed.endVoiceMode() },
+      onSettings: { feed.openVoiceSetupFromCall() })
+  }
+}
+
+/**
+ The call screen as it is put over the chat: on the iPhone and the iPad it fills the screen, on the Mac it
+ is a compact panel.
+
+ The screen is drawn inside the safe area: only its black background goes under the status bar and the
+ home indicator (`VoiceModeView` sees to that), so the controls never sit on the battery or the clock.
+ */
+struct VoiceModePanel: View {
+  let call: VoiceModeModel
+  let settings: VoiceSettings
+  let botName: String
+  /// The Mac's compact panel, over a dimmed chat; otherwise the whole screen.
+  let compact: Bool
+  let onEnd: () -> Void
+  let onSettings: () -> Void
+
+  var body: some View {
+    let view = VoiceModeView(
+      call: call, settings: settings, botName: botName, onEnd: onEnd, onSettings: onSettings)
+
+    if compact {
       ZStack {
         Color.black.opacity(0.35)
           .contentShape(.rect)
@@ -66,10 +94,9 @@ struct VoiceModeHost: ViewModifier {
           .clipShape(.rect(cornerRadius: 26))
           .shadow(color: .black.opacity(0.4), radius: 30, y: 12)
       }
-    #else
+    } else {
       view
-        .ignoresSafeArea()
-    #endif
+    }
   }
 }
 

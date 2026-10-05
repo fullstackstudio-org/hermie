@@ -29,6 +29,8 @@ struct VoiceModeView: View {
 
   var body: some View {
     ZStack {
+      // Only the black goes under the status bar and the home indicator; the controls stay inside
+      // the safe area.
       Color.black
         .ignoresSafeArea()
 
@@ -47,6 +49,7 @@ struct VoiceModeView: View {
           .accessibilityIdentifier("hermie.voiceMode.settings")
         }
         .padding(.horizontal, 12)
+        .padding(.top, 8)
 
         Spacer(minLength: 12)
 
@@ -59,12 +62,10 @@ struct VoiceModeView: View {
           .accessibilityHidden(true)
 
         if settings.voiceModeCaptions, let caption = VoiceModeView.caption(call) {
-          Text(caption)
+          VoiceCaptionText(text: caption)
             .font(.callout)
             .foregroundStyle(.white.opacity(0.85))
             .multilineTextAlignment(.center)
-            .lineLimit(3)
-            .truncationMode(.head)
             .padding(.horizontal, 28)
             .padding(.top, 10)
             .frame(maxWidth: 520)
@@ -346,5 +347,59 @@ struct VoiceModeView: View {
 
     let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
     return trimmed.isEmpty ? nil : trimmed
+  }
+}
+
+/**
+ The caption under the orb, always showing its latest words.
+
+ A reply streams in at the end, so the end is what matters. `Text`'s head truncation does not do that
+ for several lines (it cuts in the middle), so the text is laid out in full, three lines tall at most,
+ and anchored at the bottom: when it is longer, the lines above scroll off and the top line fades out.
+ The box is three lines of the caption's own font (a hidden ruler sets it), so it does not jump as
+ text streams in. VoiceOver reads all of it.
+ */
+struct VoiceCaptionText: View {
+  /// The most lines the caption shows.
+  static let maxLines = 3
+
+  let text: String
+
+  /// The box: `maxLines` lines in whatever font the caption is given.
+  private var ruler: some View {
+    Text(verbatim: Array(repeating: "A", count: Self.maxLines).joined(separator: "\n"))
+      .hidden()
+      .frame(maxWidth: .infinity)
+  }
+
+  /// The top line of the box fades into nothing: the lines that scrolled off go that way.
+  static var topFade: LinearGradient {
+    LinearGradient(
+      stops: [
+        .init(color: .clear, location: 0),
+        .init(color: .black, location: 0.4),
+        .init(color: .black, location: 1)
+      ],
+      startPoint: .top, endPoint: .bottom)
+  }
+
+  var body: some View {
+    ruler
+      .overlay(alignment: .top) {
+        ViewThatFits(in: .vertical) {
+          // It fits: it reads from the top, as any text does.
+          Text(text)
+
+          // It does not: the newest lines at the bottom, the oldest fading out above.
+          ruler
+            .overlay(alignment: .bottom) {
+              Text(text).fixedSize(horizontal: false, vertical: true)
+            }
+            .clipped()
+            .mask { Rectangle().fill(Self.topFade) }
+        }
+      }
+      .accessibilityElement(children: .ignore)
+      .accessibilityLabel(Text(verbatim: text))
   }
 }
