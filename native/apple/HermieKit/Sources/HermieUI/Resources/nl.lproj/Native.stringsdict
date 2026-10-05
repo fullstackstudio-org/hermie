@@ -2,6 +2,54 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>native.agents.otherRunning</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld andere sessie draait op de gateway</string>
+			<key>other</key>
+			<string>%lld andere sessies draaien op de gateway</string>
+		</dict>
+	</dict>
+	<key>native.agents.row.subagents</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld sub-agent bezig</string>
+			<key>other</key>
+			<string>%lld sub-agents bezig</string>
+		</dict>
+	</dict>
+	<key>native.agents.subagent.toolCalls</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld toolaanroep</string>
+			<key>other</key>
+			<string>%lld toolaanroepen</string>
+		</dict>
+	</dict>
 	<key>native.chart.summary.more</key>
 	<dict>
 		<key>NSStringLocalizedFormatKey</key>

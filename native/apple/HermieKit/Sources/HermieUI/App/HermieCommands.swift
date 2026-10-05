@@ -76,7 +76,7 @@ public struct HermieCommands: Commands {
   }
 
   /**
-   Needs You (⌘⇧I) and Stop All Running Turns… (⌘⇧.), which are about every chat, then Pin, mute and
+   Needs You (⌘⇧I), Agents Overview (⌘⇧A) and Stop All Running Turns… (⌘⇧.), which are about every chat, then Pin, mute and
    archive for the selected chat, so each is one keystroke or a walk through the menu
    bar away (the row's context menu needs a pointer). Archive takes Mail's ⌃⌘A. Disabled with no chat
    selected, or while the chat list's arrangement cannot be written yet.
@@ -86,6 +86,13 @@ public struct HermieCommands: Commands {
       router?.present(.needsYou)
     }
     .keyboardShortcut("i", modifiers: [.command, .shift])
+    .disabled(router == nil)
+
+    // What every bot is doing now (⌘⇧A; ⌘⇧I, ⌘⇧., ⌘⇧F and ⌘⇧N are taken, and ⌃⌘A archives).
+    Button(NativeStrings.Agents.command) {
+      router?.present(.agents)
+    }
+    .keyboardShortcut("a", modifiers: [.command, .shift])
     .disabled(router == nil)
 
     // Every running turn of every bot, at once: ⌘⇧. is where a hand already is when something runs away.

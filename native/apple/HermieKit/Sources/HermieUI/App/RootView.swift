@@ -196,6 +196,10 @@ struct Sidebar: View {
       ToolbarItem {
         NeedsYouButton()
       }
+      // What each bot is doing now.
+      ToolbarItem {
+        AgentsButton()
+      }
       // The Mac switches gateways from the menu bar (`GatewayMenu` in `HermieCommands`).
       #if os(iOS)
         ToolbarItem {
@@ -287,6 +291,8 @@ struct ShellSheet: View {
       EmergencyStopSheet()
     case .search:
       SearchEverywhereSheet()
+    case .agents:
+      AgentsSheet()
     }
   }
 }

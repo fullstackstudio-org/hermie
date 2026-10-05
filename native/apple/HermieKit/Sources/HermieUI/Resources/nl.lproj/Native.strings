@@ -26,6 +26,50 @@
 	<string>Wordt verstuurd</string>
 	<key>native.activity.status.sent</key>
 	<string>Verstuurd</string>
+	<key>native.agents.command</key>
+	<string>Agentenoverzicht</string>
+	<key>native.agents.crons.none</key>
+	<string>Er staat niets gepland.</string>
+	<key>native.agents.crons.unknown</key>
+	<string>De crons konden niet worden gelezen.</string>
+	<key>native.agents.empty.message</key>
+	<string>Voeg een bot toe en wat die doet, verschijnt hier.</string>
+	<key>native.agents.empty.title</key>
+	<string>Nog geen bots</string>
+	<key>native.agents.incomplete</key>
+	<string>De gateway zei niet welke sessies draaien, dus dit toont alleen de chats die in deze app open staan.</string>
+	<key>native.agents.loading</key>
+	<string>Lezen wat je bots doen…</string>
+	<key>native.agents.offline</key>
+	<string>Maak verbinding met de gateway om te zien wat je bots doen.</string>
+	<key>native.agents.row.hint</key>
+	<string>Opent de chat met deze bot.</string>
+	<key>native.agents.row.nextCron</key>
+	<string>Volgende cron: %1$@, %2$@</string>
+	<key>native.agents.row.started</key>
+	<string>Gestart %@</string>
+	<key>native.agents.row.using</key>
+	<string>Gebruikt %@</string>
+	<key>native.agents.section.bots</key>
+	<string>Bots</string>
+	<key>native.agents.section.crons</key>
+	<string>Komende crons</string>
+	<key>native.agents.section.subagents</key>
+	<string>Sub-agents</string>
+	<key>native.agents.state.idle</key>
+	<string>Inactief</string>
+	<key>native.agents.state.running</key>
+	<string>Bezig</string>
+	<key>native.agents.state.waiting</key>
+	<string>Wacht op jou</string>
+	<key>native.agents.subagent.queued</key>
+	<string>In de wachtrij</string>
+	<key>native.agents.subagent.unnamed</key>
+	<string>Sub-agent</string>
+	<key>native.agents.subtitle</key>
+	<string>Wat elke bot nu aan het doen is.</string>
+	<key>native.agents.title</key>
+	<string>Agents</string>
 	<key>native.appearance.languageChange</key>
 	<string>Wijzig in Instellingen</string>
 	<key>native.appearance.languageChangeMac</key>

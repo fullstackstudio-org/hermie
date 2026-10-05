@@ -393,6 +393,73 @@ public actor BotRoster {
     setRunning(Self.runningBots(in: rows, owners: Self.sessionOwners(snapshot.bots, ids)))
   }
 
+  /// One busy session of `session.active_list`, with the bot its id belongs to where this app can tell
+  /// (the bot's canonical session, or a session one of its chats holds). A cron's run, a branch and another
+  /// client's session of the same gateway carry no bot.
+  public struct ActiveSession: Sendable, Equatable {
+    public var id: String
+    public var sessionKey: String
+    /// The gateway's word for it: `starting`, `waiting` (parked on a question or an approval), `working`,
+    /// `streaming` or `resuming`.
+    public var status: String
+    public var title: String
+    /// The newest line of the session, as the gateway previews it.
+    public var preview: String
+    public var model: String
+    /// Unix seconds; nil when the row does not say.
+    public var startedAt: Double?
+    public var bot: String?
+
+    public init(
+      id: String, sessionKey: String = "", status: String = "working", title: String = "", preview: String = "",
+      model: String = "", startedAt: Double? = nil, bot: String? = nil
+    ) {
+      self.id = id
+      self.sessionKey = sessionKey
+      self.status = status
+      self.title = title
+      self.preview = preview
+      self.model = model
+      self.startedAt = startedAt
+      self.bot = bot
+    }
+  }
+
+  /// The busy sessions of the gateway, from ONE `session.active_list`, or nil when the list cannot be
+  /// read (an overview must say "unknown" there, not "nothing runs"). Reads the gateway; changes nothing.
+  public func activeSessions() async -> [ActiveSession]? {
+    guard !snapshot.bots.isEmpty else {
+      return []
+    }
+
+    let ids = await sessionIDs()
+    let rows: [JSONValue]
+
+    do {
+      rows = try await link.requestReply(RPC.SessionActiveList.name, params: [:]).result["sessions"]?.arrayValue ?? []
+    } catch {
+      return nil
+    }
+
+    let owners = Self.sessionOwners(snapshot.bots, ids)
+
+    return rows.compactMap { row -> ActiveSession? in
+      let status = Self.text(row["status"])
+
+      guard Self.busyStatuses.contains(status) else {
+        return nil
+      }
+
+      let id = Self.text(row["id"])
+      let key = Self.text(row["session_key"])
+
+      return ActiveSession(
+        id: id, sessionKey: key, status: status, title: Self.text(row["title"]), preview: Self.text(row["preview"]),
+        model: Self.text(row["model"]), startedAt: row["started_at"]?.doubleValue,
+        bot: owners[id] ?? owners[key])
+    }
+  }
+
   private func setRunning(_ names: Set<String>) {
     guard snapshot.running != names else {
       return

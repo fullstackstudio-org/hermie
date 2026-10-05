@@ -26,6 +26,50 @@
 	<string>Sending</string>
 	<key>native.activity.status.sent</key>
 	<string>Sent</string>
+	<key>native.agents.command</key>
+	<string>Agents Overview</string>
+	<key>native.agents.crons.none</key>
+	<string>Nothing is scheduled.</string>
+	<key>native.agents.crons.unknown</key>
+	<string>The crons could not be read.</string>
+	<key>native.agents.empty.message</key>
+	<string>Add a bot and what it is doing shows up here.</string>
+	<key>native.agents.empty.title</key>
+	<string>No bots yet</string>
+	<key>native.agents.incomplete</key>
+	<string>The gateway did not say which sessions are running, so this shows only the chats open in this app.</string>
+	<key>native.agents.loading</key>
+	<string>Reading what your bots are doing…</string>
+	<key>native.agents.offline</key>
+	<string>Connect to the gateway to see what your bots are doing.</string>
+	<key>native.agents.row.hint</key>
+	<string>Opens the chat with this bot.</string>
+	<key>native.agents.row.nextCron</key>
+	<string>Next cron: %1$@, %2$@</string>
+	<key>native.agents.row.started</key>
+	<string>Started %@</string>
+	<key>native.agents.row.using</key>
+	<string>Using %@</string>
+	<key>native.agents.section.bots</key>
+	<string>Bots</string>
+	<key>native.agents.section.crons</key>
+	<string>Upcoming crons</string>
+	<key>native.agents.section.subagents</key>
+	<string>Sub-agents</string>
+	<key>native.agents.state.idle</key>
+	<string>Idle</string>
+	<key>native.agents.state.running</key>
+	<string>Running</string>
+	<key>native.agents.state.waiting</key>
+	<string>Waiting for you</string>
+	<key>native.agents.subagent.queued</key>
+	<string>Queued</string>
+	<key>native.agents.subagent.unnamed</key>
+	<string>Sub-agent</string>
+	<key>native.agents.subtitle</key>
+	<string>What each bot is doing right now.</string>
+	<key>native.agents.title</key>
+	<string>Agents</string>
 	<key>native.appearance.languageChange</key>
 	<string>Change in Settings</string>
 	<key>native.appearance.languageChangeMac</key>

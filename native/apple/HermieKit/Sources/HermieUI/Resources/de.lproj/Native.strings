@@ -26,6 +26,50 @@
 	<string>Wird gesendet</string>
 	<key>native.activity.status.sent</key>
 	<string>Gesendet</string>
+	<key>native.agents.command</key>
+	<string>Agentenübersicht</string>
+	<key>native.agents.crons.none</key>
+	<string>Es ist nichts geplant.</string>
+	<key>native.agents.crons.unknown</key>
+	<string>Die Crons konnten nicht gelesen werden.</string>
+	<key>native.agents.empty.message</key>
+	<string>Füge einen Bot hinzu, und was er tut, erscheint hier.</string>
+	<key>native.agents.empty.title</key>
+	<string>Noch keine Bots</string>
+	<key>native.agents.incomplete</key>
+	<string>Das Gateway hat nicht gemeldet, welche Sitzungen laufen. Gezeigt werden nur die Chats, die in dieser App geöffnet sind.</string>
+	<key>native.agents.loading</key>
+	<string>Lese, was deine Bots tun…</string>
+	<key>native.agents.offline</key>
+	<string>Verbinde dich mit dem Gateway, um zu sehen, was deine Bots tun.</string>
+	<key>native.agents.row.hint</key>
+	<string>Öffnet den Chat mit diesem Bot.</string>
+	<key>native.agents.row.nextCron</key>
+	<string>Nächster Cron: %1$@, %2$@</string>
+	<key>native.agents.row.started</key>
+	<string>Gestartet %@</string>
+	<key>native.agents.row.using</key>
+	<string>Nutzt %@</string>
+	<key>native.agents.section.bots</key>
+	<string>Bots</string>
+	<key>native.agents.section.crons</key>
+	<string>Anstehende Crons</string>
+	<key>native.agents.section.subagents</key>
+	<string>Sub-Agents</string>
+	<key>native.agents.state.idle</key>
+	<string>Inaktiv</string>
+	<key>native.agents.state.running</key>
+	<string>Läuft</string>
+	<key>native.agents.state.waiting</key>
+	<string>Wartet auf dich</string>
+	<key>native.agents.subagent.queued</key>
+	<string>In der Warteschlange</string>
+	<key>native.agents.subagent.unnamed</key>
+	<string>Sub-Agent</string>
+	<key>native.agents.subtitle</key>
+	<string>Was jeder Bot gerade tut.</string>
+	<key>native.agents.title</key>
+	<string>Agenten</string>
 	<key>native.appearance.languageChange</key>
 	<string>In den Einstellungen ändern</string>
 	<key>native.appearance.languageChangeMac</key>

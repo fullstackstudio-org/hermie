@@ -118,6 +118,9 @@ public enum AppSheet: Hashable, Sendable, Identifiable {
   case emergencyStop
   /// The search over every conversation of every bot on every signed-in gateway.
   case search
+  /// What each bot is doing now: idle, running or waiting, its sub-agents and the crons that run next
+  /// (`AgentsSheet`).
+  case agents
 
   public var id: Self { self }
 }
