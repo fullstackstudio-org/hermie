@@ -503,18 +503,10 @@ struct InteractiveLocationModelTests {
   }
 }
 
-/// Waits (briefly) for `condition`.
+/// Waits for `condition`, for as long as the main actor takes to get to it (`waitUntil`).
 @MainActor
 private func eventuallyTrue(_ condition: @MainActor () -> Bool) async throws {
-  for _ in 0..<200 {
-    if condition() {
-      return
-    }
-
-    try await Task.sleep(for: .milliseconds(5))
-  }
-
-  Issue.record("the condition never held")
+  await waitUntil("the condition to hold") { condition() }
 }
 
 // MARK: - Contacts

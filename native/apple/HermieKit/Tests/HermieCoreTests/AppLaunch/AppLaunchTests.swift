@@ -143,9 +143,7 @@ struct AppLaunchTests {
     )
 
     // The change stream reaches the directory without another load.
-    for _ in 0..<100 where launch.gateways.entries.count < 2 {
-      try await Task.sleep(for: .milliseconds(5))
-    }
+    await waitUntil("the registry's change to reach the directory") { launch.gateways.entries.count >= 2 }
 
     #expect(launch.gateways.entries.map(\.name) == ["Home", "work.test"])
     #expect(launch.gateways.activeId == "g0011223344556677")

@@ -19,6 +19,8 @@ private final class Gateway: Sendable {
   private let state = Mutex(State())
 
   var calls: [String] { state.withLock { $0.calls } }
+  /// How many answers are being held.
+  var heldCount: Int { state.withLock { $0.held.count } }
 
   func answer(_ answer: @escaping @Sendable (String) -> PictureFetchOutcome) {
     state.withLock { $0.answer = answer }
@@ -91,7 +93,7 @@ private let ready = PictureFetchOutcome.ready(dataURI: "data:image/png;base64,AA
     async let first: Void = people.load("authentik:robin")
     async let second: Void = people.load("authentik:robin")
     async let third: Void = people.load("authentik:robin")
-    try? await Task.sleep(for: .milliseconds(50))
+    await waitUntil("the first answer to be on its way") { gateway.heldCount == 1 }
     gateway.release()
     _ = await (first, second, third)
 
@@ -232,7 +234,7 @@ private let ready = PictureFetchOutcome.ready(dataURI: "data:image/png;base64,AA
     // A fetch that was on its way when the sign-out happened lands nowhere.
     gateway.hold()
     let loading = Task { await people.load("authentik:dana") }
-    try await Task.sleep(for: .milliseconds(50))
+    await waitUntil("the fetch to be on its way") { gateway.heldCount == 1 }
     await people.clear()
     gateway.release()
     await loading.value

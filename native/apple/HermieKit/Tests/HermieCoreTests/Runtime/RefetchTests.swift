@@ -202,7 +202,8 @@ extension TranscriptStore {
     harness.link.gap(Fixture.runtime)
     harness.link.gap(Fixture.runtime)
     try await eventually("the later gaps to be taken in") { await harness.store.isRefetchQueued(bot) }
-    try await Task.sleep(for: .milliseconds(10))
+    // Both of them, and not only the first that queued the read: one taken in after the refetch ended would cost a read.
+    await harness.settle()
     harness.link.answer(first, Fixture.resume())
     try await harness.link.answerNext(RPC.SessionHistory.name, ["count": 2, "messages": .array(Fixture.rows(2))])
     try await harness.link.answerNext(RPC.SessionEventsSince.name, Fixture.since(latest: 7))

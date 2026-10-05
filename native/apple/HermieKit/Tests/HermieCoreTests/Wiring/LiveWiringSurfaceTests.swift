@@ -195,8 +195,9 @@ private final class Flag: Sendable {
     #expect(link.calls(RPC.ApprovalPending.name).isEmpty, "nothing is read for an answer behind the lock")
     #expect(link.calls(RPC.ApprovalRespond.name).isEmpty)
 
-    // The person unlocks the app within the wait: the action goes on.
-    rig.wiring.readyWait = .seconds(5)
+    // The person unlocks the app within the wait: the action goes on. The wait is real time, and the main actor
+    // is busy for seconds with other suites, so it is far longer than the unlock takes.
+    rig.wiring.readyWait = .seconds(60)
     Task {
       try? await Task.sleep(for: .milliseconds(100))
       open.isSet = true

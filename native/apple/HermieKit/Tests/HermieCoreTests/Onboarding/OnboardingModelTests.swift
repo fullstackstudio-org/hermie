@@ -556,9 +556,7 @@ struct OnboardingModelTests {
     model.close()
 
     await eventually { presenter.closes > 0 }
-    for _ in 0..<50 where !(await listener.stopped) {
-      try? await Task.sleep(for: .milliseconds(5))
-    }
+    await waitUntil("the listener to stop") { await listener.stopped }
     #expect(await listener.stopped)
     #expect(model.signIn == .idle)
     // The callback that might still arrive is no longer taken.

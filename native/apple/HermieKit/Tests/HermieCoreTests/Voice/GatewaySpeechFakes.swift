@@ -228,20 +228,12 @@ enum AudioFixtures {
   }
 }
 
-/// Wait for something that happens on another task, without a fixed sleep.
+/// Wait for something that happens on another task, without a fixed sleep. The limit only turns a hang into a
+/// failure (`waitUntil`): the main actor is busy for seconds with other suites.
 @MainActor
 func eventually(
-  timeout: Duration = .seconds(5), _ condition: @MainActor () -> Bool,
+  timeout: Duration = .seconds(60), _ condition: @MainActor () -> Bool,
   sourceLocation: SourceLocation = #_sourceLocation
 ) async {
-  let deadline = ContinuousClock.now.advanced(by: timeout)
-
-  while !condition() {
-    if ContinuousClock.now >= deadline {
-      Issue.record("Timed out waiting for a condition.", sourceLocation: sourceLocation)
-      return
-    }
-
-    try? await Task.sleep(for: .milliseconds(5))
-  }
+  await waitUntil("a condition", patience: timeout, sourceLocation: sourceLocation) { condition() }
 }

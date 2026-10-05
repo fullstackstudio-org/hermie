@@ -496,6 +496,9 @@ import Testing
     wanted.gatewayVoice = "voice-b"
 
     renderer.prefetch(asked, rate: 1, voice: nil)
+    // The prefetch has asked before the sentence is rendered: two requests started together are recorded in
+    // whichever order their tasks get to the transport.
+    await eventually { transport.streamCalls.count == 1 }
     renderer.render(wanted, rate: 1, voice: nil, deliver: delivered.deliver)
     await eventually { delivered.ended }
 

@@ -261,15 +261,6 @@ final class ProfileGateway: Sendable {
 
 /// Until `condition` holds, on the main actor where the model lives.
 @MainActor
-func botSettingsEventually(_ what: String, _ condition: () -> Bool) async {
-  let deadline = ContinuousClock.now + .seconds(5)
-
-  while !condition() {
-    guard ContinuousClock.now < deadline else {
-      Issue.record("Timed out waiting for \(what)")
-      return
-    }
-
-    try? await Task.sleep(for: .milliseconds(2))
-  }
+func botSettingsEventually(_ what: String, sourceLocation: SourceLocation = #_sourceLocation, _ condition: () -> Bool) async {
+  await waitUntil(what, sourceLocation: sourceLocation, condition)
 }

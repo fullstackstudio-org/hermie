@@ -208,9 +208,7 @@ struct TicketCredentials: CredentialProvider {
     reader.cancel()
     _ = await reader.value
 
-    for _ in 0..<500 where sockets.socket.closes == 0 {
-      try await Task.sleep(for: .milliseconds(5))
-    }
+    await waitUntil("the socket to be closed") { sockets.socket.closes > 0 }
 
     #expect(sockets.socket.closes >= 1)
   }

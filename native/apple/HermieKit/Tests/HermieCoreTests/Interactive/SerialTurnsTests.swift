@@ -30,11 +30,7 @@ private final class Section {
 @Suite("Serial turns: one location request at a time, none lost", .timeLimit(.minutes(1))) @MainActor
 struct SerialTurnsTests {
   private func eventually(_ what: String, _ condition: @MainActor () -> Bool) async throws {
-    for _ in 0..<500 where !condition() {
-      try await Task.sleep(for: .milliseconds(5))
-    }
-
-    #expect(condition(), "\(what)")
+    await waitUntil(what) { condition() }
   }
 
   @Test("two callers at once never overlap, and both are answered, the second when the first is done")
