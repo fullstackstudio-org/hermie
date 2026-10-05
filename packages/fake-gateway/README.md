@@ -525,13 +525,15 @@ channels: 1}`, three binary int16 PCM frames and `{type: "end"}`; `stream: false
   loading for `n` answers and then listed) are `voice-config` fields too.
 - `streamError: {code}` makes `speak-stream` answer `{type: "error", code, message}` and close;
   `speakError: {code}` makes `speak` answer 400 `{detail: {code, message}}`.
+  Either takes `voice: "<id>"` to refuse only a request that names that voice (a profile that has some voices and not
+  others); the others are spoken.
 - `state.audioRequests` (also in `GET /__fake/state`'s `FakeGatewayState`) lists what `speak`, the stream and
   the preview route were asked, oldest first: `{kind, text, voice, profile}`.
 
 From the command line: `--no-audio`, `--tts-provider edge|elevenlabs|openai`, `--tts-voice-selection`,
 `--no-tts-stream`, `--tts-delay <ms>`, `--tts-speak-status <n>`, `--tts-voice-preview sample|speak`, `--tts-prosody`,
 `--tts-voices-error unavailable|loading`, `--tts-voices-loading-answers <n>`, `--tts-stream-error <code>` and
-`--tts-speak-error <code>`. `GET /__fake/state` reads back
+`--tts-speak-error <code>` (with `--tts-error-voice <id>` for only that voice). `GET /__fake/state` reads back
 `audioRequests` and `audioStreamsCancelled`.
 
 Tests: `src/audio.test.ts`.

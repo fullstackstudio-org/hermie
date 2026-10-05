@@ -57,6 +57,7 @@ const { values } = parseArgs({
     'tts-voices-loading-answers': { type: 'string' },
     'tts-stream-error': { type: 'string' },
     'tts-speak-error': { type: 'string' },
+    'tts-error-voice': { type: 'string' },
     host: { type: 'string', default: '127.0.0.1' },
     help: { type: 'boolean', default: false }
   }
@@ -146,6 +147,7 @@ if (values.help) {
       '  --tts-stream-error <c>  speak-stream answers an error frame with this code (invalid_voice, unknown_voice,',
       '                          voice_unsupported, voice_failed, invalid_prosody) and closes',
       '  --tts-speak-error <c>   speak answers 400 {detail: {code, message}} with this code',
+      '  --tts-error-voice <id>  with the two above: refuse only a request that names this voice',
       '',
       'Prompts steer the built-in scenario: "approve" raises an approval request,',
       '"delegate" fans out subagent events, anything else streams a reply with a tool call.',
@@ -356,8 +358,22 @@ const audio: FakeAudioOptions | false = values['no-audio']
       ...(values['tts-voices-loading-answers']
         ? { voicesLoadingAnswers: Number.parseInt(values['tts-voices-loading-answers'], 10) }
         : {}),
-      ...(values['tts-stream-error'] ? { streamError: { code: values['tts-stream-error'] } } : {}),
-      ...(values['tts-speak-error'] ? { speakError: { code: values['tts-speak-error'] } } : {})
+      ...(values['tts-stream-error']
+        ? {
+            streamError: {
+              code: values['tts-stream-error'],
+              ...(values['tts-error-voice'] ? { voice: values['tts-error-voice'] } : {})
+            }
+          }
+        : {}),
+      ...(values['tts-speak-error']
+        ? {
+            speakError: {
+              code: values['tts-speak-error'],
+              ...(values['tts-error-voice'] ? { voice: values['tts-error-voice'] } : {})
+            }
+          }
+        : {})
     }
 
 const gateway = await startFakeGateway({

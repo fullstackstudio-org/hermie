@@ -7629,7 +7629,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
       state.audioRequests.push({ kind: 'stream', text, voice, profile })
 
-      if (audio.streamError) {
+      if (audio.streamError && (!audio.streamError.voice || audio.streamError.voice === voice)) {
         finished = true
         socket.send(
           JSON.stringify({
@@ -7775,7 +7775,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         return true
       }
 
-      if (audioOptions.speakError) {
+      if (audioOptions.speakError && (!audioOptions.speakError.voice || audioOptions.speakError.voice === voice)) {
         json(res, 400, {
           detail: {
             code: audioOptions.speakError.code,

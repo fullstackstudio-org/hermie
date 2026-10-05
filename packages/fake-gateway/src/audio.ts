@@ -45,6 +45,8 @@ export interface FakeAudioVoice {
 export interface FakeAudioError {
   code: 'invalid_voice' | 'unknown_voice' | 'voice_unsupported' | 'voice_failed' | 'invalid_prosody' | (string & {})
   message?: string
+  /** Refuse only a request that names this voice (default: every request), like a profile that has some voices and not others. */
+  voice?: string
 }
 
 export interface FakeAudioOptions {

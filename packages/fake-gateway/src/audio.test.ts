@@ -291,6 +291,16 @@ describe('speak', () => {
     expect(body.detail).toEqual({ code: 'unknown_voice', message: 'No such voice' })
   })
 
+  it('can refuse only the voice it names, and speak any other', async () => {
+    const gateway = await start({
+      audio: { voiceSelection: true, speakError: { code: 'unknown_voice', voice: 'nl-NL-FennaNeural' } }
+    })
+
+    expect((await post(gateway, '/api/audio/speak', { text: 'Hi.', voice: 'nl-NL-FennaNeural' })).status).toBe(400)
+    expect((await post(gateway, '/api/audio/speak', { text: 'Hi.', voice: 'voice-rachel' })).status).toBe(200)
+    expect((await post(gateway, '/api/audio/speak', { text: 'Hi.' })).status).toBe(200)
+  })
+
   it('can fail like a provider that failed', async () => {
     expect((await post(await start({ audio: { speakStatus: 500 } }), '/api/audio/speak', { text: 'Hi.' })).status).toBe(
       500
@@ -330,6 +340,17 @@ describe('speak-stream', () => {
     expect(events).toEqual([{ type: 'error', code: 'unknown_voice', message: 'No such voice' }])
     expect(closeCode).toBe(1005)
     expect(gateway.state.audioRequests).toEqual([{ kind: 'stream', text: 'Hi.', voice: 'nope', profile: null }])
+  })
+
+  it('can refuse only the voice it names on the stream too', async () => {
+    const gateway = await start({
+      audio: { voiceSelection: true, streamError: { code: 'unknown_voice', voice: 'nope' } }
+    })
+    const refused = await session(gateway, [{ text: 'Hi.', voice: 'nope', done: true }])
+    const spoken = await session(gateway, [{ text: 'Hi.', done: true }])
+
+    expect(refused.events).toEqual([{ type: 'error', code: 'unknown_voice', message: 'The voice was refused' }])
+    expect(spoken.events[0]).toEqual({ type: 'start', sample_rate: 24000, channels: 1 })
   })
 
   it('counts a stop in the middle as a barge-in', async () => {
