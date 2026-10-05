@@ -242,6 +242,8 @@
 	<string>Gateway-instellingen…</string>
 	<key>native.commands.newChatWindow</key>
 	<string>Nieuw chatvenster</string>
+	<key>native.commands.stopAll</key>
+	<string>Alle lopende antwoorden stoppen…</string>
 	<key>native.commands.switchGateway</key>
 	<string>Wissel van gateway…</string>
 	<key>native.composer.attach.add</key>
@@ -608,6 +610,42 @@
 	<string>Gemaakt op dit apparaat. Het kan fout zijn; de opname is wat telt.</string>
 	<key>native.deviceRequests.voice.unreadable</key>
 	<string>De opname kon niet worden bewaard. Probeer het opnieuw.</string>
+	<key>native.emergencyStop.button</key>
+	<string>Alles stoppen</string>
+	<key>native.emergencyStop.confirmMessage</key>
+	<string>Elke bot wordt direct onderbroken. Wat een bot tot nu toe heeft geschreven, blijft staan.</string>
+	<key>native.emergencyStop.idle.message</key>
+	<string>Geen enkele bot heeft een antwoord dat je vanaf hier kunt stoppen.</string>
+	<key>native.emergencyStop.idle.title</key>
+	<string>Er loopt niets</string>
+	<key>native.emergencyStop.incomplete</key>
+	<string>De lijst met lopende antwoorden van de gateway kon niet worden gelezen, dus antwoorden die elders zijn gestart kunnen nog lopen.</string>
+	<key>native.emergencyStop.looking</key>
+	<string>Lopende antwoorden zoeken…</string>
+	<key>native.emergencyStop.notAsked</key>
+	<string>Vanaf hier niet verbonden, dus niet aangeraakt: %@</string>
+	<key>native.emergencyStop.outcome.alreadyDone</key>
+	<string>Was al klaar</string>
+	<key>native.emergencyStop.outcome.failed</key>
+	<string>Mislukt: %@</string>
+	<key>native.emergencyStop.outcome.notConnected</key>
+	<string>Niet verbonden</string>
+	<key>native.emergencyStop.outcome.stopped</key>
+	<string>Gestopt</string>
+	<key>native.emergencyStop.stopping</key>
+	<string>Bezig met stoppen…</string>
+	<key>native.emergencyStop.summary.allStopped</key>
+	<string>Alles is gestopt</string>
+	<key>native.emergencyStop.summary.alreadyDone</key>
+	<string>Al klaar: %lld</string>
+	<key>native.emergencyStop.summary.failed</key>
+	<string>Niet te stoppen: %lld</string>
+	<key>native.emergencyStop.summary.someFailed</key>
+	<string>Een paar antwoorden konden niet worden gestopt</string>
+	<key>native.emergencyStop.summary.stopped</key>
+	<string>Gestopt: %lld</string>
+	<key>native.emergencyStop.unnamed</key>
+	<string>Een andere sessie</string>
 	<key>native.gateways.removeFailed.notSynced</key>
 	<string>Deze gateway wordt niet meer gesynchroniseerd met de iCloud-sleutelhanger en kan daarom alleen van dit apparaat worden verwijderd. Er is niets verwijderd.</string>
 	<key>native.gateways.removeFailed.other</key>
@@ -1404,6 +1442,38 @@
 	<string>%1$lld van %2$lld</string>
 	<key>native.media.unavailable</key>
 	<string>Niet beschikbaar</string>
+	<key>native.needsYou.connectorTitle</key>
+	<string>Koppel een account om door te gaan</string>
+	<key>native.needsYou.empty.message</key>
+	<string>Als een bot een goedkeuring, een antwoord of een beslissing nodig heeft, verschijnt dat hier.</string>
+	<key>native.needsYou.empty.title</key>
+	<string>Er wacht niets op je</string>
+	<key>native.needsYou.kind.approval</key>
+	<string>Goedkeuring</string>
+	<key>native.needsYou.kind.confirmation</key>
+	<string>Bevestiging</string>
+	<key>native.needsYou.kind.connector</key>
+	<string>Koppeling</string>
+	<key>native.needsYou.kind.device</key>
+	<string>Verzoek aan dit apparaat</string>
+	<key>native.needsYou.kind.input</key>
+	<string>Invoer</string>
+	<key>native.needsYou.kind.other</key>
+	<string>Verzoek</string>
+	<key>native.needsYou.kind.question</key>
+	<string>Vraag</string>
+	<key>native.needsYou.kind.review</key>
+	<string>Controle</string>
+	<key>native.needsYou.kind.secureInput</key>
+	<string>Beveiligde invoer</string>
+	<key>native.needsYou.otherGateways</key>
+	<string>Hermie is met één gateway tegelijk verbonden. Wat er op je andere gateways wacht, staat hier niet.</string>
+	<key>native.needsYou.rowHint</key>
+	<string>Opent de chat met dit verzoek.</string>
+	<key>native.needsYou.title</key>
+	<string>Wacht op jou</string>
+	<key>native.needsYou.waiting</key>
+	<string>Wacht al</string>
 	<key>native.newBot.handleBuiltIn</key>
 	<string>'default' is de ingebouwde bot en kan niet opnieuw worden gemaakt.</string>
 	<key>native.newBot.handleEmpty</key>

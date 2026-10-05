@@ -11,13 +11,17 @@ struct OpenRequestSample: Sendable {
   var confirmations: [PasskeyConfirmation]
   /// The connection is `ready`: a list read now may be trusted to say what is over.
   var ready: Bool
+  /// The connector authorisation cards open on the session. `RequestAlerts` has no notification for
+  /// them; the "Needs you" inbox lists them.
+  var connections: [ConnectionRequest] = []
 }
 
 extension GatewaySession {
   /**
    Everything the person is being asked, from the four places that hold it. Reads only observable
    state that moves when a request opens or ends (`openAsks`, `secureInput.prompts`,
-   `interactive.prompts`, `passkeys.confirmations`, `status`), so an `Observations` over it wakes for
+   `interactive.prompts`, `passkeys.confirmations`, `connectionRequests.requests`, `status`), so an
+   `Observations` over it wakes for
    nothing else: not for a token of a streaming reply, and not for a chat's unread count.
    */
   func openRequestSample() -> OpenRequestSample {
@@ -58,7 +62,10 @@ extension GatewaySession {
     let now = Date()
     let confirmations = (passkeys?.confirmations ?? []).filter { $0.isOpen && !$0.isExpired(at: now) }
 
-    return OpenRequestSample(requests: requests, confirmations: confirmations, ready: status.phase == .ready)
+    let connections = connectionRequests.requests.values.sorted { $0.opID < $1.opID }
+
+    return OpenRequestSample(
+      requests: requests, confirmations: confirmations, ready: status.phase == .ready, connections: connections)
   }
 
   /**

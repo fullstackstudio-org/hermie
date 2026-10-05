@@ -18,6 +18,8 @@ extension LiveWiring {
     let surfaces = launch.environment.appGroupContainer == nil ? nil : SystemSurfaces.live(copy: .localized)
     // What a bot asks while the app is not in front is also a local notification: the permission is
     // the onboarding's to ask for, and a confirmation bounces the Dock icon once on the Mac.
+    // Everything that waits for the person, in one list: its count is also what the notifications' badge says.
+    let inbox = NeedsYouInbox()
     let alerts = RequestAlerts(
       push: launch.push,
       center: SystemLocalNotifications(),
@@ -25,10 +27,12 @@ extension LiveWiring {
       requestDockAttention: { DockAttention.bounce() },
       // The Focus filter the person set for the Focus that is on, written by the app's Focus filter
       // intent into the App Group; none when the container is not there or nothing is stored.
-      focusFilter: { FocusFilterStore.system()?.load() ?? .unfiltered }
+      focusFilter: { FocusFilterStore.system()?.load() ?? .unfiltered },
+      badgeCount: { inbox.count }
     )
 
-    let wiring = LiveWiring(launch: launch, accounts: accounts, live: live, surfaces: surfaces, alerts: alerts)
+    let wiring = LiveWiring(
+      launch: launch, accounts: accounts, live: live, surfaces: surfaces, alerts: alerts, inbox: inbox)
 
     wiring.start()
     return wiring

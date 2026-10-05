@@ -45,8 +45,9 @@ public struct LocalAlertSettings: Sendable, Equatable {
 
  Nothing here asks for permission: the notification onboarding does. The badge follows the existing
  mechanism (`PushSystem.setBadgeCount`, which is zeroed when the app comes to the front): the number of
- notifications this class has posted and not taken away. On the Mac, a confirmation also bounces the
- Dock icon once.
+ notifications this class has posted and not taken away, or, when the shell gives a `badgeCount`, what
+ that says (the "Needs you" inbox: everything waiting, whether or not a notification was posted for
+ it). On the Mac, a confirmation also bounces the Dock icon once.
 
  A remote push for the same request is not suppressed here: the app has no code that runs when
  one is delivered to a background app (there is no notification service extension), so the system
@@ -79,6 +80,7 @@ public final class RequestAlerts {
   private let copy: RequestAlertCopy
   private let entitled: Bool
   private let focusFilter: @MainActor () -> FocusFilter
+  private let badgeCount: (@MainActor () -> Int)?
 
   private var entries: [String: Entry] = [:]
   /// The centre's calls, one after the other, in the order they were decided.
@@ -92,8 +94,10 @@ public final class RequestAlerts {
     requestDockAttention: @escaping @MainActor () -> Void = {},
     copy: RequestAlertCopy = .english,
     timeSensitive: Bool = RequestAlerts.timeSensitiveEntitled,
-    focusFilter: @escaping @MainActor () -> FocusFilter = { .unfiltered }
+    focusFilter: @escaping @MainActor () -> FocusFilter = { .unfiltered },
+    badgeCount: (@MainActor () -> Int)? = nil
   ) {
+    self.badgeCount = badgeCount
     self.center = center
     self.settings = settings
     self.isMuted = isMuted
@@ -111,7 +115,8 @@ public final class RequestAlerts {
     center: any LocalNotificationCenter,
     copy: RequestAlertCopy = .english,
     requestDockAttention: @escaping @MainActor () -> Void = {},
-    focusFilter: @escaping @MainActor () -> FocusFilter = { .unfiltered }
+    focusFilter: @escaping @MainActor () -> FocusFilter = { .unfiltered },
+    badgeCount: (@MainActor () -> Int)? = nil
   ) {
     self.init(
       center: center,
@@ -124,7 +129,8 @@ public final class RequestAlerts {
       setBadge: { count in await push.system.setBadgeCount(count) },
       requestDockAttention: requestDockAttention,
       copy: copy,
-      focusFilter: focusFilter
+      focusFilter: focusFilter,
+      badgeCount: badgeCount
     )
   }
 
@@ -204,7 +210,7 @@ public final class RequestAlerts {
       copy: copy,
       interruption: .level(
         for: request, entitled: entitled, urgentBreaksThroughFocus: current.urgentBreaksThroughFocus),
-      badge: postedCount + 1
+      badge: badgeCount?() ?? postedCount + 1
     )
 
     entries[request.key] = Entry(request: request, posted: content.identifier)
@@ -237,7 +243,7 @@ public final class RequestAlerts {
     }
 
     let center = self.center
-    let remaining = postedCount
+    let remaining = badgeCount?() ?? postedCount
     let inFront = presence.isActive
     let setBadge = self.setBadge
 

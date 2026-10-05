@@ -223,8 +223,16 @@ extension TranscriptStore {
 
   /// `stopTurn`: stop the running turn. The partial reply is kept; it was really said.
   public func stopTurn(_ key: String) async throws {
+    _ = try await interruptTurn(key)
+  }
+
+  /// `stopTurn`, answering whether the gateway interrupted something: `false` when the chat has no
+  /// runtime session to stop, or the gateway said there was no turn left to interrupt
+  /// (`not_interrupted`: it ended by itself a moment ago). The Stop button has no use for it; the
+  /// emergency stop reports it.
+  public func interruptTurn(_ key: String) async throws -> Bool {
     guard let runtimeID = chats[key]?.state.runtimeSessionID, !runtimeID.isEmpty else {
-      return
+      return false
     }
 
     let params: JSONValue = ["session_id": .string(runtimeID), "profile": .string(key)]
@@ -235,13 +243,27 @@ extension TranscriptStore {
     }
 
     do {
-      try await ordered(key, { [link] in try await link.requestReply(RPC.SessionInterrupt.name, params: params) }) {
-        _ in interrupt()
+      return try await ordered(key, { [link] in try await link.requestReply(RPC.SessionInterrupt.name, params: params) }) {
+        reply in
+        interrupt()
+        return Self.interrupted(reply.result)
       }
     } catch {
       _ = try? await local(key) { interrupt() }
       throw error
     }
+  }
+
+  /// Whether a `session.interrupt` answer says a turn was interrupted. An answer that says nothing
+  /// either way counts as interrupted: the gateway took the call.
+  nonisolated static func interrupted(_ result: JSONValue) -> Bool {
+    let reply = SessionInterruptResult(json: result.objectValue ?? [:])
+
+    if reply.interrupted == false {
+      return false
+    }
+
+    return reply.status != .notInterrupted
   }
 
   // MARK: - The queue behind a running turn

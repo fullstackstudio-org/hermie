@@ -37,6 +37,10 @@ public final class LiveWiring {
   public private(set) var meta: GatewayMetaBridge?
   /// The local notifications for open requests, when the shell has them (`RequestAlerts`).
   public let alerts: RequestAlerts?
+  /// Everything waiting for the person, across bots (NX-17), when the shell has it.
+  public let inbox: NeedsYouInbox?
+  /// The emergency stop (NX-16): every running turn of the connected gateways, on request.
+  public let emergencyStop: EmergencyStopModel
 
   /// How long a notification action waits for the socket before it gives up and only opens.
   var readyWait: Duration = .seconds(15)
@@ -50,7 +54,7 @@ public final class LiveWiring {
   private var tasks: [Task<Void, Never>] = []
   /// Follows the live session's chat list for the surfaces; one at a time.
   private var surfaceTask: Task<Void, Never>?
-  /// Follows the live session's open requests for `alerts`; one at a time.
+  /// Follows the live session's open requests for `alerts` and `inbox`; one at a time.
   private var requestTask: Task<Void, Never>?
   private var retryTask: Task<Void, Never>?
   private weak var alertedSession: GatewaySession?
@@ -67,13 +71,17 @@ public final class LiveWiring {
   ///     the app. A test passes its own, so the process-wide lock other tests read stays untouched.
   ///   - alerts: the local notifications for what the bots ask while the app is not in front; the
   ///     live session's open requests are handed to it. `nil`: none (a test, a preview).
+  ///   - inbox: the "Needs you" list; the live session's open requests and connector cards are
+  ///     handed to it, and its count is the app icon's badge while the app is in the background.
+  ///     `nil`: none.
   public init(
     launch: AppLaunch,
     accounts: GatewayAccounts?,
     live: LiveGateway,
     surfaces: SystemSurfaces?,
     installLock: @escaping (@escaping @Sendable () -> Bool) -> Void = { SystemSurfaceLock.install($0) },
-    alerts: RequestAlerts? = nil
+    alerts: RequestAlerts? = nil,
+    inbox: NeedsYouInbox? = nil
   ) {
     self.launch = launch
     self.accounts = accounts
@@ -81,6 +89,28 @@ public final class LiveWiring {
     self.surfaces = surfaces
     self.installLock = installLock
     self.alerts = alerts
+    self.inbox = inbox
+
+    let directory = launch.gateways
+
+    self.emergencyStop = EmergencyStopModel(
+      gateways: { [weak live, weak directory] in
+        guard let live, let session = live.session, live.gatewayID == session.gatewayID else {
+          return []
+        }
+
+        return [SessionStopGateway(session: session, name: directory?.entry(id: session.gatewayID)?.displayLabel)]
+      },
+      notConnected: { [weak live, weak directory] in
+        // One socket at a time: every other gateway is out of reach, and the summary says so.
+        guard let directory else {
+          return []
+        }
+
+        let held = live?.session?.gatewayID
+        return directory.entries.filter { $0.id != held }.map(\.displayLabel)
+      }
+    )
   }
 
   /// Install the seams and start following. Idempotent.
@@ -148,7 +178,26 @@ public final class LiveWiring {
 
     if foreground {
       drainSoon()
+    } else {
+      showBadge()
     }
+  }
+
+  /**
+   The app icon says how many things wait for the person (`NeedsYouInbox.count`), while the app is in
+   the background and notifications are allowed: the system's permission is granted and the reader's
+   switch is on. In front the badge is zero (`PushController.becameActive`), because the list is
+   one tap away.
+   */
+  private func showBadge() {
+    guard let inbox, !foreground, launch.push.permission == .granted, launch.push.enabled else {
+      return
+    }
+
+    let count = inbox.count
+    let push = launch.push
+
+    Task { await push.system.setBadgeCount(count) }
   }
 
   /// The chat on screen in the window in front, or nil: the `seen` heartbeat names it.
@@ -301,6 +350,8 @@ public final class LiveWiring {
     }
 
     alerts?.sessionEnded(gatewayId: gatewayId)
+    inbox?.sessionEnded(gatewayId: gatewayId)
+    showBadge()
 
     if let meta, meta.gatewayID == gatewayId {
       self.meta = nil
@@ -400,7 +451,7 @@ public final class LiveWiring {
    old one can no longer be answered from here, so its notifications are taken away first.
    */
   private func followRequests(of session: GatewaySession?) {
-    guard let alerts else {
+    guard alerts != nil || inbox != nil else {
       return
     }
 
@@ -414,7 +465,9 @@ public final class LiveWiring {
     retryTask = nil
 
     if let previous = alertedSession {
-      alerts.sessionEnded(gatewayId: previous.gatewayID)
+      alerts?.sessionEnded(gatewayId: previous.gatewayID)
+      inbox?.sessionEnded(gatewayId: previous.gatewayID)
+      showBadge()
     }
 
     alertedSession = session
@@ -442,11 +495,25 @@ public final class LiveWiring {
     }
   }
 
-  private func alert(_ session: GatewaySession, gatewayKey: String, sample: OpenRequestSample) async {
-    guard let alerts else {
-      return
-    }
+  /// Hand one pass over the session's open requests to the inbox and then to the notifications, in
+  /// that order: a notification's badge reads the inbox's count, which then already has the request.
+  private func deliver(
+    _ session: GatewaySession, gatewayKey: String, sample: OpenRequestSample, requests: [OpenRequest]
+  ) {
+    inbox?.update(
+      gatewayId: session.gatewayID,
+      gatewayName: launch.gateways.entry(id: session.gatewayID)?.displayLabel ?? session.gatewayID,
+      gatewayKey: gatewayKey,
+      requests: requests,
+      connections: sample.connections,
+      chatName: { session.chatName($0) },
+      authoritative: sample.ready
+    )
+    alerts?.update(gatewayId: session.gatewayID, gatewayKey: gatewayKey, requests: requests, authoritative: sample.ready)
+    showBadge()
+  }
 
+  private func alert(_ session: GatewaySession, gatewayKey: String, sample: OpenRequestSample) async {
     let (requests, unresolved) = await session.openRequests(from: sample)
 
     // A session that is no longer the live one has nothing left to say.
@@ -457,7 +524,7 @@ public final class LiveWiring {
     retryTask?.cancel()
     retryTask = nil
 
-    alerts.update(gatewayId: session.gatewayID, gatewayKey: gatewayKey, requests: requests, authoritative: sample.ready)
+    deliver(session, gatewayKey: gatewayKey, sample: sample, requests: requests)
 
     // A confirmation whose chat the store cannot name yet is not lost: ask again for a few seconds.
     guard unresolved > 0 else {
@@ -479,8 +546,7 @@ public final class LiveWiring {
           return
         }
 
-        self.alerts?.update(
-          gatewayId: session.gatewayID, gatewayKey: gatewayKey, requests: requests, authoritative: sample.ready)
+        self.deliver(session, gatewayKey: gatewayKey, sample: sample, requests: requests)
 
         if unresolved == 0 {
           return

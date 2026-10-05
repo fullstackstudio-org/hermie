@@ -190,6 +190,10 @@ struct Sidebar: View {
       .navigationSplitViewColumnWidth(min: 220, ideal: 280)
     #endif
     .toolbar {
+      // What waits for the person, on the iPhone, the iPad and the Mac alike.
+      ToolbarItem {
+        NeedsYouButton()
+      }
       // The Mac switches gateways from the menu bar (`GatewayMenu` in `HermieCommands`).
       #if os(iOS)
         ToolbarItem {
@@ -273,6 +277,10 @@ struct ShellSheet: View {
       NewBotSheet()
     case .newOwnChat(let chat):
       NewOwnChatSheet(chat: chat)
+    case .needsYou:
+      NeedsYouSheet()
+    case .emergencyStop:
+      EmergencyStopSheet()
     }
   }
 }

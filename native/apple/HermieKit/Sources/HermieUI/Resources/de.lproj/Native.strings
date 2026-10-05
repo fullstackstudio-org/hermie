@@ -242,6 +242,8 @@
 	<string>Gateway-Einstellungen…</string>
 	<key>native.commands.newChatWindow</key>
 	<string>Neues Chatfenster</string>
+	<key>native.commands.stopAll</key>
+	<string>Alle laufenden Antworten stoppen…</string>
 	<key>native.commands.switchGateway</key>
 	<string>Gateway wechseln…</string>
 	<key>native.composer.attach.add</key>
@@ -608,6 +610,42 @@
 	<string>Auf diesem Gerät erstellt. Es kann fehlerhaft sein; maßgeblich ist die Aufnahme.</string>
 	<key>native.deviceRequests.voice.unreadable</key>
 	<string>Die Aufnahme konnte nicht gespeichert werden. Versuche es erneut.</string>
+	<key>native.emergencyStop.button</key>
+	<string>Alles stoppen</string>
+	<key>native.emergencyStop.confirmMessage</key>
+	<string>Jeder Bot wird sofort unterbrochen. Was ein Bot bisher geschrieben hat, bleibt erhalten.</string>
+	<key>native.emergencyStop.idle.message</key>
+	<string>Kein Bot hat eine Antwort, die sich von hier aus stoppen lässt.</string>
+	<key>native.emergencyStop.idle.title</key>
+	<string>Nichts läuft</string>
+	<key>native.emergencyStop.incomplete</key>
+	<string>Die Liste der laufenden Antworten des Gateways konnte nicht gelesen werden, daher laufen anderswo gestartete Antworten möglicherweise noch.</string>
+	<key>native.emergencyStop.looking</key>
+	<string>Laufende Antworten werden gesucht…</string>
+	<key>native.emergencyStop.notAsked</key>
+	<string>Von hier nicht verbunden, daher nicht angefasst: %@</string>
+	<key>native.emergencyStop.outcome.alreadyDone</key>
+	<string>War schon fertig</string>
+	<key>native.emergencyStop.outcome.failed</key>
+	<string>Fehlgeschlagen: %@</string>
+	<key>native.emergencyStop.outcome.notConnected</key>
+	<string>Nicht verbunden</string>
+	<key>native.emergencyStop.outcome.stopped</key>
+	<string>Gestoppt</string>
+	<key>native.emergencyStop.stopping</key>
+	<string>Wird gestoppt…</string>
+	<key>native.emergencyStop.summary.allStopped</key>
+	<string>Alles ist gestoppt</string>
+	<key>native.emergencyStop.summary.alreadyDone</key>
+	<string>Schon fertig: %lld</string>
+	<key>native.emergencyStop.summary.failed</key>
+	<string>Nicht zu stoppen: %lld</string>
+	<key>native.emergencyStop.summary.someFailed</key>
+	<string>Einige Antworten konnten nicht gestoppt werden</string>
+	<key>native.emergencyStop.summary.stopped</key>
+	<string>Gestoppt: %lld</string>
+	<key>native.emergencyStop.unnamed</key>
+	<string>Eine andere Sitzung</string>
 	<key>native.gateways.removeFailed.notSynced</key>
 	<string>Dieses Gateway wird nicht mehr mit dem iCloud-Schlüsselbund synchronisiert und kann daher nur von diesem Gerät entfernt werden. Es wurde nichts entfernt.</string>
 	<key>native.gateways.removeFailed.other</key>
@@ -1404,6 +1442,38 @@
 	<string>%1$lld von %2$lld</string>
 	<key>native.media.unavailable</key>
 	<string>Nicht verfügbar</string>
+	<key>native.needsYou.connectorTitle</key>
+	<string>Verbinde ein Konto, um fortzufahren</string>
+	<key>native.needsYou.empty.message</key>
+	<string>Wenn ein Bot eine Freigabe, eine Antwort oder eine Entscheidung braucht, erscheint es hier.</string>
+	<key>native.needsYou.empty.title</key>
+	<string>Nichts wartet auf dich</string>
+	<key>native.needsYou.kind.approval</key>
+	<string>Freigabe</string>
+	<key>native.needsYou.kind.confirmation</key>
+	<string>Bestätigung</string>
+	<key>native.needsYou.kind.connector</key>
+	<string>Verbindung</string>
+	<key>native.needsYou.kind.device</key>
+	<string>Anfrage ans Gerät</string>
+	<key>native.needsYou.kind.input</key>
+	<string>Eingabe</string>
+	<key>native.needsYou.kind.other</key>
+	<string>Anfrage</string>
+	<key>native.needsYou.kind.question</key>
+	<string>Frage</string>
+	<key>native.needsYou.kind.review</key>
+	<string>Prüfung</string>
+	<key>native.needsYou.kind.secureInput</key>
+	<string>Geschützte Eingabe</string>
+	<key>native.needsYou.otherGateways</key>
+	<string>Hermie ist immer nur mit einem Gateway verbunden. Was auf deinen anderen Gateways wartet, wird hier nicht aufgeführt.</string>
+	<key>native.needsYou.rowHint</key>
+	<string>Öffnet den Chat mit dieser Anfrage.</string>
+	<key>native.needsYou.title</key>
+	<string>Wartet auf dich</string>
+	<key>native.needsYou.waiting</key>
+	<string>Wartet seit</string>
 	<key>native.newBot.handleBuiltIn</key>
 	<string>'default' ist der eingebaute Bot und kann nicht noch einmal erstellt werden.</string>
 	<key>native.newBot.handleEmpty</key>

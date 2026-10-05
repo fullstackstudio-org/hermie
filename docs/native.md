@@ -2548,6 +2548,52 @@ name, else user id>` is the lead, `Chat · <name> · <label>` one of the chats. 
   `OwnChatSessionTests` and `OwnChatConversationsTests` (HermieCoreTests, a scripted link), `OwnChatViewTests`
   (HermieUITests) and `OwnChatsIntegrationTests` (the fake gateway over a real socket).
 
+## Needs you and the emergency stop
+
+**Needs you** (`NeedsYouInbox`, `HermieCore/NeedsYou`; `NeedsYouScreen`, `HermieUI/NeedsYou`) is one list of everything
+that waits for the person: approvals, questions, secure prompts, confirmations (plain and passkey), forms, drafts and
+diffs, device requests and connector authorisations. It adds no wire call: the live wiring hands it what
+`RequestAlerts` already gets (`GatewaySession.openRequests(from:)`, one entry per request, across the four models that
+hold them) plus the connector cards (`ConnectionRequestsModel`, which the notifications have no use for).
+
+- **Entry.** A toolbar item in the sidebar, on the iPhone, the iPad and the Mac ("Needs you", the tray with the count
+  on it), and Chat › Needs You (⌘⇧I). It opens `AppSheet.needsYou`. A row shows the bot, the kind, a short title and how
+  long it has waited; a tap opens the chat and brings the request's sheet back up (`NeedsYouOpening`, the same
+  `bringBack` and the same `hermie://chat` link a notification's tap uses). Empty: "Nothing is waiting for you".
+- **Safe titles.** A row holds ids, a kind and, for an approval or a question only, the one cleaned line
+  `OpenRequest.text` already is (`PushRequestMethod.carriesPreview`). A secure prompt, a form, a draft, a diff and a
+  device request never reach it with text, so no value can. A connector card names the connectors still waiting.
+- **Waiting time** is from when this device first saw the request open: no request model carries an arrival time, so a
+  request that was open when the app connected is dated by that moment (a lower bound), and one that goes away and
+  comes back starts again.
+- **One gateway.** The app holds one socket (ADR-0024), so today the list is the live gateway's. The inbox is per
+  gateway (`update` / `sessionEnded`), so a second connection is one more feed; the sheet says that the other gateways
+  are not listed. What waits there still reaches the person as a push.
+- **Badge.** While the app is in the background and notifications are allowed (permission granted, the reader's switch
+  on), the app icon says `NeedsYouInbox.count`; in front it is zero as before. The local notifications' own badge reads
+  the same count (`RequestAlerts` `badgeCount`), so the two never disagree.
+- **Widget.** `HermieNeedsInputWidget` already counts the bots that need input from the widget snapshot; no new widget.
+
+**The emergency stop** (`EmergencyStopModel`, `HermieCore/EmergencyStop`; `EmergencyStopSheet`) interrupts every running
+turn at once. It is in the inbox's toolbar ("Stop all") and in Chat › Stop All Running Turns… (⌘⇧.). It asks first
+("Stop all N running turns?", with the list of what will be stopped), stops everything in parallel, and says what it did:
+one line per turn (bot, gateway, stopped / already finished / failed), the counts, and what it could not reach.
+
+- **What it finds.** One `session.active_list` (`TranscriptStore.runningSessions`): the gateway's list is the truth. A
+  running session one of the app's own chats holds is stopped through the chat's Stop (`session.interrupt` with the
+  runtime id and the profile; the partial reply is kept). A running session no chat of the app holds (the terminal,
+  another device of the same person, a branch) is listed in full by the gateway to a connection that may act on it, and
+  is interrupted by its runtime id alone. Where the list cannot be read, the app's own busy chats are all there is, and
+  the summary says so.
+- **What it cannot reach.** A bare row of the list (busy, no runtime id) is a session this connection may not act on:
+  counted, not stopped. Gateways other than the live one are out of reach (one socket): named in the summary. There is
+  no "stop all for this user" RPC in the fork (`tui_gateway/methods_session.py`); a turn that does not show up in
+  `session.active_list` for this login (a cron run outside the gateway process, another person's turn) is out of reach.
+- **Failures.** One turn failing is a line in the summary, never a reason to leave the others running.
+- Tests: `NeedsYouInboxTests`, `EmergencyStopModelTests`, `SessionStopGatewayTests` and `LiveWiringInboxTests`
+  (HermieCoreTests; a scripted link), `NeedsYouViewTests` (HermieUITests), `EmergencyStopIntegrationTests` (the fake
+  gateway: the app's own chat and a second client's turn stopped from one control).
+
 ## Licences and the gateway's facts
 
 **Settings › About › Licences** (`LicencesPage`) lists what the Apple apps owe to others, each entry opening its licence

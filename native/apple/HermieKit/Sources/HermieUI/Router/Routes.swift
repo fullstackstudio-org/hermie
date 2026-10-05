@@ -79,6 +79,10 @@ public enum AppSheet: Hashable, Sendable, Identifiable {
   case newBot
   /// Another chat of the reader's own on this bot (`NewOwnChatSheet`).
   case newOwnChat(ChatRef)
+  /// Everything that waits for the person, across bots (`NeedsYouScreen`).
+  case needsYou
+  /// The emergency stop: ask, stop every running turn, say what was stopped (`EmergencyStopSheet`).
+  case emergencyStop
 
   public var id: Self { self }
 }

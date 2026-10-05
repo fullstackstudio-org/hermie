@@ -242,6 +242,8 @@
 	<string>Gateway Settings…</string>
 	<key>native.commands.newChatWindow</key>
 	<string>New Chat Window</string>
+	<key>native.commands.stopAll</key>
+	<string>Stop All Running Turns…</string>
 	<key>native.commands.switchGateway</key>
 	<string>Switch Gateway…</string>
 	<key>native.composer.attach.add</key>
@@ -608,6 +610,42 @@
 	<string>Made on this device. It can be wrong; the recording is what counts.</string>
 	<key>native.deviceRequests.voice.unreadable</key>
 	<string>The recording could not be saved. Try again.</string>
+	<key>native.emergencyStop.button</key>
+	<string>Stop all</string>
+	<key>native.emergencyStop.confirmMessage</key>
+	<string>Every bot is interrupted at once. What a bot has written so far is kept.</string>
+	<key>native.emergencyStop.idle.message</key>
+	<string>No bot has a turn that can be stopped from here.</string>
+	<key>native.emergencyStop.idle.title</key>
+	<string>Nothing is running</string>
+	<key>native.emergencyStop.incomplete</key>
+	<string>The gateway's list of running turns could not be read, so turns started elsewhere may still be running.</string>
+	<key>native.emergencyStop.looking</key>
+	<string>Looking for running turns…</string>
+	<key>native.emergencyStop.notAsked</key>
+	<string>Not connected from here, so not touched: %@</string>
+	<key>native.emergencyStop.outcome.alreadyDone</key>
+	<string>Had already finished</string>
+	<key>native.emergencyStop.outcome.failed</key>
+	<string>Failed: %@</string>
+	<key>native.emergencyStop.outcome.notConnected</key>
+	<string>Not connected</string>
+	<key>native.emergencyStop.outcome.stopped</key>
+	<string>Stopped</string>
+	<key>native.emergencyStop.stopping</key>
+	<string>Stopping…</string>
+	<key>native.emergencyStop.summary.allStopped</key>
+	<string>Everything is stopped</string>
+	<key>native.emergencyStop.summary.alreadyDone</key>
+	<string>Already finished: %lld</string>
+	<key>native.emergencyStop.summary.failed</key>
+	<string>Could not be stopped: %lld</string>
+	<key>native.emergencyStop.summary.someFailed</key>
+	<string>Some turns could not be stopped</string>
+	<key>native.emergencyStop.summary.stopped</key>
+	<string>Stopped: %lld</string>
+	<key>native.emergencyStop.unnamed</key>
+	<string>Another session</string>
 	<key>native.gateways.removeFailed.notSynced</key>
 	<string>This gateway is no longer synced with iCloud Keychain, so it can only be removed from this device. Nothing was removed.</string>
 	<key>native.gateways.removeFailed.other</key>
@@ -1404,6 +1442,38 @@
 	<string>%1$lld of %2$lld</string>
 	<key>native.media.unavailable</key>
 	<string>Not available</string>
+	<key>native.needsYou.connectorTitle</key>
+	<string>Connect an account to continue</string>
+	<key>native.needsYou.empty.message</key>
+	<string>When a bot needs an approval, an answer or a decision, it shows up here.</string>
+	<key>native.needsYou.empty.title</key>
+	<string>Nothing is waiting for you</string>
+	<key>native.needsYou.kind.approval</key>
+	<string>Approval</string>
+	<key>native.needsYou.kind.confirmation</key>
+	<string>Confirmation</string>
+	<key>native.needsYou.kind.connector</key>
+	<string>Connection</string>
+	<key>native.needsYou.kind.device</key>
+	<string>Device request</string>
+	<key>native.needsYou.kind.input</key>
+	<string>Input</string>
+	<key>native.needsYou.kind.other</key>
+	<string>Request</string>
+	<key>native.needsYou.kind.question</key>
+	<string>Question</string>
+	<key>native.needsYou.kind.review</key>
+	<string>Review</string>
+	<key>native.needsYou.kind.secureInput</key>
+	<string>Secure input</string>
+	<key>native.needsYou.otherGateways</key>
+	<string>Hermie is connected to one gateway at a time. What waits on your other gateways is not listed.</string>
+	<key>native.needsYou.rowHint</key>
+	<string>Opens the chat with this request.</string>
+	<key>native.needsYou.title</key>
+	<string>Needs you</string>
+	<key>native.needsYou.waiting</key>
+	<string>Waiting</string>
 	<key>native.newBot.handleBuiltIn</key>
 	<string>'default' is the built-in bot and cannot be created again.</string>
 	<key>native.newBot.handleEmpty</key>

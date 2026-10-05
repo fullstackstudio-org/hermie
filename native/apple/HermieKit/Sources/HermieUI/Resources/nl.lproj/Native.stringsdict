@@ -50,6 +50,54 @@
 			<string>Elke %lld minuten</string>
 		</dict>
 	</dict>
+	<key>native.emergencyStop.confirmTitle</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>Het lopende antwoord stoppen?</string>
+			<key>other</key>
+			<string>Alle %lld lopende antwoorden stoppen?</string>
+		</dict>
+	</dict>
+	<key>native.emergencyStop.unreachable</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld ander lopend antwoord op de gateway kun je vanaf hier niet stoppen.</string>
+			<key>other</key>
+			<string>%lld andere lopende antwoorden op de gateway kun je vanaf hier niet stoppen.</string>
+		</dict>
+	</dict>
+	<key>native.needsYou.count</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld ding wacht op je</string>
+			<key>other</key>
+			<string>%lld dingen wachten op je</string>
+		</dict>
+	</dict>
 	<key>native.outbox.pages</key>
 	<dict>
 		<key>NSStringLocalizedFormatKey</key>

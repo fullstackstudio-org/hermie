@@ -50,6 +50,54 @@
 			<string>Every %lld minutes</string>
 		</dict>
 	</dict>
+	<key>native.emergencyStop.confirmTitle</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>Stop the running turn?</string>
+			<key>other</key>
+			<string>Stop all %lld running turns?</string>
+		</dict>
+	</dict>
+	<key>native.emergencyStop.unreachable</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld other running turn on the gateway cannot be stopped from here.</string>
+			<key>other</key>
+			<string>%lld other running turns on the gateway cannot be stopped from here.</string>
+		</dict>
+	</dict>
+	<key>native.needsYou.count</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@value@</string>
+		<key>value</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld thing waiting for you</string>
+			<key>other</key>
+			<string>%lld things waiting for you</string>
+		</dict>
+	</dict>
 	<key>native.outbox.pages</key>
 	<dict>
 		<key>NSStringLocalizedFormatKey</key>

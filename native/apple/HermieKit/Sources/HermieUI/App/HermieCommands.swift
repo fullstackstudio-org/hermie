@@ -70,11 +70,27 @@ public struct HermieCommands: Commands {
   }
 
   /**
-   Pin, mute and archive for the selected chat, so each is one keystroke or a walk through the menu
+   Needs You (⌘⇧I) and Stop All Running Turns… (⌘⇧.), which are about every chat, then Pin, mute and
+   archive for the selected chat, so each is one keystroke or a walk through the menu
    bar away (the row's context menu needs a pointer). Archive takes Mail's ⌃⌘A. Disabled with no chat
    selected, or while the chat list's arrangement cannot be written yet.
    */
   @ViewBuilder private var chatCommands: some View {
+    Button(NativeStrings.NeedsYou.title) {
+      router?.present(.needsYou)
+    }
+    .keyboardShortcut("i", modifiers: [.command, .shift])
+    .disabled(router == nil)
+
+    // Every running turn of every bot, at once: ⌘⇧. is where a hand already is when something runs away.
+    Button(NativeStrings.EmergencyStop.command) {
+      router?.present(.emergencyStop)
+    }
+    .keyboardShortcut(".", modifiers: [.command, .shift])
+    .disabled(router == nil)
+
+    Divider()
+
     let target = chatTarget
     let arrangement = target?.arrangement
     let name = target?.name ?? ""
