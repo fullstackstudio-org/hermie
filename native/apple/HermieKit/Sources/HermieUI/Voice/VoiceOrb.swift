@@ -409,12 +409,19 @@ enum VoiceOrbPainter {
     Color(hue: 0.0, saturation: 0.45, brightness: 1)
   ])
 
-  /// A comet: nothing, then a tail that brightens to a sharp head.
+  /// A comet: nothing, then a tail that brightens to a head, which rounds off over the last stretch.
+  /// (A conic gradient has its seam at the angle it starts from: if the head ran straight into it, the
+  /// seam would be a hard, straight edge across the ring.)
   static let comet = Gradient(stops: [
     .init(color: .white.opacity(0), location: 0),
     .init(color: .white.opacity(0), location: 0.55),
-    .init(color: .white.opacity(0.95), location: 1)
+    .init(color: .white.opacity(0.95), location: 0.94),
+    .init(color: .white.opacity(0), location: 1)
   ])
+
+  /// The width of the light orb's rainbow rim, as a share of its core's radius. Nothing laid over the
+  /// rim (the shimmer) is wider than it, or it would stick out past the ring.
+  static let rimWidth: CGFloat = 0.5
 
   // MARK: Clouds
 
@@ -651,7 +658,7 @@ enum VoiceOrbPainter {
     let rim = GraphicsContext.Shading.conicGradient(rainbow, center: origin, angle: rainbowAngle * 1.5)
 
     canvas.opacity = 0.3 + 0.2 * motion.glow
-    canvas.stroke(Path(ellipseIn: disc), with: rim, lineWidth: core * 0.5)
+    canvas.stroke(Path(ellipseIn: disc), with: rim, lineWidth: core * rimWidth)
     canvas.opacity = 0.95
     canvas.stroke(Path(ellipseIn: disc), with: rim, lineWidth: core * 0.2)
 
@@ -660,7 +667,7 @@ enum VoiceOrbPainter {
         comet, center: origin, angle: .radians(frame.shimmerPhase))
 
       canvas.opacity = 0.4 * motion.shimmer
-      canvas.stroke(Path(ellipseIn: disc), with: sweep, lineWidth: core * 0.6)
+      canvas.stroke(Path(ellipseIn: disc), with: sweep, lineWidth: core * rimWidth)
       canvas.opacity = motion.shimmer
       canvas.stroke(Path(ellipseIn: disc), with: sweep, lineWidth: core * 0.16)
     }

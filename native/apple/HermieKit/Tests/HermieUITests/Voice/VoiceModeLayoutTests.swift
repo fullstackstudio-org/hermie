@@ -412,6 +412,72 @@ private struct Pixels {
     #expect(VoiceOrbPainter.fadeStart > 0.5 && VoiceOrbPainter.fadeStart < 1)
   }
 
+  // MARK: The shimmer on the rim
+
+  @Test func theShimmerStaysOnTheRingAndHasNoHardSeam() throws {
+    let size: CGFloat = 250
+    let canvas = VoiceOrbPainter.canvasSide(for: size)
+    let core = Double(size) * Double(VoiceOrbPainter.coreShare)
+    let rimOuter = core * (1 + Double(VoiceOrbPainter.rimWidth) / 2)
+
+    // A working orb with the shimmer's head at 3 o'clock (where a conic gradient has its seam), and the
+    // same orb with the shimmer taken out: the difference is the shimmer alone.
+    func render(shimmer: Bool) throws -> Pixels {
+      var working = frame(mode: .thinking, level: 0, phase: 2.2)
+      working.shimmerPhase = 0
+      working.time = 0
+
+      if !shimmer {
+        working.motion.shimmer = 0
+      }
+
+      let layers = VoiceOrbLayers(style: .light, frame: working, reduceMotion: false, size: size)
+      return try #require(Pixels(layers.frame(width: canvas, height: canvas).background(Color.black)))
+    }
+
+    let on = try render(shimmer: true)
+    let off = try render(shimmer: false)
+    on.save("orb-light-thinking-shimmer-on")
+    off.save("orb-light-thinking-shimmer-off")
+
+    func at(_ pixels: Pixels, radius: Double, degrees: Double) -> Int {
+      let scale = Double(pixels.scale)
+      let x = Double(pixels.width) / 2 + radius * scale * cos(degrees * .pi / 180)
+      let y = Double(pixels.height) / 2 - radius * scale * sin(degrees * .pi / 180)
+      return pixels.light(Int(x.rounded()), Int(y.rounded()))
+    }
+
+    // Just outside the rim, at 1:30, at 3 o'clock on either side of the seam, and all the way round:
+    // the shimmer adds nothing there.
+    let angles: [Double] = [45, 3, 0.5, -0.5, -3] + stride(from: 0.0, to: 360, by: 15).map { $0 }
+
+    for degrees in angles {
+      for gap in [1.5, 2.5, 4.0] {
+        let radius = rimOuter + gap
+        let difference = abs(at(on, radius: radius, degrees: degrees) - at(off, radius: radius, degrees: degrees))
+        #expect(difference <= 2, "outside the ring at \(degrees) degrees, \(gap) pt out: the shimmer adds \(difference)")
+      }
+    }
+
+    // Across the seam the shimmer is the same on both sides: no hard straight edge.
+    for radius in stride(from: core * 0.85, through: core * 1.2, by: core * 0.1) {
+      let above = at(on, radius: radius, degrees: 1.5) - at(off, radius: radius, degrees: 1.5)
+      let below = at(on, radius: radius, degrees: -1.5) - at(off, radius: radius, degrees: -1.5)
+      #expect(abs(above - below) <= 12, "no step across the seam at radius \(radius): \(above) vs \(below)")
+    }
+
+    // And it does paint on the ring: this is not an empty difference.
+    var most = 0
+
+    for degrees in stride(from: 0.0, to: 360, by: 5) {
+      for radius in [core * 1.1, core * 1.2] {
+        most = max(most, abs(at(on, radius: radius, degrees: degrees) - at(off, radius: radius, degrees: degrees)))
+      }
+    }
+
+    #expect(most > 15, "the shimmer is there on the ring: \(most)")
+  }
+
   // MARK: The settings glyph
 
   /// The status bar and the clock's area, in points, on an iPhone with a Dynamic Island.
