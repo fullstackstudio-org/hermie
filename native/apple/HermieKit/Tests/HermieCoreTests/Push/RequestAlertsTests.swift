@@ -49,7 +49,9 @@ struct AlertRig {
   let alerts: RequestAlerts
   let window = UUID()
 
-  init(entitled: Bool = RequestAlerts.timeSensitiveEntitled) {
+  /// Entitled unless a test says otherwise: these tests are about the levels the alerts choose, whatever the
+  /// shipped build's entitlement is (`RequestAlerts.timeSensitiveEntitled`).
+  init(entitled: Bool = true) {
     let center = self.center
     let knobs = self.knobs
 
@@ -549,8 +551,6 @@ struct RequestAlertsTests {
 
   @Test("a notification for a request that is not urgent is posted at the active level")
   func interruptionLevel() async {
-    #expect(RequestAlerts.timeSensitiveEntitled)
-
     let rig = AlertRig()
     rig.background()
     await rig.update([openRequest("srq-1")])

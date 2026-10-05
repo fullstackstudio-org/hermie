@@ -61,7 +61,11 @@ public final class RequestAlerts {
   /// apps; a test holds the two in step). An urgent request (`PushRequestMethod.isUrgent`) is posted at
   /// the `timeSensitive` level, everything else at `active`. A level the app is not entitled to is
   /// downgraded silently by the system, so a build signed without the entitlement still posts.
-  public static let timeSensitiveEntitled = true
+  ///
+  /// Off until the App ID `dev.hermie.app` has the Time Sensitive Notifications capability in the
+  /// developer account: a provisioning profile without it refuses the archive. Turning it on is this
+  /// flag plus the key in the four app entitlements files.
+  public static let timeSensitiveEntitled = false
 
   /// Where the person is: the windows report here.
   public let presence = AppPresence()
@@ -115,6 +119,7 @@ public final class RequestAlerts {
     center: any LocalNotificationCenter,
     copy: RequestAlertCopy = .english,
     requestDockAttention: @escaping @MainActor () -> Void = {},
+    timeSensitive: Bool = RequestAlerts.timeSensitiveEntitled,
     focusFilter: @escaping @MainActor () -> FocusFilter = { .unfiltered },
     badgeCount: (@MainActor () -> Int)? = nil
   ) {
@@ -129,6 +134,7 @@ public final class RequestAlerts {
       setBadge: { count in await push.system.setBadgeCount(count) },
       requestDockAttention: requestDockAttention,
       copy: copy,
+      timeSensitive: timeSensitive,
       focusFilter: focusFilter,
       badgeCount: badgeCount
     )

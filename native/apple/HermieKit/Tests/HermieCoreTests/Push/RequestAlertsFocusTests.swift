@@ -88,16 +88,14 @@ struct RequestAlertsFocusTests {
     #expect(LocalInterruption.level(for: form, entitled: true, urgentBreaksThroughFocus: true) == .active)
   }
 
-  @Test("both apps carry the entitlement in every entitlements file, and the build says so")
+  @Test("every entitlements file of both apps carries the entitlement exactly when the build says so")
   func entitlement() throws {
-    #expect(RequestAlerts.timeSensitiveEntitled)
-
     for app in ["ios", "macos"] {
       for file in ["Hermie", "Hermie-NoPasskey"] {
         let plist = try PasskeyBuildSettingsTests.plist("\(app)/App/\(file).entitlements")
+        let carried = plist["com.apple.developer.usernotifications.time-sensitive"] as? Bool == true
 
-        #expect(
-          plist["com.apple.developer.usernotifications.time-sensitive"] as? Bool == true, "\(app)/\(file)")
+        #expect(carried == RequestAlerts.timeSensitiveEntitled, "\(app)/\(file)")
       }
     }
 
@@ -301,7 +299,7 @@ struct UrgentBreakthroughTests {
     await rig.controller.setEnabled(true)
 
     let center = RecordingLocalNotifications()
-    let alerts = RequestAlerts(push: rig.controller, center: center)
+    let alerts = RequestAlerts(push: rig.controller, center: center, timeSensitive: true)
     alerts.presence.report(window: UUID(), active: false, key: false, chat: nil)
 
     alerts.update(gatewayId: "g1", gatewayKey: PushGateways.one.key, requests: [openRequest("srq-1", "approval")])
