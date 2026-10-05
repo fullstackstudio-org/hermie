@@ -48,7 +48,7 @@ public enum HandoffActivity {
     switch link {
     case .chat, .conversation:
       true
-    case .ask, .share, .intent, .folder:
+    case .ask, .share, .intent, .folder, .addGateway:
       false
     }
   }

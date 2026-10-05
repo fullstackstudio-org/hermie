@@ -34555,6 +34555,30 @@
           }
         }
       }
+    },
+    "native.pairing.offer.earlier" : {
+      "comment" : "Shown on an offered gateway that waited behind another sheet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das stammt von einem Link, der früher geöffnet wurde, während du mit etwas anderem beschäftigt warst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This came from a link opened earlier, while you were busy with something else."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit kwam van een link die eerder werd geopend, terwijl je met iets anders bezig was."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

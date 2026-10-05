@@ -84,6 +84,13 @@ struct PairingConfirmSheet: View {
   var body: some View {
     NavigationStack {
       Form {
+        if router.pairingFromEarlier == offer {
+          Section {
+            Label(NativeStrings.Pairing.Offer.earlier, systemImage: "clock.arrow.circlepath")
+              .accessibilityIdentifier("hermie.pairing.earlier")
+          }
+        }
+
         PairingOfferSummary(offer: offer)
 
         if alreadyHave {

@@ -138,6 +138,48 @@ struct PairingRoutingTests {
     #expect(router.queuedPairing == nil)
   }
 
+  @Test("an offer that waited says it came from a link opened earlier; one shown at once does not")
+  func fromEarlier() throws {
+    let router = AppRouter()
+    router.gatewaysChanged(one)
+
+    router.handle(try link(offered))
+    #expect(router.pairingFromEarlier == nil)
+
+    router.present(.onboarding(.additionalGateway))
+    router.handle(try link(offered))
+    router.dismissSheet()
+    #expect(router.sheet == .pairing(offer) && router.pairingFromEarlier == offer)
+
+    router.dismissSheet()
+    #expect(router.pairingFromEarlier == nil, "it is a note about that sheet only")
+  }
+
+  @Test("an offer that waited more than five minutes is forgotten, not shown out of the blue")
+  func lapses() throws {
+    let router = AppRouter()
+    var clock = Date(timeIntervalSince1970: 1_800_000_000)
+    let moment = Locked(clock)
+
+    router.now = { moment.value }
+    router.gatewaysChanged(one)
+    router.present(.signIn(gatewayId: home.id))
+    router.handle(try link(offered))
+
+    clock.addTimeInterval(AppRouter.queuedPairingLifetime + 1)
+    moment.value = clock
+    router.dismissSheet()
+    #expect(router.sheet == nil && router.queuedPairing == nil, "a link from long ago is not what the person looks at")
+
+    // Inside the time it is shown.
+    router.present(.signIn(gatewayId: home.id))
+    router.handle(try link(offered))
+    clock.addTimeInterval(AppRouter.queuedPairingLifetime - 1)
+    moment.value = clock
+    router.dismissSheet()
+    #expect(router.sheet == .pairing(offer))
+  }
+
   @Test("the newest of several waiting offers is the one shown")
   func newestWaits() throws {
     let router = AppRouter()
@@ -192,4 +234,11 @@ struct PairingRoutingTests {
       #expect(!NoticeStack.text(for: .pairingRefused(problem)).isEmpty)
     }
   }
+}
+
+/// A value a closure reads and a test moves.
+private final class Locked: @unchecked Sendable {
+  var value: Date
+
+  init(_ value: Date) { self.value = value }
 }

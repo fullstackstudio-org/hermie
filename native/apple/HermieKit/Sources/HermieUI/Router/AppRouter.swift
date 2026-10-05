@@ -59,6 +59,16 @@ public final class AppRouter {
   public private(set) var pairingOffer: GatewayPairingOffer?
   /// An offer that arrived while setup, a sign-in or the emergency stop was up: shown once that sheet is gone.
   public private(set) var queuedPairing: GatewayPairingOffer?
+  /// When it arrived, to let it lapse (`queuedPairingLifetime`).
+  private var queuedPairingAt: Date?
+  /// The offer on screen that waited behind another sheet: its confirmation says it came from a link opened
+  /// earlier, so a sheet that appears out of nowhere is not taken for something the person just did.
+  public private(set) var pairingFromEarlier: GatewayPairingOffer?
+  /// How long an offer waits behind a sheet before it is forgotten: a link from long ago is not what the
+  /// person is looking at.
+  public static let queuedPairingLifetime: TimeInterval = 300
+  /// The clock, for the lifetime of a waiting offer.
+  @ObservationIgnored public var now: () -> Date = { Date() }
   private var lastFindID = 0
 
   /// Links waiting for the gateway list.
@@ -434,8 +444,18 @@ public final class AppRouter {
     }
 
     if sheet == nil, let offer = queuedPairing {
+      let arrived = queuedPairingAt
+
       queuedPairing = nil
-      sheet = .pairing(offer)
+      queuedPairingAt = nil
+
+      if let arrived, now().timeIntervalSince(arrived) <= Self.queuedPairingLifetime {
+        pairingFromEarlier = offer
+        sheet = .pairing(offer)
+      }
+    } else if case .pairing = sheet {
+    } else {
+      pairingFromEarlier = nil
     }
   }
 
@@ -598,8 +618,11 @@ public final class AppRouter {
     switch sheet {
     case .onboarding?, .signIn?, .emergencyStop?:
       queuedPairing = offer
+      queuedPairingAt = now()
     default:
       queuedPairing = nil
+      queuedPairingAt = nil
+      pairingFromEarlier = nil
       sheet = .pairing(offer)
     }
   }

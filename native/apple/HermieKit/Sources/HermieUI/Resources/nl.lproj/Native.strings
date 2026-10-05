@@ -1806,6 +1806,8 @@
 	<string>Doorgaan</string>
 	<key>native.pairing.offer.address</key>
 	<string>Adres</string>
+	<key>native.pairing.offer.earlier</key>
+	<string>Dit kwam van een link die eerder werd geopend, terwijl je met iets anders bezig was.</string>
 	<key>native.pairing.offer.have</key>
 	<string>Je hebt deze gateway al.</string>
 	<key>native.pairing.offer.host</key>

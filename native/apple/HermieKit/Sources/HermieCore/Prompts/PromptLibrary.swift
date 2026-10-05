@@ -113,8 +113,11 @@ public enum PromptLibrary {
 
     let bot = entry["bot"]?.stringValue.flatMap { $0.isEmpty || $0.count > idLimit * 2 ? nil : $0 }
 
+    // Cut by scalars, not characters: one character can be a thousand combining marks. A title is one line.
+    let line = title.split(whereSeparator: \.isNewline).first.map(String.init) ?? ""
+
     return Prompt(
-      id: id, title: String(title.prefix(titleLimit)), text: String(text.prefix(textLimit)), bot: bot, carried: entry)
+      id: id, title: scalars(line, upTo: titleLimit), text: scalars(text, upTo: textLimit), bot: bot, carried: entry)
   }
 
   private static func entries(_ app: JSONObject?) -> [JSONValue] {
@@ -123,16 +126,25 @@ public enum PromptLibrary {
 
   // MARK: Cleaning
 
+  /// At most `limit` Unicode scalars of `text`. A character may be any number of scalars (a letter with a
+  /// run of combining marks), so a limit counted in characters is no limit on size.
+  static func scalars(_ text: String, upTo limit: Int) -> String {
+    var view = String.UnicodeScalarView()
+
+    view.append(contentsOf: text.unicodeScalars.prefix(limit))
+    return String(view)
+  }
+
   /// A title as it would be stored: trimmed, one line, cut. Empty is "no title".
   public static func cleaned(title: String) -> String {
     let line = title.split(whereSeparator: \.isNewline).first.map(String.init) ?? ""
 
-    return String(line.trimmingCharacters(in: .whitespacesAndNewlines).prefix(titleLimit))
+    return scalars(line.trimmingCharacters(in: .whitespacesAndNewlines), upTo: titleLimit)
   }
 
   /// A text as it would be stored: the ends trimmed, cut. Empty is "no text".
   public static func cleaned(text: String) -> String {
-    String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(textLimit))
+    scalars(text.trimmingCharacters(in: .whitespacesAndNewlines), upTo: textLimit)
   }
 
   /// The title and text a prompt would be stored with, or nil when it has no words. A missing title

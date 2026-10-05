@@ -87,6 +87,37 @@ struct SetupSessionsTests {
     SetupSessions.shared.end(next.key)
   }
 
+  @Test("a scan inside a setup opened from a link is not lost when the sheet is built again")
+  func scanSurvivesRebuild() {
+    let accounts = accounts()
+    let x = GatewayPairingOffer(address: "https://x.example.test", name: "X")
+    let y = GatewayPairingOffer(address: "https://y.example.test", name: "Y")
+    let context = OnboardingContext(mode: .additionalGateway, finish: { _ in }, pairing: x)
+    let opened = OnboardingFlow(context: context, accounts: accounts)
+
+    #expect(opened.session.model.pairedOffer == x)
+
+    // The person scans another code inside setup and goes on with it.
+    opened.session.model.applyPairing(y)
+    #expect(opened.session.model.pairedOffer == y && opened.session.model.address == "https://y.example.test")
+
+    // The sheet is built again (an unlock, a re-render) with the router still holding the offer it was opened from.
+    let rebuilt = OnboardingFlow(context: context, accounts: accounts)
+
+    #expect(rebuilt.session.model === opened.session.model, "the Y setup stays")
+    #expect(rebuilt.session.model.pairedOffer == y)
+    #expect(rebuilt.session.model.address == "https://y.example.test")
+
+    // A different offer from a link is still a fresh setup.
+    let z = GatewayPairingOffer(address: "https://z.example.test")
+    let fresh = OnboardingFlow(
+      context: OnboardingContext(mode: .additionalGateway, finish: { _ in }, pairing: z), accounts: accounts)
+
+    #expect(fresh.session.model !== opened.session.model)
+    #expect(fresh.session.model.address == "https://z.example.test")
+    SetupSessions.shared.end(fresh.key)
+  }
+
   @Test("signing in again is kept per gateway")
   func signInPerGateway() {
     let accounts = accounts()

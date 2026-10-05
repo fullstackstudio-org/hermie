@@ -2958,7 +2958,8 @@ address.
   door's keys, so there is nothing to leave out by mistake, and the tests assert that the link's parameters are exactly those
   three. Whoever scans it still signs in with their own account.
 - **Nothing entered before goes to the offered host.** An offer always starts a FRESH setup (`SetupSessions.session(_:offered:)`
-  ends the one that was there, wiping its secrets), and `OnboardingModel.applyPairing` itself throws away the typed address, the
+  ends the one that was there, wiping its secrets; a flow that was OPENED with this very offer is kept whatever was scanned or
+  signed in inside it since, so rebuilding the sheet never undoes a scan), and `OnboardingModel.applyPairing` itself throws away the typed address, the
   headers, the Cloudflare Access pair, the session token, the provider, a sign-in in progress and the step before it puts
   the address in, so a scan inside the address step cannot send what was typed for another gateway to the host in the code.
 - **A code is an offer, never an add.** `DeepLink` is the one parser: `url` must be an `http(s)` address with a host and no user
@@ -2984,7 +2985,8 @@ address.
   `AppRouter.handle`, which shows the same confirmation as a sheet (`AppSheet.pairing`) with Continue opening setup
   (`confirmPairing`) and Cancel; a link whose address may not come from a link is refused in a notice. It works with no
   gateway at all. A link does not take over what the person is in the middle of: while setup, a sign-in or the emergency stop is
-  up the offer waits (the newest one) and is shown when that sheet is gone; other sheets are replaced as a chat link replaces
+  up the offer waits (the newest one) and is shown when that sheet is gone, unless five minutes passed, and then with a line
+  saying it came from a link opened earlier; other sheets are replaced as a chat link replaces
   them, and an offer that setup took is spent when setup's sheet goes by any road. Opened and scanned codes are the same thing: the camera's own QR reader opens the app on this link.
 - **Reading.** The camera scanner of the `device.scan` request is reused (`CodeScannerView`: VisionKit's
   `DataScannerViewController` on iPhone and iPad, a capture session with Vision on the frames on the Mac), asked for QR
@@ -2992,7 +2994,9 @@ address.
   photo picker (no photo-library permission) and is read with Vision's barcode request (`PairingQRCode.payloads`), on
   the iPhone, the iPad and the Mac alike, off the main actor and only if the sheet is still waiting for that picture when
   Vision answers. A picture larger than 20,000 pixels on a side or 120 million in all is refused unread, and one that is read is
-  decoded at no more than 3,000 pixels (ImageIO's thumbnail, orientation applied), so a small file cannot make a huge bitmap. A code that is not a Hermie code, or a picture with none, is refused in a
+  decoded at no more than 3,000 pixels (ImageIO's thumbnail, orientation applied), so a small file cannot make a huge bitmap.
+  The picker's picture is asked for as a file (`PickedQRImage`, a `FileRepresentation`): its size is read first and a picture
+  over 32 MB is refused before anything is loaded; only then is it mapped into memory. A code that is not a Hermie code, or a picture with none, is refused in a
   sentence and never opened.
 - **Drawing.** CoreImage's QR generator at error correction M, with the quiet zone, in whole pixels per module
   (`PairingQRCode.image`); black on white whatever the appearance.
@@ -3031,7 +3035,7 @@ the Usage and capability rows) manage the person's reusable prompts; the compose
   Expo app (`expo/hermie`) rebuilds the section from fixed keys, as ADR-0016 describes, so it would drop `prompts` the next time it
   wrote: it is frozen and is not changed for this.
 - **What arrives is held to limits.** The section is written by other builds and other devices, so on read only the first 100
-  prompts are offered, a title is cut to 60 characters and a text to 4000, an id or bot name of absurd length is not a
+  prompts are offered, a title (its first line) is cut to 60 Unicode scalars and a text to 4000 (scalars, not characters, so a run of combining marks is no loophole), an id or bot name of absurd length is not a
   prompt, and a text asks for at most 20 different fields (the braces of any further field stay as written). The raw
   entries are carried as they came until one is edited, and the room for a new one is counted in raw entries, which is what
   the gateway stores. Limits keep the section small: 100 prompts, 60 characters of title, 4000 of

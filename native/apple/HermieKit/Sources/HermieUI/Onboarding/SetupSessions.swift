@@ -22,10 +22,15 @@ final class SetupSessions {
   final class Session {
     let model: OnboardingModel
     let presenter: WebAuthenticationPresenter
+    /// The offer this flow was OPENED with (a link the person confirmed), if any. Not what the model holds
+    /// now: a scan inside setup replaces that, and the sheet being built again with the offer it was
+    /// opened from must not be taken for a different offer and end the scan's sign-in.
+    var openedWith: GatewayPairingOffer?
 
-    init(model: OnboardingModel, presenter: WebAuthenticationPresenter) {
+    init(model: OnboardingModel, presenter: WebAuthenticationPresenter, openedWith: GatewayPairingOffer? = nil) {
       self.model = model
       self.presenter = presenter
+      self.openedWith = openedWith
     }
   }
 
@@ -48,19 +53,23 @@ final class SetupSessions {
    THAT offer. A flow that is already there was started by the person typing, and holds what they
    typed for another gateway (headers, the Access pair, a session token, a sign-in half done), none of
    which may go to the host the offer names, so it is ended and a fresh one takes the offer. A flow that
-   already took this very offer is kept: the sheet is built again after every unlock.
+   was OPENED with this very offer is kept, whatever the person has done in it since (scanned another
+   code, started a sign-in): the sheet is built again after every unlock and re-render.
    */
   func session(_ key: String, offered offer: GatewayPairingOffer, make: () -> OnboardingModel) -> Session {
-    if let existing = sessions[key], existing.model.pairedOffer != offer {
+    if let existing = sessions[key], existing.openedWith != offer {
       end(key)
     }
 
-    return session(key) {
+    let session = session(key) {
       let model = make()
 
       model.applyPairing(offer)
       return model
     }
+
+    session.openedWith = offer
+    return session
   }
 
   /// The flow ended: stop what it runs and forget the secrets it held.

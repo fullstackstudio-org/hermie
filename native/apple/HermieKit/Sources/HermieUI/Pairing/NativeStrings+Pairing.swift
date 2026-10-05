@@ -68,6 +68,8 @@ extension NativeStrings {
       }
       /// Continue (to sign in)
       static var add: String { String(localized: "native.pairing.offer.add", table: "Native", bundle: .module) }
+      /// This came from a link opened earlier, while you were busy with something else.
+      static var earlier: String { String(localized: "native.pairing.offer.earlier", table: "Native", bundle: .module) }
       /// You already have this gateway.
       static var have: String { String(localized: "native.pairing.offer.have", table: "Native", bundle: .module) }
     }

@@ -2,6 +2,7 @@ import HermieCore
 import HermieProtocol
 import PhotosUI
 import SwiftUI
+import UniformTypeIdentifiers
 
 /**
  "Scan QR code" in setup: the camera on a gateway's code, or a picture of one (NX-14).
@@ -183,9 +184,32 @@ struct ScanGatewaySheet: View {
   // MARK: The picture
 
   private func read(_ item: PhotosPickerItem) async {
-    // A picture the library cannot give is a picture with no code in it.
-    let data = (try? await item.loadTransferable(type: Data.self)) ?? Data()
+    // A picture the library cannot give, or one that is too big, is a picture with no code in it.
+    let data = (try? await item.loadTransferable(type: PickedQRImage.self))?.data ?? Data()
 
     await scan.importImage(data)
+  }
+}
+
+/**
+ A picture out of the photo picker, read as a FILE first: the picker hands over a file, its size is looked at,
+ and only a picture within `PairingQRCode.maxImageBytes` is read into memory (mapped, not copied). Asked for as
+ plain `Data`, the whole of a picture of any size would be loaded before anything could be said about it.
+ */
+struct PickedQRImage: Transferable {
+  let data: Data
+
+  struct TooLarge: Error {}
+
+  static var transferRepresentation: some TransferRepresentation {
+    FileRepresentation(importedContentType: .image) { received in
+      let size = try received.file.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? Int.max
+
+      guard size <= PairingQRCode.maxImageBytes else {
+        throw TooLarge()
+      }
+
+      return PickedQRImage(data: try Data(contentsOf: received.file, options: .mappedIfSafe))
+    }
   }
 }

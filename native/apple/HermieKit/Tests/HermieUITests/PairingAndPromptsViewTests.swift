@@ -65,7 +65,7 @@ struct PairingAndPromptsViewTests {
     "native.pairing.sheet.found", "native.pairing.offer.title", "native.pairing.offer.address",
     "native.pairing.offer.signIn", "native.pairing.offer.secure", "native.pairing.offer.local",
     "native.pairing.offer.note", "native.pairing.offer.unverified", "native.pairing.offer.add",
-    "native.pairing.offer.have", "native.pairing.auth.sessionToken", "native.pairing.auth.cookie",
+    "native.pairing.offer.have", "native.pairing.offer.earlier", "native.pairing.auth.sessionToken", "native.pairing.auth.cookie",
     "native.pairing.problem.notAnOffer", "native.pairing.problem.notAnAddress", "native.pairing.problem.notSecure",
     "native.pairing.share.action", "native.pairing.share.blurb", "native.pairing.share.label",
     "native.pairing.share.unavailable", "native.pairing.share.failed", "native.prompts.saveFailed", "native.prompts.blurb",

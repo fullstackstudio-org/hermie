@@ -1806,6 +1806,8 @@
 	<string>Continue</string>
 	<key>native.pairing.offer.address</key>
 	<string>Address</string>
+	<key>native.pairing.offer.earlier</key>
+	<string>This came from a link opened earlier, while you were busy with something else.</string>
 	<key>native.pairing.offer.have</key>
 	<string>You already have this gateway.</string>
 	<key>native.pairing.offer.host</key>

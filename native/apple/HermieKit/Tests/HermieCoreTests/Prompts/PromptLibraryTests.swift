@@ -88,6 +88,35 @@ struct PromptLibraryTests {
     #expect(section["prompts"]?.arrayValue?.first?.objectValue?["text"]?.stringValue?.count == longText.count)
   }
 
+  @Test("a limit is on scalars, not characters: a letter with a thousand combining marks is cut")
+  func scalarLimits() throws {
+    let marks = String(repeating: "\u{0301}", count: 5_000)
+    let title = "e" + marks
+    let text = "x" + marks + marks
+    let section = app([entry("a", title, text)])
+    let prompt = try #require(PromptLibrary.prompts(in: section).first)
+
+    #expect(title.count == 1, "one character to Swift")
+    #expect(prompt.title.unicodeScalars.count == PromptLibrary.titleLimit)
+    #expect(prompt.text.unicodeScalars.count == PromptLibrary.textLimit)
+
+    var written: JSONObject = [:]
+
+    #expect(PromptLibrary.add(Prompt(id: "b", title: title, text: text), in: &written))
+
+    let stored = try #require(PromptLibrary.prompts(in: written).first)
+
+    #expect(stored.title.unicodeScalars.count <= PromptLibrary.titleLimit)
+    #expect(stored.text.unicodeScalars.count <= PromptLibrary.textLimit)
+  }
+
+  @Test("only the first line of a title is read")
+  func titleIsOneLine() throws {
+    let section = app([entry("a", "First line\nsecond line that is not part of the title")])
+
+    #expect(try #require(PromptLibrary.prompts(in: section).first).title == "First line")
+  }
+
   @Test("an id or a bot name that is absurdly long is not a prompt")
   func longIdentifiers() {
     let section = app([

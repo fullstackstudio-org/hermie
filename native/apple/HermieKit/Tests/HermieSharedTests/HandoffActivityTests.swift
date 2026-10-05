@@ -68,7 +68,9 @@ struct HandoffActivityTests {
   func onlyPlacesEveryDeviceHas() {
     let id = "0f2a4c6e8a0c2e4f6a8c0e2f4a6c8e0f"
 
-    for link in [DeepLink.share(id: id), .intent(id: id), .folder(id: "work"), .ask(bot: "researcher", gatewayKey: key)] {
+    for link in [DeepLink.share(id: id), .intent(id: id), .folder(id: "work"), .ask(bot: "researcher", gatewayKey: key),
+      .addGateway(url: "https://gw.example.test", name: "", auth: "")
+    ] {
       #expect(HandoffActivity.userInfo(for: link) == nil, "\(link)")
       #expect(HandoffActivity.link(from: [HandoffActivity.linkKey: link.string as Any]) == nil, "\(link)")
     }
