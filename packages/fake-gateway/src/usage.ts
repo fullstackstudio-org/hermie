@@ -1,7 +1,7 @@
 /**
  * What the gateway reports about use, in the shapes the real one answers with.
  *
- * Four calls say something about it and none says the whole thing, which is why the app reads all four:
+ * Five calls say something about it and none says the whole thing, which is why the app reads them all:
  *
  *  - `GET /api/analytics/usage?days=<n>&profile=<name>` (`hermes_cli/web_routers/analytics.py`) groups
  *    ONE profile's sessions by the UTC day each STARTED on and sums their tokens and cost. It is the only
@@ -11,8 +11,11 @@
  *  - `usage.bars` is the Nous account's plan and top-up balance as display strings and fractions
  *    (`billing_view._serialize_usage_model`); `{ok: true, available: false}` for any other account.
  *  - `session.usage` (the existing handler) gains `account_lines` and `credits_lines`: the provider
- *    account's limits as TEXT, which is all the gateway has of Anthropic's subscription windows or Codex's
- *    quota (`methods_session._account_usage_lines`).
+ *    account's limits as TEXT, which is all an older gateway has of Anthropic's subscription windows or
+ *    Codex's quota (`methods_session._account_usage_lines`).
+ *  - `account.usage {profile?, refresh?}` (the fork's `methods_account_usage.py`) is the structured twin of
+ *    those lines: per provider the plan, the quota windows with a share used and a reset time, detail
+ *    lines and credits, or the reason there is nothing.
  *
  * The numbers are derived from the profile's name and the date, so the same call answers the same on every
  * run and a test can assert on them; `POST /__fake/usage` replaces a profile's days outright when a test
@@ -44,6 +47,39 @@ export interface UsageStage {
   creditsLines: string[]
   /** The gateway has none of these routes and methods (an older one): 404 and `-32601`. */
   unsupported: boolean
+  /**
+   * The providers `account.usage` answers with, replacing the derived ones (`defaultAccountProviders`).
+   * Null: the derived ones.
+   */
+  account: AccountUsageProvider[] | null
+  /** An older gateway that has the calls above but not `account.usage`: only that method answers `-32601`. */
+  accountUnsupported: boolean
+  /** Every `account.usage` call, for a test to check what was sent (`GET /__fake/usage`). */
+  accountCalls: { profile: string | null; refresh: boolean }[]
+}
+
+/** One quota window of an `account.usage` provider. */
+export interface AccountUsageWindow {
+  id: string
+  label: string
+  used_percent: number | null
+  /** ISO UTC. */
+  reset_at: string | null
+  detail: string | null
+}
+
+/** One entry of `account.usage`'s `providers` (`agent/account_usage_view.py::entry_from_snapshot`). */
+export interface AccountUsageProvider {
+  provider: string
+  source: string
+  title: string
+  plan: string | null
+  available: boolean
+  unavailable_reason: string | null
+  fetched_at: string
+  windows: AccountUsageWindow[]
+  details: string[]
+  credits: { currency: string; remaining: number; total: number | null } | null
 }
 
 export const emptyUsageStage = (): UsageStage => ({
@@ -51,7 +87,10 @@ export const emptyUsageStage = (): UsageStage => ({
   bars: null,
   creditsLines: [],
   days: new Map(),
-  unsupported: false
+  unsupported: false,
+  account: null,
+  accountUnsupported: false,
+  accountCalls: []
 })
 
 /** `yyyy-MM-dd` for the UTC day `epochSeconds` is in: the day the gateway groups sessions by. */
@@ -210,6 +249,55 @@ export const anthropicAccountLines = (): string[] => [
   'Provider: anthropic (Max)',
   'Current session: 82% remaining (18% used) • resets in 2h 10m',
   'Current week: 64% remaining (36% used) • resets in 3d 4h'
+]
+
+const isoUtc = (epochSeconds: number): string => new Date(epochSeconds * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z')
+
+/**
+ * What `account.usage` answers by default: Claude's subscription as two windows with a share used and when it
+ * resets, and an OpenRouter account that is not signed in, so a client sees both a provider with numbers and
+ * one with a reason. The times are relative to `nowSeconds`, as a real provider's are.
+ */
+export const defaultAccountProviders = (nowSeconds: number): AccountUsageProvider[] => [
+  {
+    available: true,
+    credits: null,
+    details: ['Extra usage is off for this account.'],
+    fetched_at: isoUtc(nowSeconds),
+    plan: 'Max',
+    provider: 'anthropic',
+    source: 'oauth_usage_api',
+    title: 'Claude account limits',
+    unavailable_reason: null,
+    windows: [
+      {
+        detail: null,
+        id: 'current_session',
+        label: 'Current session',
+        reset_at: isoUtc(nowSeconds + 2 * 3600 + 10 * 60),
+        used_percent: 18
+      },
+      {
+        detail: null,
+        id: 'current_week',
+        label: 'Current week',
+        reset_at: isoUtc(nowSeconds + 3 * 86_400 + 4 * 3600),
+        used_percent: 36
+      }
+    ]
+  },
+  {
+    available: false,
+    credits: null,
+    details: [],
+    fetched_at: isoUtc(nowSeconds),
+    plan: null,
+    provider: 'openrouter',
+    source: 'credits_api',
+    title: 'OpenRouter credits',
+    unavailable_reason: 'Not signed in to this provider in this profile.',
+    windows: []
+  }
 ]
 
 /** `insights.get`'s whole answer. */

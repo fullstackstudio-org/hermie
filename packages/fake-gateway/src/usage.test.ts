@@ -288,3 +288,114 @@ describe('session.usage', () => {
     expect(usage.total).toBeGreaterThan(0)
   })
 })
+
+describe('account.usage', () => {
+  const calls = async (): Promise<{ profile: string | null; refresh: boolean }[]> => {
+    const response = await fetch(`${gateway.url}/__fake/usage`)
+
+    return ((await response.json()) as { accountCalls: { profile: string | null; refresh: boolean }[] }).accountCalls
+  }
+
+  it('answers per provider the plan, the windows with a share used and a reset time, details and credits', async () => {
+    const answer = await call('account.usage')
+    const providers = answer.providers as Record<string, unknown>[]
+
+    expect(answer.ok).toBe(true)
+    // The launch profile, as the gateway's own default.
+    expect(answer.profile).toBe(gateway.state.profiles.find(entry => entry.is_default)?.name)
+
+    const claude = providers.find(entry => entry.provider === 'anthropic') as Record<string, unknown>
+
+    expect(Object.keys(claude).sort()).toEqual(
+      [
+        'available',
+        'credits',
+        'details',
+        'fetched_at',
+        'plan',
+        'provider',
+        'source',
+        'title',
+        'unavailable_reason',
+        'windows'
+      ].sort()
+    )
+    expect(claude).toMatchObject({ available: true, plan: 'Max', unavailable_reason: null })
+
+    const windows = claude.windows as Record<string, unknown>[]
+
+    expect(windows.map(window => window.id)).toEqual(['current_session', 'current_week'])
+    expect(windows[0]).toMatchObject({ label: 'Current session', used_percent: 18 })
+    // ISO UTC, in the future: what "resets in" counts down to.
+    expect(String(windows[0]?.reset_at)).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/)
+    expect(Date.parse(String(windows[0]?.reset_at))).toBeGreaterThan(Date.now())
+  })
+
+  it('says why a provider has nothing: unavailable, with a reason and no windows', async () => {
+    const providers = (await call('account.usage')).providers as Record<string, unknown>[]
+    const router = providers.find(entry => entry.provider === 'openrouter')
+
+    expect(router).toMatchObject({
+      available: false,
+      unavailable_reason: 'Not signed in to this provider in this profile.',
+      windows: []
+    })
+  })
+
+  it('answers what a test staged, credits included, for the profile it is asked about', async () => {
+    await stage({
+      account: [
+        {
+          available: true,
+          credits: { currency: 'USD', remaining: 4.2, total: 10 },
+          details: [],
+          fetched_at: '2026-10-05T12:00:00Z',
+          plan: null,
+          provider: 'nous',
+          source: 'portal-account',
+          title: 'Nous credits',
+          unavailable_reason: null,
+          windows: []
+        }
+      ]
+    })
+
+    const answer = await call('account.usage', { profile: 'researcher' })
+
+    expect(answer.profile).toBe('researcher')
+    expect(answer.providers).toHaveLength(1)
+    expect((answer.providers as Record<string, unknown>[])[0]?.credits).toEqual({
+      currency: 'USD',
+      remaining: 4.2,
+      total: 10
+    })
+  })
+
+  it('keeps what it was asked, so a test can tell a refresh from a plain read', async () => {
+    await call('account.usage', { profile: 'researcher' })
+    await call('account.usage', { refresh: true })
+
+    expect(await calls()).toEqual([
+      { profile: 'researcher', refresh: false },
+      { profile: null, refresh: true }
+    ])
+  })
+
+  it('refuses a profile the gateway does not serve with 4064, never the launch profile’s answer', async () => {
+    await expect(call('account.usage', { profile: 'nobody' })).rejects.toMatchObject({ code: 4064 })
+  })
+
+  it('answers -32601 on a gateway that has the other usage calls and not this one', async () => {
+    await stage({ accountUnsupported: true })
+
+    await expect(call('account.usage')).rejects.toMatchObject({ code: -32601 })
+    // The rest of the usage calls are still there.
+    expect((await call('usage.bars')).ok).toBe(true)
+  })
+
+  it('answers -32601 on a gateway staged without any of the usage calls', async () => {
+    await stage({ unsupported: true })
+
+    await expect(call('account.usage')).rejects.toMatchObject({ code: -32601 })
+  })
+})

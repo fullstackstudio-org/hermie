@@ -61,11 +61,13 @@ import { DiffError, headOldPath, headPath, parseDiff } from './diff-hunks'
 import {
   anthropicAccountLines,
   daysRefusal,
+  defaultAccountProviders,
   emptyUsageStage,
   insights as insightsAnswer,
   nousBars,
   usageAnalytics,
   usageDaysOf,
+  type AccountUsageProvider,
   type UsageDay,
   type UsageStage
 } from './usage'
@@ -1266,6 +1268,12 @@ export interface FakeGatewayState {
    * (`POST /__fake/usage`).
    */
   usage: UsageStage
+  /**
+   * What `session.interrupt_all` answers beyond the sessions it stops (`POST /__fake/stop-all`): the number it
+   * says it may not stop (other people's turns in a shared chat) and the number whose stop failed, and
+   * whether the gateway has the method at all (an older one answers `-32601`).
+   */
+  stopAll: { unsupported: boolean; notAllowed: number; failed: number }
   /**
    * Every profile's credential vault and the one password manager on the "host" (`vault.ts`), with what a test
    * staged through `POST /__fake/vault`.
@@ -3353,6 +3361,7 @@ function initialState(options: FakeGatewayOptions): FakeGatewayState {
     profileSouls: new Map<string, string>(),
     deniedMethods: new Map<string, { code: number; message: string }>(),
     usage: emptyUsageStage(),
+    stopAll: { unsupported: false, notAllowed: 0, failed: 0 },
     vault: emptyVaultStage(),
     approvals: emptyApprovalGrantsStage(),
     attachedImages: [],
@@ -4198,6 +4207,33 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
   function resolveSession(id: string): FakeSession | undefined {
     return state.sessions.get(id) ?? findByRuntimeId(id)
+  }
+
+  /**
+   * Stop the reply a session is streaming, as `session.interrupt` does and `session.interrupt_all` does for
+   * each turn it stops. The agent stops: nothing more of the reply is sent, its own completion included, and
+   * what was said stays in the history. Before the `message.complete`, so the interrupted turn's completion is
+   * the last frame it produces.
+   */
+  function interruptReply(session: FakeSession): void {
+    streamEpochs.set(session.storedId, (streamEpochs.get(session.storedId) ?? 0) + 1)
+
+    const partial = state.runningSessions.has(session.storedId)
+      ? (interruptedReplies.get(session.storedId)?.() ?? '')
+      : ''
+
+    if (partial) {
+      session.messages.push({
+        role: 'assistant',
+        text: partial,
+        row_id: session.messages.length + 1,
+        timestamp: nowSeconds()
+      })
+    }
+
+    state.runningSessions.delete(session.storedId)
+    publish('message.complete', session.storedId, { text: '', status: 'interrupted' })
+    turns.delete(session.storedId)
   }
 
   function resolveRuntimeId(id: string): string {
@@ -5086,6 +5122,41 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       return
     }
 
+    if (path === '/__fake/usage' && method === 'GET') {
+      // What `account.usage` was asked, oldest first: whose profile, and whether the call said `refresh`.
+      json(res, 200, { accountCalls: state.usage.accountCalls })
+
+      return
+    }
+
+    if (path === '/__fake/stop-all' && method === 'POST') {
+      /*
+        Stage what `session.interrupt_all` answers beyond the sessions it stops: `notAllowed` and `failed`
+        counts, `unsupported` for a gateway that predates the method. `clear: true` takes it all back.
+      */
+      const body = await readBody(req)
+
+      if (body.clear === true) {
+        state.stopAll = { unsupported: false, notAllowed: 0, failed: 0 }
+      }
+
+      if (typeof body.unsupported === 'boolean') {
+        state.stopAll.unsupported = body.unsupported
+      }
+
+      if (typeof body.notAllowed === 'number' && body.notAllowed >= 0) {
+        state.stopAll.notAllowed = Math.floor(body.notAllowed)
+      }
+
+      if (typeof body.failed === 'number' && body.failed >= 0) {
+        state.stopAll.failed = Math.floor(body.failed)
+      }
+
+      json(res, 200, state.stopAll)
+
+      return
+    }
+
     if (path === '/__fake/usage' && method === 'POST') {
       /*
         Stage what the usage calls answer (`usage.ts`). Not part of the contract: a test's way of putting a
@@ -5097,6 +5168,8 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
           { bars: true | false }           `usage.bars` answers the Nous balance, or "no balance"
           { accountLines: true | [..] }    `session.usage` carries account lines (the Anthropic ones, or these)
           { creditsLines: [..] }           and credits lines
+          { account: [..] | null }         the providers `account.usage` answers with (null: the derived ones)
+          { accountUnsupported: bool }     only `account.usage` answers -32601: an older gateway
           { unsupported: true | false }    the route 404s and the methods answer -32601
       */
       const body = await readBody(req)
@@ -5123,6 +5196,16 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
 
       if (Array.isArray(body.creditsLines)) {
         state.usage.creditsLines = body.creditsLines.filter((line): line is string => typeof line === 'string')
+      }
+
+      if (Array.isArray(body.account)) {
+        state.usage.account = body.account as AccountUsageProvider[]
+      } else if (body.account === null) {
+        state.usage.account = null
+      }
+
+      if (typeof body.accountUnsupported === 'boolean') {
+        state.usage.accountUnsupported = body.accountUnsupported
       }
 
       if (typeof body.unsupported === 'boolean') {
@@ -9660,6 +9743,32 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       }
 
       /*
+        The fork's `account.usage {profile?, refresh?}` (`methods_account_usage.py`): per provider the profile's
+        models run on, the plan, the quota windows, details and credits as fields, or why there is nothing. A
+        profile the gateway does not serve is 4064. Every call is kept for a test (`GET /__fake/usage`): the
+        real gateway serves a `refresh` inside 15 s from its cache, and what a client sent is what it can check.
+      */
+      case 'account.usage': {
+        if (state.usage.unsupported || state.usage.accountUnsupported) {
+          throw new RpcFault(-32601, `unknown method: ${method}`)
+        }
+
+        const named = typeof params.profile === 'string' ? params.profile.trim() : ''
+
+        if (named && !state.profiles.some(entry => entry.name === named)) {
+          throw new RpcFault(4064, `Profile '${named}' does not exist.`)
+        }
+
+        state.usage.accountCalls.push({ profile: named || null, refresh: params.refresh === true })
+
+        return {
+          ok: true,
+          profile: named || (state.profiles.find(entry => entry.is_default)?.name ?? LAUNCH_PROFILE),
+          providers: state.usage.account ?? defaultAccountProviders(nowSeconds())
+        }
+      }
+
+      /*
         `tui_gateway/methods_vault.py`: one profile's credential vault (see `vault.ts`). `params.profile` picks
         the vault, as the real handlers bind that profile's home around their body; none is the launch
         profile's, and one the gateway does not serve is 4064 (`ProfileUnavailableError`), never the launch one.
@@ -9832,31 +9941,58 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         const session = resolveSession(String(params.session_id ?? ''))
 
         if (session) {
-          // The agent stops: nothing more of this reply is sent, its own
-          // completion included. Before the `message.complete` below, so the
-          // interrupted turn's completion is the last frame it produces.
-          streamEpochs.set(session.storedId, (streamEpochs.get(session.storedId) ?? 0) + 1)
-
-          // What was said stays said: the partial reply is in the history.
-          const partial = state.runningSessions.has(session.storedId)
-            ? (interruptedReplies.get(session.storedId)?.() ?? '')
-            : ''
-
-          if (partial) {
-            session.messages.push({
-              role: 'assistant',
-              text: partial,
-              row_id: session.messages.length + 1,
-              timestamp: nowSeconds()
-            })
-          }
-
-          state.runningSessions.delete(session.storedId)
-          publish('message.complete', session.storedId, { text: '', status: 'interrupted' })
-          turns.delete(session.storedId)
+          interruptReply(session)
         }
 
         return { status: 'interrupted', interrupted: true }
+      }
+
+      /*
+        The fork's `session.interrupt_all` (`methods_session.py`): every running turn the caller may stop, in
+        one call, across profiles or just `profile`. A turn that ends before its stop is `already_idle`, as are
+        the sessions with no turn; `not_allowed` and `failed` are what a test staged (`POST /__fake/stop-all`),
+        since the fake has one caller and no shared chats. Cron runs are not here and are never stopped.
+      */
+      case 'session.interrupt_all': {
+        if (state.stopAll.unsupported) {
+          throw new RpcFault(-32601, `unknown method: ${method}`)
+        }
+
+        const profile = typeof params.profile === 'string' ? params.profile.trim() : ''
+
+        if (profile && !state.profiles.some(entry => entry.name === profile)) {
+          throw new RpcFault(4064, `Profile '${profile}' does not exist.`)
+        }
+
+        const stopped: Record<string, unknown>[] = []
+        let idle = 0
+
+        for (const session of [...state.sessions.values()]) {
+          if (session.closed || (profile && session.profile !== profile)) {
+            continue
+          }
+
+          if (!state.runningSessions.has(session.storedId)) {
+            idle += 1
+            continue
+          }
+
+          interruptReply(session)
+          stopped.push({
+            profile: session.profile,
+            session_id: session.id,
+            session_key: session.storedId,
+            source: 'tui',
+            title: session.title || null
+          })
+        }
+
+        return {
+          already_idle: idle,
+          failed: state.stopAll.failed,
+          not_allowed: state.stopAll.notAllowed,
+          stopped
+        }
       }
 
       case 'session.active_list': {
