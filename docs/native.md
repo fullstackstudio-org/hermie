@@ -2585,14 +2585,25 @@ one line per turn (bot, gateway, stopped / already finished / failed), the count
   another device of the same person, a branch) is listed in full by the gateway to a connection that may act on it, and
   is interrupted by its runtime id alone. Where the list cannot be read, the app's own busy chats are all there is, and
   the summary says so.
-- **What it cannot reach.** A bare row of the list (busy, no runtime id) is a session this connection may not act on:
-  counted, not stopped. Gateways other than the live one are out of reach (one socket): named in the summary. There is
-  no "stop all for this user" RPC in the fork (`tui_gateway/methods_session.py`); a turn that does not show up in
-  `session.active_list` for this login (a cron run outside the gateway process, another person's turn) is out of reach.
+- **In one call where the gateway has it.** The fork's `session.interrupt_all {profile?}` stops the caller's own turns
+  across profiles and clients in one call and answers `{stopped: [{session_id, session_key, profile, title, source}],
+already_idle, not_allowed, failed}`. The yes sends it once (`StoppableGateway.stopEverything`,
+  `SessionStopGateway`) instead of one `session.interrupt` per turn, and the summary is its answer: one line per
+  stopped turn (the bot of its profile, the title, where it was started from), and the counts for already idle, not
+  allowed (another person's turn in a shared chat, which the gateway stops narrowly or leaves) and failed. The
+  "cannot be stopped from here" and unreadable-list caveats go for a gateway stopped this way, because that call does
+  not go by the list; a note says scheduled (cron) runs are not stopped. The question before it still reads
+  `session.active_list`, for the count and the names. There is no advert for the method: a gateway that answers
+  `-32601` is stopped turn by turn exactly as before (and is not asked again), and so is a call that failed for another
+  reason, since nothing is then known to have been stopped. MCP agents are refused it (4033).
+- **What it cannot reach** (a gateway stopped turn by turn). A bare row of the list (busy, no runtime id) is a session
+  this connection may not act on: counted, not stopped. Gateways other than the live one are out of reach (one
+  socket): named in the summary.
 - **Failures.** One turn failing is a line in the summary, never a reason to leave the others running.
-- Tests: `NeedsYouInboxTests`, `EmergencyStopModelTests`, `SessionStopGatewayTests` and `LiveWiringInboxTests`
+- Tests: `NeedsYouInboxTests`, `EmergencyStopModelTests`, `EmergencyStopEverythingTests` (the one-call path, its
+  summary, the fallback and the wire decode), `SessionStopGatewayTests` and `LiveWiringInboxTests`
   (HermieCoreTests; a scripted link), `NeedsYouViewTests` (HermieUITests), `EmergencyStopIntegrationTests` (the fake
-  gateway: the app's own chat and a second client's turn stopped from one control).
+  gateway: the app's own chat and a second client's turn stopped from one control, in one call and turn by turn).
 
 ## Search everywhere
 
@@ -2711,12 +2722,16 @@ settings page has a **Usage** row, beside the capability rows, that shows today'
   worded them, plain text. The days are the gateway's UTC days and a cost the gateway priced itself is marked `~`:
   the footer says both. A failed bot is named and keeps its earlier days; a gateway without the route says so once
   (`UsageFailure.unsupported`: a 404, or `-32601`) instead of offering a retry that cannot work.
-- **Provider account usage.** What the gateway offers today is the Nous bars and the account lines, both only as
-  the fork renders them: Anthropic's subscription windows (`five_hour`, `seven_day`, per-model weekly) and Codex's
-  quota exist only as text lines inside `/usage` and `session.usage`, so they are drawn as text, and only while a
-  chat of the bot has a live session to ask. Drawing them as bars, and for a bot that has no chat open, needs one
-  structured, profile-scoped RPC in the fork (not built; the app does not change the fork for it). The shape the
-  app would read, from `agent/account_usage.py`'s `AccountUsageSnapshot`:
+- **Provider account usage** (`AccountUsageModel`, `AccountUsage`, `AccountUsageViews`). The fork's
+  `account.usage {profile?, refresh?}` is the structured twin of the account lines: per provider the profile's models
+  run on, the plan, the quota windows (`used_percent`, `reset_at`), detail lines, credits, or why there is nothing
+  (`available: false` and a reason). The bot's page asks for its own profile, the overview for the launch profile's.
+  Each provider is a card: title and plan, each window as a bar with its label, share used and "Resets in 2h 10m",
+  the details, the credits, or the reason; with a **Refresh** button. A gateway answers a provider from a cache for
+  about a minute and re-reads it for `refresh: true` at most once per 15 s, so the button asks for a forced read only
+  when the last forced one is that old and is an ordinary read otherwise (`AccountUsageModel.canForceRefresh`). Where the
+  gateway answers `-32601` the page draws what it drew before (the live session's text lines and the Nous bars); a
+  failed read keeps what an earlier one found, and none of it is ever a failure of the page's days. Shape:
 
   ```text
   account.usage { profile?: string, refresh?: boolean }
@@ -2737,8 +2752,7 @@ settings page has a **Usage** row, beside the capability rows, that shows today'
        }] }
   ```
 
-  Never a credential, a header or the provider's raw body; a snapshot cached for a minute or so and the provider
-  fetch rate limited, as `/usage` already is by the provider's own limits.
+  Never a credential, a header or the provider's raw body.
 
 - **The limit** (`UsageAlertSettingsModel`, `UsageAlertMonitor`, `UsageAlertDriver`). A switch and a cost and a
   token limit per day, on this device (`hermie.usage.alerts`). The day's total across every bot of the live gateway
@@ -2750,8 +2764,11 @@ settings page has a **Usage** row, beside the capability rows, that shows today'
   awake and looks. What was told is kept (`hermie.usage.alertState`) and dropped with the gateway.
 - **Tests.** `UsageAggregationTests` (the analytics rows, UTC days, per day and per bot, the provider parsing),
   `UsageModelsTests` (the models, the service's failures), `UsageAlertTests` (the evaluator, the monitor, the driver),
-  `UsageViewTests`, and `UsageIntegrationTests` against the fake gateway, which now has the four calls
-  (`packages/fake-gateway/src/usage.ts`, staged with `POST /__fake/usage`, pinned by `usage.test.ts`).
+  `AccountUsageTests` (the wire decode, the service's call, the model's fallback and refresh floor),
+  `UsageViewTests`, and `UsageIntegrationTests` against the fake gateway, which has the calls
+  (`packages/fake-gateway/src/usage.ts`, staged with `POST /__fake/usage`, pinned by `usage.test.ts`; `account.usage`
+  and `session.interrupt_all` are in `server.ts`, the latter pinned by `interrupt-all.test.ts` and staged with
+  `POST /__fake/stop-all`).
 
 ## Quick ask
 
