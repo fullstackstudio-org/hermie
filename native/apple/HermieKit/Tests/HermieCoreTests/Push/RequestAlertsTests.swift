@@ -32,6 +32,8 @@ final class RecordingLocalNotifications: LocalNotificationCenter {
 @MainActor
 final class AlertKnobs {
   var settings = LocalAlertSettings(permission: .granted, enabled: true, preferences: .standard)
+  /// The Focus filter in effect: none until a test sets one.
+  var focus = FocusFilter.unfiltered
   var muted: Set<String> = []
   private(set) var badges: [Int] = []
   private(set) var bounces = 0
@@ -47,7 +49,7 @@ struct AlertRig {
   let alerts: RequestAlerts
   let window = UUID()
 
-  init() {
+  init(entitled: Bool = RequestAlerts.timeSensitiveEntitled) {
     let center = self.center
     let knobs = self.knobs
 
@@ -56,7 +58,9 @@ struct AlertRig {
       settings: { knobs.settings },
       isMuted: { gateway, bot in knobs.muted.contains("\(gateway)/\(bot)") },
       setBadge: { knobs.badge($0) },
-      requestDockAttention: { knobs.bounce() }
+      requestDockAttention: { knobs.bounce() },
+      timeSensitive: entitled,
+      focusFilter: { knobs.focus }
     )
   }
 
@@ -543,9 +547,9 @@ struct RequestAlertsTests {
     #expect(rig.knobs.bounces == 1, "a request that is not posted bounces nothing")
   }
 
-  @Test("a notification is posted at the active level without the time-sensitive entitlement")
+  @Test("a notification for a request that is not urgent is posted at the active level")
   func interruptionLevel() async {
-    #expect(!RequestAlerts.timeSensitiveEntitled)
+    #expect(RequestAlerts.timeSensitiveEntitled)
 
     let rig = AlertRig()
     rig.background()

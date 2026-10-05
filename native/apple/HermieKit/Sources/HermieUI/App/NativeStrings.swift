@@ -323,6 +323,14 @@ enum NativeStrings {
     static var preferencesWriteFailed: String {
       String(localized: "native.push.preferencesWriteFailed", table: "Native", bundle: .module)
     }
+    /// Urgent requests break through Focus
+    static var urgentBreakthrough: String {
+      String(localized: "native.push.urgentBreakthrough", table: "Native", bundle: .module)
+    }
+    /// Approvals, questions and confirmations are sent as time-sensitive notifications, which a Focus lets through. Turn this off to let your Focus keep them quiet too. Which bots may notify you is chosen per Focus, in the system’s Focus settings.
+    static var urgentBreakthroughHint: String {
+      String(localized: "native.push.urgentBreakthroughHint", table: "Native", bundle: .module)
+    }
     /// Every kind is off, so this device is not told about anything.
     static var noTypeWanted: String {
       String(localized: "native.push.noTypeWanted", table: "Native", bundle: .module)

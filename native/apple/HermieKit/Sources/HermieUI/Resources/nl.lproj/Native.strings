@@ -1710,6 +1710,10 @@
 	<string>Hermie kan de meldingsregistraties van dit apparaat niet lezen, dus meldingen staan hier stil.</string>
 	<key>native.push.troubleSettings</key>
 	<string>Hermie kan de meldingsinstellingen van dit apparaat niet lezen, dus meldingen staan hier stil.</string>
+	<key>native.push.urgentBreakthrough</key>
+	<string>Dringende verzoeken doorbreken Focus</string>
+	<key>native.push.urgentBreakthroughHint</key>
+	<string>Goedkeuringen, vragen en bevestigingen komen binnen als tijdgevoelige meldingen, die een Focus doorlaat. Zet dit uit om ook die door je Focus stil te laten houden. Welke bots je mogen melden kies je per Focus, in de Focus-instellingen van het systeem.</string>
 	<key>native.push.waiting</key>
 	<string>Wacht op het pushadres van dit apparaat…</string>
 	<key>native.requestAlert.approval</key>

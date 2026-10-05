@@ -59,6 +59,12 @@ public struct OpenRequest: Sendable, Equatable {
   public var requestMethod: PushRequestMethod? {
     PushRequestMethod(rawValue: method)
   }
+
+  /// Whether the bot is stopped on it (`PushRequestMethod.isUrgent`). A method this build does not
+  /// name is not.
+  public var isUrgent: Bool {
+    requestMethod?.isUrgent ?? false
+  }
 }
 
 // MARK: - The decision
@@ -77,6 +83,9 @@ public enum LocalAlertSkip: Sendable, Equatable {
   case switchedOff
   /// The reader switched the `request` type off.
   case typeOff
+  /// The Focus that is on has a filter that does not let this bot, or this kind of request, through
+  /// (`FocusFilter`).
+  case focusFilter
   /// The app is in front and the chat is on screen: the request is already in the reader's face.
   case chatInFront
 }
@@ -94,6 +103,9 @@ public struct LocalAlertContext: Sendable, Equatable {
   public var appActive: Bool
   /// The request's chat is on screen in a window that is key and active.
   public var chatVisible: Bool
+  /// What the active Focus filter says about this request's bot and kind (`FocusFilter.allows`):
+  /// true when no Focus filter is active.
+  public var focusAllows: Bool
 
   public init(
     permission: PushPermission,
@@ -101,7 +113,8 @@ public struct LocalAlertContext: Sendable, Equatable {
     preferences: PushPreferences = .standard,
     muted: Bool = false,
     appActive: Bool,
-    chatVisible: Bool
+    chatVisible: Bool,
+    focusAllows: Bool = true
   ) {
     self.permission = permission
     self.enabled = enabled
@@ -109,6 +122,7 @@ public struct LocalAlertContext: Sendable, Equatable {
     self.muted = muted
     self.appActive = appActive
     self.chatVisible = chatVisible
+    self.focusAllows = focusAllows
   }
 }
 
@@ -136,6 +150,10 @@ public enum LocalAlertPolicy {
       return .skip(.typeOff)
     }
 
+    guard context.focusAllows else {
+      return .skip(.focusFilter)
+    }
+
     if context.appActive, context.chatVisible {
       return .skip(.chatInFront)
     }
@@ -151,6 +169,16 @@ public enum LocalInterruption: Sendable, Equatable {
   case active
   /// Only with the Time Sensitive Notifications entitlement (`RequestAlerts.timeSensitiveEntitled`).
   case timeSensitive
+
+  /**
+   How loudly this request may interrupt: time-sensitive when it is urgent (an approval, a question
+   or a confirmation: `PushRequestMethod.isUrgent`), the build has the entitlement and the reader
+   did not switch "Urgent requests break through Focus" off; active otherwise. Everything else a
+   bot asks for, and any plain message, is active.
+   */
+  public static func level(for request: OpenRequest, entitled: Bool, urgentBreaksThroughFocus: Bool) -> LocalInterruption {
+    entitled && urgentBreaksThroughFocus && request.isUrgent ? .timeSensitive : .active
+  }
 }
 
 /// One local notification, without the UserNotifications types (which need a bundle), so what is

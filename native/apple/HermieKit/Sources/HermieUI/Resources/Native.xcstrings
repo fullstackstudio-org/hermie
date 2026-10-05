@@ -20512,6 +20512,52 @@
         }
       }
     },
+    "native.push.urgentBreakthrough" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dringende Anfragen durchbrechen den Fokus"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Urgent requests break through Focus"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dringende verzoeken doorbreken Focus"
+          }
+        }
+      }
+    },
+    "native.push.urgentBreakthroughHint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Genehmigungen, Fragen und Bestätigungen werden als zeitkritische Mitteilungen gesendet, die ein Fokus durchlässt. Schalte das aus, damit dein Fokus auch diese stumm hält. Welche Bots dich benachrichtigen dürfen, wählst du pro Fokus in den Fokus-Einstellungen des Systems."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approvals, questions and confirmations are sent as time-sensitive notifications, which a Focus lets through. Turn this off to let your Focus keep them quiet too. Which bots may notify you is chosen per Focus, in the system’s Focus settings."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Goedkeuringen, vragen en bevestigingen komen binnen als tijdgevoelige meldingen, die een Focus doorlaat. Zet dit uit om ook die door je Focus stil te laten houden. Welke bots je mogen melden kies je per Focus, in de Focus-instellingen van het systeem."
+          }
+        }
+      }
+    },
     "native.push.waiting" : {
       "extractionState" : "manual",
       "localizations" : {

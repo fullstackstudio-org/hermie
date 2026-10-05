@@ -65,6 +65,9 @@ public enum StoreKeys {
   /// Which kinds of notification this device wants and whether it wants a preview:
   /// `{"types": {…}, "preview": bool}` (`PushPreferences`). Device-wide, like the switch.
   public static let pushPreferences = "hermie.push.preferences"
+  /// Whether an urgent request (an approval, a question, a confirmation) is posted as time-sensitive,
+  /// so it may break through a Focus: `true` or `false`, on when never stored. Device-wide.
+  public static let pushUrgentBreakthrough = "hermie.push.urgentBreakthrough"
   /**
    This device's push relay registrations, one map keyed by gateway id: handle, environment, token
    fingerprint and last refresh. Device-wide ON PURPOSE, not namespaced: removing a gateway (here or

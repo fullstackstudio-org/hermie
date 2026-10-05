@@ -225,6 +225,22 @@ public enum PushRequestMethod: String, Sendable, CaseIterable {
   /// never, whatever the registration's `preview` says.
   public var carriesPreview: Bool { self == .approval || self == .clarify }
 
+  /**
+   Whether the bot is stopped on this until the person answers, so a notification about it is
+   time-sensitive (it may break through a Focus) and still passes a Focus filter that allows only
+   urgent requests: an approval, a question and a confirmation (at any level, a passkey one too).
+   Everything else (a form, a file, a draft, a diff, a signature, a device request, a secure input)
+   waits for the person without a clock on it.
+   */
+  public var isUrgent: Bool {
+    switch self {
+    case .approval, .clarify, .confirm: true
+    case .secret, .sudo, .vaultUnlockPrompt, .vaultCode, .vaultSaveLogin, .inputForm, .inputFile, .reviewDraft,
+      .reviewDiff, .inputSignature, .deviceLocation, .deviceContact, .deviceCalendar, .deviceScan:
+      false
+    }
+  }
+
   /// A value typed into the app: the secure inputs (`secret`, `sudo`, `vault.*`).
   public var isSecureInput: Bool {
     switch self {

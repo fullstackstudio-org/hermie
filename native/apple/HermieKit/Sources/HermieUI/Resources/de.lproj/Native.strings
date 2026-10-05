@@ -1710,6 +1710,10 @@
 	<string>Hermie kann die Mitteilungsregistrierungen dieses Geräts nicht lesen, daher sind Mitteilungen hier pausiert.</string>
 	<key>native.push.troubleSettings</key>
 	<string>Hermie kann die Mitteilungseinstellungen dieses Geräts nicht lesen, daher sind Mitteilungen hier pausiert.</string>
+	<key>native.push.urgentBreakthrough</key>
+	<string>Dringende Anfragen durchbrechen den Fokus</string>
+	<key>native.push.urgentBreakthroughHint</key>
+	<string>Genehmigungen, Fragen und Bestätigungen werden als zeitkritische Mitteilungen gesendet, die ein Fokus durchlässt. Schalte das aus, damit dein Fokus auch diese stumm hält. Welche Bots dich benachrichtigen dürfen, wählst du pro Fokus in den Fokus-Einstellungen des Systems.</string>
 	<key>native.push.waiting</key>
 	<string>Wartet auf die Push-Adresse dieses Geräts…</string>
 	<key>native.requestAlert.approval</key>

@@ -35,6 +35,8 @@ public enum SharedContainer {
   public static let widgetSnapshotFile = "widget-snapshot.json"
   /// `SHARE_TARGETS_FILE`.
   public static let shareTargetsFile = "share-targets.json"
+  /// The Focus filter the person set for the active Focus (`FocusFilterStore`).
+  public static let focusFilterFile = "focus-filter.json"
   /// `SHARE_OUTBOX_DIRECTORY`.
   public static let shareOutboxDirectory = "share-outbox"
   /// `SHARE_MANIFEST_FILE`.

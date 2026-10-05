@@ -1861,11 +1861,25 @@ same data bag as a relay push (`RequestAlertContent`), so a tap, Allow and Deny 
 push act on it through the code they use for a remote one. With previews off the body is "Needs your attention";
 with them on it is the contract's words for the kind, and only an approval or a clarify adds its own short line
 (never a command, a field, a diff or a detail). The identifier is `hermie.request.<gateway>.<request id>`, the
-thread is the chat's, the level is `active` (there is no time-sensitive entitlement: `RequestAlerts.timeSensitiveEntitled`),
+thread is the chat's, the level is `timeSensitive` for an approval, a question and a confirmation
+(`PushRequestMethod.isUrgent`) and `active` for everything else (both apps carry
+`com.apple.developer.usernotifications.time-sensitive`, `RequestAlerts.timeSensitiveEntitled`; Settings → Notifications has
+"Urgent requests break through Focus", on by default, which posts them at `active` when off),
 the badge is the number posted and not taken away (zero again when the app comes to the front, as before), and a
 confirmation bounces the Dock icon once on the Mac. A remote push for the same request is not suppressed: the app
 has no code that runs when one is delivered to a background app, and a relay collapse id is the plugin's `eventId`,
 which a client cannot derive.
+
+**Focus filter.** The app has a Focus filter (`HermieFocusFilterIntent`, a `SetFocusFilterIntent` in the app target next to the
+other intents): per Focus the person picks all bots, chosen bots or none, and optionally only urgent requests. When the Focus
+turns on the system performs the intent in the app's process, which stores a `FocusFilter` as `focus-filter.json` in the App
+Group (`FocusFilterStore.apply`; the unfiltered state removes the file, and nothing readable is "no filter"). `RequestAlerts`
+reads it each time a request arrives and skips the notification when `FocusFilter.allows(gatewayKey:bot:urgent:)` says no
+(`LocalAlertSkip.focusFilter`); a request held back is not posted late when the Focus ends, and stays in the app. Bots are named
+by gateway key and handle; the picker (`HermieFocusBotEntity`, `FocusBotChoices`) lists the roster the widgets read, so only the
+live gateway's bots as of the app's last run. The app also asks the system for the filter in effect (`current`) whenever it
+comes to the front and drops a stored filter whose Focus is gone (`HermieFocusFilterSync`). There is no notification service
+extension, so a remote push is not filtered by the app: the system shows it unless the Focus itself silences the app.
 
 **Still held.** Showing a request opened from `PushRoute.request` in its own sheet; a named
 conversation (`PushRoute.conversation`) opens the bot's chat until the conversation viewer lands;

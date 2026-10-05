@@ -195,6 +195,12 @@ public final class PushController {
   public private(set) var preferences = PushPreferences.standard
   /// The last change of a preference could not be stored; it stayed where it was.
   public private(set) var preferencesWriteFailed = false
+  /// "Urgent requests break through Focus": an approval, a question or a confirmation is posted as a
+  /// time-sensitive notification, which a Focus lets through. On until the reader switches it off.
+  /// Device-wide and local: nothing is written to a gateway, so it is not part of `preferences`.
+  public private(set) var urgentBreaksThroughFocus = true
+  /// The last change of `urgentBreaksThroughFocus` could not be stored; it stayed where it was.
+  public private(set) var urgentWriteFailed = false
   /// Gateways a reset could not revoke at the relay (their secrets are kept for another try).
   public private(set) var resetLeftovers: [String] = []
   /// Whether each gateway's notifier will deliver to this device, as its row writer read it.
@@ -321,6 +327,8 @@ public final class PushController {
     // Unreadable choices are the standard ones: every type, no preview. Nothing is lost by it, and the
     // next change writes them again.
     preferences = PushPreferences.decoded(try? await settings.string(forKey: StoreKeys.pushPreferences))
+    // Unreadable or never stored is the default: urgent requests break through.
+    urgentBreaksThroughFocus = (try? await settings.value(Bool.self, forKey: StoreKeys.pushUrgentBreakthrough)) ?? true
     permission = await system.permission()
 
     if let held = await registrar.registrations() {
@@ -408,6 +416,24 @@ public final class PushController {
 
       return next
     }
+  }
+
+  /// "Urgent requests break through Focus". Ignored before `start()`. Like the other choices it moves
+  /// only once it is stored.
+  public func setUrgentBreaksThroughFocus(_ on: Bool) async {
+    guard started, on != urgentBreaksThroughFocus else {
+      return
+    }
+
+    do {
+      try await settings.set(on, forKey: StoreKeys.pushUrgentBreakthrough)
+    } catch {
+      urgentWriteFailed = true
+      return
+    }
+
+    urgentWriteFailed = false
+    urgentBreaksThroughFocus = on
   }
 
   /// One change at a time, each made from the choices as they are when its turn comes, so two quick
@@ -538,12 +564,15 @@ public final class PushController {
     try? await settings.removeValue(forKey: StoreKeys.pushEnabled)
     try? await settings.removeValue(forKey: StoreKeys.pushRetired)
     try? await settings.removeValue(forKey: StoreKeys.pushPreferences)
+    try? await settings.removeValue(forKey: StoreKeys.pushUrgentBreakthrough)
 
     let rows = Set(gateways.map(\.id)).union(registrations.keys)
 
     enabled = false
     preferences = .standard
     preferencesWriteFailed = false
+    urgentBreaksThroughFocus = true
+    urgentWriteFailed = false
     retired = []
     registrations = [:]
     failures = [:]

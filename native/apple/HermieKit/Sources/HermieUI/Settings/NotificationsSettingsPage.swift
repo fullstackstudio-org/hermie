@@ -66,6 +66,7 @@ struct NotificationsSettingsPage: View {
       if push.enabled {
         typesSection(push)
         previewSection(push)
+        urgentSection(push)
       }
 
       if push.enabled, !launch.gateways.entries.isEmpty {
@@ -144,6 +145,26 @@ struct NotificationsSettingsPage: View {
       .accessibilityIdentifier("hermie.settings.notifications.preview")
     } footer: {
       SettingsNote(Strings.App.Settings.Notifications.previewHint)
+    }
+  }
+
+  /// Whether an approval, a question or a confirmation is time-sensitive, so a Focus lets it through.
+  /// This device only: nothing about it is written to a gateway.
+  @ViewBuilder private func urgentSection(_ push: PushController) -> some View {
+    Section {
+      Toggle(
+        NativeStrings.Push.urgentBreakthrough,
+        isOn: Binding(
+          get: { push.urgentBreaksThroughFocus }, set: { on in Task { await push.setUrgentBreaksThroughFocus(on) } })
+      )
+      .accessibilityIdentifier("hermie.settings.notifications.urgentBreakthrough")
+
+      if push.urgentWriteFailed {
+        Text(NativeStrings.Push.preferencesWriteFailed)
+          .accessibilityIdentifier("hermie.settings.notifications.urgentWriteFailed")
+      }
+    } footer: {
+      SettingsNote(NativeStrings.Push.urgentBreakthroughHint)
     }
   }
 

@@ -6,6 +6,8 @@
 	<string>%@ are waiting on you.</string>
 	<key>%@ is waiting on you.</key>
 	<string>%@ is waiting on you.</string>
+	<key>All bots</key>
+	<string>All bots</string>
 	<key>Ask ${bot} ${prompt}</key>
 	<string>Ask ${bot} ${prompt}</string>
 	<key>Ask a bot</key>
@@ -14,8 +16,16 @@
 	<string>Bot</string>
 	<key>Bots needing input</key>
 	<string>Bots needing input</string>
+	<key>Bots that may notify</key>
+	<string>Bots that may notify</string>
 	<key>Chats</key>
 	<string>Chats</string>
+	<key>Choose which bots may notify you while this Focus is on.</key>
+	<string>Choose which bots may notify you while this Focus is on.</string>
+	<key>Choose which bots notify</key>
+	<string>Choose which bots notify</string>
+	<key>Chosen bots</key>
+	<string>Chosen bots</string>
 	<key>Get the bots needing input</key>
 	<string>Get the bots needing input</string>
 	<key>Hermie could not do that.</key>
@@ -28,8 +38,14 @@
 	<string>List the bots that are waiting for an answer, without opening Hermie.</string>
 	<key>Message</key>
 	<string>Message</string>
+	<key>No bots</key>
+	<string>No bots</string>
 	<key>Nothing is waiting on you.</key>
 	<string>Nothing is waiting on you.</string>
+	<key>Notify: ${scope}</key>
+	<string>Notify: ${scope}</string>
+	<key>Only urgent requests</key>
+	<string>Only urgent requests</string>
 	<key>Open a chat</key>
 	<string>Open a chat</string>
 	<key>Open one of your bots' chats in Hermie.</key>

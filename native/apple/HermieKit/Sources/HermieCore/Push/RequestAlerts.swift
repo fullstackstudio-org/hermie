@@ -1,4 +1,5 @@
 import Foundation
+import HermieShared
 
 /// What the reader chose about notifications, as the decision reads it.
 public struct LocalAlertSettings: Sendable, Equatable {
@@ -6,11 +7,20 @@ public struct LocalAlertSettings: Sendable, Equatable {
   /// The reader's switch for notifications.
   public var enabled: Bool
   public var preferences: PushPreferences
+  /// "Urgent requests break through Focus": whether an approval, a question or a confirmation is
+  /// posted as time-sensitive. On unless the reader switched it off.
+  public var urgentBreaksThroughFocus: Bool
 
-  public init(permission: PushPermission, enabled: Bool, preferences: PushPreferences = .standard) {
+  public init(
+    permission: PushPermission,
+    enabled: Bool,
+    preferences: PushPreferences = .standard,
+    urgentBreaksThroughFocus: Bool = true
+  ) {
     self.permission = permission
     self.enabled = enabled
     self.preferences = preferences
+    self.urgentBreaksThroughFocus = urgentBreaksThroughFocus
   }
 }
 
@@ -21,8 +31,9 @@ public struct LocalAlertSettings: Sendable, Equatable {
  with what it knew:
 
  - **A request it has not seen** is decided once (`LocalAlertPolicy`): the system must allow
-   notifications, the reader's switches must want a `request`, and the person must not be looking at
-   that chat already. If so, one notification is posted straight away, named by the request
+   notifications, the reader's switches must want a `request`, the Focus that is on must let that bot
+   and kind through (`FocusFilter`, set per Focus in the system's settings), and the person must not be
+   looking at that chat already. If so, one notification is posted straight away, named by the request
    (`RequestAlertContent.identifier`), so a second post for the same request is the same
    notification. A request that arrived while the person was looking is never posted afterwards.
  - **A request that is gone** (answered here or on another device, cancelled, timed out, withdrawn)
@@ -44,11 +55,12 @@ public struct LocalAlertSettings: Sendable, Equatable {
  */
 @MainActor
 public final class RequestAlerts {
-  /// Whether the build has the Time Sensitive Notifications entitlement. It does not (neither
-  /// `Hermie.entitlements` has `com.apple.developer.usernotifications.time-sensitive`), so a request is
-  /// posted at the `active` level. Set this to true together with the entitlement and its provisioning
-  /// profile; a level the app is not entitled to is downgraded silently, so setting it early changes nothing.
-  public static let timeSensitiveEntitled = false
+  /// Whether the build has the Time Sensitive Notifications entitlement
+  /// (`com.apple.developer.usernotifications.time-sensitive`, in every `Hermie*.entitlements` of both
+  /// apps; a test holds the two in step). An urgent request (`PushRequestMethod.isUrgent`) is posted at
+  /// the `timeSensitive` level, everything else at `active`. A level the app is not entitled to is
+  /// downgraded silently by the system, so a build signed without the entitlement still posts.
+  public static let timeSensitiveEntitled = true
 
   /// Where the person is: the windows report here.
   public let presence = AppPresence()
@@ -65,7 +77,8 @@ public final class RequestAlerts {
   private let setBadge: @MainActor (Int) async -> Void
   private let requestDockAttention: @MainActor () -> Void
   private let copy: RequestAlertCopy
-  private let interruption: LocalInterruption
+  private let entitled: Bool
+  private let focusFilter: @MainActor () -> FocusFilter
 
   private var entries: [String: Entry] = [:]
   /// The centre's calls, one after the other, in the order they were decided.
@@ -78,7 +91,8 @@ public final class RequestAlerts {
     setBadge: @escaping @MainActor (Int) async -> Void = { _ in },
     requestDockAttention: @escaping @MainActor () -> Void = {},
     copy: RequestAlertCopy = .english,
-    timeSensitive: Bool = RequestAlerts.timeSensitiveEntitled
+    timeSensitive: Bool = RequestAlerts.timeSensitiveEntitled,
+    focusFilter: @escaping @MainActor () -> FocusFilter = { .unfiltered }
   ) {
     self.center = center
     self.settings = settings
@@ -86,7 +100,8 @@ public final class RequestAlerts {
     self.setBadge = setBadge
     self.requestDockAttention = requestDockAttention
     self.copy = copy
-    self.interruption = timeSensitive ? .timeSensitive : .active
+    self.entitled = timeSensitive
+    self.focusFilter = focusFilter
   }
 
   /// Alerts that read the reader's notification choices from the app's push controller and set the
@@ -95,17 +110,21 @@ public final class RequestAlerts {
     push: PushController,
     center: any LocalNotificationCenter,
     copy: RequestAlertCopy = .english,
-    requestDockAttention: @escaping @MainActor () -> Void = {}
+    requestDockAttention: @escaping @MainActor () -> Void = {},
+    focusFilter: @escaping @MainActor () -> FocusFilter = { .unfiltered }
   ) {
     self.init(
       center: center,
       settings: {
-        LocalAlertSettings(permission: push.permission, enabled: push.enabled, preferences: push.preferences)
+        LocalAlertSettings(
+          permission: push.permission, enabled: push.enabled, preferences: push.preferences,
+          urgentBreaksThroughFocus: push.urgentBreaksThroughFocus)
       },
       isMuted: { gatewayId, bot in push.isMuted(gatewayId, bot) },
       setBadge: { count in await push.system.setBadgeCount(count) },
       requestDockAttention: requestDockAttention,
-      copy: copy
+      copy: copy,
+      focusFilter: focusFilter
     )
   }
 
@@ -169,7 +188,8 @@ public final class RequestAlerts {
       preferences: current.preferences,
       muted: isMuted(request.gatewayId, request.chat),
       appActive: presence.isActive,
-      chatVisible: presence.isVisible(chat)
+      chatVisible: presence.isVisible(chat),
+      focusAllows: focusFilter().allows(gatewayKey: gatewayKey, bot: request.chat, urgent: request.isUrgent)
     )
 
     guard LocalAlertPolicy.decide(context) == .post else {
@@ -182,7 +202,8 @@ public final class RequestAlerts {
       gatewayKey: gatewayKey,
       preview: current.preferences.preview,
       copy: copy,
-      interruption: interruption,
+      interruption: .level(
+        for: request, entitled: entitled, urgentBreaksThroughFocus: current.urgentBreaksThroughFocus),
       badge: postedCount + 1
     )
 

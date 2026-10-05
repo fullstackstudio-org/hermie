@@ -1710,6 +1710,10 @@
 	<string>Hermie cannot read this device’s notification registrations, so notifications are paused here.</string>
 	<key>native.push.troubleSettings</key>
 	<string>Hermie cannot read this device’s notification settings, so notifications are paused here.</string>
+	<key>native.push.urgentBreakthrough</key>
+	<string>Urgent requests break through Focus</string>
+	<key>native.push.urgentBreakthroughHint</key>
+	<string>Approvals, questions and confirmations are sent as time-sensitive notifications, which a Focus lets through. Turn this off to let your Focus keep them quiet too. Which bots may notify you is chosen per Focus, in the system’s Focus settings.</string>
 	<key>native.push.waiting</key>
 	<string>Waiting for this device’s push address…</string>
 	<key>native.requestAlert.approval</key>

@@ -20,6 +20,8 @@ struct HermieApp: App {
   @State private var live: LiveGateway
   /// Push's session seams, the ui_meta bridge and the share sheet, widgets and Shortcuts.
   @State private var wiring: LiveWiring
+  /// The Focus filter is checked against the system whenever the app comes to the front.
+  @Environment(\.scenePhase) private var scenePhase
 
   init() {
     // What this device can show of the device requests is read off the main thread, before a session asks for it.
@@ -54,6 +56,11 @@ struct HermieApp: App {
       HermieCommands(launch: launch)
       // View > Show/Hide Sidebar (Control-Command-S): the Settings sidebar has no toggle button of its own.
       SidebarCommands()
+    }
+    .onChange(of: scenePhase) { _, phase in
+      if phase == .active {
+        Task { await HermieFocusFilterSync.reconcile() }
+      }
     }
 
     // An extra window for one chat, opened by the New Chat Window command.

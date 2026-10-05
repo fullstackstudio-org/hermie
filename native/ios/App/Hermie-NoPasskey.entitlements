@@ -10,6 +10,13 @@
 	<!-- Push. Distribution signing replaces "development" with the profile's value. -->
 	<key>aps-environment</key>
 	<string>development</string>
+	<!--
+		Time Sensitive Notifications: an approval, a question or a confirmation is posted at the
+		time-sensitive level, which a Focus lets through (RequestAlerts.timeSensitiveEntitled; the
+		reader can turn it off in Settings). The app alone: no extension posts notifications.
+	-->
+	<key>com.apple.developer.usernotifications.time-sensitive</key>
+	<true/>
 	<!-- Shared with the widgets, the share extension and the intents. -->
 	<key>com.apple.security.application-groups</key>
 	<array>

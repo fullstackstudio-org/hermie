@@ -22,7 +22,10 @@ extension LiveWiring {
       push: launch.push,
       center: SystemLocalNotifications(),
       copy: .localized,
-      requestDockAttention: { DockAttention.bounce() }
+      requestDockAttention: { DockAttention.bounce() },
+      // The Focus filter the person set for the Focus that is on, written by the app's Focus filter
+      // intent into the App Group; none when the container is not there or nothing is stored.
+      focusFilter: { FocusFilterStore.system()?.load() ?? .unfiltered }
     )
 
     let wiring = LiveWiring(launch: launch, accounts: accounts, live: live, surfaces: surfaces, alerts: alerts)

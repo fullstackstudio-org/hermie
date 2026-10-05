@@ -6,6 +6,8 @@
 	<string>%@ warten auf dich.</string>
 	<key>%@ is waiting on you.</key>
 	<string>%@ wartet auf dich.</string>
+	<key>All bots</key>
+	<string>Alle Bots</string>
 	<key>Ask ${bot} ${prompt}</key>
 	<string>Frage ${bot} ${prompt}</string>
 	<key>Ask a bot</key>
@@ -14,8 +16,16 @@
 	<string>Bot</string>
 	<key>Bots needing input</key>
 	<string>Bots, die auf dich warten</string>
+	<key>Bots that may notify</key>
+	<string>Bots, die benachrichtigen dürfen</string>
 	<key>Chats</key>
 	<string>Chats</string>
+	<key>Choose which bots may notify you while this Focus is on.</key>
+	<string>Wähle, welche Bots dich benachrichtigen dürfen, solange dieser Fokus aktiv ist.</string>
+	<key>Choose which bots notify</key>
+	<string>Wähle, welche Bots benachrichtigen</string>
+	<key>Chosen bots</key>
+	<string>Ausgewählte Bots</string>
 	<key>Get the bots needing input</key>
 	<string>Die Bots abrufen, die auf dich warten</string>
 	<key>Hermie could not do that.</key>
@@ -28,8 +38,14 @@
 	<string>Die Bots auflisten, die auf eine Antwort warten, ohne Hermie zu öffnen.</string>
 	<key>Message</key>
 	<string>Nachricht</string>
+	<key>No bots</key>
+	<string>Keine Bots</string>
 	<key>Nothing is waiting on you.</key>
 	<string>Nichts wartet auf dich.</string>
+	<key>Notify: ${scope}</key>
+	<string>Benachrichtigen: ${scope}</string>
+	<key>Only urgent requests</key>
+	<string>Nur dringende Anfragen</string>
 	<key>Open a chat</key>
 	<string>Einen Chat öffnen</string>
 	<key>Open one of your bots' chats in Hermie.</key>
