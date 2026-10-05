@@ -19,6 +19,9 @@ public final class ShellRequests {
   /// here"): the page scrolls to the add flow, the one that signs in again where the gateway allows it,
   /// else the one with a code.
   public var passkeysAddFlow = false
+  /// A chat the quick ask asked to have opened ("Open in Hermie"): the main window that sees it
+  /// takes it and opens the chat, a new one when none is open.
+  public var openChat: ChatRef?
 }
 
 extension EnvironmentValues {
@@ -135,6 +138,14 @@ public struct MainWindow: View {
       if let mode {
         ShellRequests.shared.onboarding = nil
         router.present(.onboarding(mode))
+      }
+    }
+    // Read from the shared requests, not from the change: with two main windows open, the first to
+    // take it leaves nothing for the second.
+    .onChange(of: ShellRequests.shared.openChat, initial: true) { _, _ in
+      if let chat = ShellRequests.shared.openChat {
+        ShellRequests.shared.openChat = nil
+        perform(router.openFromQuickAsk(chat), on: launch)
       }
     }
     #if DEBUG

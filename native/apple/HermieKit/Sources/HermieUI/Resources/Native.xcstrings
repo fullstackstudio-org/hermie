@@ -28405,6 +28405,630 @@
           }
         }
       }
+    },
+    "native.quickAsk.title" : {
+      "comment" : "The quick ask's window title and the menu bar item's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schnellfrage"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick Ask"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Snel vragen"
+          }
+        }
+      }
+    },
+    "native.quickAsk.menuBarLabel" : {
+      "comment" : "The menu bar item's accessibility label.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einen Bot fragen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ask a bot"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een bot iets vragen"
+          }
+        }
+      }
+    },
+    "native.quickAsk.bot" : {
+      "comment" : "The label of the bot picker at the top of the quick ask: who the message goes to.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aan"
+          }
+        }
+      }
+    },
+    "native.quickAsk.openInHermie" : {
+      "comment" : "The button that opens the bot's chat in the main window.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Hermie öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open in Hermie"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Openen in Hermie"
+          }
+        }
+      }
+    },
+    "native.quickAsk.openInHermieHint" : {
+      "comment" : "The hint of the Open in Hermie button.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnet diesen Chat im Hauptfenster."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens this chat in the main window."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opent deze chat in het hoofdvenster."
+          }
+        }
+      }
+    },
+    "native.quickAsk.noGateway" : {
+      "comment" : "Shown in the quick ask when no gateway is signed in.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Melde dich bei einem Gateway an, um einen Bot zu fragen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to a gateway to ask a bot."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meld je aan bij een gateway om een bot iets te vragen."
+          }
+        }
+      }
+    },
+    "native.quickAsk.noBots" : {
+      "comment" : "Shown in the quick ask when the gateway has no bots.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gateway hat noch keine Bots."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This gateway has no bots yet."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateway heeft nog geen bots."
+          }
+        }
+      }
+    },
+    "native.quickAsk.openFailed" : {
+      "comment" : "Shown in the quick ask when the bot's chat could not be opened. {reason}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Chat konnte nicht geöffnet werden: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The chat could not be opened: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De chat kon niet worden geopend: %@"
+          }
+        }
+      }
+    },
+    "native.quickAsk.waiting" : {
+      "comment" : "Shown in the quick ask while the bot has not answered yet. {bot}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warte auf %@ …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for %@…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wachten op %@…"
+          }
+        }
+      }
+    },
+    "native.quickAsk.drop" : {
+      "comment" : "Shown over the quick ask while text or files are dragged onto it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text oder Dateien hier ablegen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drop text or files here"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zet tekst of bestanden hier neer"
+          }
+        }
+      }
+    },
+    "native.general.title" : {
+      "comment" : "The Settings category for the Mac's own behaviour (menu bar, shortcut).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allgemein"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "General"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Algemeen"
+          }
+        }
+      }
+    },
+    "native.general.blurb" : {
+      "comment" : "Under the General category in the Settings list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Menüleiste und das Tastenkürzel, mit dem du aus jeder App einen Bot fragst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The menu bar and the shortcut that asks a bot from any app."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De menubalk en de sneltoets waarmee je vanuit elke app een bot iets vraagt."
+          }
+        }
+      }
+    },
+    "native.general.quickAsk" : {
+      "comment" : "The section header of the quick ask settings.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schnellfrage"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick ask"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Snel vragen"
+          }
+        }
+      }
+    },
+    "native.general.showInMenuBar" : {
+      "comment" : "The switch for the menu bar item.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In der Menüleiste anzeigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show in menu bar"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tonen in de menubalk"
+          }
+        }
+      }
+    },
+    "native.general.showInMenuBarFooter" : {
+      "comment" : "Under the menu bar switch.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frage einen Bot, ohne Hermie zu öffnen, und öffne die Antwort in seinem Chat. Das Tastenkürzel und An Hermie senden im Dienste-Menü funktionieren auch ohne."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ask a bot without opening Hermie, and open the answer in its chat. The shortcut and Send to Hermie in the Services menu work without it."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vraag een bot iets zonder Hermie te openen en open het antwoord in de chat. De sneltoets en Naar Hermie sturen in het Services-menu werken ook zonder."
+          }
+        }
+      }
+    },
+    "native.general.shortcut" : {
+      "comment" : "The label of the global keyboard shortcut.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tastenkürzel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shortcut"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sneltoets"
+          }
+        }
+      }
+    },
+    "native.general.shortcutNone" : {
+      "comment" : "The shortcut field when no shortcut is set.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keines"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "None"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen"
+          }
+        }
+      }
+    },
+    "native.general.shortcutRecording" : {
+      "comment" : "The shortcut field while it waits for the keys.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tasten drücken …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press the keys…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Druk op de toetsen…"
+          }
+        }
+      }
+    },
+    "native.general.shortcutRecordingHint" : {
+      "comment" : "Under the shortcut field while it waits for the keys.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esc bricht ab. Entf schaltet das Tastenkürzel aus."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escape cancels. Delete switches the shortcut off."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escape annuleert. Delete zet de sneltoets uit."
+          }
+        }
+      }
+    },
+    "native.general.shortcutHint" : {
+      "comment" : "The accessibility hint of the shortcut field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beginnt die Aufnahme eines neuen Tastenkürzels."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starts recording a new shortcut."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Begint met het opnemen van een nieuwe sneltoets."
+          }
+        }
+      }
+    },
+    "native.general.shortcutReset" : {
+      "comment" : "The button that puts the shortcut back to Option-Space.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌥Leertaste verwenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use ⌥Space"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌥Spatie gebruiken"
+          }
+        }
+      }
+    },
+    "native.general.shortcutFooter" : {
+      "comment" : "Under the shortcut field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnet die Schnellfrage aus jeder App. Es ist keine zusätzliche Berechtigung nötig. Verwende ⌘, ⌥ oder ⌃ mit einer Taste oder eine Funktionstaste."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens the quick ask from any app. It needs no extra permission. Use ⌘, ⌥ or ⌃ with a key, or a function key."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opent snel vragen vanuit elke app. Er is geen extra toestemming voor nodig. Gebruik ⌘, ⌥ of ⌃ met een toets, of een functietoets."
+          }
+        }
+      }
+    },
+    "native.general.shortcutRefused" : {
+      "comment" : "Shown when the keys that were pressed cannot be a shortcut (no ⌘, ⌥ or ⌃).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das ist kein Tastenkürzel: Verwende ⌘, ⌥ oder ⌃ mit einer Taste oder eine Funktionstaste."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That is not a shortcut: use ⌘, ⌥ or ⌃ with a key, or a function key."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dat is geen sneltoets: gebruik ⌘, ⌥ of ⌃ met een toets, of een functietoets."
+          }
+        }
+      }
+    },
+    "native.general.shortcutTaken" : {
+      "comment" : "Shown when another app already has the shortcut. {shortcut}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine andere App verwendet %@ bereits. Wähle ein anderes Tastenkürzel."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another app already uses %@. Choose another shortcut."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een andere app gebruikt %@ al. Kies een andere sneltoets."
+          }
+        }
+      }
+    },
+    "native.general.shortcutFailed" : {
+      "comment" : "Shown when the system would not register the shortcut. {shortcut}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ konnte nicht eingerichtet werden. Wähle ein anderes Tastenkürzel."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ could not be set up. Choose another shortcut."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ kon niet worden ingesteld. Kies een andere sneltoets."
+          }
+        }
+      }
+    },
+    "native.general.shortcutActive" : {
+      "comment" : "Under the shortcut field when it is in use. {shortcut}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ öffnet die Schnellfrage aus jeder App."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ opens the quick ask from any app."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ opent snel vragen vanuit elke app."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

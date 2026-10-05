@@ -6,8 +6,8 @@ import SwiftUI
  shortcut overlay. They act on the router of the window in front (`FocusedValues.appRouter`).
 
  Settings is not here: the Mac's `Settings` scene brings its own ⌘, and on iPad the toolbar's
- Settings button carries it. A `MenuBarExtra` on the Mac is a later task; it opens chats through
- `openWindow(value: ChatRef)` like the New Chat Window command does.
+ Settings button carries it. The Mac's menu bar item (the quick ask, `QuickAskMenuBar`) is a scene of its
+ own and opens chats through `ShellRequests.openChat`.
 
  On the Mac the gateways have a menu of their own in the menu bar (`GatewayMenu`), where a Mac app
  keeps such a choice, instead of a toolbar button; it needs the launch, which the app hands in. On

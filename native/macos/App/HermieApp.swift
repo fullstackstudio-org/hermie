@@ -8,8 +8,8 @@ import SwiftUI
 /// The launch runs here, in `init`, so the local store is open and the lock
 /// decided before the first frame. Push is attached here too, before the system
 /// can deliver a token or a notification response to the delegate, and the
-/// wiring that runs against the live session is started. A
-/// `MenuBarExtra` is a later task; it goes beside the scenes below.
+/// wiring that runs against the live session is started. The quick ask (the menu bar item, the
+/// global shortcut and the Services menu) is started here too and has its own scene below.
 @main
 struct HermieApp: App {
   @NSApplicationDelegateAdaptor(PushAppDelegate.self) private var pushDelegate
@@ -20,6 +20,8 @@ struct HermieApp: App {
   @State private var live: LiveGateway
   /// Push's session seams, the ui_meta bridge and the share sheet, widgets and Shortcuts.
   @State private var wiring: LiveWiring
+  /// The menu bar item, the global shortcut and the Services menu, over one quick ask.
+  @State private var quickAsk: QuickAskSystem
   /// The Focus filter is checked against the system whenever the app comes to the front.
   @Environment(\.scenePhase) private var scenePhase
 
@@ -34,6 +36,9 @@ struct HermieApp: App {
     let live = LiveGateway(launch: launch, accounts: accounts)
     _live = State(initialValue: live)
     _wiring = State(initialValue: LiveWiring.app(launch: launch, accounts: accounts, live: live))
+    let quickAsk = QuickAskSystem(launch: launch, live: live)
+    quickAsk.start()
+    _quickAsk = State(initialValue: quickAsk)
 
     #if DEBUG
       // The transcript lab and the item gallery, under Settings → Advanced.
@@ -75,8 +80,12 @@ struct HermieApp: App {
     }
     .defaultSize(width: 640, height: 720)
 
+    // The quick ask: a button in the menu bar that opens a small window to ask a bot something.
+    QuickAskMenuBar(system: quickAsk, launch: launch)
+
     Settings {
       SettingsWindow()
+        .environment(\.quickAsk, quickAsk)
         .environment(launch)
         .environment(accounts)
         .environment(live)

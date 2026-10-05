@@ -656,6 +656,38 @@
 	<string>Niet verwijderd</string>
 	<key>native.gateways.rename</key>
 	<string>Hernoem</string>
+	<key>native.general.blurb</key>
+	<string>De menubalk en de sneltoets waarmee je vanuit elke app een bot iets vraagt.</string>
+	<key>native.general.quickAsk</key>
+	<string>Snel vragen</string>
+	<key>native.general.shortcut</key>
+	<string>Sneltoets</string>
+	<key>native.general.shortcutActive</key>
+	<string>%@ opent snel vragen vanuit elke app.</string>
+	<key>native.general.shortcutFailed</key>
+	<string>%@ kon niet worden ingesteld. Kies een andere sneltoets.</string>
+	<key>native.general.shortcutFooter</key>
+	<string>Opent snel vragen vanuit elke app. Er is geen extra toestemming voor nodig. Gebruik ⌘, ⌥ of ⌃ met een toets, of een functietoets.</string>
+	<key>native.general.shortcutHint</key>
+	<string>Begint met het opnemen van een nieuwe sneltoets.</string>
+	<key>native.general.shortcutNone</key>
+	<string>Geen</string>
+	<key>native.general.shortcutRecording</key>
+	<string>Druk op de toetsen…</string>
+	<key>native.general.shortcutRecordingHint</key>
+	<string>Escape annuleert. Delete zet de sneltoets uit.</string>
+	<key>native.general.shortcutRefused</key>
+	<string>Dat is geen sneltoets: gebruik ⌘, ⌥ of ⌃ met een toets, of een functietoets.</string>
+	<key>native.general.shortcutReset</key>
+	<string>⌥Spatie gebruiken</string>
+	<key>native.general.shortcutTaken</key>
+	<string>Een andere app gebruikt %@ al. Kies een andere sneltoets.</string>
+	<key>native.general.showInMenuBar</key>
+	<string>Tonen in de menubalk</string>
+	<key>native.general.showInMenuBarFooter</key>
+	<string>Vraag een bot iets zonder Hermie te openen en open het antwoord in de chat. De sneltoets en Naar Hermie sturen in het Services-menu werken ook zonder.</string>
+	<key>native.general.title</key>
+	<string>Algemeen</string>
 	<key>native.icloud.actionFailed</key>
 	<string>Dat is niet gelukt.</string>
 	<key>native.icloud.available.add</key>
@@ -1806,6 +1838,26 @@
 	<string>Goedkeuringen, vragen en bevestigingen komen binnen als tijdgevoelige meldingen, die een Focus doorlaat. Zet dit uit om ook die door je Focus stil te laten houden. Welke bots je mogen melden kies je per Focus, in de Focus-instellingen van het systeem.</string>
 	<key>native.push.waiting</key>
 	<string>Wacht op het pushadres van dit apparaat…</string>
+	<key>native.quickAsk.bot</key>
+	<string>Aan</string>
+	<key>native.quickAsk.drop</key>
+	<string>Zet tekst of bestanden hier neer</string>
+	<key>native.quickAsk.menuBarLabel</key>
+	<string>Een bot iets vragen</string>
+	<key>native.quickAsk.noBots</key>
+	<string>Deze gateway heeft nog geen bots.</string>
+	<key>native.quickAsk.noGateway</key>
+	<string>Meld je aan bij een gateway om een bot iets te vragen.</string>
+	<key>native.quickAsk.openFailed</key>
+	<string>De chat kon niet worden geopend: %@</string>
+	<key>native.quickAsk.openInHermie</key>
+	<string>Openen in Hermie</string>
+	<key>native.quickAsk.openInHermieHint</key>
+	<string>Opent deze chat in het hoofdvenster.</string>
+	<key>native.quickAsk.title</key>
+	<string>Snel vragen</string>
+	<key>native.quickAsk.waiting</key>
+	<string>Wachten op %@…</string>
 	<key>native.requestAlert.approval</key>
 	<string>Wacht op je goedkeuring</string>
 	<key>native.requestAlert.attention</key>

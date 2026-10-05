@@ -656,6 +656,38 @@
 	<string>Nicht entfernt</string>
 	<key>native.gateways.rename</key>
 	<string>Umbenennen</string>
+	<key>native.general.blurb</key>
+	<string>Die Menüleiste und das Tastenkürzel, mit dem du aus jeder App einen Bot fragst.</string>
+	<key>native.general.quickAsk</key>
+	<string>Schnellfrage</string>
+	<key>native.general.shortcut</key>
+	<string>Tastenkürzel</string>
+	<key>native.general.shortcutActive</key>
+	<string>%@ öffnet die Schnellfrage aus jeder App.</string>
+	<key>native.general.shortcutFailed</key>
+	<string>%@ konnte nicht eingerichtet werden. Wähle ein anderes Tastenkürzel.</string>
+	<key>native.general.shortcutFooter</key>
+	<string>Öffnet die Schnellfrage aus jeder App. Es ist keine zusätzliche Berechtigung nötig. Verwende ⌘, ⌥ oder ⌃ mit einer Taste oder eine Funktionstaste.</string>
+	<key>native.general.shortcutHint</key>
+	<string>Beginnt die Aufnahme eines neuen Tastenkürzels.</string>
+	<key>native.general.shortcutNone</key>
+	<string>Keines</string>
+	<key>native.general.shortcutRecording</key>
+	<string>Tasten drücken …</string>
+	<key>native.general.shortcutRecordingHint</key>
+	<string>Esc bricht ab. Entf schaltet das Tastenkürzel aus.</string>
+	<key>native.general.shortcutRefused</key>
+	<string>Das ist kein Tastenkürzel: Verwende ⌘, ⌥ oder ⌃ mit einer Taste oder eine Funktionstaste.</string>
+	<key>native.general.shortcutReset</key>
+	<string>⌥Leertaste verwenden</string>
+	<key>native.general.shortcutTaken</key>
+	<string>Eine andere App verwendet %@ bereits. Wähle ein anderes Tastenkürzel.</string>
+	<key>native.general.showInMenuBar</key>
+	<string>In der Menüleiste anzeigen</string>
+	<key>native.general.showInMenuBarFooter</key>
+	<string>Frage einen Bot, ohne Hermie zu öffnen, und öffne die Antwort in seinem Chat. Das Tastenkürzel und An Hermie senden im Dienste-Menü funktionieren auch ohne.</string>
+	<key>native.general.title</key>
+	<string>Allgemein</string>
 	<key>native.icloud.actionFailed</key>
 	<string>Das hat nicht geklappt.</string>
 	<key>native.icloud.available.add</key>
@@ -1806,6 +1838,26 @@
 	<string>Genehmigungen, Fragen und Bestätigungen werden als zeitkritische Mitteilungen gesendet, die ein Fokus durchlässt. Schalte das aus, damit dein Fokus auch diese stumm hält. Welche Bots dich benachrichtigen dürfen, wählst du pro Fokus in den Fokus-Einstellungen des Systems.</string>
 	<key>native.push.waiting</key>
 	<string>Wartet auf die Push-Adresse dieses Geräts…</string>
+	<key>native.quickAsk.bot</key>
+	<string>An</string>
+	<key>native.quickAsk.drop</key>
+	<string>Text oder Dateien hier ablegen</string>
+	<key>native.quickAsk.menuBarLabel</key>
+	<string>Einen Bot fragen</string>
+	<key>native.quickAsk.noBots</key>
+	<string>Dieses Gateway hat noch keine Bots.</string>
+	<key>native.quickAsk.noGateway</key>
+	<string>Melde dich bei einem Gateway an, um einen Bot zu fragen.</string>
+	<key>native.quickAsk.openFailed</key>
+	<string>Der Chat konnte nicht geöffnet werden: %@</string>
+	<key>native.quickAsk.openInHermie</key>
+	<string>In Hermie öffnen</string>
+	<key>native.quickAsk.openInHermieHint</key>
+	<string>Öffnet diesen Chat im Hauptfenster.</string>
+	<key>native.quickAsk.title</key>
+	<string>Schnellfrage</string>
+	<key>native.quickAsk.waiting</key>
+	<string>Warte auf %@ …</string>
 	<key>native.requestAlert.approval</key>
 	<string>Braucht deine Freigabe</string>
 	<key>native.requestAlert.attention</key>

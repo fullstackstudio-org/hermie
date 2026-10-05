@@ -93,6 +93,32 @@
 	<string>Hermie uses the microphone so you can dictate a message or record a voice note. Dictation is transcribed on this device and never sent anywhere; a voice note goes to your gateway only when you press Send.</string>
 	<key>NSRemindersFullAccessUsageDescription</key>
 	<string>Hermie adds a reminder when a bot suggests one and you choose to add it. Hermie does not read your other reminders.</string>
+	<!--
+		"Send to Hermie" in the Services menu, for the text or the files selected in any app. The
+		provider is QuickAskServicesProvider (HermieUI), registered at launch; NSMessage is its method,
+		and NSPortName is this app's name. The menu item's words are in ServicesMenu.strings.
+	-->
+	<key>NSServices</key>
+	<array>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>Send to Hermie</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>sendToHermie</string>
+			<key>NSPortName</key>
+			<string>$(PRODUCT_NAME)</string>
+			<key>NSSendTypes</key>
+			<array>
+				<string>NSStringPboardType</string>
+				<string>public.utf8-plain-text</string>
+				<string>NSFilenamesPboardType</string>
+				<string>public.file-url</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Hermie uses on-device speech recognition to turn what you say into the text of a message, or into a transcript of a voice note. Nothing is sent to Apple or to any other service.</string>
 </dict>

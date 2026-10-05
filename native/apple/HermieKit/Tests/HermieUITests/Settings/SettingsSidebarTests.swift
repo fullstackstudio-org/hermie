@@ -8,13 +8,22 @@ struct SettingsSidebarTests {
   @Test("every category is in exactly one group, and the groups keep the declared order")
   func groupsCoverEveryCategoryOnce() {
     let flat = SettingsCategory.groups.flatMap { $0 }
-    #expect(flat == SettingsCategory.allCases)
+    // General is the Mac's own page: iPhone and iPad do not list it.
+    #if os(macOS)
+      #expect(flat == SettingsCategory.allCases)
+    #else
+      #expect(flat == SettingsCategory.allCases.filter { $0 != .general })
+    #endif
     #expect(SettingsCategory.groups.allSatisfy { !$0.isEmpty })
   }
 
-  @Test("Account opens the list and About closes it")
+  @Test("General opens the Mac's list, Account opens the others, and About closes both")
   func listEnds() {
-    #expect(SettingsCategory.groups.first?.first == .account)
+    #if os(macOS)
+      #expect(SettingsCategory.groups.first == [.general])
+    #else
+      #expect(SettingsCategory.groups.first?.first == .account)
+    #endif
     #expect(SettingsCategory.groups.last?.last == .about)
   }
 

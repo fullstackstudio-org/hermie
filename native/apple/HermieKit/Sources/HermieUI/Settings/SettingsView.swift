@@ -3,6 +3,8 @@ import SwiftUI
 
 /// The Settings categories, as the Expo app lists them (`features/settings/navigation/routes.tsx`).
 public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifiable {
+  /// The Mac's own behaviour: the menu bar item and the global shortcut. Not listed on iPhone and iPad.
+  case general
   case account
   case gateways
   case passkeys
@@ -24,16 +26,28 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
   public var id: Self { self }
 
   /// Grouped the way the list draws them.
-  public static let groups: [[SettingsCategory]] = [
-    [.account, .gateways, .passkeys, .mcp],
-    [.chats, .notifications, .usage, .memory],
-    [.appearance, .privacy, .voice],
-    [.skills, .mcpServers, .connectors, .kanban],
-    [.advanced, .about]
-  ]
+  #if os(macOS)
+    public static let groups: [[SettingsCategory]] = [
+      [.general],
+      [.account, .gateways, .passkeys, .mcp],
+      [.chats, .notifications, .usage, .memory],
+      [.appearance, .privacy, .voice],
+      [.skills, .mcpServers, .connectors, .kanban],
+      [.advanced, .about]
+    ]
+  #else
+    public static let groups: [[SettingsCategory]] = [
+      [.account, .gateways, .passkeys, .mcp],
+      [.chats, .notifications, .usage, .memory],
+      [.appearance, .privacy, .voice],
+      [.skills, .mcpServers, .connectors, .kanban],
+      [.advanced, .about]
+    ]
+  #endif
 
   var title: String {
     switch self {
+    case .general: NativeStrings.General.title
     case .account: Strings.App.Settings.Categories.account
     case .gateways: Strings.App.Settings.Categories.gateways
     case .passkeys: NativeStrings.Passkeys.title
@@ -56,6 +70,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
 
   var blurb: String {
     switch self {
+    case .general: NativeStrings.General.blurb
     case .account: Strings.App.Settings.Categories.Blurb.account
     case .gateways: Strings.App.Settings.Categories.Blurb.gateways
     case .passkeys: NativeStrings.Passkeys.stateFooter
@@ -78,6 +93,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
 
   var systemImage: String {
     switch self {
+    case .general: "gearshape"
     case .account: "person.crop.circle"
     case .gateways: "server.rack"
     case .passkeys: "person.badge.key"
@@ -239,6 +255,12 @@ struct SettingsPage: View {
   var body: some View {
     Group {
       switch category {
+      case .general:
+        #if os(macOS)
+          GeneralSettingsPage()
+        #else
+          EmptyView()
+        #endif
       case .account:
         AccountSettingsPage()
       case .privacy:

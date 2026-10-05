@@ -656,6 +656,38 @@
 	<string>Not Removed</string>
 	<key>native.gateways.rename</key>
 	<string>Rename</string>
+	<key>native.general.blurb</key>
+	<string>The menu bar and the shortcut that asks a bot from any app.</string>
+	<key>native.general.quickAsk</key>
+	<string>Quick ask</string>
+	<key>native.general.shortcut</key>
+	<string>Shortcut</string>
+	<key>native.general.shortcutActive</key>
+	<string>%@ opens the quick ask from any app.</string>
+	<key>native.general.shortcutFailed</key>
+	<string>%@ could not be set up. Choose another shortcut.</string>
+	<key>native.general.shortcutFooter</key>
+	<string>Opens the quick ask from any app. It needs no extra permission. Use ⌘, ⌥ or ⌃ with a key, or a function key.</string>
+	<key>native.general.shortcutHint</key>
+	<string>Starts recording a new shortcut.</string>
+	<key>native.general.shortcutNone</key>
+	<string>None</string>
+	<key>native.general.shortcutRecording</key>
+	<string>Press the keys…</string>
+	<key>native.general.shortcutRecordingHint</key>
+	<string>Escape cancels. Delete switches the shortcut off.</string>
+	<key>native.general.shortcutRefused</key>
+	<string>That is not a shortcut: use ⌘, ⌥ or ⌃ with a key, or a function key.</string>
+	<key>native.general.shortcutReset</key>
+	<string>Use ⌥Space</string>
+	<key>native.general.shortcutTaken</key>
+	<string>Another app already uses %@. Choose another shortcut.</string>
+	<key>native.general.showInMenuBar</key>
+	<string>Show in menu bar</string>
+	<key>native.general.showInMenuBarFooter</key>
+	<string>Ask a bot without opening Hermie, and open the answer in its chat. The shortcut and Send to Hermie in the Services menu work without it.</string>
+	<key>native.general.title</key>
+	<string>General</string>
 	<key>native.icloud.actionFailed</key>
 	<string>That did not work.</string>
 	<key>native.icloud.available.add</key>
@@ -1806,6 +1838,26 @@
 	<string>Approvals, questions and confirmations are sent as time-sensitive notifications, which a Focus lets through. Turn this off to let your Focus keep them quiet too. Which bots may notify you is chosen per Focus, in the system’s Focus settings.</string>
 	<key>native.push.waiting</key>
 	<string>Waiting for this device’s push address…</string>
+	<key>native.quickAsk.bot</key>
+	<string>To</string>
+	<key>native.quickAsk.drop</key>
+	<string>Drop text or files here</string>
+	<key>native.quickAsk.menuBarLabel</key>
+	<string>Ask a bot</string>
+	<key>native.quickAsk.noBots</key>
+	<string>This gateway has no bots yet.</string>
+	<key>native.quickAsk.noGateway</key>
+	<string>Sign in to a gateway to ask a bot.</string>
+	<key>native.quickAsk.openFailed</key>
+	<string>The chat could not be opened: %@</string>
+	<key>native.quickAsk.openInHermie</key>
+	<string>Open in Hermie</string>
+	<key>native.quickAsk.openInHermieHint</key>
+	<string>Opens this chat in the main window.</string>
+	<key>native.quickAsk.title</key>
+	<string>Quick Ask</string>
+	<key>native.quickAsk.waiting</key>
+	<string>Waiting for %@…</string>
 	<key>native.requestAlert.approval</key>
 	<string>Needs your approval</string>
 	<key>native.requestAlert.attention</key>

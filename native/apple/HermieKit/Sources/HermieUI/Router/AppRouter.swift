@@ -206,6 +206,28 @@ public final class AppRouter {
     conversationFind = nil
   }
 
+  /**
+   Open a chat the quick ask asked for ("Open in Hermie"): as a chat link does, which is why it waits
+   for the gateway list, wins over a restored selection, and makes its gateway the live one. The
+   quick ask only knows the gateway by its registry id, so the link carries the key of that gateway.
+   A gateway this device no longer has opens nothing and says so.
+   */
+  @discardableResult
+  public func openFromQuickAsk(_ chat: ChatRef) -> [RouterEffect] {
+    var key = ""
+
+    if let gateways {
+      guard let entry = gateways.entries.first(where: { $0.id == chat.gatewayId }) else {
+        notice = .gatewayNotConfigured
+        return []
+      }
+
+      key = entry.key
+    }
+
+    return handle(.chat(bot: chat.bot, gatewayKey: key))
+  }
+
   // MARK: Search results
 
   /**
