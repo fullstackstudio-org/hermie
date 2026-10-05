@@ -63,6 +63,9 @@ public struct MainWindow: View {
     .onOpenURL { url in
       perform(router.handle(url: url), on: launch)
     }
+    .spotlightTaps { link in
+      perform(router.handle(link), on: launch)
+    }
     .task {
       if let snapshot = RouterSnapshot.decode(saved) {
         router.restore(snapshot)

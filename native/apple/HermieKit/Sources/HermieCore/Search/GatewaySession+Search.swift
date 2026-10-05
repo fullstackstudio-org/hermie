@@ -45,7 +45,47 @@ extension GatewaySession {
   }
 }
 
+extension GatewaySession {
+  /**
+   What the system's search is given about this session's gateway (`ChatSpotlightIndexer`): the bots
+   under the names the reader gave them, each bot's other conversations from the gateway's listing, and
+   the recent end of each Bot Chat as text, from what the app already holds.
+   */
+  public func spotlightSource() -> ChatSpotlightIndexer.Source {
+    let service = conversationService
+    let store = self.store
+    let names = searchableBots.map { IndexedBot(name: $0.name, displayName: chatName($0.name)) }
+    let byName = Dictionary(names.map { ($0.name, $0.displayName) }, uniquingKeysWith: { first, _ in first })
+
+    return ChatSpotlightIndexer.Source(
+      bots: names,
+      conversations: { bot in
+        guard let groups = try? await service.list(bot: bot) else {
+          return []
+        }
+
+        let others = ConversationClassifier.sorted(groups.mine + groups.branches + groups.past)
+
+        return others.map {
+          IndexedConversation(bot: bot, botName: byName[bot] ?? bot, session: $0.id, title: $0.displayTitle)
+        }
+      },
+      text: { bot in await store.recentText(bot) }
+    )
+  }
+}
+
 extension TranscriptStore {
+  /// The recent end of a bot's Bot Chat as one text: the last `items` messages with words in them, one
+  /// to a line. Nil where the app holds none.
+  func recentText(_ bot: String, items: Int = 60) async -> String? {
+    guard let messages = await searchableMessages(bot), !messages.isEmpty else {
+      return nil
+    }
+
+    return messages.suffix(items).map(\.text).joined(separator: "\n")
+  }
+
   /**
    What a local search reads of a bot's Bot Chat: the rows the chat holds in memory (what a cold start
    painted from the cache, plus what has arrived since), else the cache itself. Nil where neither has

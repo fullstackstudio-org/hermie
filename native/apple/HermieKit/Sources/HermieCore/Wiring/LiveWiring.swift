@@ -609,11 +609,14 @@ public final class LiveWiring {
     }
 
     let lock = launch.lock
+    let settings = launch.settings
     let changes = Observations { [weak session] () -> SurfaceMark in
       SurfaceMark(
         rows: session?.chatList.rows ?? [:],
         ready: session?.status.phase == .ready,
-        hidePreviews: lock.machine.threshold != .off || lock.machine.locked
+        hidePreviews: lock.machine.threshold != .off || lock.machine.locked,
+        transcriptCache: settings.transcriptCache,
+        sessionsChanged: session?.sessionsChangedCount ?? 0
       )
     }
 
@@ -621,6 +624,7 @@ public final class LiveWiring {
     surfaceTask = (
       Task { [weak self, weak session] in
         var wasReady = false
+        var sessionsChanged = 0
 
         for await mark in changes {
           guard !Task.isCancelled, let self, let session, self.live.session === session else {
@@ -628,6 +632,19 @@ public final class LiveWiring {
           }
 
           surfaces.publish(session: session, gatewayKey: gatewayKey, hidePreviews: mark.hidePreviews)
+
+          // The titles of the bots' other conversations and, where the policy allows, the text of their
+          // chats, for the system's search. One run at a time, and cheap when nothing changed.
+          let force = mark.sessionsChanged != sessionsChanged
+          sessionsChanged = mark.sessionsChanged
+
+          Task { [weak session] in
+            guard let session else { return }
+
+            await surfaces.indexChats(
+              session: session, gatewayKey: gatewayKey, hidePreviews: mark.hidePreviews,
+              transcriptCache: mark.transcriptCache, force: force)
+          }
 
           if mark.ready, !wasReady {
             self.drainSoon()
@@ -650,6 +667,11 @@ public final class LiveWiring {
     var rows: [String: ChatListRow]
     var ready: Bool
     var hidePreviews: Bool
+    /// The person keeps what they have read on this device (Settings, Chats): the system's search gets
+    /// message text only while it does.
+    var transcriptCache: Bool
+    /// `GatewaySession.sessionsChangedCount`: moves when the gateway's sessions changed.
+    var sessionsChanged: Int
   }
 
   private struct ChatTarget: Sendable, Equatable {

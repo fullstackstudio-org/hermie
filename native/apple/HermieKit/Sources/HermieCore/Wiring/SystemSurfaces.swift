@@ -66,6 +66,8 @@ public final class SystemSurfaces {
   public let widgets: WidgetSnapshotWriter
   public let targets: ShareTargetsWriter
   public let spotlight: BotSpotlightIndex?
+  /// The conversation titles and the message text in Spotlight (`ChatSpotlightPolicy`).
+  public let chatSpotlight: ChatSpotlightIndexer?
   public let copy: SurfaceCopy
 
   /// How long "Ask" polls for the reply between looks.
@@ -80,10 +82,12 @@ public final class SystemSurfaces {
     copy: SurfaceCopy,
     widgets: WidgetSnapshotWriter? = nil,
     spotlight: BotSpotlightIndex? = nil,
+    chatSpotlight: ChatSpotlightIndexer? = nil,
     isLocked: @escaping @Sendable () -> Bool = { SystemSurfaceLock.isLocked }
   ) {
     self.container = container
     self.copy = copy
+    self.chatSpotlight = chatSpotlight
     self.outbox = AppGroupShareOutbox(container: container, isLocked: isLocked)
     self.intents = AppGroupIntentQueue(container: container, isLocked: isLocked)
     self.widgets = widgets ?? WidgetSnapshotWriter(container: container, reloadTimelines: {})
@@ -97,7 +101,9 @@ public final class SystemSurfaces {
       return nil
     }
 
-    return SystemSurfaces(container: writer.container, copy: copy, widgets: writer, spotlight: BotSpotlightIndex())
+    return SystemSurfaces(
+      container: writer.container, copy: copy, widgets: writer, spotlight: BotSpotlightIndex(),
+      chatSpotlight: ChatSpotlightIndexer(index: .live()))
   }
 
   // MARK: Writing
@@ -112,6 +118,43 @@ public final class SystemSurfaces {
     widgets.pruneAvatars(keeping: rows.map(\.bot.name))
     targets.write(Self.targets(rows: rows, gatewayKey: gatewayKey, copy: copy.shareTargets, now: now))
     spotlight?.replace(with: snapshot.bots, gatewayKey: gatewayKey, hidePreviews: hidePreviews)
+  }
+
+  /**
+   Keep the system's search in line with the live gateway's chats: the titles of each bot's other
+   conversations always, and the text of the bots' chats only where `ChatSpotlightPolicy` allows it
+   (never while the app lock hides previews, nor while the chat cache is off). It does little when asked
+   often (`ChatSpotlightIndexer`), and one run at a time: a call that arrives while one is running asks
+   for one more when it ends, with the newest policy.
+
+   - Parameter force: the gateway's sessions changed, so read the conversations again now.
+   */
+  public func indexChats(
+    session: GatewaySession, gatewayKey: String, hidePreviews: Bool, transcriptCache: Bool, force: Bool = false
+  ) async {
+    guard let chatSpotlight, session.status.phase == .ready else {
+      return
+    }
+
+    wantedChatIndex = ChatIndexRequest(
+      hidePreviews: hidePreviews, transcriptCache: transcriptCache, force: (wantedChatIndex?.force ?? false) || force)
+
+    guard !indexingChats else {
+      return
+    }
+
+    indexingChats = true
+    defer { indexingChats = false }
+
+    while let request = wantedChatIndex {
+      wantedChatIndex = nil
+
+      await chatSpotlight.refresh(
+        gatewayKey: gatewayKey,
+        source: session.spotlightSource(),
+        policy: ChatSpotlightPolicy.resolve(hidePreviews: request.hidePreviews, transcriptCache: request.transcriptCache),
+        force: request.force)
+    }
   }
 
   /// The chat list's rows, most recently active first.
@@ -369,7 +412,19 @@ public final class SystemSurfaces {
     widgets.purge(gatewayKey: gatewayKey)
     targets.purge(gatewayKey: gatewayKey)
     spotlight?.purge(gatewayKey: gatewayKey)
+    chatSpotlight?.purge(gatewayKey: gatewayKey)
+    // What a run in flight was about to write for it must not outlive the purge.
+    wantedChatIndex = nil
   }
+
+  private struct ChatIndexRequest {
+    var hidePreviews: Bool
+    var transcriptCache: Bool
+    var force: Bool
+  }
+
+  private var wantedChatIndex: ChatIndexRequest?
+  private var indexingChats = false
 }
 
 extension PendingShare.Item {
