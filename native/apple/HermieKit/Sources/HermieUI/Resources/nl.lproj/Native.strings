@@ -454,6 +454,114 @@
 	<string>In het weekend om %@</string>
 	<key>native.debug.title</key>
 	<string>Debugschermen</string>
+	<key>native.decisions.allBots</key>
+	<string>Alle bots</string>
+	<key>native.decisions.allKinds</key>
+	<string>Alle soorten</string>
+	<key>native.decisions.blurb</key>
+	<string>Wat je hebt goedgekeurd, geweigerd, bevestigd of ingevoerd, alleen op dit apparaat bewaard.</string>
+	<key>native.decisions.clear</key>
+	<string>Logboek wissen…</string>
+	<key>native.decisions.clearConfirm</key>
+	<string>Wissen</string>
+	<key>native.decisions.clearMessage</key>
+	<string>Dit verwijdert alle regels van dit apparaat. Dit kan niet ongedaan worden gemaakt.</string>
+	<key>native.decisions.clearTitle</key>
+	<string>Het beslissingenlogboek wissen?</string>
+	<key>native.decisions.empty</key>
+	<string>Nog geen beslissingen. Wat je goedkeurt, weigert, bevestigt of invoert, verschijnt hier.</string>
+	<key>native.decisions.export</key>
+	<string>Exporteren</string>
+	<key>native.decisions.exportCSV</key>
+	<string>Exporteren als CSV</string>
+	<key>native.decisions.exportJSON</key>
+	<string>Exporteren als JSON</string>
+	<key>native.decisions.filterBot</key>
+	<string>Bot</string>
+	<key>native.decisions.filterKind</key>
+	<string>Soort</string>
+	<key>native.decisions.kind.approval</key>
+	<string>Goedkeuring</string>
+	<key>native.decisions.kind.clarify</key>
+	<string>Vraag</string>
+	<key>native.decisions.kind.confirm</key>
+	<string>Bevestiging</string>
+	<key>native.decisions.kind.connector</key>
+	<string>Connector</string>
+	<key>native.decisions.kind.device</key>
+	<string>Apparaatverzoek</string>
+	<key>native.decisions.kind.input</key>
+	<string>Formulier of bestanden</string>
+	<key>native.decisions.kind.review</key>
+	<string>Beoordeling</string>
+	<key>native.decisions.kind.secure</key>
+	<string>Beveiligde invoer</string>
+	<key>native.decisions.method.keyboard</key>
+	<string>Toetsenbord</string>
+	<key>native.decisions.method.notification</key>
+	<string>Melding</string>
+	<key>native.decisions.method.passkey</key>
+	<string>Passkey</string>
+	<key>native.decisions.method.tap</key>
+	<string>Tik</string>
+	<key>native.decisions.noMatch</key>
+	<string>Niets komt overeen.</string>
+	<key>native.decisions.note</key>
+	<string>Alleen op dit apparaat bewaard, 90 dagen of 5.000 regels. Geheimen, wachtwoorden en wat je bij een verzoek deelt worden nooit bewaard.</string>
+	<key>native.decisions.outcome.answered</key>
+	<string>Beantwoord</string>
+	<key>native.decisions.outcome.approved</key>
+	<string>Toegestaan</string>
+	<key>native.decisions.outcome.approvedAlways</key>
+	<string>Altijd toegestaan</string>
+	<key>native.decisions.outcome.approvedSession</key>
+	<string>Toegestaan voor de sessie</string>
+	<key>native.decisions.outcome.authorised</key>
+	<string>Geautoriseerd</string>
+	<key>native.decisions.outcome.confirmed</key>
+	<string>Bevestigd</string>
+	<key>native.decisions.outcome.declined</key>
+	<string>Afgeslagen</string>
+	<key>native.decisions.outcome.denied</key>
+	<string>Geweigerd</string>
+	<key>native.decisions.outcome.entered</key>
+	<string>Ingevoerd</string>
+	<key>native.decisions.outcome.shared</key>
+	<string>Gedeeld</string>
+	<key>native.decisions.outcome.skipped</key>
+	<string>Overgeslagen</string>
+	<key>native.decisions.searchPrompt</key>
+	<string>Zoek in het logboek</string>
+	<key>native.decisions.subject.calendar</key>
+	<string>Agenda-item</string>
+	<key>native.decisions.subject.contact</key>
+	<string>Contact</string>
+	<key>native.decisions.subject.diff</key>
+	<string>Wijzigingen</string>
+	<key>native.decisions.subject.draft</key>
+	<string>Concept</string>
+	<key>native.decisions.subject.file</key>
+	<string>Bestanden</string>
+	<key>native.decisions.subject.form</key>
+	<string>Formulier</string>
+	<key>native.decisions.subject.location</key>
+	<string>Locatie</string>
+	<key>native.decisions.subject.scan</key>
+	<string>Gescande code</string>
+	<key>native.decisions.subject.secret</key>
+	<string>Geheim</string>
+	<key>native.decisions.subject.signature</key>
+	<string>Handtekening</string>
+	<key>native.decisions.subject.sudo</key>
+	<string>Beheerderswachtwoord</string>
+	<key>native.decisions.subject.vaultCode</key>
+	<string>Eenmalige code</string>
+	<key>native.decisions.subject.vaultSaveLogin</key>
+	<string>Inlog om te bewaren</string>
+	<key>native.decisions.subject.vaultUnlock</key>
+	<string>Kluis ontgrendelen</string>
+	<key>native.decisions.title</key>
+	<string>Beslissingenlogboek</string>
 	<key>native.detail.noChat.body</key>
 	<string>Kies een bot uit de lijst.</string>
 	<key>native.detail.noChat.title</key>

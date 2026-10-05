@@ -454,6 +454,114 @@
 	<string>Weekends at %@</string>
 	<key>native.debug.title</key>
 	<string>Debug screens</string>
+	<key>native.decisions.allBots</key>
+	<string>All bots</string>
+	<key>native.decisions.allKinds</key>
+	<string>All kinds</string>
+	<key>native.decisions.blurb</key>
+	<string>What you approved, denied, confirmed or entered, kept on this device only.</string>
+	<key>native.decisions.clear</key>
+	<string>Clear the log…</string>
+	<key>native.decisions.clearConfirm</key>
+	<string>Clear</string>
+	<key>native.decisions.clearMessage</key>
+	<string>This removes every entry from this device. It cannot be undone.</string>
+	<key>native.decisions.clearTitle</key>
+	<string>Clear the decision log?</string>
+	<key>native.decisions.empty</key>
+	<string>No decisions yet. What you approve, deny, confirm or enter shows up here.</string>
+	<key>native.decisions.export</key>
+	<string>Export</string>
+	<key>native.decisions.exportCSV</key>
+	<string>Export as CSV</string>
+	<key>native.decisions.exportJSON</key>
+	<string>Export as JSON</string>
+	<key>native.decisions.filterBot</key>
+	<string>Bot</string>
+	<key>native.decisions.filterKind</key>
+	<string>Kind</string>
+	<key>native.decisions.kind.approval</key>
+	<string>Approval</string>
+	<key>native.decisions.kind.clarify</key>
+	<string>Question</string>
+	<key>native.decisions.kind.confirm</key>
+	<string>Confirmation</string>
+	<key>native.decisions.kind.connector</key>
+	<string>Connector</string>
+	<key>native.decisions.kind.device</key>
+	<string>Device request</string>
+	<key>native.decisions.kind.input</key>
+	<string>Form or files</string>
+	<key>native.decisions.kind.review</key>
+	<string>Review</string>
+	<key>native.decisions.kind.secure</key>
+	<string>Secure input</string>
+	<key>native.decisions.method.keyboard</key>
+	<string>Keyboard</string>
+	<key>native.decisions.method.notification</key>
+	<string>Notification</string>
+	<key>native.decisions.method.passkey</key>
+	<string>Passkey</string>
+	<key>native.decisions.method.tap</key>
+	<string>Tap</string>
+	<key>native.decisions.noMatch</key>
+	<string>Nothing matches.</string>
+	<key>native.decisions.note</key>
+	<string>Kept on this device only, for 90 days or 5,000 entries. Secrets, passwords and what you share with a request are never kept.</string>
+	<key>native.decisions.outcome.answered</key>
+	<string>Answered</string>
+	<key>native.decisions.outcome.approved</key>
+	<string>Allowed</string>
+	<key>native.decisions.outcome.approvedAlways</key>
+	<string>Always allowed</string>
+	<key>native.decisions.outcome.approvedSession</key>
+	<string>Allowed for the session</string>
+	<key>native.decisions.outcome.authorised</key>
+	<string>Authorised</string>
+	<key>native.decisions.outcome.confirmed</key>
+	<string>Confirmed</string>
+	<key>native.decisions.outcome.declined</key>
+	<string>Declined</string>
+	<key>native.decisions.outcome.denied</key>
+	<string>Denied</string>
+	<key>native.decisions.outcome.entered</key>
+	<string>Entered</string>
+	<key>native.decisions.outcome.shared</key>
+	<string>Shared</string>
+	<key>native.decisions.outcome.skipped</key>
+	<string>Skipped</string>
+	<key>native.decisions.searchPrompt</key>
+	<string>Search the log</string>
+	<key>native.decisions.subject.calendar</key>
+	<string>Calendar entry</string>
+	<key>native.decisions.subject.contact</key>
+	<string>Contact</string>
+	<key>native.decisions.subject.diff</key>
+	<string>Changes</string>
+	<key>native.decisions.subject.draft</key>
+	<string>Draft</string>
+	<key>native.decisions.subject.file</key>
+	<string>Files</string>
+	<key>native.decisions.subject.form</key>
+	<string>Form</string>
+	<key>native.decisions.subject.location</key>
+	<string>Location</string>
+	<key>native.decisions.subject.scan</key>
+	<string>Scanned code</string>
+	<key>native.decisions.subject.secret</key>
+	<string>Secret</string>
+	<key>native.decisions.subject.signature</key>
+	<string>Signature</string>
+	<key>native.decisions.subject.sudo</key>
+	<string>Administrator password</string>
+	<key>native.decisions.subject.vaultCode</key>
+	<string>One-time code</string>
+	<key>native.decisions.subject.vaultSaveLogin</key>
+	<string>Login to save</string>
+	<key>native.decisions.subject.vaultUnlock</key>
+	<string>Vault unlock</string>
+	<key>native.decisions.title</key>
+	<string>Decision log</string>
 	<key>native.detail.noChat.body</key>
 	<string>Choose a bot from the list.</string>
 	<key>native.detail.noChat.title</key>

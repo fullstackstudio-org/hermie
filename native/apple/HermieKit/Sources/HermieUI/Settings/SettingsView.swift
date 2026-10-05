@@ -15,6 +15,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
   case memory
   case appearance
   case privacy
+  case decisions
   case voice
   case skills
   case mcpServers
@@ -31,7 +32,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
       [.general],
       [.account, .gateways, .passkeys, .mcp],
       [.chats, .notifications, .usage, .memory],
-      [.appearance, .privacy, .voice],
+      [.appearance, .privacy, .decisions, .voice],
       [.skills, .mcpServers, .connectors, .kanban],
       [.advanced, .about]
     ]
@@ -39,7 +40,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
     public static let groups: [[SettingsCategory]] = [
       [.account, .gateways, .passkeys, .mcp],
       [.chats, .notifications, .usage, .memory],
-      [.appearance, .privacy, .voice],
+      [.appearance, .privacy, .decisions, .voice],
       [.skills, .mcpServers, .connectors, .kanban],
       [.advanced, .about]
     ]
@@ -58,6 +59,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
     case .memory: Strings.App.Settings.Categories.memory
     case .appearance: Strings.App.Settings.Categories.appearance
     case .privacy: Strings.App.Settings.Categories.privacy
+    case .decisions: NativeStrings.Decisions.title
     case .voice: Strings.App.Settings.Categories.voice
     case .skills: Strings.Skills.title
     case .mcpServers: Strings.Mcp.title
@@ -81,6 +83,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
     case .memory: Strings.App.Settings.Categories.Blurb.memory
     case .appearance: Strings.App.Settings.Categories.Blurb.appearance
     case .privacy: Strings.App.Settings.Categories.Blurb.privacy
+    case .decisions: NativeStrings.Decisions.blurb
     case .voice: Strings.App.Settings.Categories.Blurb.voice
     case .skills: Strings.Skills.Settings.hint
     case .mcpServers: Strings.Mcp.Settings.hint
@@ -104,6 +107,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
     case .memory: "book"
     case .appearance: "circle.lefthalf.filled"
     case .privacy: "lock"
+    case .decisions: "checklist"
     case .voice: "mic"
     case .skills: "wand.and.stars"
     case .mcpServers: "wrench.and.screwdriver"
@@ -120,7 +124,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
  the `Settings` window with a sidebar on the Mac.
 
  Implemented: Account, Privacy (the app lock), Gateways, MCP, Chats (the defaults, the cache and the folders),
- Notifications, Usage, Memory, Skills, MCP servers, Connectors, Boards, Appearance, Voice and About. Every category has its page.
+ Notifications, Usage, Decision log, Memory, Skills, MCP servers, Connectors, Boards, Appearance, Voice and About. Every category has its page.
  */
 public struct SettingsView: View {
   private let onAddGateway: @MainActor () -> Void
@@ -265,6 +269,8 @@ struct SettingsPage: View {
         AccountSettingsPage()
       case .privacy:
         PrivacySettingsPage()
+      case .decisions:
+        DecisionLogSettingsEntry()
       case .gateways:
         GatewaysSettingsPage(onAddGateway: onAddGateway)
       case .passkeys:

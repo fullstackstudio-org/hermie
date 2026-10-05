@@ -454,6 +454,114 @@
 	<string>Am Wochenende um %@</string>
 	<key>native.debug.title</key>
 	<string>Debug-Ansichten</string>
+	<key>native.decisions.allBots</key>
+	<string>Alle Bots</string>
+	<key>native.decisions.allKinds</key>
+	<string>Alle Arten</string>
+	<key>native.decisions.blurb</key>
+	<string>Was du genehmigt, abgelehnt, bestätigt oder eingegeben hast, nur auf diesem Gerät gespeichert.</string>
+	<key>native.decisions.clear</key>
+	<string>Protokoll löschen…</string>
+	<key>native.decisions.clearConfirm</key>
+	<string>Löschen</string>
+	<key>native.decisions.clearMessage</key>
+	<string>Dadurch werden alle Einträge von diesem Gerät entfernt. Das lässt sich nicht rückgängig machen.</string>
+	<key>native.decisions.clearTitle</key>
+	<string>Das Entscheidungsprotokoll löschen?</string>
+	<key>native.decisions.empty</key>
+	<string>Noch keine Entscheidungen. Was du genehmigst, ablehnst, bestätigst oder eingibst, erscheint hier.</string>
+	<key>native.decisions.export</key>
+	<string>Exportieren</string>
+	<key>native.decisions.exportCSV</key>
+	<string>Als CSV exportieren</string>
+	<key>native.decisions.exportJSON</key>
+	<string>Als JSON exportieren</string>
+	<key>native.decisions.filterBot</key>
+	<string>Bot</string>
+	<key>native.decisions.filterKind</key>
+	<string>Art</string>
+	<key>native.decisions.kind.approval</key>
+	<string>Genehmigung</string>
+	<key>native.decisions.kind.clarify</key>
+	<string>Frage</string>
+	<key>native.decisions.kind.confirm</key>
+	<string>Bestätigung</string>
+	<key>native.decisions.kind.connector</key>
+	<string>Connector</string>
+	<key>native.decisions.kind.device</key>
+	<string>Geräteanfrage</string>
+	<key>native.decisions.kind.input</key>
+	<string>Formular oder Dateien</string>
+	<key>native.decisions.kind.review</key>
+	<string>Prüfung</string>
+	<key>native.decisions.kind.secure</key>
+	<string>Geschützte Eingabe</string>
+	<key>native.decisions.method.keyboard</key>
+	<string>Tastatur</string>
+	<key>native.decisions.method.notification</key>
+	<string>Mitteilung</string>
+	<key>native.decisions.method.passkey</key>
+	<string>Passkey</string>
+	<key>native.decisions.method.tap</key>
+	<string>Tippen</string>
+	<key>native.decisions.noMatch</key>
+	<string>Keine Treffer.</string>
+	<key>native.decisions.note</key>
+	<string>Nur auf diesem Gerät gespeichert, 90 Tage oder 5.000 Einträge. Geheimnisse, Passwörter und was du bei einer Anfrage teilst, werden nie gespeichert.</string>
+	<key>native.decisions.outcome.answered</key>
+	<string>Beantwortet</string>
+	<key>native.decisions.outcome.approved</key>
+	<string>Erlaubt</string>
+	<key>native.decisions.outcome.approvedAlways</key>
+	<string>Immer erlaubt</string>
+	<key>native.decisions.outcome.approvedSession</key>
+	<string>Für die Sitzung erlaubt</string>
+	<key>native.decisions.outcome.authorised</key>
+	<string>Autorisiert</string>
+	<key>native.decisions.outcome.confirmed</key>
+	<string>Bestätigt</string>
+	<key>native.decisions.outcome.declined</key>
+	<string>Verweigert</string>
+	<key>native.decisions.outcome.denied</key>
+	<string>Abgelehnt</string>
+	<key>native.decisions.outcome.entered</key>
+	<string>Eingegeben</string>
+	<key>native.decisions.outcome.shared</key>
+	<string>Geteilt</string>
+	<key>native.decisions.outcome.skipped</key>
+	<string>Übersprungen</string>
+	<key>native.decisions.searchPrompt</key>
+	<string>Im Protokoll suchen</string>
+	<key>native.decisions.subject.calendar</key>
+	<string>Kalendereintrag</string>
+	<key>native.decisions.subject.contact</key>
+	<string>Kontakt</string>
+	<key>native.decisions.subject.diff</key>
+	<string>Änderungen</string>
+	<key>native.decisions.subject.draft</key>
+	<string>Entwurf</string>
+	<key>native.decisions.subject.file</key>
+	<string>Dateien</string>
+	<key>native.decisions.subject.form</key>
+	<string>Formular</string>
+	<key>native.decisions.subject.location</key>
+	<string>Standort</string>
+	<key>native.decisions.subject.scan</key>
+	<string>Gescannter Code</string>
+	<key>native.decisions.subject.secret</key>
+	<string>Geheimnis</string>
+	<key>native.decisions.subject.signature</key>
+	<string>Unterschrift</string>
+	<key>native.decisions.subject.sudo</key>
+	<string>Administratorpasswort</string>
+	<key>native.decisions.subject.vaultCode</key>
+	<string>Einmalcode</string>
+	<key>native.decisions.subject.vaultSaveLogin</key>
+	<string>Login zum Speichern</string>
+	<key>native.decisions.subject.vaultUnlock</key>
+	<string>Tresor entsperren</string>
+	<key>native.decisions.title</key>
+	<string>Entscheidungsprotokoll</string>
 	<key>native.detail.noChat.body</key>
 	<string>Wähle einen Bot aus der Liste.</string>
 	<key>native.detail.noChat.title</key>
