@@ -274,8 +274,14 @@ final class MediaPlayback: Identifiable {
   private func timeControlChanged() {
     guard let player else { return }
 
+    // The status follows what was asked a moment later, and the change is handled later still, on the main actor. What
+    // was asked is `rate`, which `play()` and `pause()` set at once: a player that was paused (the arbiter let another
+    // start) can still read as playing here and must not take the audio back from the one that took it, and one that was
+    // just started can still read as paused. The change that follows the status catching up is handled as its own.
     switch player.timeControlStatus {
     case .playing, .waitingToPlayAtSpecifiedRate:
+      guard player.rate != 0 else { return }
+
       if arbiter.activeID == attachment.id {
         if !isPlaying { isPlaying = true }
         return
@@ -287,6 +293,8 @@ final class MediaPlayback: Identifiable {
         isPlaying = false
       }
     case .paused:
+      guard player.rate == 0 else { return }
+
       if isPlaying { isPlaying = false }
       arbiter.release(attachment.id)
     @unknown default:
