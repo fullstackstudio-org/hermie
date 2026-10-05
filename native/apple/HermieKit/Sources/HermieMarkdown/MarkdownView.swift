@@ -52,6 +52,7 @@ private struct MarkdownSelection: ViewModifier {
 /// One block, of any kind.
 public struct MarkdownBlockView: View, Equatable {
   public let block: MarkdownBlock
+  @Environment(\.markdownDrawsCharts) private var draws
 
   public init(block: MarkdownBlock) {
     self.block = block
@@ -74,9 +75,15 @@ public struct MarkdownBlockView: View, Equatable {
     case .table(let table):
       MarkdownTableView(table: table)
     case .code(let code):
-      MarkdownCodeView(
-        label: code.language ?? "", accessibilityLabel: MarkdownStrings.code(language: code.language),
-        copyLabel: MarkdownStrings.copyCode, source: code.text, language: code.language)
+      // A `hermie-chart` fence that is exactly what the format says is drawn; any other fence, and a
+      // chart fence that is not valid (or not finished streaming), stays the listing it is.
+      if draws, case .chart(let spec) = HermieChart.decide(language: code.language, source: code.text) {
+        MarkdownChartBlock(spec: spec, source: code.text)
+      } else {
+        MarkdownCodeView(
+          label: code.language ?? "", accessibilityLabel: MarkdownStrings.code(language: code.language),
+          copyLabel: MarkdownStrings.copyCode, source: code.text, language: code.language)
+      }
     case .math(let source):
       MarkdownMathBlock(source: source.trimmingCharacters(in: .whitespacesAndNewlines))
     case .mermaid(let source):
@@ -233,6 +240,11 @@ struct MarkdownCodeView: View {
   var rendered: AnyView?
   /// What VoiceOver reads for the rendered content, in place of the source.
   var spoken: String?
+  /// The rendered content takes the width it is offered (a chart), instead of its own and a sideways
+  /// scroll. The listing still scrolls.
+  var fillsRendered = false
+  /// The words of the buttons.
+  var strings = MarkdownCodeStrings.english
 
   @Environment(\.markdownCodeHighlighting) private var highlights
   @State private var copied = false
@@ -252,23 +264,23 @@ struct MarkdownCodeView: View {
             showsSource.toggle()
           } label: {
             Label(
-              showsSource ? MarkdownStrings.showRendered : MarkdownStrings.showSource,
+              showsSource ? strings.showRendered : strings.showSource,
               systemImage: showsSource ? "eye" : "chevron.left.forwardslash.chevron.right"
             )
             .labelStyle(.iconOnly)
           }
           .buttonStyle(.borderless)
-          .accessibilityLabel(showsSource ? MarkdownStrings.showRendered : MarkdownStrings.showSource)
+          .accessibilityLabel(showsSource ? strings.showRendered : strings.showSource)
         }
         Button {
           MarkdownPasteboard.copy(source)
           copied = true
         } label: {
-          Label(copied ? MarkdownStrings.copied : MarkdownStrings.copy, systemImage: copied ? "checkmark" : "doc.on.doc")
+          Label(copied ? strings.copied : strings.copy, systemImage: copied ? "checkmark" : "doc.on.doc")
             .labelStyle(.iconOnly)
         }
         .buttonStyle(.borderless)
-        .accessibilityLabel(copied ? MarkdownStrings.copied : copyLabel)
+        .accessibilityLabel(copied ? strings.copied : copyLabel)
         .task(id: copied) {
           guard copied else { return }
           try? await Task.sleep(for: .seconds(1.5))
@@ -278,12 +290,20 @@ struct MarkdownCodeView: View {
       .padding(.horizontal, padding)
       .padding(.top, padding * 0.6)
 
-      ScrollView(.horizontal) {
-        content
-          .fixedSize(horizontal: true, vertical: false)
+      if fillsRendered, let rendered, !showsSource {
+        rendered
           .padding(padding)
+          .accessibilityElement(children: .ignore)
           .accessibilityLabel(accessibilityLabel)
           .accessibilityValue(spoken ?? source)
+      } else {
+        ScrollView(.horizontal) {
+          content
+            .fixedSize(horizontal: true, vertical: false)
+            .padding(padding)
+            .accessibilityLabel(accessibilityLabel)
+            .accessibilityValue(spoken ?? source)
+        }
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
@@ -316,6 +336,10 @@ extension EnvironmentValues {
   /// Whether code is drawn in colours. The colours are tuned for the grey of a code block on the page
   /// or in an incoming bubble; a bubble with a fill of its own (the owner's blue) turns it off.
   @Entry public var markdownCodeHighlighting = true
+
+  /// Whether a valid `hermie-chart` block is drawn as a chart (the default) or stays a listing. The owner's
+  /// own bubble turns it off: a chart's colours are the system's, not the blue's.
+  @Entry public var markdownDrawsCharts = true
 
   /// Whether a reply's lines take the whole width they are offered (a page, the default) or only
   /// what their words need (a message bubble that should be no wider than its text).

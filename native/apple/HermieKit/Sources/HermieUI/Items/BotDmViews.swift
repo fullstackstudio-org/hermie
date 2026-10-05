@@ -154,6 +154,7 @@ struct BotDmAside: View {
 
   @ViewBuilder private var expanded: some View {
     MarkdownView(MarkdownDocument(model.text))
+      .markdownChartWords()
       .font(.callout)
     if let status = model.dispatchStatus {
       Text(status).font(.caption).foregroundStyle(model.failed ? AnyShapeStyle(.red) : AnyShapeStyle(.secondary))

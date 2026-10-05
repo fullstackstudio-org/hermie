@@ -137,6 +137,7 @@ struct AssistantItemView: View {
       }
     }
     .environment(\.markdownFillsWidth, false)
+    .markdownChartWords()
     #if os(iOS)
       // A long press on the bubble is the message's menu, not the start of a selection.
       .environment(\.markdownSelectable, false)

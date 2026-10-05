@@ -36,6 +36,12 @@ import Testing
     ("code", "```sh\ncurl --silent https://example.org/api/v1/" + String(repeating: "segment/", count: 30) + "end\n```"),
     ("math", "$$\n\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}\n$$"),
     ("mermaid", "```mermaid\nflowchart TD\n  A[Start] --> B{Ready?}\n```"),
+    (
+      "chart",
+      "```hermie-chart\n{\"type\":\"bar\",\"title\":\"Sales per quarter\",\"unit\":\"EUR\",\"x\":[\"Q1\",\"Q2\",\"Q3\"],"
+        + "\"series\":[{\"name\":\"2026\",\"values\":[12,15,9]},{\"name\":\"2027\",\"values\":[14,18,11]}]}\n```"
+    ),
+    ("chart-not-valid", "```hermie-chart\n{\"type\":\"bar\",\"x\":[\"Q1\"]\n```"),
     ("rule", "above\n\n---\n\nbelow"),
     ("html", "<div>\nraw html\n</div>")
   ]

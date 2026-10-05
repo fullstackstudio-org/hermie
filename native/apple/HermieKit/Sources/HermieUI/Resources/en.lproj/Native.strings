@@ -128,6 +128,36 @@
 	<string>Connect to a gateway to use this.</string>
 	<key>native.capability.save</key>
 	<string>Save</string>
+	<key>native.chart.category</key>
+	<string>Category</string>
+	<key>native.chart.copied</key>
+	<string>Copied</string>
+	<key>native.chart.copy</key>
+	<string>Copy</string>
+	<key>native.chart.copySource</key>
+	<string>Copy chart data</string>
+	<key>native.chart.kind.bar</key>
+	<string>Bar chart</string>
+	<key>native.chart.kind.line</key>
+	<string>Line chart</string>
+	<key>native.chart.kind.pie</key>
+	<string>Pie chart</string>
+	<key>native.chart.series</key>
+	<string>Series</string>
+	<key>native.chart.showChart</key>
+	<string>Show chart</string>
+	<key>native.chart.showSource</key>
+	<string>Show chart data</string>
+	<key>native.chart.summary.point</key>
+	<string>%1$@ %2$@</string>
+	<key>native.chart.summary.series</key>
+	<string>%1$@: %2$@.</string>
+	<key>native.chart.summary.titled</key>
+	<string>%1$@, %2$@.</string>
+	<key>native.chart.summary.unit</key>
+	<string>In %@.</string>
+	<key>native.chart.value</key>
+	<string>Value</string>
 	<key>native.chat.attachment.failed</key>
 	<string>“%@” could not be fetched from the gateway.</string>
 	<key>native.chat.attachment.unavailable</key>

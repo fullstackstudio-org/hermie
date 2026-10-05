@@ -140,6 +140,8 @@ struct UserBubbleView: View {
     #endif
     // The owner's blue is a fill the code colours were not chosen for.
     .environment(\.markdownCodeHighlighting, foreground != BubblePalette.outgoingText)
+    // A chart's colours are the system's, not the owner's blue: what the owner typed stays a listing.
+    .environment(\.markdownDrawsCharts, false)
     .foregroundStyle(foreground)
     .tint(foreground == .white ? .white : nil)
   }

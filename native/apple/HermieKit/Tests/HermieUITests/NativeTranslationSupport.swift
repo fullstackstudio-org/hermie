@@ -34,3 +34,17 @@ func expectTranslated(_ key: String, sameIn: Set<String> = []) throws {
     #expect(texts["de"] != texts["en"], "\(key) was not translated into German")
   }
 }
+
+/// A plural lives in the `.stringsdict`, with a form for one and for the others, in every language.
+func expectPluralForms(_ key: String) throws {
+  for language in ["en", "nl", "de"] {
+    let path = try #require(HermieStringsLookup.bundle.path(forResource: language, ofType: "lproj"))
+    let file = try #require(Bundle(path: path)?.path(forResource: "Native", ofType: "stringsdict"))
+    let table = try #require(NSDictionary(contentsOfFile: file) as? [String: Any])
+    let entry = try #require(table[key] as? [String: Any], "\(key) in \(language)")
+    let forms = try #require(entry["value"] as? [String: Any])
+
+    #expect(forms["one"] is String && forms["other"] is String, "\(key) in \(language)")
+    #expect((forms["other"] as? String)?.contains("%lld") == true, "\(key) in \(language)")
+  }
+}

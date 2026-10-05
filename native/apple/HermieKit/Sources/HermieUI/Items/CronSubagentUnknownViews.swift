@@ -43,9 +43,9 @@ struct CronDeliveryCardView: View {
             .font(.callout)
             .foregroundStyle(.secondary)
         } else if let markdown {
-          MarkdownView(markdown)
+          MarkdownView(markdown).markdownChartWords()
         } else {
-          MarkdownView(MarkdownDocument(item.body))
+          MarkdownView(MarkdownDocument(item.body)).markdownChartWords()
         }
       }
     }
