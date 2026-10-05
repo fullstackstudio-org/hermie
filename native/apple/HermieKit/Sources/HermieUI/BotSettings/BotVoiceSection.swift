@@ -34,9 +34,23 @@ enum BotVoiceLogic {
     return shown
   }
 
-  /// "Samantha, enhanced" / "My voice, Personal Voice".
-  static func detail(of voice: SpeechVoice) -> String {
-    voice.personal ? NativeStrings.VoiceSetup.qualityPersonal : VoiceSetupLogic.quality(voice.quality)
+  /// The gateway's part of the page is there where the gateway can speak, and wherever the bot was given
+  /// the gateway's voice: a choice already made stays on the page, as chosen, while the gateway has not
+  /// answered or cannot be reached.
+  static func showsGatewaySection(state: GatewayVoiceState, current: BotVoice?) -> Bool {
+    state == .ready || current?.source == .gateway
+  }
+
+  /// "Samantha, enhanced" / "My voice, Personal Voice"; with the region ("Enhanced · Belgium") where the
+  /// voices listed come from more than one.
+  static func detail(of voice: SpeechVoice, showRegion: Bool = false) -> String {
+    let quality = voice.personal ? NativeStrings.VoiceSetup.qualityPersonal : VoiceSetupLogic.quality(voice.quality)
+
+    if showRegion, let region = VoiceSetupLogic.regionName(of: voice.language) {
+      return "\(quality) · \(region)"
+    }
+
+    return quality
   }
 }
 
@@ -108,18 +122,19 @@ struct BotVoicePage: View {
         }
       }
 
+      let apple = BotVoiceLogic.appleChoices(
+        voices: appleVoices, chosen: current?.source == .apple ? current?.voice : nil,
+        deviceTag: Locale.preferredLanguages.first ?? Locale.current.identifier)
+      let showRegion = VoiceSetupLogic.spansRegions(apple)
+
       Section {
         row(NativeStrings.VoiceSetup.automatic, selected: current == BotVoice(source: .apple), id: "apple.automatic") {
           choose(BotVoice(source: .apple))
         }
 
-        ForEach(
-          BotVoiceLogic.appleChoices(
-            voices: appleVoices, chosen: current?.source == .apple ? current?.voice : nil,
-            deviceTag: Locale.preferredLanguages.first ?? Locale.current.identifier)
-        ) { voice in
+        ForEach(apple) { voice in
           row(
-            voice.name, detail: BotVoiceLogic.detail(of: voice),
+            voice.name, detail: BotVoiceLogic.detail(of: voice, showRegion: showRegion),
             selected: current == BotVoice(source: .apple, voice: voice.id), id: "apple.\(voice.id)"
           ) {
             choose(BotVoice(source: .apple, voice: voice.id))
@@ -127,10 +142,30 @@ struct BotVoicePage: View {
         }
       } header: {
         Text(NativeStrings.VoiceSetup.sourceDevice)
+      } footer: {
+        if VoiceSetupLogic.onlyCompact(apple) {
+          SettingsNote(NativeStrings.VoiceSetup.betterVoices)
+            .accessibilityIdentifier("hermie.botSettings.voice.betterVoices")
+        }
       }
 
-      if let gateway, gateway.isAvailable {
+      let state = GatewayVoiceLogic.state(of: gateway)
+
+      if BotVoiceLogic.showsGatewaySection(state: state, current: current) {
         Section {
+          if state == .unavailable {
+            GatewayUnavailableView(
+              retry: gateway.map { access in { Task { await access.retryVoices() } } },
+              identifierPrefix: "hermie.botSettings.voice.gateway")
+          } else if state == .unknown {
+            HStack(spacing: 10) {
+              ProgressView()
+              Text(NativeStrings.VoiceSetup.gatewayVoicesLoading)
+                .foregroundStyle(.secondary)
+            }
+            .accessibilityElement(children: .combine)
+          }
+
           row(
             NativeStrings.VoiceSetup.gatewayDefaultVoice, selected: current == BotVoice(source: .gateway),
             id: "gateway.default"
@@ -138,20 +173,23 @@ struct BotVoicePage: View {
             choose(BotVoice(source: .gateway))
           }
 
-          if gateway.canChooseVoice {
-            if gateway.loadingVoices {
+          if gateway?.canChooseVoice == true || state != .ready {
+            if let gateway, gateway.loadingVoices {
               HStack(spacing: 10) {
                 ProgressView()
                 Text(NativeStrings.VoiceSetup.gatewayVoicesLoading)
                   .foregroundStyle(.secondary)
               }
               .accessibilityElement(children: .combine)
-            } else if let error = gateway.voicesError {
+            } else if let gateway, state == .ready, let error = gateway.voicesError {
               GatewayVoicesErrorView(
                 error: error, retry: { Task { await gateway.retryVoices() } }, identifierPrefix: "hermie.botSettings.voice")
             }
 
-            ForEach(gateway.selectableVoices) { voice in
+            ForEach(
+              GatewayVoiceLogic.keeping(
+                current?.source == .gateway ? current?.voice : nil, in: gateway?.selectableVoices ?? [])
+            ) { voice in
               VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                   row(voice.label, selected: current == BotVoice(source: .gateway, voice: voice.id), id: "gateway.\(voice.id)") {
@@ -174,7 +212,7 @@ struct BotVoicePage: View {
         } header: {
           Text(NativeStrings.VoiceSetup.sourceGateway)
         } footer: {
-          if !gateway.canChooseVoice {
+          if state == .ready, gateway?.canChooseVoice != true {
             SettingsNote(NativeStrings.VoiceSetup.gatewayNoChoice)
           }
         }

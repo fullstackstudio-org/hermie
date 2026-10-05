@@ -2037,7 +2037,7 @@
 	<key>native.voiceSetup.betterVoicesIOS</key>
 	<string>Voor deze taal zijn alleen basisstemmen geïnstalleerd. Betere stemmen download je in Instellingen › Toegankelijkheid › Gesproken inhoud › Stemmen.</string>
 	<key>native.voiceSetup.betterVoicesMac</key>
-	<string>Voor deze taal zijn alleen basisstemmen geïnstalleerd. Betere stemmen download je in Systeeminstellingen › Toegankelijkheid › Gesproken inhoud.</string>
+	<string>Voor deze taal zijn alleen basisstemmen geïnstalleerd. Betere stemmen download je in Systeeminstellingen › Toegankelijkheid › Gesproken inhoud › Systeemstem › Beheer stemmen.</string>
 	<key>native.voiceSetup.continue</key>
 	<string>Ga door</string>
 	<key>native.voiceSetup.done</key>
@@ -2058,6 +2058,8 @@
 	<string>Speel een voorbeeld af</string>
 	<key>native.voiceSetup.gatewayStopSample</key>
 	<string>Stop het voorbeeld</string>
+	<key>native.voiceSetup.gatewayUnavailable</key>
+	<string>De stem van je gateway is nu niet beschikbaar. Je keuze blijft staan; dit apparaat spreekt tot de gateway antwoordt.</string>
 	<key>native.voiceSetup.gatewayVoicesLoading</key>
 	<string>Stemmen laden…</string>
 	<key>native.voiceSetup.gatewayVoicesNone</key>

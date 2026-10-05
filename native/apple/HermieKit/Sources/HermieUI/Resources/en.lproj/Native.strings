@@ -2037,7 +2037,7 @@
 	<key>native.voiceSetup.betterVoicesIOS</key>
 	<string>Only basic voices are installed for this language. You can download better ones in Settings › Accessibility › Spoken Content › Voices.</string>
 	<key>native.voiceSetup.betterVoicesMac</key>
-	<string>Only basic voices are installed for this language. You can download better ones in System Settings › Accessibility › Spoken Content.</string>
+	<string>Only basic voices are installed for this language. You can download better ones in System Settings › Accessibility › Spoken Content › System Voice › Manage Voices.</string>
 	<key>native.voiceSetup.continue</key>
 	<string>Continue</string>
 	<key>native.voiceSetup.done</key>
@@ -2058,6 +2058,8 @@
 	<string>Play a sample</string>
 	<key>native.voiceSetup.gatewayStopSample</key>
 	<string>Stop the sample</string>
+	<key>native.voiceSetup.gatewayUnavailable</key>
+	<string>Your gateway's voice isn't available right now. Your choice is kept; this device speaks until the gateway answers.</string>
 	<key>native.voiceSetup.gatewayVoicesLoading</key>
 	<string>Loading voices…</string>
 	<key>native.voiceSetup.gatewayVoicesNone</key>

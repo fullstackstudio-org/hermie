@@ -29,6 +29,43 @@ enum VoiceSourceChoice: CaseIterable, Identifiable, Hashable {
   }
 }
 
+/// What a screen knows of a gateway's text-to-speech: not yet, yes, or no. A choice of the gateway is
+/// kept in all three; only what is heard (and what the screen says about it) differs.
+enum GatewayVoiceState: Equatable {
+  /// `voice-config` has not answered yet.
+  case unknown
+  /// The gateway can speak.
+  case ready
+  /// There is no gateway to ask, it could not be reached, or it says it cannot speak.
+  case unavailable
+}
+
+enum GatewayVoiceLogic {
+  /// `listed`, and the voice `chosen` in front when it is not among them: a gateway voice that is chosen is
+  /// always on screen, selected, whether or not the list has it (yet).
+  static func keeping(_ chosen: String?, in listed: [GatewayVoice]) -> [GatewayVoice] {
+    guard let chosen, !chosen.isEmpty, !listed.contains(where: { $0.id == chosen }) else {
+      return listed
+    }
+
+    return [GatewayVoice(id: chosen, name: chosen)] + listed
+  }
+
+  /// The state of `gateway`'s text-to-speech: no gateway at all is unavailable.
+  @MainActor
+  static func state(of gateway: GatewaySpeechAccess?) -> GatewayVoiceState {
+    guard let gateway else {
+      return .unavailable
+    }
+
+    guard let config = gateway.config else {
+      return .unknown
+    }
+
+    return config.ttsAvailable ? .ready : .unavailable
+  }
+}
+
 /// The pure parts of the screen: which language to open on, which voices to show and in what order, what
 /// the dots are called, the level the orb moves to while a sample plays. Plain functions, tested without a view.
 enum VoiceSetupLogic {
@@ -55,13 +92,59 @@ enum VoiceSetupLogic {
     }
   }
 
-  /// The voices of one language tag, in dot order.
+  /// Every installed voice of the language `tag` names, in dot order. The language is the tag's language
+  /// code, not the whole tag: Dutch lists the `nl-NL` and `nl-BE` voices together, English `en-US`,
+  /// `en-GB`, `en-AU` and the rest, so no regional variant is thrown away.
   static func voices(in tag: String?, from voices: [SpeechVoice]) -> [SpeechVoice] {
     guard let tag else {
       return []
     }
 
-    return ordered(voices.filter { $0.language == tag })
+    let code = languageCode(tag)
+
+    return ordered(voices.filter { languageCode($0.language) == code })
+  }
+
+  /// The languages the menu lists: one per language code (a language is offered once, whatever regions
+  /// its voices come from), named by the language alone ("Dutch"). Each carries a tag to speak in: the
+  /// device's own where there is a voice for it, else one of the device's region, else the first.
+  static func languageChoices(
+    voices: [SpeechVoice], deviceTag: String, locale: Locale = .current
+  ) -> [VoiceLanguageChoice] {
+    let device = deviceTag.replacingOccurrences(of: "_", with: "-")
+    let region = device.split(separator: "-").last.map { $0.uppercased() }
+
+    return Dictionary(grouping: Set(voices.map(\.language)), by: { languageCode($0) })
+      .compactMap { code, tags -> VoiceLanguageChoice? in
+        guard !code.isEmpty else {
+          return nil
+        }
+
+        let sorted = tags.sorted()
+        let tag =
+          sorted.first { $0.caseInsensitiveCompare(device) == .orderedSame }
+          ?? sorted.first { $0.contains("-") && $0.split(separator: "-").last.map { $0.uppercased() } == region }
+          ?? sorted[0]
+
+        return VoiceLanguageChoice(tag: tag, name: VoiceLanguageChoice.name(of: code, locale: locale))
+      }
+      .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+  }
+
+  /// The voices come from more than one region of the language, so a voice's region tells it apart.
+  static func spansRegions(_ voices: [SpeechVoice]) -> Bool {
+    Set(voices.map { $0.language.replacingOccurrences(of: "_", with: "-").lowercased() }).count > 1
+  }
+
+  /// `nl-BE` as "Belgium", in the reader's language; nil for a tag with no region.
+  static func regionName(of tag: String, locale: Locale = .current) -> String? {
+    let parts = tag.replacingOccurrences(of: "_", with: "-").split(separator: "-")
+
+    guard let region = parts.dropFirst().last(where: { $0.count == 2 || $0.count == 3 }) else {
+      return nil
+    }
+
+    return locale.localizedString(forRegionCode: String(region))
   }
 
   /// The language the screen opens on: the chosen voice's, else the device's (its own tag, else any tag
@@ -99,11 +182,15 @@ enum VoiceSetupLogic {
     !voices.isEmpty && voices.allSatisfy { $0.quality == .compact && !$0.personal }
   }
 
-  /// "Voice 3, Ava, enhanced, selected".
-  static func dotLabel(number: Int, voice: SpeechVoice, selected: Bool) -> String {
+  /// "Voice 3, Ava, enhanced, selected"; with the region ("…, Belgium, …") where the voices span several.
+  static func dotLabel(number: Int, voice: SpeechVoice, selected: Bool, showRegion: Bool = false) -> String {
     var parts = [NativeStrings.VoiceSetup.voiceNumber(number), voice.name]
 
     parts.append(voice.personal ? NativeStrings.VoiceSetup.qualityPersonal : quality(voice.quality))
+
+    if showRegion, let region = regionName(of: voice.language) {
+      parts.append(region)
+    }
 
     if selected {
       parts.append(NativeStrings.VoiceSetup.selected)
@@ -223,12 +310,24 @@ final class VoiceSetupModel {
     await gateway.loadVoices()
   }
 
-  /// The Source row is drawn: the gateway says its text-to-speech is there.
-  var offersGateway: Bool { gateway?.isAvailable == true }
+  /// What the screen knows of the gateway's text-to-speech right now.
+  var gatewayState: GatewayVoiceState { GatewayVoiceLogic.state(of: gateway) }
 
-  /// Where the voice is from now: the gateway's only where the gateway can speak.
+  /// The gateway says its text-to-speech is there.
+  var offersGateway: Bool { gatewayState == .ready }
+
+  /// The Source row is drawn: the gateway can speak, or it is what was chosen. A choice already made is
+  /// never hidden because the answer has not come yet or did not come: it stays on screen, as chosen.
+  var showsSourceRow: Bool { offersGateway || settings.speechSource == .gateway }
+
+  /// The chosen gateway cannot be reached or cannot speak (not: has not answered yet): the choice is
+  /// kept, and the screen says that the device speaks meanwhile.
+  var gatewayUnavailable: Bool { source == .gateway && gatewayState == .unavailable }
+
+  /// Where the voice is from: what was chosen, as chosen. Whether the gateway can speak now decides what
+  /// is heard (the device's voice speaks when it cannot), never what is shown as chosen.
   var source: VoiceSourceChoice {
-    get { offersGateway ? VoiceSourceChoice(settings.speechSource) : .device }
+    get { VoiceSourceChoice(settings.speechSource) }
     set {
       settings.setSpeechSource(newValue.speechSource)
       preview()
@@ -237,7 +336,7 @@ final class VoiceSetupModel {
 
   /// The line under the title: what is said stays on the device only for the device's voice.
   var subtitle: String {
-    source == .gateway ? NativeStrings.VoiceSetup.subtitleGateway : NativeStrings.VoiceSetup.subtitle
+    source == .gateway && !gatewayUnavailable ? NativeStrings.VoiceSetup.subtitleGateway : NativeStrings.VoiceSetup.subtitle
   }
 
   /// Which provider the gateway speaks with, in a sentence.
@@ -249,10 +348,16 @@ final class VoiceSetupModel {
   /// A voice can be chosen for the gateway (it takes one with a request, and has a list).
   var canChooseGatewayVoice: Bool { gateway?.canChooseVoice == true }
 
-  /// The voices to choose from. A provider that lists its voices by language (Edge) shows those of the
-  /// device's language, or all of them where none is, and always the one chosen; ElevenLabs' are not
-  /// tied to a language and all show.
+  /// The voices to choose from: the listed ones, and the one chosen when it is not among them (the list
+  /// is still loading, could not be read, or the voice is not in it yet), so what is chosen always shows.
   var gatewayVoices: [GatewayVoice] {
+    GatewayVoiceLogic.keeping(settings.gatewayVoice, in: listedGatewayVoices)
+  }
+
+  /// The voices the gateway lists, as far as the screen shows them. A provider that lists its voices by
+  /// language (Edge) shows those of the device's language, or all of them where none is, and always the
+  /// one chosen; ElevenLabs' are not tied to a language and all show.
+  var listedGatewayVoices: [GatewayVoice] {
     let all = gateway?.selectableVoices ?? []
 
     guard gateway?.config?.isElevenLabs != true, all.contains(where: { $0.language != nil }) else {
@@ -270,7 +375,7 @@ final class VoiceSetupModel {
 
   var loadingGatewayVoices: Bool {
     gateway?.loadingVoices == true
-      || (gateway?.voicesLoaded == false && gatewayVoices.isEmpty && gateway?.config?.isElevenLabs == true
+      || (gateway?.voicesLoaded == false && listedGatewayVoices.isEmpty && gateway?.config?.isElevenLabs == true
         && gateway?.voicesError == nil)
   }
 
@@ -313,9 +418,20 @@ final class VoiceSetupModel {
     access = speaker.personalVoiceAccess()
   }
 
-  var languages: [VoiceLanguageChoice] { VoiceLanguageChoice.choices(voices.map(\.language)) }
+  /// One entry per language: the voices of all its regions show under it.
+  var languages: [VoiceLanguageChoice] { VoiceSetupLogic.languageChoices(voices: voices, deviceTag: deviceTag) }
 
-  var languageName: String { language.map { VoiceLanguageChoice.name(of: $0) } ?? NativeStrings.VoiceSetup.automatic }
+  var languageName: String {
+    language.map { VoiceLanguageChoice.name(of: VoiceSetupLogic.languageCode($0)) } ?? NativeStrings.VoiceSetup.automatic
+  }
+
+  /// Whether `tag`'s language is the one shown (a menu entry's tag stands for its whole language).
+  func isShowing(_ tag: String) -> Bool {
+    language.map { VoiceSetupLogic.languageCode($0) == VoiceSetupLogic.languageCode(tag) } ?? false
+  }
+
+  /// The voices come from several regions of the language: each dot says which.
+  var showsRegions: Bool { VoiceSetupLogic.spansRegions(shown) }
 
   /// The dots, in order.
   var shown: [SpeechVoice] { VoiceSetupLogic.voices(in: language, from: voices) }
@@ -332,7 +448,11 @@ final class VoiceSetupModel {
       return NativeStrings.VoiceSetup.automatic
     }
 
-    if voice.language == language {
+    if let language, VoiceSetupLogic.languageCode(voice.language) == VoiceSetupLogic.languageCode(language) {
+      if showsRegions, let region = VoiceSetupLogic.regionName(of: voice.language) {
+        return "\(voice.name) · \(region)"
+      }
+
       return voice.name
     }
 
@@ -441,7 +561,7 @@ struct VoiceSetupView: View {
             .accessibilityIdentifier("hermie.voiceSetup.subtitle")
         }
 
-        if model.offersGateway {
+        if model.showsSourceRow {
           sourceCard
         }
 
@@ -506,7 +626,7 @@ struct VoiceSetupView: View {
             Button {
               model.selectLanguage(choice.tag)
             } label: {
-              if choice.tag == model.language {
+              if model.isShowing(choice.tag) {
                 Label(choice.name, systemImage: "checkmark")
               } else {
                 Text(choice.name)
@@ -605,7 +725,8 @@ struct VoiceSetupView: View {
     }
     .buttonStyle(.plain)
     .accessibilityElement(children: .ignore)
-    .accessibilityLabel(VoiceSetupLogic.dotLabel(number: number, voice: voice, selected: selected))
+    .accessibilityLabel(
+      VoiceSetupLogic.dotLabel(number: number, voice: voice, selected: selected, showRegion: model.showsRegions))
     .accessibilityAddTraits(.isButton)
     .accessibilityIdentifier("hermie.voiceSetup.voice.\(number)")
   }
@@ -831,13 +952,31 @@ struct VoiceSetupView: View {
 
   private var gatewayCard: some View {
     card {
-      Text(model.gatewayProviderLine)
-        .font(.footnote)
-        .foregroundStyle(Self.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-        .accessibilityIdentifier("hermie.voiceSetup.gatewayProvider")
+      switch model.gatewayState {
+      case .ready:
+        Text(model.gatewayProviderLine)
+          .font(.footnote)
+          .foregroundStyle(Self.secondary)
+          .fixedSize(horizontal: false, vertical: true)
+          .accessibilityIdentifier("hermie.voiceSetup.gatewayProvider")
+      case .unknown:
+        HStack(spacing: 10) {
+          ProgressView()
+          Text(NativeStrings.VoiceSetup.gatewayVoicesLoading)
+            .font(.footnote)
+            .foregroundStyle(Self.secondary)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("hermie.voiceSetup.gatewayChecking")
+      case .unavailable:
+        GatewayUnavailableView(
+          color: Self.secondary, tint: Self.accent,
+          retry: model.gateway == nil ? nil : { Task { await model.retryGatewayVoices() } },
+          identifierPrefix: "hermie.voiceSetup.gateway")
+      }
 
-      if model.canChooseGatewayVoice {
+      // Not ready: the choice is still shown, as chosen (the default row, and the voice if one was chosen).
+      if model.canChooseGatewayVoice || model.gatewayState != .ready {
         VStack(alignment: .leading, spacing: 0) {
           gatewayRow(title: NativeStrings.VoiceSetup.gatewayDefaultVoice, id: nil)
 
@@ -854,7 +993,7 @@ struct VoiceSetupView: View {
             GatewayVoicesErrorView(
               error: error, color: Self.secondary, tint: Self.accent,
               retry: { Task { await model.retryGatewayVoices() } }, identifierPrefix: "hermie.voiceSetup.gateway")
-          } else if model.gatewayVoices.isEmpty {
+          } else if model.gatewayState == .ready, model.listedGatewayVoices.isEmpty {
             Text(NativeStrings.VoiceSetup.gatewayVoicesNone)
               .font(.footnote)
               .foregroundStyle(Self.secondary)
@@ -1109,7 +1248,7 @@ extension NativeStrings {
         String(
           localized: "native.voiceSetup.betterVoicesMac",
           defaultValue:
-            "Only basic voices are installed for this language. You can download better ones in System Settings › Accessibility › Spoken Content.",
+            "Only basic voices are installed for this language. You can download better ones in System Settings › Accessibility › Spoken Content › System Voice › Manage Voices.",
           table: "Native", bundle: .module)
       #endif
     }
@@ -1224,6 +1363,14 @@ extension NativeStrings {
     static var gatewayNoChoice: String {
       String(
         localized: "native.voiceSetup.gatewayNoChoice", defaultValue: "Your gateway speaks in the voice it is set up with. Choosing another voice here needs a newer gateway.", table: "Native", bundle: .module)
+    }
+    /// The gateway is chosen but cannot speak now: the choice stays, the device speaks until it can
+    static var gatewayUnavailable: String {
+      String(
+        localized: "native.voiceSetup.gatewayUnavailable",
+        defaultValue:
+          "Your gateway's voice isn't available right now. Your choice is kept; this device speaks until the gateway answers.",
+        table: "Native", bundle: .module)
     }
     /// Under the sliders when the voice is the gateway's
     static var gatewayPaceNote: String {

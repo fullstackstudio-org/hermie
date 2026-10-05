@@ -269,7 +269,94 @@ private final class PreviewSpeaker: SpeechSynthesizing {
   @Test func dotsAreOrderedPersonalThenBestQualityThenByName() {
     let order = VoiceSetupLogic.voices(in: "en-US", from: voices).map(\.id)
 
-    #expect(order == ["me", "en-us-c", "en-us-a", "en-us-b"])
+    // Every English voice, whatever its region: personal first, premium, enhanced, then the compact ones
+    // by name (Allison, Daniel).
+    #expect(order == ["me", "en-us-c", "en-us-a", "en-us-b", "en-gb-a"])
+  }
+
+  /// What a Dutch iPhone with a few voices downloaded has: three regions of two languages, all grades.
+  private let installed: [SpeechVoice] = [
+    SpeechVoice(id: "nl-xander", name: "Xander", language: "nl-NL", quality: .compact),
+    SpeechVoice(id: "nl-claire", name: "Claire", language: "nl-NL", quality: .enhanced),
+    SpeechVoice(id: "nl-ellen", name: "Ellen", language: "nl-BE", quality: .compact),
+    SpeechVoice(id: "nl-ellen-premium", name: "Ellen", language: "nl-BE", quality: .premium),
+    SpeechVoice(id: "en-samantha", name: "Samantha", language: "en-US", quality: .compact),
+    SpeechVoice(id: "en-daniel", name: "Daniel", language: "en-GB", quality: .enhanced),
+    SpeechVoice(id: "en-karen", name: "Karen", language: "en-AU", quality: .compact),
+    SpeechVoice(id: "en-moira", name: "Moira", language: "en-IE", quality: .compact),
+    SpeechVoice(id: "de-anna", name: "Anna", language: "de-DE", quality: .compact)
+  ]
+
+  @Test func aLanguageListsEveryRegionalVariantBestFirstThenByName() {
+    #expect(
+      VoiceSetupLogic.voices(in: "nl-NL", from: installed).map(\.id)
+        == ["nl-ellen-premium", "nl-claire", "nl-ellen", "nl-xander"])
+    #expect(
+      VoiceSetupLogic.voices(in: "nl-BE", from: installed).map(\.id)
+        == VoiceSetupLogic.voices(in: "nl-NL", from: installed).map(\.id), "any region of Dutch lists all of Dutch")
+    #expect(
+      VoiceSetupLogic.voices(in: "en_GB", from: installed).map(\.id)
+        == ["en-daniel", "en-karen", "en-moira", "en-samantha"], "underscore tags and every English region")
+    #expect(VoiceSetupLogic.voices(in: "nl", from: installed).count == 4, "a bare language code works too")
+    #expect(VoiceSetupLogic.voices(in: "de-AT", from: installed).map(\.id) == ["de-anna"])
+  }
+
+  @Test func aSimilarlyNamedLanguageIsNotMixedIn() {
+    let voices = installed + [SpeechVoice(id: "nb-nora", name: "Nora", language: "nb-NO")]
+
+    #expect(!VoiceSetupLogic.voices(in: "nl-NL", from: voices).contains { $0.id == "nb-nora" })
+    #expect(VoiceSetupLogic.voices(in: "nb-NO", from: voices).map(\.id) == ["nb-nora"])
+  }
+
+  @Test func theMenuOffersEachLanguageOnceWithATagOfTheDevicesRegion() {
+    let nl = VoiceSetupLogic.languageChoices(voices: installed, deviceTag: "nl-BE", locale: Locale(identifier: "en"))
+
+    #expect(nl.map(\.name) == ["Dutch", "English", "German"])
+    #expect(nl.map(\.tag) == ["nl-BE", "en-AU", "de-DE"], "the device's region where there is one, else the first")
+
+    let us = VoiceSetupLogic.languageChoices(voices: installed, deviceTag: "en-US", locale: Locale(identifier: "en"))
+
+    #expect(us.map(\.tag) == ["nl-BE", "en-US", "de-DE"])
+    #expect(VoiceSetupLogic.languageChoices(voices: [], deviceTag: "en-US").isEmpty)
+  }
+
+  @Test func theRegionNamesTheVoiceWhereTheListSpansSeveral() {
+    let dutch = VoiceSetupLogic.voices(in: "nl", from: installed)
+    let english = [SpeechVoice(id: "a", name: "A", language: "en-US"), SpeechVoice(id: "b", name: "B", language: "en-US")]
+
+    #expect(VoiceSetupLogic.spansRegions(dutch))
+    #expect(!VoiceSetupLogic.spansRegions(english))
+    #expect(VoiceSetupLogic.regionName(of: "nl-BE", locale: Locale(identifier: "en")) == "Belgium")
+    #expect(VoiceSetupLogic.regionName(of: "en_GB", locale: Locale(identifier: "en")) == "United Kingdom")
+    #expect(VoiceSetupLogic.regionName(of: "nl", locale: Locale(identifier: "en")) == nil)
+    // dutch[0] is the premium Ellen of nl-BE; the label says where she is from only when it is needed.
+    let belgium = VoiceSetupLogic.regionName(of: "nl-BE") ?? "?"
+
+    #expect(VoiceSetupLogic.dotLabel(number: 1, voice: dutch[0], selected: false, showRegion: true).contains(belgium))
+    #expect(!VoiceSetupLogic.dotLabel(number: 1, voice: dutch[0], selected: false).contains(belgium))
+  }
+
+  @Test func theBotPageListsTheSameVoicesAndNamesTheirRegion() {
+    let choices = BotVoiceLogic.appleChoices(voices: installed, chosen: nil, deviceTag: "nl-NL")
+
+    #expect(choices.map(\.id) == ["nl-ellen-premium", "nl-claire", "nl-ellen", "nl-xander"])
+    #expect(BotVoiceLogic.detail(of: choices[0], showRegion: true).contains(" · "))
+    #expect(!BotVoiceLogic.detail(of: choices[0]).contains(" · "))
+    #expect(
+      BotVoiceLogic.appleChoices(voices: installed, chosen: "de-anna", deviceTag: "nl-NL").map(\.id) == ["de-anna"],
+      "a chosen voice in another language is listed, and sets the language")
+  }
+
+  @Test func personalVoicesComeFirstAndOnlyCompactVoicesAskForADownload() {
+    let personal = SpeechVoice(id: "me", name: "Me", language: "nl-NL", quality: .compact, personal: true)
+    let compact = [
+      SpeechVoice(id: "a", name: "Xander", language: "nl-NL"), SpeechVoice(id: "b", name: "Ellen", language: "nl-BE")
+    ]
+
+    #expect(VoiceSetupLogic.voices(in: "nl-NL", from: compact + [personal]).first?.id == "me")
+    #expect(VoiceSetupLogic.onlyCompact(VoiceSetupLogic.voices(in: "nl-NL", from: compact)), "regions together: still only basic")
+    #expect(!VoiceSetupLogic.onlyCompact(VoiceSetupLogic.voices(in: "nl-NL", from: compact + [personal])))
+    #expect(!VoiceSetupLogic.onlyCompact(VoiceSetupLogic.voices(in: "nl-NL", from: installed)), "one enhanced voice is enough")
   }
 
   @Test func aLanguageNobodyHasHasNoVoices() {
@@ -299,7 +386,12 @@ private final class PreviewSpeaker: SpeechSynthesizing {
   }
 
   @Test func theHintShowsWhenOnlyBasicVoicesExist() {
-    #expect(VoiceSetupLogic.onlyCompact(VoiceSetupLogic.voices(in: "en-GB", from: voices)))
+    let basic = [
+      SpeechVoice(id: "a", name: "Daniel", language: "en-GB"), SpeechVoice(id: "b", name: "Karen", language: "en-AU")
+    ]
+
+    #expect(VoiceSetupLogic.onlyCompact(VoiceSetupLogic.voices(in: "en-GB", from: basic)))
+    #expect(!VoiceSetupLogic.onlyCompact(VoiceSetupLogic.voices(in: "en-GB", from: voices)), "English has better ones")
     #expect(!VoiceSetupLogic.onlyCompact(VoiceSetupLogic.voices(in: "en-US", from: voices)))
     #expect(!VoiceSetupLogic.onlyCompact(VoiceSetupLogic.voices(in: "nl-NL", from: voices)))
     #expect(!VoiceSetupLogic.onlyCompact([]))
@@ -355,7 +447,7 @@ private final class PreviewSpeaker: SpeechSynthesizing {
 
     #expect(setup.language == "nl-NL")
     #expect(setup.shown.map(\.id) == ["nl-b", "nl-a"])
-    #expect(setup.languages.count == 3)
+    #expect(setup.languages.count == 2, "one entry per language: English once, whatever regions it has")
     #expect(setup.access == .notAsked)
   }
 
@@ -481,7 +573,8 @@ private final class PreviewSpeaker: SpeechSynthesizing {
     setup.load()
 
     #expect(setup.language == "en-US")
-    #expect(setup.caption == "Ava")
+    // English has voices from two regions here, so the caption says which one Ava is from.
+    #expect(setup.caption == "Ava · \(VoiceSetupLogic.regionName(of: "en-US") ?? "?")")
 
     setup.selectLanguage("nl-NL")
 

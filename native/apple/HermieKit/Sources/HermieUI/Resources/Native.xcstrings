@@ -24465,19 +24465,19 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Für diese Sprache sind nur einfache Stimmen installiert. Bessere Stimmen kannst du in den Systemeinstellungen › Bedienungshilfen › Gesprochene Inhalte laden."
+            "value" : "Für diese Sprache sind nur einfache Stimmen installiert. Bessere Stimmen kannst du in den Systemeinstellungen › Bedienungshilfen › Gesprochene Inhalte › Systemstimme › Stimmen verwalten laden."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Only basic voices are installed for this language. You can download better ones in System Settings › Accessibility › Spoken Content."
+            "value" : "Only basic voices are installed for this language. You can download better ones in System Settings › Accessibility › Spoken Content › System Voice › Manage Voices."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Voor deze taal zijn alleen basisstemmen geïnstalleerd. Betere stemmen download je in Systeeminstellingen › Toegankelijkheid › Gesproken inhoud."
+            "value" : "Voor deze taal zijn alleen basisstemmen geïnstalleerd. Betere stemmen download je in Systeeminstellingen › Toegankelijkheid › Gesproken inhoud › Systeemstem › Beheer stemmen."
           }
         }
       }
@@ -24598,6 +24598,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Je gateway spreekt met de stem waarmee hij is ingesteld. Een andere stem kiezen kan hier pas met een nieuwere gateway."
+          }
+        }
+      }
+    },
+    "native.voiceSetup.gatewayUnavailable" : {
+      "comment" : "Said when the gateway is chosen as the voice but cannot speak right now: the choice is kept and the device speaks meanwhile.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Stimme deines Gateways ist gerade nicht verfügbar. Deine Wahl bleibt erhalten; dieses Gerät spricht, bis das Gateway antwortet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your gateway's voice isn't available right now. Your choice is kept; this device speaks until the gateway answers."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De stem van je gateway is nu niet beschikbaar. Je keuze blijft staan; dit apparaat spreekt tot de gateway antwoordt."
           }
         }
       }

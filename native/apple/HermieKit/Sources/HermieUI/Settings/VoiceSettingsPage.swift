@@ -274,9 +274,9 @@ struct VoicePickerPage: View {
   var body: some View {
     let settings = launch.voice
     let voices = probe.synthesiser.voices()
-    let languages = Dictionary(grouping: voices, by: \.language)
-      .map { VoiceLanguageChoice(tag: $0.key, name: VoiceLanguageChoice.name(of: $0.key)) }
-      .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    // One section per language, every regional variant of it in it, the best voices first.
+    let languages = VoiceSetupLogic.languageChoices(
+      voices: voices, deviceTag: Locale.preferredLanguages.first ?? Locale.current.identifier)
 
     Form {
       Section {
@@ -286,9 +286,20 @@ struct VoicePickerPage: View {
       }
 
       ForEach(languages) { language in
-        Section(language.name) {
-          ForEach(voices.filter { $0.language == language.tag }) { voice in
-            row(voice.name, id: voice.id, chosen: settings.voiceIdentifier)
+        let shown = VoiceSetupLogic.voices(in: language.tag, from: voices)
+        let showRegion = VoiceSetupLogic.spansRegions(shown)
+
+        Section {
+          ForEach(shown) { voice in
+            row(
+              voice.name, detail: BotVoiceLogic.detail(of: voice, showRegion: showRegion), id: voice.id,
+              chosen: settings.voiceIdentifier)
+          }
+        } header: {
+          Text(language.name)
+        } footer: {
+          if VoiceSetupLogic.onlyCompact(shown) {
+            SettingsNote(NativeStrings.VoiceSetup.betterVoices)
           }
         }
       }
@@ -298,15 +309,23 @@ struct VoicePickerPage: View {
     .accessibilityIdentifier("hermie.settings.voice.voices")
   }
 
-  private func row(_ title: String, id: String?, chosen: String?) -> some View {
+  private func row(_ title: String, detail: String? = nil, id: String?, chosen: String?) -> some View {
     let selected = id == chosen
 
     return Button {
       launch.voice.setVoiceIdentifier(id)
     } label: {
       HStack {
-        Text(title)
-          .foregroundStyle(.primary)
+        VStack(alignment: .leading, spacing: 2) {
+          Text(title)
+            .foregroundStyle(.primary)
+
+          if let detail {
+            Text(detail)
+              .font(.footnote)
+              .foregroundStyle(.secondary)
+          }
+        }
         Spacer()
         if selected {
           Image(systemName: "checkmark")

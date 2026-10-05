@@ -2037,7 +2037,7 @@
 	<key>native.voiceSetup.betterVoicesIOS</key>
 	<string>Für diese Sprache sind nur einfache Stimmen installiert. Bessere Stimmen kannst du unter Einstellungen › Bedienungshilfen › Gesprochene Inhalte › Stimmen laden.</string>
 	<key>native.voiceSetup.betterVoicesMac</key>
-	<string>Für diese Sprache sind nur einfache Stimmen installiert. Bessere Stimmen kannst du in den Systemeinstellungen › Bedienungshilfen › Gesprochene Inhalte laden.</string>
+	<string>Für diese Sprache sind nur einfache Stimmen installiert. Bessere Stimmen kannst du in den Systemeinstellungen › Bedienungshilfen › Gesprochene Inhalte › Systemstimme › Stimmen verwalten laden.</string>
 	<key>native.voiceSetup.continue</key>
 	<string>Weiter</string>
 	<key>native.voiceSetup.done</key>
@@ -2058,6 +2058,8 @@
 	<string>Hörprobe abspielen</string>
 	<key>native.voiceSetup.gatewayStopSample</key>
 	<string>Hörprobe stoppen</string>
+	<key>native.voiceSetup.gatewayUnavailable</key>
+	<string>Die Stimme deines Gateways ist gerade nicht verfügbar. Deine Wahl bleibt erhalten; dieses Gerät spricht, bis das Gateway antwortet.</string>
 	<key>native.voiceSetup.gatewayVoicesLoading</key>
 	<string>Stimmen werden geladen …</string>
 	<key>native.voiceSetup.gatewayVoicesNone</key>

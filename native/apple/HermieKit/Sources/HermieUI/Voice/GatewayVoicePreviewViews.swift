@@ -81,6 +81,33 @@ struct GatewayVoicePreviewMessage: View {
   }
 }
 
+/// Said where the gateway was chosen as the voice but cannot speak now (no answer, or no text-to-speech):
+/// the choice is kept, the device speaks meanwhile, and a button asks again where there is a gateway to ask.
+struct GatewayUnavailableView: View {
+  var color: Color = .secondary
+  var tint: Color = .accentColor
+  let retry: (() -> Void)?
+  let identifierPrefix: String
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text(NativeStrings.VoiceSetup.gatewayUnavailable)
+        .font(.footnote)
+        .foregroundStyle(color)
+        .fixedSize(horizontal: false, vertical: true)
+
+      if let retry {
+        Button(NativeStrings.VoiceSetup.voicesRetry, action: retry)
+          .buttonStyle(.plain)
+          .font(.footnote.weight(.semibold))
+          .foregroundStyle(tint)
+          .accessibilityIdentifier("\(identifierPrefix).unavailableRetry")
+      }
+    }
+    .accessibilityIdentifier("\(identifierPrefix).unavailable")
+  }
+}
+
 /// What stands in for a voice list the gateway could not give: why, and a button that asks again.
 struct GatewayVoicesErrorView: View {
   let error: GatewayVoicesError
