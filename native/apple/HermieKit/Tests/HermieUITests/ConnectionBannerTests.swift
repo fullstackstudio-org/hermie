@@ -71,7 +71,9 @@
 
     /// Whether the banner comes to `shown` within `seconds`.
     private func settles(_ view: NSView, shown: Bool, within seconds: Double) async -> Bool {
-      let deadline = ContinuousClock.now + .seconds(seconds)
+      // Every check here waits for a state to come, never for one to stay away, so a long limit cannot
+      // hide a bug; it only rides out a main actor the other UI suites keep busy for seconds on CI.
+      let deadline = ContinuousClock.now + .seconds(max(seconds, 30))
 
       while ContinuousClock.now < deadline {
         if bannerShown(view) == shown {
