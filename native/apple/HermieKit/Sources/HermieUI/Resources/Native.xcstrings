@@ -627,6 +627,222 @@
         }
       }
     },
+    "native.botSettings.capabilities" : {
+      "comment" : "Bot settings, header over the rows that open Toolsets, Skills and MCP servers.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fähigkeiten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capabilities"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mogelijkheden"
+          }
+        }
+      }
+    },
+    "native.botSettings.summaryOn" : {
+      "comment" : "Bot settings, a row's value: how many of its items are on, all of them. The argument is the count.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld an"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld on"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld aan"
+          }
+        }
+      }
+    },
+    "native.botSettings.summaryOfOn" : {
+      "comment" : "Bot settings, a row's value: how many of its items are on. The arguments are the number on and the total.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld von %2$lld an"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld of %2$lld on"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld van %2$lld aan"
+          }
+        }
+      }
+    },
+    "native.botSettings.summaryNone" : {
+      "comment" : "Bot settings, a row's value when the bot has none of that kind.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "None"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen"
+          }
+        }
+      }
+    },
+    "native.botSettings.needsAttention" : {
+      "comment" : "Bot settings, accessibility label of the warning on a row whose last change failed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erfordert Aufmerksamkeit"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs attention"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vraagt aandacht"
+          }
+        }
+      }
+    },
+    "native.botSettings.toolsetsAbout" : {
+      "comment" : "Bot settings, Toolsets page, the sentence at the top.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toolsets sind Gruppen von Werkzeugen, etwa die Websuche oder ein Terminal, die dieser Bot verwenden darf."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toolsets are groups of tools, such as web search or a terminal, that this bot may use."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toolsets zijn groepen hulpmiddelen, zoals zoeken op het web of een terminal, die deze bot mag gebruiken."
+          }
+        }
+      }
+    },
+    "native.botSettings.skillsAbout" : {
+      "comment" : "Bot settings, Skills page, the sentence at the top.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skills sind schriftliche Anleitungen, die der Bot lädt, wenn eine Aufgabe sie braucht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skills are written instructions the bot can load when a task calls for them."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skills zijn geschreven instructies die de bot kan laden als een taak erom vraagt."
+          }
+        }
+      }
+    },
+    "native.botSettings.mcpAbout" : {
+      "comment" : "Bot settings, MCP servers page, the sentence at the top.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP-Server verbinden diesen Bot mit externen Werkzeugen und Daten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP servers connect this bot to outside tools and data."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP-servers verbinden deze bot met externe hulpmiddelen en gegevens."
+          }
+        }
+      }
+    },
+    "native.botSettings.noMatches" : {
+      "comment" : "Bot settings, a capability page whose search finds nothing.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nichts passt zu deiner Suche."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing matches your search."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niets komt overeen met je zoekopdracht."
+          }
+        }
+      }
+    },
     "native.botSettings.modelChoose" : {
       "extractionState" : "manual",
       "localizations" : {

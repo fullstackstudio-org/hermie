@@ -38,6 +38,8 @@
 	<string>Accentkleur</string>
 	<key>native.botSettings.about</key>
 	<string>Over deze bot</string>
+	<key>native.botSettings.capabilities</key>
+	<string>Mogelijkheden</string>
 	<key>native.botSettings.chatList</key>
 	<string>Chatlijst</string>
 	<key>native.botSettings.colourHint</key>
@@ -56,12 +58,18 @@
 	<string>Minstens één toolset moet aan blijven. Om terug te gaan naar de standaard van de gateway gebruik je “De standaard van de gateway volgen”.</string>
 	<key>native.botSettings.mcp</key>
 	<string>MCP-servers</string>
+	<key>native.botSettings.mcpAbout</key>
+	<string>MCP-servers verbinden deze bot met externe hulpmiddelen en gegevens.</string>
 	<key>native.botSettings.modelChoose</key>
 	<string>Kies een model</string>
 	<key>native.botSettings.modelFollows</key>
 	<string>Volgt het model van de gateway</string>
 	<key>native.botSettings.modelUnavailable</key>
 	<string>Deze gateway toont niet welke modellen hij aanbiedt, dus het model kan hier niet worden gewijzigd.</string>
+	<key>native.botSettings.needsAttention</key>
+	<string>Vraagt aandacht</string>
+	<key>native.botSettings.noMatches</key>
+	<string>Niets komt overeen met je zoekopdracht.</string>
 	<key>native.botSettings.notApplied</key>
 	<string>De gateway nam de wijziging aan maar paste hem niet toe.</string>
 	<key>native.botSettings.notSynced</key>
@@ -86,12 +94,22 @@
 	<string>Terugzetten</string>
 	<key>native.botSettings.skills</key>
 	<string>Skills</string>
+	<key>native.botSettings.skillsAbout</key>
+	<string>Skills zijn geschreven instructies die de bot kan laden als een taak erom vraagt.</string>
 	<key>native.botSettings.skillsToolsetOff</key>
 	<string>De toolset Skills staat uit, dus in Hermie-chats krijgt deze bot geen skill-tools en geen lijst met skills in zijn instructies. Zelf een skill starten kan nog wel: typ / en de naam. De schakelaars hieronder zetten losse skills overal uit, ook dat.</string>
+	<key>native.botSettings.summaryNone</key>
+	<string>Geen</string>
+	<key>native.botSettings.summaryOfOn</key>
+	<string>%1$lld van %2$lld aan</string>
+	<key>native.botSettings.summaryOn</key>
+	<string>%lld aan</string>
 	<key>native.botSettings.title</key>
 	<string>Bot-instellingen</string>
 	<key>native.botSettings.toolsets</key>
 	<string>Toolsets</string>
+	<key>native.botSettings.toolsetsAbout</key>
+	<string>Toolsets zijn groepen hulpmiddelen, zoals zoeken op het web of een terminal, die deze bot mag gebruiken.</string>
 	<key>native.botSettings.toolsetsScope</key>
 	<string>Deze schakelaars bepalen wat de bot kan gebruiken in chats in Hermie. Dezelfde bot via een berichtenapp, en zijn geplande taken, houden hun eigen lijsten op de gateway.</string>
 	<key>native.botSettings.unsupported</key>

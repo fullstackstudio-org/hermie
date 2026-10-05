@@ -38,6 +38,8 @@
 	<string>Akzentfarbe</string>
 	<key>native.botSettings.about</key>
 	<string>Über diesen Bot</string>
+	<key>native.botSettings.capabilities</key>
+	<string>Fähigkeiten</string>
 	<key>native.botSettings.chatList</key>
 	<string>Chatliste</string>
 	<key>native.botSettings.colourHint</key>
@@ -56,12 +58,18 @@
 	<string>Mindestens ein Toolset muss eingeschaltet bleiben. Um zum Standard des Gateways zurückzukehren, verwende „Standard des Gateways verwenden“.</string>
 	<key>native.botSettings.mcp</key>
 	<string>MCP-Server</string>
+	<key>native.botSettings.mcpAbout</key>
+	<string>MCP-Server verbinden diesen Bot mit externen Werkzeugen und Daten.</string>
 	<key>native.botSettings.modelChoose</key>
 	<string>Modell wählen</string>
 	<key>native.botSettings.modelFollows</key>
 	<string>Folgt dem Modell des Gateways</string>
 	<key>native.botSettings.modelUnavailable</key>
 	<string>Dieses Gateway listet seine Modelle nicht auf, daher lässt sich das Modell hier nicht ändern.</string>
+	<key>native.botSettings.needsAttention</key>
+	<string>Erfordert Aufmerksamkeit</string>
+	<key>native.botSettings.noMatches</key>
+	<string>Nichts passt zu deiner Suche.</string>
 	<key>native.botSettings.notApplied</key>
 	<string>Das Gateway hat die Änderung angenommen, aber nicht angewendet.</string>
 	<key>native.botSettings.notSynced</key>
@@ -86,12 +94,22 @@
 	<string>Zurücksetzen</string>
 	<key>native.botSettings.skills</key>
 	<string>Skills</string>
+	<key>native.botSettings.skillsAbout</key>
+	<string>Skills sind schriftliche Anleitungen, die der Bot lädt, wenn eine Aufgabe sie braucht.</string>
 	<key>native.botSettings.skillsToolsetOff</key>
 	<string>Das Toolset Skills ist aus, daher bekommt dieser Bot in Hermie-Chats keine Skill-Werkzeuge und keine Skill-Liste in seinen Anweisungen. Einen Skill selbst zu starten geht weiterhin: tippe / und seinen Namen. Die Schalter unten deaktivieren einzelne Skills überall, auch das.</string>
+	<key>native.botSettings.summaryNone</key>
+	<string>Keine</string>
+	<key>native.botSettings.summaryOfOn</key>
+	<string>%1$lld von %2$lld an</string>
+	<key>native.botSettings.summaryOn</key>
+	<string>%lld an</string>
 	<key>native.botSettings.title</key>
 	<string>Bot-Einstellungen</string>
 	<key>native.botSettings.toolsets</key>
 	<string>Toolsets</string>
+	<key>native.botSettings.toolsetsAbout</key>
+	<string>Toolsets sind Gruppen von Werkzeugen, etwa die Websuche oder ein Terminal, die dieser Bot verwenden darf.</string>
 	<key>native.botSettings.toolsetsScope</key>
 	<string>Diese Schalter bestimmen, was der Bot in Chats in Hermie nutzen kann. Derselbe Bot über eine Messaging-App und seine geplanten Aufgaben behalten ihre eigenen Listen auf dem Gateway.</string>
 	<key>native.botSettings.unsupported</key>

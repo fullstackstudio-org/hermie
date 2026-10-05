@@ -112,29 +112,38 @@ enum ModelSearchPlacement: Equatable {
   }
 }
 
-/// The picker's search field in the place `ModelSearchPlacement` says.
+/// A search field in the place `ModelSearchPlacement` says: the model picker's, and the capability
+/// pages' (toolsets, skills, MCP servers), which are long enough to need one.
 struct ModelSearch: ViewModifier {
   @Binding var query: String
+  var prompt: String = Strings.Chat.Options.modelSearch
+  var identifier = "hermie.botSettings.model.search"
+  /// Whether the field is drawn at all (a short list needs none).
+  var enabled = true
 
-  func body(content: Content) -> some View {
-    switch ModelSearchPlacement.current {
-    case .navigationBar:
-      content.searchable(text: $query, prompt: Strings.Chat.Options.modelSearch)
-    case .inline:
-      content.safeAreaInset(edge: .top, spacing: 0) {
-        HStack(spacing: 6) {
-          Image(systemName: "magnifyingglass")
-            .foregroundStyle(.secondary)
-            .accessibilityHidden(true)
-          TextField(Strings.Chat.Options.modelSearch, text: $query)
-            .textFieldStyle(.plain)
-            .accessibilityIdentifier("hermie.botSettings.model.search")
+  @ViewBuilder func body(content: Content) -> some View {
+    if !enabled {
+      content
+    } else {
+      switch ModelSearchPlacement.current {
+      case .navigationBar:
+        content.searchable(text: $query, prompt: prompt)
+      case .inline:
+        content.safeAreaInset(edge: .top, spacing: 0) {
+          HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+              .foregroundStyle(.secondary)
+              .accessibilityHidden(true)
+            TextField(prompt, text: $query)
+              .textFieldStyle(.plain)
+              .accessibilityIdentifier(identifier)
+          }
+          .padding(.horizontal, 10)
+          .padding(.vertical, 7)
+          .background(.quaternary, in: .rect(cornerRadius: 8))
+          .padding(.horizontal)
+          .padding(.vertical, 8)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-        .background(.quaternary, in: .rect(cornerRadius: 8))
-        .padding(.horizontal)
-        .padding(.vertical, 8)
       }
     }
   }

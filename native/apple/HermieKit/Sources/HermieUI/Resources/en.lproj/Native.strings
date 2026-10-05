@@ -38,6 +38,8 @@
 	<string>Accent colour</string>
 	<key>native.botSettings.about</key>
 	<string>About this bot</string>
+	<key>native.botSettings.capabilities</key>
+	<string>Capabilities</string>
 	<key>native.botSettings.chatList</key>
 	<string>Chat list</string>
 	<key>native.botSettings.colourHint</key>
@@ -56,12 +58,18 @@
 	<string>At least one toolset has to stay on. To go back to the gateway’s defaults, use “Follow the gateway’s defaults”.</string>
 	<key>native.botSettings.mcp</key>
 	<string>MCP servers</string>
+	<key>native.botSettings.mcpAbout</key>
+	<string>MCP servers connect this bot to outside tools and data.</string>
 	<key>native.botSettings.modelChoose</key>
 	<string>Choose a model</string>
 	<key>native.botSettings.modelFollows</key>
 	<string>Follows the gateway’s model</string>
 	<key>native.botSettings.modelUnavailable</key>
 	<string>This gateway does not list the models it offers, so the model cannot be changed here.</string>
+	<key>native.botSettings.needsAttention</key>
+	<string>Needs attention</string>
+	<key>native.botSettings.noMatches</key>
+	<string>Nothing matches your search.</string>
 	<key>native.botSettings.notApplied</key>
 	<string>The gateway accepted the change but did not apply it.</string>
 	<key>native.botSettings.notSynced</key>
@@ -86,12 +94,22 @@
 	<string>Revert</string>
 	<key>native.botSettings.skills</key>
 	<string>Skills</string>
+	<key>native.botSettings.skillsAbout</key>
+	<string>Skills are written instructions the bot can load when a task calls for them.</string>
 	<key>native.botSettings.skillsToolsetOff</key>
 	<string>The Skills toolset is off, so in Hermie chats this bot gets no skill tools and no list of skills in its instructions. You can still start a skill yourself by typing / and its name. The switches below turn off single skills everywhere, that included.</string>
+	<key>native.botSettings.summaryNone</key>
+	<string>None</string>
+	<key>native.botSettings.summaryOfOn</key>
+	<string>%1$lld of %2$lld on</string>
+	<key>native.botSettings.summaryOn</key>
+	<string>%lld on</string>
 	<key>native.botSettings.title</key>
 	<string>Bot settings</string>
 	<key>native.botSettings.toolsets</key>
 	<string>Toolsets</string>
+	<key>native.botSettings.toolsetsAbout</key>
+	<string>Toolsets are groups of tools, such as web search or a terminal, that this bot may use.</string>
 	<key>native.botSettings.toolsetsScope</key>
 	<string>These switches decide what the bot can use in chats in Hermie. The same bot reached through a messaging app, and its scheduled jobs, keep their own lists on the gateway.</string>
 	<key>native.botSettings.unsupported</key>

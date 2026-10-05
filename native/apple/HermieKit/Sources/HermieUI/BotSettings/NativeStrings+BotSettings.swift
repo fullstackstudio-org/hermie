@@ -89,6 +89,43 @@ extension NativeStrings {
     static var mcp: String {
       String(localized: "native.botSettings.mcp", table: "Native", bundle: .module)
     }
+    /// Capabilities
+    static var capabilities: String {
+      String(localized: "native.botSettings.capabilities", table: "Native", bundle: .module)
+    }
+    /// {count} on
+    static func summaryOn(_ count: Int) -> String {
+      String(localized: "native.botSettings.summaryOn", defaultValue: "\(count) on", table: "Native", bundle: .module)
+    }
+    /// {on} of {total} on
+    static func summaryOfOn(_ on: Int, of total: Int) -> String {
+      String(
+        localized: "native.botSettings.summaryOfOn", defaultValue: "\(on) of \(total) on", table: "Native", bundle: .module)
+    }
+    /// None
+    static var summaryNone: String {
+      String(localized: "native.botSettings.summaryNone", table: "Native", bundle: .module)
+    }
+    /// Needs attention
+    static var needsAttention: String {
+      String(localized: "native.botSettings.needsAttention", table: "Native", bundle: .module)
+    }
+    /// Toolsets are groups of tools, such as web search or a terminal, that this bot may use.
+    static var toolsetsAbout: String {
+      String(localized: "native.botSettings.toolsetsAbout", table: "Native", bundle: .module)
+    }
+    /// Skills are written instructions the bot can load when a task calls for them.
+    static var skillsAbout: String {
+      String(localized: "native.botSettings.skillsAbout", table: "Native", bundle: .module)
+    }
+    /// MCP servers connect this bot to outside tools and data.
+    static var mcpAbout: String {
+      String(localized: "native.botSettings.mcpAbout", table: "Native", bundle: .module)
+    }
+    /// Nothing matches your search.
+    static var noMatches: String {
+      String(localized: "native.botSettings.noMatches", table: "Native", bundle: .module)
+    }
     /// Follow the gateway’s defaults
     static var followDefaults: String {
       String(localized: "native.botSettings.followDefaults", table: "Native", bundle: .module)

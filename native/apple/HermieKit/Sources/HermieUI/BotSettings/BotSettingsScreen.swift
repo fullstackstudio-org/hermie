@@ -59,6 +59,7 @@ struct BotSettingsContent: View {
   let session: GatewaySession
 
   @State private var model: BotSettingsModel
+  @State private var mcpPageOpen = false
 
   init(chat: ChatRef, session: GatewaySession) {
     self.chat = chat
@@ -82,9 +83,7 @@ struct BotSettingsContent: View {
         BotDescriptionSection(handle: chat.bot, model: model, editable: gatewayEditable)
         BotPersonalitySection(handle: chat.bot, model: model, editable: gatewayEditable)
         BotModelSection(chat: chat, session: session, model: model, editable: gatewayEditable)
-        BotToolsetsSection(handle: chat.bot, model: model, editable: gatewayEditable)
-        BotSkillsSection(handle: chat.bot, model: model, editable: gatewayEditable)
-        BotMcpSection(handle: chat.bot, model: model, editable: gatewayEditable)
+        BotCapabilitiesSection(handle: chat.bot, session: session, model: model, mcpPageOpen: $mcpPageOpen)
       }
 
       BotConversationsSection(chat: chat)
@@ -121,26 +120,8 @@ struct BotSettingsContent: View {
     } message: { confirmation in
       Text(verbatim: confirmation.message)
     }
-    .alert(
-      Strings.Profiles.Capabilities.Reload.title,
-      isPresented: Binding(
-        get: { model.mcpReloadPrompt != nil },
-        set: { if !$0 { model.declineMcpReload() } }
-      ),
-      presenting: model.mcpReloadPrompt
-    ) { _ in
-      Button(Strings.Profiles.Capabilities.Reload.now) {
-        Task { await model.reloadMcp(always: false) }
-      }
-      Button(Strings.Profiles.Capabilities.Reload.always) {
-        Task { await model.reloadMcp(always: true) }
-      }
-      Button(Strings.Profiles.Capabilities.Reload.later, role: .cancel) {}
-    } message: { _ in
-      // In the app's words. The gateway's own warning is written for its command line ("Reply
-      // `/reload-mcp now`…") and is not shown.
-      Text(verbatim: "\(Strings.Profiles.Capabilities.Reload.body)\n\n\(Strings.Profiles.Capabilities.Reload.alwaysHint)")
-    }
+    // The MCP page asks its own question while it is open; this one is for when it is not.
+    .modifier(McpReloadAlert(model: model, active: !mcpPageOpen))
   }
 
   /// Why the gateway's sections are missing or read-only: loading, a failed read, no support, no
