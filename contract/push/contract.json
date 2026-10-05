@@ -54,19 +54,21 @@
     }
   },
   "requests": {
-    "$comment": "What a `type: request` notification is, per `data.method` (the gateway's own name for the server request). `requestId`: `required` means the sender omits the notification rather than send it without one; `whenKnown` means it carries one when it has it. An approval is `whenKnown` because the approval hook of a gateway may carry no request id: such an approval is posted without the category (no Allow or Deny, which need an id) and the app finds the open request itself; the field's `requiredWhen` is the strict form a sender that always has the id (Hermie Web's daemon) meets. `actions`: whether the category with Allow and Deny is posted. `preview`: whether the data bag and the visible text may ever carry text about the request; `false` means never, whatever the registration's `preview` and the gateway's setting say (for a secure input the text is what must stay off a screen; for a confirmation the sender is never told it). `level` is `confirm` only. A Web Push row gets a `confirm` or a secure input only if it says `requestMethods: true`: the worker that shipped with the Expo web build adds Allow and Deny to every `type: request` push, which these must never have, and it never writes that key; a worker that reads `method` and writes the key shows these buttonless.",
+    "$comment": "What a `type: request` notification is, per `data.method` (the gateway's own name for the server request). `requestId`: `required` means the sender omits the notification rather than send it without one; `whenKnown` means it carries one when it has it. An approval is `whenKnown` because the approval hook of a gateway may carry no request id: such an approval is posted without the category (no Allow or Deny, which need an id) and the app finds the open request itself; the field's `requiredWhen` is the strict form a sender that always has the id (Hermie Web's daemon) meets. `actions`: whether the category with Allow and Deny is posted. `preview`: whether the data bag and the visible text may ever carry text about the request; `false` means never, whatever the registration's `preview` and the gateway's setting say (for a secure input the text is what must stay off a screen; for a confirmation the sender is never told it). `level` is `confirm` only. `interruption` is how loudly the notification may interrupt (`interruption`, below): `time-sensitive` for an approval, a clarify and a confirm, the methods the bot is stopped on; absent (`active`) for every other. A Web Push row gets a `confirm` or a secure input only if it says `requestMethods: true`: the worker that shipped with the Expo web build adds Allow and Deny to every `type: request` push, which these must never have, and it never writes that key; a worker that reads `method` and writes the key shows these buttonless.",
     "methods": [
       {
         "method": "approval",
         "requestId": "whenKnown",
         "actions": true,
-        "preview": true
+        "preview": true,
+        "interruption": "time-sensitive"
       },
       {
         "method": "clarify",
         "requestId": "whenKnown",
         "actions": false,
-        "preview": true
+        "preview": true,
+        "interruption": "time-sensitive"
       },
       {
         "method": "secret",
@@ -103,7 +105,8 @@
         "requestId": "required",
         "actions": false,
         "preview": false,
-        "level": ["plain", "passkey"]
+        "level": ["plain", "passkey"],
+        "interruption": "time-sensitive"
       },
       {
         "method": "input.form",
@@ -165,6 +168,14 @@
     "$comment": "A clearing push withdraws the notification of a request that stopped being open (answered on another device, cancelled, timed out). It is a `type: request` data bag with `clear: true`, the same `method`, `requestId` and conversation as the notification it withdraws, a `reason`, and `replaces`: the `eventId` of that notification, which is the only handle for a clarify seen without a request id. It has no visible half on a transport that can carry one without: Expo gets a content-available data message with no title, body or sound, and Web Push gets `{data}` alone. A worker receiving one must show nothing; Chrome may then show its generic \"updated in the background\" notice unless the worker closes an existing notification for that request (by tag) in the same event. A sender sends it only to a registration row that says `clears: true`: a build that does not know the field would show it as a new request, buttons and all. The relay cannot carry one yet (every relayed message is an alert), so a relay row gets none and the app removes what it can itself.",
     "reasons": ["answered", "cancelled", "timeout"],
     "optIn": "registration row field `clears: true`"
+  },
+  "interruption": {
+    "$comment": "How loudly a notification may interrupt. iOS and macOS only, and only through the relay, which is the one transport with an APNs payload: the sender puts `interruption` on the relay message (beside `title`, `body` and `category`, never in the data bag, which a tap reads and which has no use for it) and the relay writes it as `aps.interruption-level`. Android channels, Expo and Web Push do not carry it. Absent means `active`, the platform's own default, so a sender omits the member for everything that is not time-sensitive rather than sending `active`. A level outside `levels` is refused by the relay; `passive` and `critical` are deliberately not in it (critical needs an entitlement of its own). A clearing push never carries one, and nothing but an alert does: a background push has no interruption level. The level is a request, never a guarantee: the app needs the Time Sensitive Notifications entitlement (the native apps have it) and the person's Focus settings decide the rest. Which requests are time-sensitive is `requests.methods[].interruption`. It is the device's call, not the sender's: a sender sets `time-sensitive` only for a registration row that says `urgentBreakthrough: true` (`optIn`), which the app writes while \"Urgent requests break through Focus\" is on and removes when the reader turns it off, so a device that opted out gets an active notification and a row from a build that does not know the field gets what it always got.",
+    "levels": ["active", "time-sensitive"],
+    "default": "active",
+    "relayMember": "interruption",
+    "apns": "aps.interruption-level",
+    "optIn": "registration row field `urgentBreakthrough: true`"
   },
   "android": {
     "channels": [
@@ -434,7 +445,7 @@
     ]
   },
   "examples": {
-    "$comment": "One data bag, with the visible strings, the category and whether it is a silent message, for every notification the gateway plugin raises, built from fixed ids, the contract's pinned gateway key and the canonical session kind. A sender's tests build the same notifications and compare; an app's tests read them as the payloads it must handle. The ids are made up and name nobody.",
+    "$comment": "One data bag, with the visible strings, the category, the `interruption` level (present as `time-sensitive` for the requests that are, written for a registration row that opted in with `urgentBreakthrough: true`; absent means `active`) and whether it is a silent message, for every notification the gateway plugin raises, built from fixed ids, the contract's pinned gateway key and the canonical session kind. A sender's tests build the same notifications and compare; an app's tests read them as the payloads it must handle. The ids are made up and name nobody.",
     "list": [
       {
         "name": "approval",
@@ -452,7 +463,8 @@
         },
         "title": "scout",
         "body": "Needs your approval",
-        "category": "hermie.request"
+        "category": "hermie.request",
+        "interruption": "time-sensitive"
       },
       {
         "name": "approval_runtime_session",
@@ -471,7 +483,8 @@
         },
         "title": "scout",
         "body": "Needs your approval",
-        "category": "hermie.request"
+        "category": "hermie.request",
+        "interruption": "time-sensitive"
       },
       {
         "name": "clarify_without_request_id",
@@ -487,7 +500,8 @@
           "method": "clarify"
         },
         "title": "scout",
-        "body": "Asked you a question"
+        "body": "Asked you a question",
+        "interruption": "time-sensitive"
       },
       {
         "name": "clarify",
@@ -505,7 +519,8 @@
           "requestId": "srq-0123456789ab"
         },
         "title": "scout",
-        "body": "Asked you a question"
+        "body": "Asked you a question",
+        "interruption": "time-sensitive"
       },
       {
         "name": "secret",
@@ -614,7 +629,8 @@
           "level": "passkey"
         },
         "title": "scout",
-        "body": "Confirm this in the app"
+        "body": "Confirm this in the app",
+        "interruption": "time-sensitive"
       },
       {
         "name": "confirm_plain",
@@ -633,7 +649,8 @@
           "level": "plain"
         },
         "title": "scout",
-        "body": "Needs your confirmation"
+        "body": "Needs your confirmation",
+        "interruption": "time-sensitive"
       },
       {
         "name": "input_form",

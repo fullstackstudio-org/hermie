@@ -289,6 +289,15 @@ Web's daemon, the relay) and what every app generation must be able to read. It 
   a registration row that says `clears: true`, has no visible half where the transport can do
   without one (a Web Push worker must show nothing for it), and cannot go through the relay yet
   (every relayed message is an alert);
+- `interruption`: how loudly a notification may interrupt, on iOS and macOS through the relay only (the one
+  transport with an APNs payload). `levels` are `active` and `time-sensitive`; absent is `active`, so a sender
+  omits the member for everything that is not time-sensitive. The sender puts `interruption` on the relay
+  message beside `title`, `body` and `category` (never in the data bag), and the relay writes it as
+  `aps.interruption-level` on an alert and on nothing else (a clearing or background push has none, and
+  `passive` and `critical` are not levels here). Which requests are time-sensitive is the `interruption`
+  member of `requests.methods`: an approval, a clarify and a confirm (plain or passkey), the three the bot
+  is stopped on. It is the device's call, so a sender sets it only for a registration row that says
+  `urgentBreakthrough: true`;
 - Android channel ids equal to the type names (`android.channels`), and `alsoChannels` for the
   unfiltered types;
 - the data payload's field list with types, enums and `requiredWhen` (plus `alsoRequiredWhen`: more
@@ -308,10 +317,13 @@ Two fields do not mean what they might at first read:
 - **`requestId`** is required for every request that has no other handle (the secure inputs,
   `confirm`, the interactive requests); an approval and a clarify carry it when the sender has it.
 
-Two registration-row keys steer what a sender may send: **`clears: true`** (the device understands a
-clearing push) and, for a Web Push row, **`requestMethods: true`** (its worker reads a request's
+Three registration-row keys steer what a sender may send: **`clears: true`** (the device understands a
+clearing push), for a Web Push row **`requestMethods: true`** (its worker reads a request's
 `method`, so a `confirm` or a secure input is sent to it and shown without Allow or Deny; the worker
-that shipped with the Expo web build never writes it and so is never sent one).
+that shipped with the Expo web build never writes it and so is never sent one) and, for a relay row,
+**`urgentBreakthrough: true`** (the reader's "Urgent requests break through Focus" is on, so an urgent
+request may be sent as `time-sensitive`; the app removes the key when the reader turns it off, and a build
+that does not know it never writes it, so neither gets one).
 
 It is the target every sender and both app generations conform to; the Expo app's
 tests check their payloads and ids against it, and the gateway plugin keeps a copy at

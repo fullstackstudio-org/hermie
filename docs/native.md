@@ -1816,7 +1816,13 @@ contract lists: `type` (the seven switches, the unfiltered `security` and the le
 `PushRowWriter`, not by the reference port `PushRows.rowFor`, which the contract vectors replay
 unchanged), which tells a sender this build can handle a clearing push, and `requestMethods: true`
 (`PushRows.requestMethodsKey`): this build never shows Allow or Deny for a request that is not an
-approval, which is what lets a sender post a confirmation or a secure input to the row. A clearing push is a
+approval, which is what lets a sender post a confirmation or a secure input to the row. The row also carries
+`urgentBreakthrough: true` (`PushRows.urgentBreakthroughKey`) while "Urgent requests break through Focus" is on and no such
+key while it is off (`PushRowWriter.urgentBreakthrough`, handed over by `LiveWiring`; a change of the switch rewrites the row
+through `PushController.onPreferencesChanged`): the plugin sets `interruption: "time-sensitive"` on an approval, a question or
+a confirmation sent to the relay only for a row that says so, and the relay writes it as `aps.interruption-level`
+(`contract/push/contract.json`, `interruption`). So the switch decides local and remote alike. A row written by a build that
+does not know the key gets what it always got, an active notification. A clearing push is a
 `type: request` bag with `clear: true`; it is silent (`PushPresentation.hidden`), never carries a
 category and is never a tap. It removes the delivered notification of the same bot with the same
 request id, or whose `eventId` is `replaces`, through `PushDeliveredNotifications`, a protocol over
@@ -1864,7 +1870,7 @@ with them on it is the contract's words for the kind, and only an approval or a 
 thread is the chat's, the level is `timeSensitive` for an approval, a question and a confirmation
 (`PushRequestMethod.isUrgent`) and `active` for everything else (both apps carry
 `com.apple.developer.usernotifications.time-sensitive`, `RequestAlerts.timeSensitiveEntitled`; Settings → Notifications has
-"Urgent requests break through Focus", on by default, which posts them at `active` when off),
+"Urgent requests break through Focus", on by default, which posts them at `active` when off; the same switch decides the remote push, through the row's `urgentBreakthrough`),
 the badge is the number posted and not taken away (zero again when the app comes to the front, as before), and a
 confirmation bounces the Dock icon once on the Mac. A remote push for the same request is not suppressed: the app
 has no code that runs when one is delivered to a background app, and a relay collapse id is the plugin's `eventId`,
