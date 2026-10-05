@@ -13,7 +13,7 @@
  * in the panel and never on the reader's behalf; the picker stays on the model
  * the chat is on until the answer is yes.
  */
-import { type KeyboardEvent, type ReactElement, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { type KeyboardEvent, type ReactElement, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import { strings } from '../../generated/strings'
 import { useLocale } from '../../i18n/use-locale'
@@ -109,7 +109,9 @@ function ModelOption({ session }: { session: SessionOptionsControl }): ReactElem
   const searching = searchable && query.trim() !== ''
   const noMatch = searching && otherModelCount(groups, session.model) === 0
 
-  useEffect(() => {
+  // A layout effect, so focus is on the safe answer in the same commit that draws the question: an ordinary effect runs
+  // a moment later, and an answer given (or a focus read) in between meets the old focus, which the effect then takes.
+  useLayoutEffect(() => {
     if (asking) {
       cancel.current?.focus()
     }

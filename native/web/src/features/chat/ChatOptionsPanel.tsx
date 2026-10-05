@@ -10,7 +10,16 @@
  * (`state/chat-view.ts`) and the transcript follows it in the same frame.
  */
 import { PUSH_TYPES } from '@hermie/gateway-client/push'
-import { type KeyboardEvent, type ReactElement, type RefObject, useEffect, useId, useRef, useState } from 'react'
+import {
+  type KeyboardEvent,
+  type ReactElement,
+  type RefObject,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState
+} from 'react'
 import { flushSync } from 'react-dom'
 import { useStore } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
@@ -114,7 +123,8 @@ function YoloOption({ yolo }: { yolo: YoloControl }): ReactElement {
   // The question is for turning it on: it goes when it is on already, and when the chat can no longer be switched.
   const asking = confirming && !yolo.on && yolo.available
 
-  useEffect(() => {
+  // A layout effect: focus is on Cancel in the commit that draws the question, not a moment after it.
+  useLayoutEffect(() => {
     if (asking) {
       cancel.current?.focus()
     }

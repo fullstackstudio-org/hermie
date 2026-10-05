@@ -16,7 +16,16 @@
  * Every name here is the gateway's and untrusted: plain text.
  */
 import { prettyModelName } from '@hermie/transcript'
-import { type KeyboardEvent, type ReactElement, useEffect, useId, useMemo, useRef, useState } from 'react'
+import {
+  type KeyboardEvent,
+  type ReactElement,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 
 import type { BotProfileModel, BotProfileState } from '../../core/bot-profile/model'
 import type { ModelChoice } from '../../core/bot-profile/params'
@@ -96,7 +105,8 @@ export function ModelPicker({
     }
   }, [model, editable])
 
-  useEffect(() => {
+  // A layout effect: focus is on Cancel in the commit that draws the question, not a moment after it.
+  useLayoutEffect(() => {
     if (asking) {
       cancel.current?.focus()
     }
