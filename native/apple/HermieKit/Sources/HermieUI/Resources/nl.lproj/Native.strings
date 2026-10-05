@@ -2204,6 +2204,130 @@
 	<string>Deze gateway meldt geen gebruik.</string>
 	<key>native.usage.updated</key>
 	<string>Bijgewerkt %@</string>
+	<key>native.vault.about</key>
+	<string>Opgeslagen op de gateway, versleuteld, in de eigen kluis van %1$@. %2$@ kan ze gebruiken om in te loggen en formulieren in te vullen. Hermie laat nooit zien wat erin staat.</string>
+	<key>native.vault.actionFailed</key>
+	<string>Dat lukte niet: %@</string>
+	<key>native.vault.actionFailedNoReason</key>
+	<string>Dat lukte niet.</string>
+	<key>native.vault.add</key>
+	<string>Toevoegen</string>
+	<key>native.vault.addFailed</key>
+	<string>Niet opgeslagen: %@. Vul het geheim opnieuw in.</string>
+	<key>native.vault.addFailedNoReason</key>
+	<string>Niet opgeslagen. Vul het geheim opnieuw in.</string>
+	<key>native.vault.addTitle</key>
+	<string>Toevoegen aan de kluis van %@</string>
+	<key>native.vault.empty</key>
+	<string>Nog niets in deze kluis.</string>
+	<key>native.vault.failed</key>
+	<string>De kluis kon niet worden gelezen: %@</string>
+	<key>native.vault.field.billingPostal</key>
+	<string>Postcode factuuradres (optioneel)</string>
+	<key>native.vault.field.cardNumber</key>
+	<string>Kaartnummer</string>
+	<key>native.vault.field.cardholder</key>
+	<string>Naam op de kaart (optioneel)</string>
+	<key>native.vault.field.city</key>
+	<string>Plaats</string>
+	<key>native.vault.field.country</key>
+	<string>Land</string>
+	<key>native.vault.field.cvc</key>
+	<string>Beveiligingscode</string>
+	<key>native.vault.field.expMonth</key>
+	<string>Vervalmaand</string>
+	<key>native.vault.field.expYear</key>
+	<string>Vervaljaar</string>
+	<key>native.vault.field.line1</key>
+	<string>Straat en huisnummer</string>
+	<key>native.vault.field.line2</key>
+	<string>Adresregel 2 (optioneel)</string>
+	<key>native.vault.field.otp</key>
+	<string>Authenticator-sleutel (optioneel)</string>
+	<key>native.vault.field.password</key>
+	<string>Wachtwoord</string>
+	<key>native.vault.field.postalCode</key>
+	<string>Postcode</string>
+	<key>native.vault.field.state</key>
+	<string>Provincie (optioneel)</string>
+	<key>native.vault.identifier.email</key>
+	<string>E-mail</string>
+	<key>native.vault.identifier.phone</key>
+	<string>Telefoonnummer</string>
+	<key>native.vault.identifier.username</key>
+	<string>Gebruikersnaam</string>
+	<key>native.vault.identifierType</key>
+	<string>Inloggen met</string>
+	<key>native.vault.inManager</key>
+	<string>Uit %@</string>
+	<key>native.vault.items</key>
+	<string>Items</string>
+	<key>native.vault.kind</key>
+	<string>Soort</string>
+	<key>native.vault.kind.address</key>
+	<string>Adres</string>
+	<key>native.vault.kind.login</key>
+	<string>Inlog</string>
+	<key>native.vault.kind.payment</key>
+	<string>Betaalkaart</string>
+	<key>native.vault.label</key>
+	<string>Naam</string>
+	<key>native.vault.labelPrompt</key>
+	<string>Bijvoorbeeld: GitHub-werkaccount</string>
+	<key>native.vault.loading</key>
+	<string>Kluis lezen…</string>
+	<key>native.vault.lock</key>
+	<string>Vergrendelen</string>
+	<key>native.vault.locked</key>
+	<string>Vergrendeld</string>
+	<key>native.vault.masterPassword</key>
+	<string>Hoofdwachtwoord</string>
+	<key>native.vault.notInstalled</key>
+	<string>Niet geïnstalleerd</string>
+	<key>native.vault.offline</key>
+	<string>Zonder verbinding is de kluis niet bereikbaar.</string>
+	<key>native.vault.receiver</key>
+	<string>Hermie stuurt dit één keer naar de gateway, die het versleuteld bewaart in de eigen kluis van %@. Hermie bewaart het niet.</string>
+	<key>native.vault.refused</key>
+	<string>De gateway staat dit van hieruit niet toe.</string>
+	<key>native.vault.remove</key>
+	<string>Verwijderen</string>
+	<key>native.vault.removeMessage</key>
+	<string>%@ kan het daarna niet meer gebruiken. Dit kan niet ongedaan worden gemaakt.</string>
+	<key>native.vault.removeTitle</key>
+	<string>%@ uit de kluis verwijderen?</string>
+	<key>native.vault.save</key>
+	<string>Opslaan</string>
+	<key>native.vault.saving</key>
+	<string>Opslaan…</string>
+	<key>native.vault.site</key>
+	<string>Website</string>
+	<key>native.vault.sources</key>
+	<string>Wachtwoordmanagers</string>
+	<key>native.vault.sourcesNote</key>
+	<string>Wachtwoordmanagers op de computer van de gateway. Zolang er een ontgrendeld is, kan %@ ook de logins daarin gebruiken.</string>
+	<key>native.vault.title</key>
+	<string>Kluis</string>
+	<key>native.vault.unlock</key>
+	<string>Ontgrendelen</string>
+	<key>native.vault.unlockFailed</key>
+	<string>Niet ontgrendeld: %@</string>
+	<key>native.vault.unlockFailedNoReason</key>
+	<string>Niet ontgrendeld.</string>
+	<key>native.vault.unlockReceiver</key>
+	<string>Hermie stuurt dit één keer naar de gateway, die het daar aan %@ geeft en het niet bewaart. Hermie bewaart het ook niet.</string>
+	<key>native.vault.unlockTitle</key>
+	<string>%@ ontgrendelen</string>
+	<key>native.vault.unlocked</key>
+	<string>Ontgrendeld</string>
+	<key>native.vault.unlocking</key>
+	<string>Ontgrendelen…</string>
+	<key>native.vault.unsupported</key>
+	<string>Deze gateway heeft geen kluis.</string>
+	<key>native.vault.use</key>
+	<string>%@ gebruiken</string>
+	<key>native.vault.withOTP</key>
+	<string>Met authenticator</string>
 	<key>native.voice.automatic</key>
 	<string>Automatisch</string>
 	<key>native.voice.bargeIn</key>

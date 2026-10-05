@@ -250,6 +250,8 @@ struct DetailRoutePlaceholder: View {
       ConversationsScreen(chat: chat)
     case let .conversation(chat, id, resolvedID, title):
       ConversationViewerScreen(chat: chat, id: id, resolvedID: resolvedID, title: title)
+    case .vault(let chat):
+      BotVaultScreen(chat: chat)
     }
   }
 }

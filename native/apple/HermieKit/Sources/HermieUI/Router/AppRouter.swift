@@ -342,6 +342,15 @@ public final class AppRouter {
     }
   }
 
+  /// Open a bot's Vault page over its chat (once: asking again while it is showing changes nothing).
+  public func showVault(_ chat: ChatRef) {
+    openChat(chat)
+
+    if detailPath.last != .vault(chat) {
+      detailPath.append(.vault(chat))
+    }
+  }
+
   /// Open one conversation of the bot's in the read-only viewer, over the Conversations page.
   public func showConversation(_ chat: ChatRef, id: String, resolvedID: String, title: String) {
     detailPath.append(.conversation(chat, id: id, resolvedID: resolvedID, title: title))

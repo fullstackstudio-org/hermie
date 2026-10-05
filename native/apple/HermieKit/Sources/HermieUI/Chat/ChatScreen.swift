@@ -780,6 +780,13 @@ struct VerbosityMenu: View {
         }
         .accessibilityIdentifier("hermie.chat.conversations")
 
+        Button {
+          router.showVault(chat)
+        } label: {
+          Label(NativeStrings.Vault.title, systemImage: "key")
+        }
+        .accessibilityIdentifier("hermie.chat.vault")
+
         // Shared Bot Chat or my chat, and a new chat of my own: only where the gateway named the reader.
         Divider()
       }

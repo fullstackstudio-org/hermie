@@ -2204,6 +2204,130 @@
 	<string>Dieses Gateway meldet keine Nutzung.</string>
 	<key>native.usage.updated</key>
 	<string>Aktualisiert %@</string>
+	<key>native.vault.about</key>
+	<string>Verschlüsselt auf dem Gateway gespeichert, im eigenen Tresor von %1$@. %2$@ kann sie zum Anmelden und Ausfüllen von Formularen verwenden. Hermie zeigt nie, was sie enthalten.</string>
+	<key>native.vault.actionFailed</key>
+	<string>Das hat nicht geklappt: %@</string>
+	<key>native.vault.actionFailedNoReason</key>
+	<string>Das hat nicht geklappt.</string>
+	<key>native.vault.add</key>
+	<string>Hinzufügen</string>
+	<key>native.vault.addFailed</key>
+	<string>Nicht gespeichert: %@. Gib das Geheimnis erneut ein.</string>
+	<key>native.vault.addFailedNoReason</key>
+	<string>Nicht gespeichert. Gib das Geheimnis erneut ein.</string>
+	<key>native.vault.addTitle</key>
+	<string>Zum Tresor von %@ hinzufügen</string>
+	<key>native.vault.empty</key>
+	<string>Noch nichts in diesem Tresor.</string>
+	<key>native.vault.failed</key>
+	<string>Der Tresor konnte nicht gelesen werden: %@</string>
+	<key>native.vault.field.billingPostal</key>
+	<string>Postleitzahl der Rechnungsadresse (optional)</string>
+	<key>native.vault.field.cardNumber</key>
+	<string>Kartennummer</string>
+	<key>native.vault.field.cardholder</key>
+	<string>Name auf der Karte (optional)</string>
+	<key>native.vault.field.city</key>
+	<string>Ort</string>
+	<key>native.vault.field.country</key>
+	<string>Land</string>
+	<key>native.vault.field.cvc</key>
+	<string>Sicherheitscode</string>
+	<key>native.vault.field.expMonth</key>
+	<string>Ablaufmonat</string>
+	<key>native.vault.field.expYear</key>
+	<string>Ablaufjahr</string>
+	<key>native.vault.field.line1</key>
+	<string>Straße und Hausnummer</string>
+	<key>native.vault.field.line2</key>
+	<string>Adresszeile 2 (optional)</string>
+	<key>native.vault.field.otp</key>
+	<string>Authenticator-Schlüssel (optional)</string>
+	<key>native.vault.field.password</key>
+	<string>Passwort</string>
+	<key>native.vault.field.postalCode</key>
+	<string>Postleitzahl</string>
+	<key>native.vault.field.state</key>
+	<string>Bundesland (optional)</string>
+	<key>native.vault.identifier.email</key>
+	<string>E-Mail</string>
+	<key>native.vault.identifier.phone</key>
+	<string>Telefonnummer</string>
+	<key>native.vault.identifier.username</key>
+	<string>Benutzername</string>
+	<key>native.vault.identifierType</key>
+	<string>Anmelden mit</string>
+	<key>native.vault.inManager</key>
+	<string>Aus %@</string>
+	<key>native.vault.items</key>
+	<string>Einträge</string>
+	<key>native.vault.kind</key>
+	<string>Art</string>
+	<key>native.vault.kind.address</key>
+	<string>Adresse</string>
+	<key>native.vault.kind.login</key>
+	<string>Anmeldung</string>
+	<key>native.vault.kind.payment</key>
+	<string>Karte</string>
+	<key>native.vault.label</key>
+	<string>Bezeichnung</string>
+	<key>native.vault.labelPrompt</key>
+	<string>Zum Beispiel: GitHub-Arbeitskonto</string>
+	<key>native.vault.loading</key>
+	<string>Tresor wird gelesen…</string>
+	<key>native.vault.lock</key>
+	<string>Sperren</string>
+	<key>native.vault.locked</key>
+	<string>Gesperrt</string>
+	<key>native.vault.masterPassword</key>
+	<string>Master-Passwort</string>
+	<key>native.vault.notInstalled</key>
+	<string>Nicht installiert</string>
+	<key>native.vault.offline</key>
+	<string>Ohne Verbindung ist der Tresor nicht erreichbar.</string>
+	<key>native.vault.receiver</key>
+	<string>Hermie sendet das einmal an das Gateway, das es verschlüsselt im eigenen Tresor von %@ aufbewahrt. Hermie behält es nicht.</string>
+	<key>native.vault.refused</key>
+	<string>Das Gateway erlaubt das von hier aus nicht.</string>
+	<key>native.vault.remove</key>
+	<string>Entfernen</string>
+	<key>native.vault.removeMessage</key>
+	<string>%@ kann es danach nicht mehr verwenden. Das lässt sich nicht rückgängig machen.</string>
+	<key>native.vault.removeTitle</key>
+	<string>%@ aus dem Tresor entfernen?</string>
+	<key>native.vault.save</key>
+	<string>Speichern</string>
+	<key>native.vault.saving</key>
+	<string>Wird gespeichert…</string>
+	<key>native.vault.site</key>
+	<string>Website</string>
+	<key>native.vault.sources</key>
+	<string>Passwortmanager</string>
+	<key>native.vault.sourcesNote</key>
+	<string>Passwortmanager auf dem Rechner des Gateways. Solange einer entsperrt ist, kann %@ auch dessen Anmeldungen verwenden.</string>
+	<key>native.vault.title</key>
+	<string>Tresor</string>
+	<key>native.vault.unlock</key>
+	<string>Entsperren</string>
+	<key>native.vault.unlockFailed</key>
+	<string>Nicht entsperrt: %@</string>
+	<key>native.vault.unlockFailedNoReason</key>
+	<string>Nicht entsperrt.</string>
+	<key>native.vault.unlockReceiver</key>
+	<string>Hermie sendet das einmal an das Gateway, das es dort an %@ weitergibt und nicht aufbewahrt. Hermie behält es auch nicht.</string>
+	<key>native.vault.unlockTitle</key>
+	<string>%@ entsperren</string>
+	<key>native.vault.unlocked</key>
+	<string>Entsperrt</string>
+	<key>native.vault.unlocking</key>
+	<string>Wird entsperrt…</string>
+	<key>native.vault.unsupported</key>
+	<string>Dieses Gateway hat keinen Tresor.</string>
+	<key>native.vault.use</key>
+	<string>%@ verwenden</string>
+	<key>native.vault.withOTP</key>
+	<string>Mit Authenticator</string>
 	<key>native.voice.automatic</key>
 	<string>Automatisch</string>
 	<key>native.voice.bargeIn</key>

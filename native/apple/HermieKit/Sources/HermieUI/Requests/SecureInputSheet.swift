@@ -496,8 +496,9 @@ struct SecureInputSheetView: View {
   }
 }
 
-/// No corrections, no capitals, nothing the keyboard learns from.
-private struct PlainEntry: ViewModifier {
+/// No corrections, no capitals, nothing the keyboard learns from. Shared with the Vault sheets, whose fields
+/// follow the same rules.
+struct PlainEntry: ViewModifier {
   func body(content: Content) -> some View {
     content
       .autocorrectionDisabled()

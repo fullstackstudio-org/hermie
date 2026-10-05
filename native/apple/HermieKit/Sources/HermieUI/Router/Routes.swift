@@ -78,6 +78,8 @@ public enum DetailRoute: Codable, Hashable, Sendable {
   /// One of them, read and not answered (`ConversationViewerScreen`). `id` is the stored id,
   /// `resolvedID` the lineage tip the transcript is read under; `title` is the gateway's text.
   case conversation(ChatRef, id: String, resolvedID: String, title: String)
+  /// A bot's own vault on the gateway (`BotVaultScreen`).
+  case vault(ChatRef)
 }
 
 /// Why setup is being opened.

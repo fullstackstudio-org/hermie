@@ -2204,6 +2204,130 @@
 	<string>This gateway does not report usage.</string>
 	<key>native.usage.updated</key>
 	<string>Updated %@</string>
+	<key>native.vault.about</key>
+	<string>Stored on the gateway, encrypted, in %1$@'s own vault. %2$@ can use them to sign in and fill in forms. Hermie never shows what they hold.</string>
+	<key>native.vault.actionFailed</key>
+	<string>That did not work: %@</string>
+	<key>native.vault.actionFailedNoReason</key>
+	<string>That did not work.</string>
+	<key>native.vault.add</key>
+	<string>Add</string>
+	<key>native.vault.addFailed</key>
+	<string>Not saved: %@. Enter the secret again.</string>
+	<key>native.vault.addFailedNoReason</key>
+	<string>Not saved. Enter the secret again.</string>
+	<key>native.vault.addTitle</key>
+	<string>Add to %@'s vault</string>
+	<key>native.vault.empty</key>
+	<string>Nothing in this vault yet.</string>
+	<key>native.vault.failed</key>
+	<string>The vault could not be read: %@</string>
+	<key>native.vault.field.billingPostal</key>
+	<string>Billing postcode (optional)</string>
+	<key>native.vault.field.cardNumber</key>
+	<string>Card number</string>
+	<key>native.vault.field.cardholder</key>
+	<string>Name on card (optional)</string>
+	<key>native.vault.field.city</key>
+	<string>City</string>
+	<key>native.vault.field.country</key>
+	<string>Country</string>
+	<key>native.vault.field.cvc</key>
+	<string>Security code</string>
+	<key>native.vault.field.expMonth</key>
+	<string>Expiry month</string>
+	<key>native.vault.field.expYear</key>
+	<string>Expiry year</string>
+	<key>native.vault.field.line1</key>
+	<string>Street and number</string>
+	<key>native.vault.field.line2</key>
+	<string>Address line 2 (optional)</string>
+	<key>native.vault.field.otp</key>
+	<string>Authenticator key (optional)</string>
+	<key>native.vault.field.password</key>
+	<string>Password</string>
+	<key>native.vault.field.postalCode</key>
+	<string>Postal code</string>
+	<key>native.vault.field.state</key>
+	<string>State or province (optional)</string>
+	<key>native.vault.identifier.email</key>
+	<string>Email</string>
+	<key>native.vault.identifier.phone</key>
+	<string>Phone number</string>
+	<key>native.vault.identifier.username</key>
+	<string>Username</string>
+	<key>native.vault.identifierType</key>
+	<string>Sign in with</string>
+	<key>native.vault.inManager</key>
+	<string>From %@</string>
+	<key>native.vault.items</key>
+	<string>Items</string>
+	<key>native.vault.kind</key>
+	<string>Kind</string>
+	<key>native.vault.kind.address</key>
+	<string>Address</string>
+	<key>native.vault.kind.login</key>
+	<string>Login</string>
+	<key>native.vault.kind.payment</key>
+	<string>Card</string>
+	<key>native.vault.label</key>
+	<string>Label</string>
+	<key>native.vault.labelPrompt</key>
+	<string>For example: GitHub work account</string>
+	<key>native.vault.loading</key>
+	<string>Reading the vault…</string>
+	<key>native.vault.lock</key>
+	<string>Lock</string>
+	<key>native.vault.locked</key>
+	<string>Locked</string>
+	<key>native.vault.masterPassword</key>
+	<string>Master password</string>
+	<key>native.vault.notInstalled</key>
+	<string>Not installed</string>
+	<key>native.vault.offline</key>
+	<string>The vault cannot be reached without a connection.</string>
+	<key>native.vault.receiver</key>
+	<string>Hermie sends this once to the gateway, which keeps it encrypted in %@'s own vault. Hermie does not keep it.</string>
+	<key>native.vault.refused</key>
+	<string>The gateway does not allow this from here.</string>
+	<key>native.vault.remove</key>
+	<string>Remove</string>
+	<key>native.vault.removeMessage</key>
+	<string>%@ can no longer use it. This cannot be undone.</string>
+	<key>native.vault.removeTitle</key>
+	<string>Remove %@ from the vault?</string>
+	<key>native.vault.save</key>
+	<string>Save</string>
+	<key>native.vault.saving</key>
+	<string>Saving…</string>
+	<key>native.vault.site</key>
+	<string>Site</string>
+	<key>native.vault.sources</key>
+	<string>Password managers</string>
+	<key>native.vault.sourcesNote</key>
+	<string>Password managers on the gateway's computer. While one is unlocked, %@ can use its logins too.</string>
+	<key>native.vault.title</key>
+	<string>Vault</string>
+	<key>native.vault.unlock</key>
+	<string>Unlock</string>
+	<key>native.vault.unlockFailed</key>
+	<string>Not unlocked: %@</string>
+	<key>native.vault.unlockFailedNoReason</key>
+	<string>Not unlocked.</string>
+	<key>native.vault.unlockReceiver</key>
+	<string>Hermie sends this once to the gateway, which hands it to %@ there and does not keep it. Hermie does not keep it either.</string>
+	<key>native.vault.unlockTitle</key>
+	<string>Unlock %@</string>
+	<key>native.vault.unlocked</key>
+	<string>Unlocked</string>
+	<key>native.vault.unlocking</key>
+	<string>Unlocking…</string>
+	<key>native.vault.unsupported</key>
+	<string>This gateway has no vault.</string>
+	<key>native.vault.use</key>
+	<string>Use %@</string>
+	<key>native.vault.withOTP</key>
+	<string>With authenticator</string>
 	<key>native.voice.automatic</key>
 	<string>Automatic</string>
 	<key>native.voice.bargeIn</key>
