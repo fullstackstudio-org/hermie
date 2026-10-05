@@ -447,7 +447,13 @@ extension TranscriptStore {
   /// open for its re-delivered copy). The card is marked answered only once
   /// the answer went out; a call that fails leaves it open and throws.
   @discardableResult
-  public func respondApproval(_ key: String, requestID: String, choice: String, all: Bool = false) async throws -> Bool {
+  public func respondApproval(
+    _ key: String,
+    requestID: String,
+    choice: String,
+    all: Bool = false,
+    via method: DecisionMethod = .tap
+  ) async throws -> Bool {
     guard isOpenCard(key, requestID), !answering.contains(requestID), let state = chats[key]?.state else {
       return false
     }
@@ -459,50 +465,71 @@ extension TranscriptStore {
       syncApprovalPoll()
     }
 
-    let item = state.byRequestID[requestID].flatMap { state.items[$0] }
-    let approvalID = item?.asApproval.map(\.approvalID) ?? requestID
+    let approval = state.byRequestID[requestID].flatMap { state.items[$0] }?.asApproval
+    let approvalID = approval?.approvalID ?? requestID
     var result: JSONObject = ["choice": .string(choice)]
 
     if all {
       result["all"] = true
     }
 
+    let sent: Bool
+
     if let live = deliveries[requestID] {
       deliveries[requestID] = nil
       acknowledged.remove(requestID)
-      return try await answerLive(key, live, requestID: requestID, answer: .text(choice), result: result)
-    }
+      sent = try await answerLive(key, live, requestID: requestID, answer: .text(choice), result: result)
+    } else {
+      acknowledged.remove(requestID)
 
-    acknowledged.remove(requestID)
+      if let runtimeID = state.runtimeSessionID, !runtimeID.isEmpty, !approvalID.isEmpty {
+        var params: JSONObject = [
+          "session_id": .string(runtimeID),
+          "profile": .string(key),
+          "choice": .string(choice),
+          "request_id": .string(approvalID)
+        ]
 
-    if let runtimeID = state.runtimeSessionID, !runtimeID.isEmpty, !approvalID.isEmpty {
-      var params: JSONObject = [
-        "session_id": .string(runtimeID),
-        "profile": .string(key),
-        "choice": .string(choice),
-        "request_id": .string(approvalID)
-      ]
+        if all {
+          params["all"] = true
+        }
 
-      if all {
-        params["all"] = true
+        try await answerByCall(key, requestID: requestID, answer: .text(choice), RPC.ApprovalRespond.name, .object(params))
+      } else {
+        // No queue id and no reply frame: `request.answer` settles the open
+        // request by its own id with the result the reply would have carried.
+        let params: JSONObject = ["id": .string(requestID), "result": .object(result), "profile": .string(key)]
+        try await answerByCall(key, requestID: requestID, answer: .text(choice), RPC.RequestAnswer.name, .object(params))
       }
 
-      try await answerByCall(key, requestID: requestID, answer: .text(choice), RPC.ApprovalRespond.name, .object(params))
-    } else {
-      // No queue id and no reply frame: `request.answer` settles the open
-      // request by its own id with the result the reply would have carried.
-      let params: JSONObject = ["id": .string(requestID), "result": .object(result), "profile": .string(key)]
-      try await answerByCall(key, requestID: requestID, answer: .text(choice), RPC.RequestAnswer.name, .object(params))
+      sent = true
     }
 
-    return true
+    // The decision log: once the answer went out, and never what could fail it.
+    if sent {
+      await options.decisions.approval(
+        bot: key,
+        session: state.runtimeSessionID ?? "",
+        choice: choice,
+        command: approval?.command,
+        toolName: approval?.toolName,
+        via: method
+      )
+    }
+
+    return sent
   }
 
   /// `respondClarify`: a batch answers `answers` by qid, a single question the
   /// bare `answer`. A partial batch with a live handle locks each answer.
   /// Answers whether an answer went out, as `respondApproval` does.
   @discardableResult
-  public func respondClarify(_ key: String, requestID: String, answers: JSRecord<String>) async throws -> Bool {
+  public func respondClarify(
+    _ key: String,
+    requestID: String,
+    answers: JSRecord<String>,
+    via method: DecisionMethod = .tap
+  ) async throws -> Bool {
     guard isOpenCard(key, requestID), !answering.contains(requestID), let state = chats[key]?.state else {
       return false
     }
@@ -524,12 +551,19 @@ extension TranscriptStore {
     if let live, complete {
       deliveries[requestID] = nil
       acknowledged.remove(requestID)
-      return try await answerLive(key, live, requestID: requestID, answer: answer, result: result)
+      let sent = try await answerLive(key, live, requestID: requestID, answer: answer, result: result)
+
+      if sent {
+        await options.decisions.clarify(bot: key, session: state.runtimeSessionID ?? "", via: method)
+      }
+
+      return sent
     }
 
     if live == nil, complete || clarify?.batch != true {
       let params: JSONObject = ["id": .string(requestID), "result": .object(result), "profile": .string(key)]
       try await answerByCall(key, requestID: requestID, answer: answer, RPC.RequestAnswer.name, .object(params))
+      await options.decisions.clarify(bot: key, session: state.runtimeSessionID ?? "", via: method)
       return true
     }
 

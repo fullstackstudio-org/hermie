@@ -115,7 +115,7 @@ extension TranscriptStore {
   ) async throws {
     if let card = openApprovalCard(key, approvalID: approvalID, runtimeSessionID: runtimeSessionID) {
       // `false` is an answer already on its way (the same card answered in the chat): not again.
-      _ = try await respondApproval(key, requestID: card, choice: choice)
+      _ = try await respondApproval(key, requestID: card, choice: choice, via: .notification)
       return
     }
 
@@ -127,6 +127,10 @@ extension TranscriptStore {
     ]
 
     _ = try await link.requestReply(RPC.ApprovalRespond.name, params: params)
+
+    // No card to read the command from: the log says what was decided, and for which bot.
+    await options.decisions.approval(
+      bot: key, session: runtimeSessionID, choice: choice, command: nil, via: .notification)
   }
 
   /// The request id of the chat's open approval card for this queue id, in this runtime session.

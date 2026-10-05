@@ -160,6 +160,8 @@ public final class AppLaunch {
   public let voice: VoiceSettings
   /// The limits a day's use is alerted at (Settings, Usage). Device-wide.
   public let usageAlerts: UsageAlertSettingsModel
+  /// What the person decided on the bots' requests, kept on this device (Settings, Decision log).
+  public let decisions: DecisionLog
   /// Passkeys for every session the live gateway builds (`GatewaySession.Options.passkey`). Set once
   /// by the app shell's wiring (`PasskeySetup.live`) before the first session; `nil` in tests,
   /// previews and anything else that does not set it: no `confirm` level is announced.
@@ -227,6 +229,7 @@ public final class AppLaunch {
     self.settings = AppSettings(keyValues: KeyValueStore(store: store), store: store)
     self.voice = VoiceSettings(keyValues: KeyValueStore(store: store))
     self.usageAlerts = UsageAlertSettingsModel(keyValues: KeyValueStore(store: store))
+    self.decisions = DecisionLog(store: store)
     self.push = PushController(
       system: pushSystem ?? InertPushSystem(),
       registrar: PushRegistrar(
@@ -277,6 +280,8 @@ public final class AppLaunch {
     await settings.hydrate()
     await voice.hydrate()
     await usageAlerts.hydrate()
+    // Nothing older than the log keeps stays, even when nothing was decided since.
+    await decisions.prune()
 
     if lock.settingNeedsAttention, !notices.contains(.lockSettingNotRestored) {
       notices.append(.lockSettingNotRestored)

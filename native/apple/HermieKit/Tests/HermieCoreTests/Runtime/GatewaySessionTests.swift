@@ -23,9 +23,11 @@ struct SessionHarness {
     reachability: (any Reachability)? = nil,
     requests: [String]? = nil,
     now: (@Sendable () -> Double)? = nil,
-    gatewayID: String = "g1"
+    gatewayID: String = "g1",
+    decisions: DecisionLog? = nil
   ) {
     var options = GatewaySession.Options()
+    options.decisions = decisions
 
     if let requests {
       options.requests = requests

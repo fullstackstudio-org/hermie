@@ -21,8 +21,8 @@ struct SecureHarness {
   var session: GatewaySession { harness.session }
   var center: SecureInputCenter { harness.session.secureInput }
 
-  init(cache: (any ChatCaching)? = nil, keyValues: KeyValueStore? = nil) {
-    harness = SessionHarness(cache: cache, keyValues: keyValues)
+  init(cache: (any ChatCaching)? = nil, keyValues: KeyValueStore? = nil, decisions: DecisionLog? = nil) {
+    harness = SessionHarness(cache: cache, keyValues: keyValues, decisions: decisions)
   }
 
   func open() async throws {

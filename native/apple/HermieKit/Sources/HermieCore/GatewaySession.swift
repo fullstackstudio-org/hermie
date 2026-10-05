@@ -58,6 +58,9 @@ public final class GatewaySession {
     /// Passkeys and the `confirm` level `passkey` (`PasskeyModel`). `nil`: the connection announces
     /// no `confirm` level and answers every `confirm` request `-32601`, as before.
     public var passkey: PasskeySetup?
+    /// The decision log (`DecisionLog`): what the person decides on this gateway's requests is written to it.
+    /// `nil`: none is kept.
+    public var decisions: DecisionLog?
 
     public init() {}
   }
@@ -80,6 +83,9 @@ public final class GatewaySession {
   /// The requests the person put away with Later or by leaving their chat, per chat, so a chat
   /// opened again does not raise them by itself.
   @ObservationIgnored public let requestShelf = RequestShelf()
+  /// Where every decision the person makes on this gateway's requests is logged, once its answer went out
+  /// (`DecisionLog`). It keeps nothing unless the session was given a log.
+  @ObservationIgnored public let decisions: DecisionRecorder
   /// The pictures of the people in the group chat and the reader's own, as the gateway serves them.
   @ObservationIgnored public let people: PeoplePictures
   /// The gateway's out-of-band notices (`notification.show` / `.clear`).
@@ -247,6 +253,11 @@ public final class GatewaySession {
     options: Options = Options()
   ) {
     self.gatewayID = gatewayID
+    let wallClock = options.store.now
+    let recorder = DecisionRecorder(
+      log: options.decisions, gatewayID: gatewayID, gatewayName: name ?? gatewayID,
+      now: { Date(timeIntervalSince1970: wallClock() / 1000) })
+    self.decisions = recorder
     self.passkeys = passkeys
     self.mcp = mcp
     self.link = link
@@ -268,6 +279,7 @@ public final class GatewaySession {
     // (a test's, or nobody's) only while there is none.
     let cell = OwnAuthorCell()
     var storeOptions = options.store
+    storeOptions.decisions = recorder
     let fallback = storeOptions.ownAuthor
     storeOptions.ownAuthor = { cell.get() ?? fallback() }
     self.ownAuthorCell = cell
@@ -276,6 +288,7 @@ public final class GatewaySession {
     self.connectionRequests = ConnectionRequestsModel(clock: options.store.clock) { method, params in
       try await link.requestReply(method, params: params)
     }
+    connectionRequests.decisions = recorder
     self.secureInput = SecureInputCenter(
       link: link,
       store: store,
@@ -293,6 +306,11 @@ public final class GatewaySession {
       gatewayName: name ?? gatewayID,
       options: interactiveOptions
     )
+    secureInput.decisions = recorder
+    interactive.decisions = recorder
+    // A confirmation is logged under the chat that holds its session.
+    passkeys?.decisions = recorder
+    passkeys?.chatForSession = { [weak store] session in await store?.chatKey(forRuntime: session) }
     (commands, commandSink) = AsyncStream.makeStream()
     // A request that is over is no longer put away: an id the gateway hands out again (after a
     // restart it counts from the start) is a new request, and comes up.

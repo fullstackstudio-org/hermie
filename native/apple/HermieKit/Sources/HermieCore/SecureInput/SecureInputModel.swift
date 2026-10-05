@@ -181,12 +181,12 @@ public final class SecureInputModel {
   /// Send what the person typed. Answers whether it went out; when it did, the
   /// sheet's prompt is done and the sheet closes.
   @discardableResult
-  public func send(_ value: SecretValue, identifier: String = "") async -> Bool {
+  public func send(_ value: SecretValue, identifier: String = "", via method: DecisionMethod = .tap) async -> Bool {
     guard let id = presentedID else {
       return false
     }
 
-    let sent = await center.send(id, value: value, identifier: identifier)
+    let sent = await center.send(id, value: value, identifier: identifier, via: method)
 
     if sent, presentedID == id {
       presentedID = nil

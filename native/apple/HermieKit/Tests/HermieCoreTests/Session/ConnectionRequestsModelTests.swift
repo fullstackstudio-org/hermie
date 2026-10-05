@@ -116,10 +116,10 @@ final class RecordingCalls: Sendable {
     #expect(model.requests.isEmpty)
   }
 
-  @Test func updatesMoveRowsInOrderAndTheSettlementWithdrawsTheCard() throws {
+  @Test func updatesMoveRowsInOrderAndTheSettlementWithdrawsTheCard() async throws {
     let model = model()
     model.requested(chat: chat, runtimeSessionID: runtime, request(targets: [target("calendar", url: "https://a.example.invalid/x"), target("mail")]))
-    model.markOpened(chat: chat, target: "calendar")
+    await model.markOpened(chat: chat, target: "calendar")
 
     model.updated(chat: chat, update(seq: 3, targets: [target("calendar", state: "connected")]))
     #expect(model.request(for: chat)?.targets[0].state == .connected)

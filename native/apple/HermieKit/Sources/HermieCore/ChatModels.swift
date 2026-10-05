@@ -419,12 +419,16 @@ public final class ChatModel {
     await store.deleteQueued(key, queuedID)
   }
 
-  public func respondApproval(_ requestID: String, choice: String, all: Bool = false) async {
-    await answer(requestID) { try await $0.respondApproval($1, requestID: requestID, choice: choice, all: all) }
+  public func respondApproval(
+    _ requestID: String, choice: String, all: Bool = false, via method: DecisionMethod = .tap
+  ) async {
+    await answer(requestID) {
+      try await $0.respondApproval($1, requestID: requestID, choice: choice, all: all, via: method)
+    }
   }
 
-  public func respondClarify(_ requestID: String, answers: JSRecord<String>) async {
-    await answer(requestID) { try await $0.respondClarify($1, requestID: requestID, answers: answers) }
+  public func respondClarify(_ requestID: String, answers: JSRecord<String>, via method: DecisionMethod = .tap) async {
+    await answer(requestID) { try await $0.respondClarify($1, requestID: requestID, answers: answers, via: method) }
   }
 
   /// An answer that did not go out while its card is still open gets a notice

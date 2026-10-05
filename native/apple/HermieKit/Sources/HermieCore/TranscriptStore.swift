@@ -98,6 +98,9 @@ public actor TranscriptStore {
     /// How often the chat list's summaries are recomputed at most: the list
     /// does not need every frame a streaming chat screen does.
     public var summaryInterval: Duration = .milliseconds(250)
+    /// Where the decisions the person made on approvals and questions are logged (`DecisionLog`). Keeps nothing by
+    /// default.
+    public var decisions = DecisionRecorder.discarding()
 
     public init() {}
   }

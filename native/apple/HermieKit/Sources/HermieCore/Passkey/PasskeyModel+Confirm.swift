@@ -355,7 +355,17 @@ extension PasskeyModel {
       markAnswerMayHaveArrived(id)
     }
 
+    let session = confirmation(id)?.sessionID ?? ""
+
     setPhase(id, outcome)
+
+    // The decision log: the gateway took the answer. Never the assertion, nor what the sheet said.
+    if outcome == done {
+      let bot = await chatForSession?(session) ?? ""
+
+      await decisions.confirm(
+        confirmed: done == .received, bot: bot, session: session, via: done == .received ? .passkey : .tap)
+    }
     // The countdown ran out while this was in flight: now it can end.
     await endIfExpired(id)
   }

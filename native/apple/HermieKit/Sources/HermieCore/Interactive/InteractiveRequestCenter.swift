@@ -153,6 +153,9 @@ public final class InteractiveRequestCenter {
   public private(set) var prompts: [InteractivePrompt] = []
   /// Told the id of every request that is over, however it ended (the session forgets it was put away).
   @ObservationIgnored public var onFinished: (@MainActor (String) -> Void)?
+  /// Where a decision the gateway took is logged: that a request was answered, skipped or declined, and which
+  /// one, never with what.
+  @ObservationIgnored public var decisions = DecisionRecorder.discarding()
   /// Per request id: an answer on its way, or one that did not go out.
   public private(set) var phases: [String: InteractivePhase] = [:]
   /// The last notice per chat key.
@@ -464,7 +467,7 @@ public final class InteractiveRequestCenter {
   /// `answer` cannot answer (another method's answer, a Skip it does not offer, a draft it may not
   /// change).
   @discardableResult
-  public func answer(_ id: String, _ answer: InteractiveAnswer) async -> Bool {
+  public func answer(_ id: String, _ answer: InteractiveAnswer, via method: DecisionMethod = .tap) async -> Bool {
     guard let prompt = prompts.first(where: { $0.id == id }), phases[id] != .sending else {
       return false
     }
@@ -478,13 +481,24 @@ public final class InteractiveRequestCenter {
       return false
     }
 
-    return await send(id, reply, chatKey: prompt.chatKey)
+    let decision = Decision(
+      request: prompt.method, outcome: DecisionRecorder.outcome(of: answer), session: prompt.sessionID, via: method)
+
+    return await send(id, reply, chatKey: prompt.chatKey, decision: decision)
   }
 
   /// Skip: for a request that offers it. Answers whether the gateway took it.
   @discardableResult
-  public func skip(_ id: String) async -> Bool {
-    await answer(id, .skip)
+  public func skip(_ id: String, via method: DecisionMethod = .tap) async -> Bool {
+    await answer(id, .skip, via: method)
+  }
+
+  /// What the decision log is told once the gateway took an answer.
+  private struct Decision {
+    var request: String
+    var outcome: DecisionOutcome
+    var session: String
+    var via: DecisionMethod
   }
 
   /// The sheet cannot show the request (a refused permission, a failed upload, no camera): answer
@@ -502,14 +516,24 @@ public final class InteractiveRequestCenter {
       return false
     }
 
-    return await sendCannotShow(id, reason: reason, chatKey: prompt.chatKey, notifying: notify ? prompt.method : nil)
+    // Only "Don't share" is the person's decision: a refused permission or a failed upload is not.
+    let decision =
+      reason == CannotShowReason.declined
+      ? Decision(request: prompt.method, outcome: .declined, session: prompt.sessionID, via: .tap) : nil
+
+    return await sendCannotShow(
+      id, reason: reason, chatKey: prompt.chatKey, notifying: notify ? prompt.method : nil, decision: decision)
   }
 
   /// Send a result through `request.answer` and act on the gateway's verdict. Answers whether the
   /// gateway took it.
-  private func send(_ id: String, _ reply: InteractiveReply, chatKey: String) async -> Bool {
+  private func send(_ id: String, _ reply: InteractiveReply, chatKey: String, decision: Decision) async -> Bool {
     phases[id] = .sending
     let verdict = await Self.verdict(of: link, id: id, result: reply.result)
+
+    if case .accepted = verdict {
+      await log(decision, bot: prompts.first { $0.id == id }?.chatKey ?? chatKey)
+    }
 
     // Re-check after the suspension: only shutdown takes a request whose answer is on its way.
     let ended = endedWhileSending.removeValue(forKey: id)
@@ -579,6 +603,11 @@ public final class InteractiveRequestCenter {
     return false
   }
 
+  private func log(_ decision: Decision, bot: String) async {
+    await decisions.interactive(
+      request: decision.request, outcome: decision.outcome, bot: bot, session: decision.session, via: decision.via)
+  }
+
   /// What `request.answer {id, result}` came back with.
   private nonisolated static func verdict(of link: any GatewayLink, id: String, result: JSONObject) async -> Verdict {
     do {
@@ -602,7 +631,9 @@ public final class InteractiveRequestCenter {
 
   /// Answer `4041 cannot_show {reason}` on the request's own reply frame. Answers whether it went
   /// out.
-  private func sendCannotShow(_ id: String, reason: String, chatKey: String, notifying method: String? = nil) async -> Bool {
+  private func sendCannotShow(
+    _ id: String, reason: String, chatKey: String, notifying method: String? = nil, decision: Decision? = nil
+  ) async -> Bool {
     guard let handle = handles[id] else {
       phases[id] = .failed
       return false
@@ -610,6 +641,10 @@ public final class InteractiveRequestCenter {
 
     phases[id] = .sending
     let sent = await handle.cannotShow(reason: reason)
+
+    if sent, let decision {
+      await log(decision, bot: prompts.first { $0.id == id }?.chatKey ?? chatKey)
+    }
     let ended = endedWhileSending.removeValue(forKey: id)
 
     guard isOpen(id) else {

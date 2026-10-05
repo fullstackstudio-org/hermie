@@ -64,6 +64,8 @@ public final class GatewayAccounts {
   public let sync: GatewaySyncEngine
   @ObservationIgnored public let store: SQLiteStore
   @ObservationIgnored public let push: PushController?
+  /// What the person decided on this gateway's requests: purged with the sign-in.
+  @ObservationIgnored let decisions: DecisionLog
   @ObservationIgnored let share: ShareDeliveryPublisher?
   /// Told when a sign-in finishes here, so a gateway taken from iCloud stops saying "Sign in needed".
   @ObservationIgnored let iCloudSync: ICloudSyncModel
@@ -98,6 +100,7 @@ public final class GatewayAccounts {
     self.sync = launch.sync
     self.store = launch.store
     self.push = launch.push
+    self.decisions = launch.decisions
     self.iCloudSync = launch.iCloudSync
     self.services = services
     self.share = share
@@ -258,6 +261,9 @@ public final class GatewayAccounts {
       purgeSurfaces?(key)
     }
 
+    // What was decided on this gateway's requests goes with the sign-in, like the other surfaces.
+    await decisions.purge(gatewayID: id)
+
     await revokeIfAdvertised(id)
     try? await sync.signOut(id: id, scope: .thisDevice)
     do {
@@ -299,6 +305,8 @@ public final class GatewayAccounts {
   /// A gateway left the list (`GatewayDirectory.onRemoved`, whoever removed it): forget what this
   /// process holds for it, and stop the share sheet sending to it. The engine removed the secrets.
   public func forgotten(_ id: String) async {
+    // The registry's own purge removed the rows when the gateway left the list; this tells a screen showing them.
+    await decisions.purge(gatewayID: id)
     _ = share?.drop(gatewayId: id)
     AttachmentOpening.discardOpened(gateway: id)
     statuses[id] = nil

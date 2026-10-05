@@ -317,6 +317,7 @@ extension LiveGateway {
 
       var options = GatewaySession.Options()
       options.passkey = launch.passkey
+      options.decisions = launch.decisions
       options.cacheSwitch = launch.settings.cacheSwitch
       options.defaultVisibility = launch.settings.synced.defaults
 

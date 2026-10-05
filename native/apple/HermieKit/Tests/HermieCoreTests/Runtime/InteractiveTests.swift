@@ -104,9 +104,10 @@ struct InteractiveHarness {
   init(
     cache: (any ChatCaching)? = nil,
     keyValues: KeyValueStore? = nil,
-    requests: [String]? = InteractiveCapabilities.deviceMethods()
+    requests: [String]? = InteractiveCapabilities.deviceMethods(),
+    decisions: DecisionLog? = nil
   ) {
-    harness = SessionHarness(cache: cache, keyValues: keyValues, requests: requests)
+    harness = SessionHarness(cache: cache, keyValues: keyValues, requests: requests, decisions: decisions)
     harness.link.takeEveryAnswer()
   }
 

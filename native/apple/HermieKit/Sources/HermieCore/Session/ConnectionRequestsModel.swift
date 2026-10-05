@@ -84,6 +84,9 @@ public final class ConnectionRequestsModel {
   public private(set) var requests: [String: ConnectionRequest] = [:]
   /// The last answer that did not go out, for a banner.
   public private(set) var lastError: String?
+  /// Where what the person decided on a card is logged: a link opened, "Not now", Cancel. Keeps nothing by
+  /// default.
+  @ObservationIgnored public var decisions = DecisionRecorder.discarding()
 
   @ObservationIgnored private let clock: any ConnectionClock
   @ObservationIgnored private let call: @Sendable (String, JSONValue) async throws -> RPCReply<JSONValue>
@@ -104,14 +107,22 @@ public final class ConnectionRequestsModel {
 
   // MARK: - Actions
 
-  /// The person opened a row's link.
-  public func markOpened(chat: String, target: String) {
+  /// The person opened a row's link. The first time, it is logged as the person authorising that connector (the
+  /// link itself is not kept; whether the provider then accepted is the gateway's to say).
+  public func markOpened(chat: String, target: String) async {
     guard var request = requests[chat], let index = request.targets.firstIndex(where: { $0.name == target }) else {
       return
     }
 
+    let first = !request.targets[index].opened
+
     request.targets[index].opened = true
     requests[chat] = request
+
+    if first {
+      await decisions.connector(
+        outcome: .authorised, bot: chat, session: request.runtimeSessionID, name: request.targets[index].name)
+    }
   }
 
   /// "Not now" on one row. Answers whether the answer went out; the card moves
@@ -124,7 +135,13 @@ public final class ConnectionRequestsModel {
 
     var answer = ConnectionAnswer()
     answer.targets = [ConnectionAnswerTarget(name: target, status: "skipped")]
-    return await respond(request, answer)
+    let sent = await respond(request, answer)
+
+    if sent {
+      await decisions.connector(outcome: .declined, bot: chat, session: request.runtimeSessionID, name: target)
+    }
+
+    return sent
   }
 
   /// Cancel: end the operation now with whatever is unresolved (`settled_by:
@@ -137,7 +154,13 @@ public final class ConnectionRequestsModel {
 
     var answer = ConnectionAnswer()
     answer.settledBy = .continue
-    return await respond(request, answer)
+    let sent = await respond(request, answer)
+
+    if sent {
+      await decisions.connector(outcome: .skipped, bot: chat, session: request.runtimeSessionID, name: nil)
+    }
+
+    return sent
   }
 
   private func respond(_ request: ConnectionRequest, _ answer: ConnectionAnswer) async -> Bool {

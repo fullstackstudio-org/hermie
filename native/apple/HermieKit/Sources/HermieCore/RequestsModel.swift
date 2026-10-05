@@ -77,6 +77,8 @@ public final class RequestsModel {
   public private(set) var phases: [String: RequestPhase] = [:]
   /// The answer last tried per request, for `retry`.
   public private(set) var attempts: [String: RequestAnswerDraft] = [:]
+  /// How each of them was chosen, so a retry is logged the way the first try was.
+  @ObservationIgnored private var methods: [String: DecisionMethod] = [:]
   /// The last request that closed without the reader's answer.
   public private(set) var notice: RequestNoticeEntry?
   /// The request the sheet shows, by request id; nil when no sheet is up.
@@ -351,17 +353,18 @@ public final class RequestsModel {
 
   // MARK: - Answering
 
-  /// Answer an approval with one of the choices it offered.
-  public func answerApproval(_ requestID: String, choice: String) async {
+  /// Answer an approval with one of the choices it offered. `method` is how the person chose (a tap, the
+  /// keyboard), for the decision log.
+  public func answerApproval(_ requestID: String, choice: String, via method: DecisionMethod = .tap) async {
     guard let item = openItem(requestID)?.asApproval, item.choices.contains(choice) else {
       return
     }
 
-    await answer(requestID, .approval(choice: choice))
+    await answer(requestID, .approval(choice: choice), via: method)
   }
 
   /// Answer a clarify: qid → answer, for questions the request asked.
-  public func answerClarify(_ requestID: String, answers: [String: String]) async {
+  public func answerClarify(_ requestID: String, answers: [String: String], via method: DecisionMethod = .tap) async {
     guard let item = openItem(requestID)?.asClarify else {
       return
     }
@@ -373,16 +376,16 @@ public final class RequestsModel {
       return
     }
 
-    await answer(requestID, .clarify(answers: kept))
+    await answer(requestID, .clarify(answers: kept), via: method)
   }
 
-  /// Send the answer that failed again.
+  /// Send the answer that failed again, the way it was chosen.
   public func retry(_ requestID: String) async {
     guard case .failed? = phases[requestID], let attempt = attempts[requestID] else {
       return
     }
 
-    await answer(requestID, attempt)
+    await answer(requestID, attempt, via: methods[requestID] ?? .tap)
   }
 
   /// The deadline passed: the gateway stops waiting, so the card closes the way
@@ -397,7 +400,7 @@ public final class RequestsModel {
     finish(requestID, closingSheet: false)
   }
 
-  private func answer(_ requestID: String, _ draft: RequestAnswerDraft) async {
+  private func answer(_ requestID: String, _ draft: RequestAnswerDraft, via method: DecisionMethod) async {
     // A second tap, or a tap on a card whose answer is already on its way.
     guard phases[requestID] != .sending else {
       return
@@ -405,6 +408,7 @@ public final class RequestsModel {
 
     phases[requestID] = .sending
     attempts[requestID] = draft
+    methods[requestID] = method
     let store = chat.store
     let key = bot
 
@@ -420,9 +424,9 @@ public final class RequestsModel {
     // answer that did not go out; what it leaves behind says how this went.
     switch draft {
     case .approval(let choice):
-      await chat.respondApproval(requestID, choice: choice)
+      await chat.respondApproval(requestID, choice: choice, via: method)
     case .clarify(let answers):
-      await chat.respondClarify(requestID, answers: ordered(answers, for: requestID))
+      await chat.respondClarify(requestID, answers: ordered(answers, for: requestID), via: method)
     }
 
     // Set by the call that just returned (nil when it did not throw).
@@ -447,6 +451,7 @@ public final class RequestsModel {
   private func finish(_ requestID: String, closingSheet: Bool = true) {
     phases[requestID] = nil
     attempts[requestID] = nil
+    methods[requestID] = nil
     deadlines[requestID] = nil
 
     if closingSheet, presentedRequestID == requestID {

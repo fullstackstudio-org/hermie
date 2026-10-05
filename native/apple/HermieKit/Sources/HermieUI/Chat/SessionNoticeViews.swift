@@ -104,7 +104,7 @@ struct ConnectionRequestCard: View {
                 if let link = target.link {
                   Button(NativeStrings.ConnectionRequest.open) {
                     openURL(link.url)
-                    model.markOpened(chat: chat, target: target.name)
+                    Task { await model.markOpened(chat: chat, target: target.name) }
                   }
                   .buttonStyle(.borderedProminent)
                   .accessibilityIdentifier("hermie.connection.open")

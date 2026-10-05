@@ -269,7 +269,7 @@ struct SecureInputSheetView: View {
           #endif
           .modifier(PlainEntry())
           .focused($focus, equals: .value)
-          .onSubmit { submit(prompt) }
+          .onSubmit { submit(prompt, via: .keyboard) }
           .accessibilityIdentifier("secureInput.field")
       }
     case .vaultSaveLogin:
@@ -288,7 +288,7 @@ struct SecureInputSheetView: View {
           .textContentType(.password)
           .modifier(PlainEntry())
           .focused($focus, equals: .value)
-          .onSubmit { submit(prompt) }
+          .onSubmit { submit(prompt, via: .keyboard) }
           .accessibilityIdentifier("secureInput.field")
       }
     }
@@ -302,7 +302,7 @@ struct SecureInputSheetView: View {
       SecureField(label, text: $value.revealed)
         .modifier(PlainEntry())
         .focused($focus, equals: .value)
-        .onSubmit { submit(prompt) }
+        .onSubmit { submit(prompt, via: .keyboard) }
         .accessibilityIdentifier("secureInput.field")
     }
   }
@@ -458,7 +458,7 @@ struct SecureInputSheetView: View {
 
   /// Send what is in the field (Send, Return, Retry): the value still in the
   /// field is what goes, and the field is cleared once it went out.
-  private func submit(_ prompt: SecurePrompt) {
+  private func submit(_ prompt: SecurePrompt, via method: DecisionMethod = .tap) {
     guard canSend else {
       return
     }
@@ -467,7 +467,7 @@ struct SecureInputSheetView: View {
     let name = identifier
 
     Task {
-      if await model.send(typed, identifier: name) {
+      if await model.send(typed, identifier: name, via: method) {
         clear()
       }
     }

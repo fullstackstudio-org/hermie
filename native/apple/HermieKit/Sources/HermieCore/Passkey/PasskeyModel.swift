@@ -72,6 +72,12 @@ public final class PasskeyModel {
   @ObservationIgnored private var started = false
   @ObservationIgnored var isShutDown = false
   @ObservationIgnored private var nextNoticeID: UInt64 = 0
+  /// Where a confirmation the person answered is logged: that it was confirmed with a passkey or declined, and
+  /// for which chat, never what it said. Keeps nothing by default.
+  @ObservationIgnored public var decisions = DecisionRecorder.discarding()
+  /// Which chat holds a runtime session, so the log can say which bot a confirmation was about. The session
+  /// sets it to the store's routes; without it the entry names no bot.
+  @ObservationIgnored public var chatForSession: (@Sendable (String) async -> String?)?
 
   /// At most this many finished confirmations are kept for the sheet to show their end.
   static let finishedKept = 20

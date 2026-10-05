@@ -122,6 +122,8 @@ public final class SecureInputCenter {
   public private(set) var prompts: [SecurePrompt] = []
   /// Told the id of every prompt that is over, however it ended (the session forgets it was put away).
   @ObservationIgnored public var onFinished: (@MainActor (String) -> Void)?
+  /// Where an answer that went out is logged: that a prompt was answered or skipped, never with what.
+  @ObservationIgnored public var decisions = DecisionRecorder.discarding()
   /// Per request id: an answer on its way, or one that did not go out.
   public private(set) var phases: [String: SecureInputPhase] = [:]
   /// The last notice per chat key.
@@ -370,7 +372,9 @@ public final class SecureInputCenter {
   /// that is no longer open, whose deadline has passed, whose answer is
   /// already on its way, or that `value` cannot answer.
   @discardableResult
-  public func send(_ id: String, value: SecretValue, identifier: String = "") async -> Bool {
+  public func send(
+    _ id: String, value: SecretValue, identifier: String = "", via method: DecisionMethod = .tap
+  ) async -> Bool {
     guard let prompt = prompts.first(where: { $0.id == id }), phases[id] != .sending else {
       return false
     }
@@ -384,12 +388,12 @@ public final class SecureInputCenter {
       return false
     }
 
-    return await deliver(id, ValueResult(value: text))
+    return await deliver(id, ValueResult(value: text), entered: true, via: method)
   }
 
   /// Skip: answer `''`. Answers whether it went out.
   @discardableResult
-  public func skip(_ id: String) async -> Bool {
+  public func skip(_ id: String, via method: DecisionMethod = .tap) async -> Bool {
     guard isOpen(id), phases[id] != .sending else {
       return false
     }
@@ -399,10 +403,10 @@ public final class SecureInputCenter {
       return false
     }
 
-    return await deliver(id, Self.skipped)
+    return await deliver(id, Self.skipped, entered: false, via: method)
   }
 
-  private func deliver(_ id: String, _ result: ValueResult) async -> Bool {
+  private func deliver(_ id: String, _ result: ValueResult, entered: Bool, via method: DecisionMethod) async -> Bool {
     guard let handle = handles[id] else {
       // Only an open prompt has a phase; a closed id keeps none.
       if isOpen(id) {
@@ -411,8 +415,16 @@ public final class SecureInputCenter {
       return false
     }
 
+    let prompt = prompts.first { $0.id == id }
+
     phases[id] = .sending
     let sent = await handle.respond(result.json)
+
+    // The decision log hears that it was answered or skipped, and which prompt it was: never the value.
+    if sent, let prompt {
+      await decisions.secure(
+        entered: entered, bot: prompt.chatKey, session: prompt.sessionID, request: prompt.method, via: method)
+    }
 
     // Re-check after the suspension: the gateway may have withdrawn it, or its
     // chat let go of it, while the answer was in flight.
