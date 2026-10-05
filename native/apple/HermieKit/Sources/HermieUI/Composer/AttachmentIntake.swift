@@ -83,15 +83,7 @@ enum AttachmentIntake {
 
   /// Files from the file importer, or pasted from the Finder, or dropped from it as file URLs.
   static func addFiles(_ urls: [URL], to tray: AttachmentTray) {
-    let ids = tray.prepare(urls.map { ($0.lastPathComponent, kind(ofFileNamed: $0.lastPathComponent)) })
-
-    for (id, url) in zip(ids, urls) {
-      stage(id, in: tray) {
-        staged { () throws(StagingFailure) in
-          try AttachmentStaging.stage(copying: url, mimeType: mimeType(forFileNamed: url.lastPathComponent))
-        }
-      }
-    }
+    tray.addFiles(copying: urls)
   }
 
   // MARK: Pictures with no file behind them

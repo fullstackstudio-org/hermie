@@ -296,6 +296,12 @@ public final class ComposerModel {
   /// so the reader can change them and send.
   public private(set) var focusRequests = 0
 
+  /// Put the caret in the field, as words put back from outside do, without changing anything in it.
+  /// The quick ask asks for it each time its window opens.
+  public func requestFocus() {
+    focusRequests += 1
+  }
+
   /**
    Edit and resend: the words of one of the reader's own turns come back in the field, after whatever
    is already there (a draft is never thrown away for them). The turn in the chat is left where it is;
