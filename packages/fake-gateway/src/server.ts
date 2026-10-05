@@ -58,6 +58,17 @@ import {
   wireOf
 } from './outbox'
 import { DiffError, headOldPath, headPath, parseDiff } from './diff-hunks'
+import {
+  anthropicAccountLines,
+  daysRefusal,
+  emptyUsageStage,
+  insights as insightsAnswer,
+  nousBars,
+  usageAnalytics,
+  usageDaysOf,
+  type UsageDay,
+  type UsageStage
+} from './usage'
 import { ReviewRegister } from './review-register'
 import { grantView as mcpGrantView, handleMcpRoute, PREFIX as MCP_PREFIX } from './mcp/routes'
 import { McpGateway, type McpGrantInput, type McpOptions } from './mcp/store'
@@ -1230,6 +1241,12 @@ export interface FakeGatewayState {
    * an account that may read a profile and not write it (`POST /__fake/deny`).
    */
   deniedMethods: Map<string, { code: number; message: string }>
+  /**
+   * What the usage calls answer with beyond what is derived (`usage.ts`): a profile's staged days, the
+   * Nous balance, the account lines `session.usage` carries, and whether the gateway has the calls at all
+   * (`POST /__fake/usage`).
+   */
+  usage: UsageStage
   /** Images accepted through `image.attach_bytes`, newest last. */
   attachedImages: { session_id: string; filename: string; bytes: number }[]
   /**
@@ -3306,6 +3323,7 @@ function initialState(options: FakeGatewayOptions): FakeGatewayState {
     profileAssets: new Map<string, { mime: string; bytes: Buffer }>(),
     profileSouls: new Map<string, string>(),
     deniedMethods: new Map<string, { code: number; message: string }>(),
+    usage: emptyUsageStage(),
     attachedImages: [],
     uploadedFiles: new Map(),
     liveSubagents: new Map<string, LiveSubagent>(),
@@ -4932,6 +4950,59 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       return
     }
 
+    if (path === '/__fake/usage' && method === 'POST') {
+      /*
+        Stage what the usage calls answer (`usage.ts`). Not part of the contract: a test's way of putting a
+        day over a limit, of giving a profile no use at all, of making the account a Nous one, of giving
+        `session.usage` the provider account lines, or of being a gateway that has none of it.
+
+          { clear: true }                  take every staging back
+          { days: { <profile>: [...] } }   a profile's analytics rows, replacing the derived ones
+          { bars: true | false }           `usage.bars` answers the Nous balance, or "no balance"
+          { accountLines: true | [..] }    `session.usage` carries account lines (the Anthropic ones, or these)
+          { creditsLines: [..] }           and credits lines
+          { unsupported: true | false }    the route 404s and the methods answer -32601
+      */
+      const body = await readBody(req)
+
+      if (body.clear === true) {
+        state.usage = emptyUsageStage()
+      }
+
+      if (body.days && typeof body.days === 'object' && !Array.isArray(body.days)) {
+        for (const [profile, rows] of Object.entries(body.days as Record<string, unknown>)) {
+          state.usage.days.set(profile, Array.isArray(rows) ? (rows as UsageDay[]) : [])
+        }
+      }
+
+      if (typeof body.bars === 'boolean') {
+        state.usage.bars = body.bars ? nousBars() : null
+      }
+
+      if (body.accountLines === true) {
+        state.usage.accountLines = anthropicAccountLines()
+      } else if (Array.isArray(body.accountLines)) {
+        state.usage.accountLines = body.accountLines.filter((line): line is string => typeof line === 'string')
+      }
+
+      if (Array.isArray(body.creditsLines)) {
+        state.usage.creditsLines = body.creditsLines.filter((line): line is string => typeof line === 'string')
+      }
+
+      if (typeof body.unsupported === 'boolean') {
+        state.usage.unsupported = body.unsupported
+      }
+
+      json(res, 200, {
+        accountLines: state.usage.accountLines.length,
+        bars: state.usage.bars !== null,
+        days: [...state.usage.days.keys()],
+        unsupported: state.usage.unsupported
+      })
+
+      return
+    }
+
     if (path === '/__fake/reject-upgrades' && method === 'POST') {
       // The next `count` upgrades fail auth with `--close-code` even with a
       // valid credential: `rejectNextUpgrades`, for a client in another process.
@@ -5887,6 +5958,41 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       const sessions = [...state.sessions.values()].filter(session => !profile || session.profile === profile)
 
       json(res, 200, { results: searchFakeSessions(sessions, rawQuery, limit) })
+
+      return
+    }
+
+    /*
+     * `GET /api/analytics/usage` — `analytics.py::get_usage_analytics`: one profile's days (see `usage.ts`).
+     * `days` outside 1…365 is a 422 (FastAPI's `Query(ge=1, le=365)`), an unknown profile a 404 as for the
+     * search, and a gateway that was staged without the route (`POST /__fake/usage`) a plain 404.
+     */
+    if (path === '/api/analytics/usage' && method === 'GET') {
+      if (state.usage.unsupported) {
+        json(res, 404, { detail: 'Not Found' })
+
+        return
+      }
+
+      const profile = url.searchParams.get('profile')
+      const refusal = daysRefusal(url.searchParams.get('days'))
+
+      if (refusal) {
+        json(res, 422, refusal)
+
+        return
+      }
+
+      if (profile && !state.profiles.some(entry => entry.name === profile)) {
+        json(res, 404, { detail: `Profile '${profile}' does not exist.` })
+
+        return
+      }
+
+      const days = Number.parseInt(url.searchParams.get('days') ?? '30', 10)
+      const owner = profile ?? state.profiles.find(entry => entry.is_default)?.name ?? LAUNCH_PROFILE
+
+      json(res, 200, usageAnalytics(usageDaysOf(state.usage, owner, days, nowSeconds()), days))
 
       return
     }
@@ -9377,7 +9483,44 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
           throw new Error(`Unknown session: ${String(params.session_id)}`)
         }
 
-        return sessionUsage(session)
+        return {
+          ...sessionUsage(session),
+          // The provider account's limits, as the text the gateway renders them as.
+          ...(state.usage.accountLines.length ? { account_lines: state.usage.accountLines } : {}),
+          ...(state.usage.creditsLines.length ? { credits_lines: state.usage.creditsLines } : {})
+        }
+      }
+
+      /*
+        `tui_gateway/methods_tools.py::insights.get`: how many sessions and messages one profile had over `days`,
+        and nothing else (no tokens, no cost: those are the analytics route's).
+      */
+      case 'insights.get': {
+        if (state.usage.unsupported) {
+          throw new RpcFault(-32601, `unknown method: ${method}`)
+        }
+
+        const profile = typeof params.profile === 'string' ? params.profile : undefined
+        const days = typeof params.days === 'number' ? params.days : 30
+        const mine = [...state.sessions.values()].filter(session => !profile || session.profile === profile)
+
+        return insightsAnswer(
+          days,
+          mine.length,
+          mine.reduce((total, session) => total + session.messages.length, 0)
+        )
+      }
+
+      /*
+        `usage.bars`: the Nous balance. Any other account, and a logged-out one, answers
+        `{ok: true, available: false}` rather than an error (`_billing_view` is fail-open).
+      */
+      case 'usage.bars': {
+        if (state.usage.unsupported) {
+          throw new RpcFault(-32601, `unknown method: ${method}`)
+        }
+
+        return state.usage.bars ?? { available: false, ok: true }
       }
 
       case 'session.events.since': {
