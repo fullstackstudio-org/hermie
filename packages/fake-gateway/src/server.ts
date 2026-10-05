@@ -69,6 +69,15 @@ import {
   type UsageDay,
   type UsageStage
 } from './usage'
+import {
+  emptyVaultStage,
+  MANAGER as VAULT_MANAGER,
+  VAULT_METHODS,
+  vaultCall,
+  VaultError,
+  vaultView,
+  type VaultStage
+} from './vault'
 import { ReviewRegister } from './review-register'
 import { grantView as mcpGrantView, handleMcpRoute, PREFIX as MCP_PREFIX } from './mcp/routes'
 import { McpGateway, type McpGrantInput, type McpOptions } from './mcp/store'
@@ -1247,6 +1256,11 @@ export interface FakeGatewayState {
    * (`POST /__fake/usage`).
    */
   usage: UsageStage
+  /**
+   * Every profile's credential vault and the one password manager on the "host" (`vault.ts`), with what a test
+   * staged through `POST /__fake/vault`.
+   */
+  vault: VaultStage
   /** Images accepted through `image.attach_bytes`, newest last. */
   attachedImages: { session_id: string; filename: string; bytes: number }[]
   /**
@@ -3324,6 +3338,7 @@ function initialState(options: FakeGatewayOptions): FakeGatewayState {
     profileSouls: new Map<string, string>(),
     deniedMethods: new Map<string, { code: number; message: string }>(),
     usage: emptyUsageStage(),
+    vault: emptyVaultStage(),
     attachedImages: [],
     uploadedFiles: new Map(),
     liveSubagents: new Map<string, LiveSubagent>(),
@@ -4946,6 +4961,57 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       }
 
       json(res, 200, { denied: [...state.deniedMethods.keys()] })
+
+      return
+    }
+
+    if (path === '/__fake/vault' && method === 'POST') {
+      /*
+        Stage the vault (`vault.ts`). Not part of the contract.
+
+          { clear: true }                    every profile's vault empty, the manager locked and unstaged
+          { managerPassword: '<marker>' }    the master password the manager unlocks with
+          { managerItems: [...] }            the logins it lists once unlocked (metadata rows)
+          { unsupported: true | false }      the vault methods answer -32601
+      */
+      const body = await readBody(req)
+
+      if (body.clear === true) {
+        state.vault = emptyVaultStage()
+      }
+
+      if (typeof body.managerPassword === 'string') {
+        state.vault.managerPassword = body.managerPassword
+      }
+
+      if (Array.isArray(body.managerItems)) {
+        state.vault.managerItems = (body.managerItems as Record<string, unknown>[]).map((row, index) => ({
+          created_at: new Date().toISOString(),
+          id: typeof row.id === 'string' ? row.id : `${VAULT_MANAGER.name}_${index + 1}`,
+          identifier: typeof row.identifier === 'string' ? row.identifier : null,
+          identifier_type: typeof row.identifier_type === 'string' ? row.identifier_type : null,
+          kind: typeof row.kind === 'string' ? row.kind : 'login',
+          label: typeof row.label === 'string' ? row.label : '',
+          origin: typeof row.origin === 'string' ? row.origin : null
+        }))
+      }
+
+      if (typeof body.unsupported === 'boolean') {
+        state.vault.unsupported = body.unsupported
+      }
+
+      json(res, 200, { methods: [...VAULT_METHODS], unsupported: state.vault.unsupported })
+
+      return
+    }
+
+    if (path === '/__fake/vault' && method === 'GET') {
+      // A profile's items WITH their secrets, the manager's state and every vault call's method, profile and
+      // keys: what reached the gateway, for a test to check. Never part of the contract.
+      const profile =
+        url.searchParams.get('profile') ?? state.profiles.find(entry => entry.is_default)?.name ?? LAUNCH_PROFILE
+
+      json(res, 200, vaultView(state.vault, profile))
 
       return
     }
@@ -9521,6 +9587,37 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         }
 
         return state.usage.bars ?? { available: false, ok: true }
+      }
+
+      /*
+        `tui_gateway/methods_vault.py`: one profile's credential vault (see `vault.ts`). `params.profile` picks
+        the vault, as the real handlers bind that profile's home around their body; none is the launch
+        profile's, and one the gateway does not serve is 4064 (`ProfileUnavailableError`), never the launch one.
+      */
+      case 'vault.list':
+      case 'vault.sources':
+      case 'vault.source.set':
+      case 'vault.unlock':
+      case 'vault.lock':
+      case 'vault.add':
+      case 'vault.remove': {
+        const named = typeof params.profile === 'string' ? params.profile.trim() : ''
+
+        if (named && !state.profiles.some(entry => entry.name === named)) {
+          throw new RpcFault(4064, `Profile '${named}' does not exist.`)
+        }
+
+        const owner = named || (state.profiles.find(entry => entry.is_default)?.name ?? LAUNCH_PROFILE)
+
+        try {
+          return vaultCall(state.vault, method, params, owner)
+        } catch (error) {
+          if (error instanceof VaultError) {
+            throw new RpcFault(error.code, error.message)
+          }
+
+          throw error
+        }
       }
 
       case 'session.events.since': {
