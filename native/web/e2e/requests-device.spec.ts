@@ -100,7 +100,7 @@ const DEVICE_STUBS = (): void => {
   const w = window as unknown as Record<string, unknown>
   const picks: unknown[] = []
 
-  w.__hermie = { picks, scans: 0, cameraStops: 0 }
+  w.__hermie = { picks, scans: 0, cameraTracks: [] as MediaStreamTrack[] }
 
   // The Contact Picker: Bram has everything; what the page asked for is recorded.
   Object.defineProperty(navigator, 'contacts', {
@@ -151,18 +151,54 @@ const DEVICE_STUBS = (): void => {
 
           canvas.width = 160
           canvas.height = 120
-          canvas.getContext('2d')?.fillRect(0, 0, 160, 120)
 
-          const stream = canvas.captureStream(5)
+          // A camera's picture changes all the time; a canvas drawn once gives WebKit on Linux no frame at all (the
+          // `<video>` stays at `readyState` 0 and the detector is never asked), so this one is drawn again and again
+          // until its stream is stopped.
+          const context = canvas.getContext('2d')
+          let shade = 0
+          const paint = (): void => {
+            shade = 1 - shade
 
-          for (const track of stream.getTracks()) {
-            const stop = track.stop.bind(track)
-
-            track.stop = () => {
-              ;(w.__hermie as { cameraStops: number }).cameraStops += 1
-              stop()
+            if (context) {
+              context.fillStyle = shade ? '#202020' : '#404040'
+              context.fillRect(0, 0, 160, 120)
             }
           }
+
+          paint()
+
+          const stream = canvas.captureStream(10)
+          const tracks = stream.getTracks()
+          let ticks = 0
+
+          // The tracks are kept here, so what the page did to them is read off them afterwards (a wrapper nobody holds
+          // can be collected, with a patched `stop` on it).
+          ;(w.__hermie as { cameraTracks: MediaStreamTrack[] }).cameraTracks.push(...tracks)
+
+          const repaint = setInterval(() => {
+            if (tracks.every(track => track.readyState === 'ended')) {
+              clearInterval(repaint)
+
+              return
+            }
+
+            paint()
+            ticks += 1
+
+            // WebKit on Linux connects a `<video>` to a canvas stream only about every other time; one that has had no
+            // picture for 400 ms is connected again, which is what a driver that comes up late would do. Whatever the
+            // page does with the stream is its own: this only gives the picture a second chance to arrive.
+            if (ticks % 8 === 0) {
+              for (const video of document.querySelectorAll('video')) {
+                if (video.srcObject === stream && video.readyState === 0) {
+                  video.srcObject = null
+                  video.srcObject = stream
+                  void video.play().catch(() => undefined)
+                }
+              }
+            }
+          }, 50)
 
           return stream
         }
@@ -188,6 +224,23 @@ const DEVICE_STUBS = (): void => {
     }
   })
 }
+
+/**
+ * Whether this browser can record at all. WebKit on Linux (the Playwright build CI runs) has no `MediaRecorder`, so the
+ * page rightly offers a file picker for a voice note there (`canRecord`), as `what this browser cannot do` below shows;
+ * only a browser that records can be asked to.
+ */
+const canRecordHere = (page: Page): Promise<boolean> => page.evaluate(() => typeof MediaRecorder === 'function')
+
+/**
+ * WebKit now and then logs this for the voice player: the sheet lets the recording's blob address go when it goes (Send,
+ * Skip), and a load of that blob still in flight when it does ends with this error (seen about one run in three on
+ * macOS). It is a playback artefact of the player, not a page handed a bad file: what was uploaded is asserted from the
+ * gateway's side. Only this message, only the blob resource error, only in the tests that play a recording.
+ */
+const WEBKIT_BLOB_RELEASED = /^Failed to load resource: .*\(WebKitBlobResource error 1\.\)$/u
+
+const NO_RECORDER = 'This browser has no MediaRecorder (WebKit on Linux), so a voice note is a file picker here'
 
 /** A browser with none of the device APIs: what a page on a desktop or a plain-http gateway really has. */
 const NO_DEVICE_APIS = (): void => {
@@ -392,8 +445,12 @@ test.describe('a code to scan', () => {
     await expect(app.dialog.locator('a')).toHaveCount(0)
     expect((await viewOf(gateway, id)).answer).toBeUndefined()
     expect(
-      await page.evaluate(() => (window as unknown as { __hermie: { cameraStops: number } }).__hermie.cameraStops)
-    ).toBeGreaterThan(0)
+      await page.evaluate(() => {
+        const tracks = (window as unknown as { __hermie: { cameraTracks: MediaStreamTrack[] } }).__hermie.cameraTracks
+
+        return tracks.length > 0 && tracks.every(track => track.readyState === 'ended')
+      })
+    ).toBe(true)
 
     await app.dialog.getByRole('button', { name: 'Send this code' }).click()
     await expect(app.dialog).toHaveCount(0)
@@ -410,12 +467,15 @@ test.describe('a code to scan', () => {
 test.describe('a voice note', () => {
   test('records on Record, plays back, and uploads and sends only on Send: audio with no codecs in its type, no transcript', async ({
     app,
+    diagnostics,
     gateway,
     page
   }) => {
+    diagnostics.allow(WEBKIT_BLOB_RELEASED)
     await page.addInitScript(DEVICE_STUBS)
     await app.open()
     await app.ready()
+    test.skip(!(await canRecordHere(page)), NO_RECORDER)
 
     const id = await raise(gateway, 'input.file', {
       accept: 'audio',
@@ -623,9 +683,11 @@ for (const scheme of ['light', 'dark'] as const) {
 
     test('the signature, location, contact, scan and voice sheets have no serious violation, contrast included', async ({
       app,
+      diagnostics,
       gateway,
       page
     }) => {
+      diagnostics.allow(WEBKIT_BLOB_RELEASED)
       await page.addInitScript(DEVICE_STUBS)
       await app.open()
       await app.ready()
@@ -672,13 +734,21 @@ for (const scheme of ['light', 'dark'] as const) {
       expect(await seriousViolations(page, `scan-found-${scheme}`)).toEqual([])
       await skip()
 
+      const records = await canRecordHere(page)
+
       await raise(gateway, 'input.file', {
         accept: 'audio',
         capture: 'audio',
         upload: { dir: DIR, max_bytes: 5_242_880, max_total_bytes: 5_242_880, max_files: 1, strip_metadata: false }
       })
-      await expect(app.dialog).toHaveAccessibleName('A voice note to record')
+      // Without a recorder the sheet is the file picker, and that is the sheet that is held to axe.
+      await expect(app.dialog).toHaveAccessibleName(records ? 'A voice note to record' : 'Files to upload')
       expect(await seriousViolations(page, `voice-${scheme}`)).toEqual([])
+
+      if (!records) {
+        return
+      }
+
       await app.dialog.getByRole('button', { name: 'Record' }).click()
       await expect(app.dialog.getByRole('button', { name: 'Stop' })).toBeEnabled()
       await page.waitForTimeout(400)
