@@ -2758,6 +2758,46 @@ the shortcut's value types are plain Swift and are in `HermieCore`.
   gateway); `QuickAskPresenterTests`, `QuickAskDropTests` (with the Services input and the recorder),
   `QuickAskRoutingAndStringsTests`, `QuickAskViewTests` (HermieUITests; hosting controllers that are never shown).
 
+## Vault
+
+Each bot has a **Vault** page: a row on its settings page (`BotVaultSection`, with the item count) and an item in
+the chat's options menu (`DetailRoute.vault`, `AppRouter.showVault`) open `BotVaultPage`. The model and the calls
+are in `HermieCore/Vault`; the sheets in `HermieUI/Vault/VaultSheets.swift`.
+
+- **The calls.** The gateway's own vault methods (`tui_gateway/methods_vault.py`, no fork change): `vault.list`,
+  `vault.sources`, `vault.source.set`, `vault.add`, `vault.remove`, `vault.unlock`, `vault.lock`. Every handler binds
+  `params.profile`'s HERMES_HOME and secret scope, so `VaultService` sends `profile` (the bot's name) on every call;
+  a name the gateway does not serve is 4064, never the launch profile. The params are exactly the contract's (an
+  unknown key is 4000). A login's `identifier_type` and `identifier` travel inside `secret`; the gateway moves them
+  into the item's metadata. A site typed without a scheme gets `https://`.
+- **What is shown.** Label, kind, site, a login's identifier (metadata by the gateway's design), whether it has an
+  authenticator key, and the password manager that holds it. `VaultItem` has no field a secret could land in and
+  reads only the metadata keys; a listing is read for at most 500 items, the first of each id, none with an id
+  over 200 characters. The page names the bot and says the items are stored encrypted in its own vault.
+- **Secrets** follow the secure prompt sheet's rules (`PlainEntry`, `PrivacyCoverView`). They live in the sheet's
+  form (`VaultAddForm`, `VaultUnlockForm`, as `SecretValue`) and nowhere else. Save takes them out of the form before
+  the call starts, so a refused add asks for them again; the call's params are the only other place they are
+  written, once (the connection does not queue or retry a call). A refusal's words are scrubbed of every secret
+  that went with the call. The background empties the secret fields (`.inactive` only covers the sheet: unlocking
+  the system's password manager makes the app inactive for a moment); the sheet going empties everything. Only the
+  login's identifier and password carry content types (`.username`, `.password`); the master password, an
+  authenticator key and card details carry none. Address fields are shown as typed, as `hermes vault add` reads them.
+- **Remove** asks first, and only for an item in the bot's own vault (a manager's items are the manager's). The
+  confirmation dialog dismisses itself before its button runs, so the yes carries the item (`VaultRemovalDialog`).
+- **No answer in time** (`VaultFailure.timedOut`) is not "offline": an add or an unlock may have gone through, so
+  the page says to check the list and reads it again.
+- **The count** on the settings row is shared with the page (what the page does is in it on the way back) and
+  remembered for a minute (`VaultCounts`), so opening the settings does not list the vault every time: a listing
+  can ask a password manager on the gateway's host.
+- **Password managers** (`vault.sources`) are shown when installed or switched on: a switch for the bot, the
+  locked or unlocked state, Lock and Unlock.
+- **Tests.** `VaultTests` (the wire per call, the listing, the forms and the model, the remove dialog's order, the
+  timeout, the limits, the count), `VaultViewTests` (the route, the words, the remove dialog's ends, and the Add
+  sheet's fields emptied on background and when it goes, hosted in an invisible window), and
+  `VaultIntegrationTests` against the fake gateway (`packages/fake-gateway/src/vault.ts`: a vault per profile, one
+  staged password manager, `POST /__fake/vault` to stage it and `GET /__fake/vault` to see what reached a profile's
+  vault; pinned by `vault.test.ts`).
+
 ## Licences and the gateway's facts
 
 **Settings › About › Licences** (`LicencesPage`) lists what the Apple apps owe to others, each entry opening its licence

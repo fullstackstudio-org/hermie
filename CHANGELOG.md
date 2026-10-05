@@ -54,6 +54,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   balance, and the provider account's limits as the gateway words them. A limit on a day's cost or
   tokens, across every bot of the gateway, gives a notification once a day while the app is running.
   The fake gateway answers the four usage calls (`packages/fake-gateway/src/usage.ts`).
+- **The native Apple apps give each bot a Vault page.** From the bot's settings and from the chat's
+  menu: the logins, cards and addresses in that bot's own vault on the gateway, by label, kind and site,
+  never what they hold. Add takes the secret in masked fields that are emptied when the app goes to the
+  background and when the sheet closes, and the secret is sent once and kept nowhere in the app, also
+  when the gateway refuses it. Remove asks first. A password manager on the gateway's computer can be
+  switched on or off for the bot, unlocked with its master password (under the same rules) and locked.
+  The fake gateway answers the vault calls per profile (`packages/fake-gateway/src/vault.ts`).
 
 - **The native Apple apps show the files a bot shares.** A reply that carries files
   (`contract/outbox/`) draws a picture as a thumbnail that opens the gallery (several are a grid), a
