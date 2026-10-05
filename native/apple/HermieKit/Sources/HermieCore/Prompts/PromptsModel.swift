@@ -21,6 +21,8 @@ public final class PromptsModel {
   /// Every prompt that reads as one, in the person's order.
   public private(set) var prompts: [Prompt] = []
   public private(set) var canEdit = false
+  /// How many entries the section holds, prompts or not: the room for a new one is what is left of the limit.
+  public private(set) var entryCount = 0
 
   @ObservationIgnored private var sync: UIMetaSync?
   @ObservationIgnored private var following: Task<Void, Never>?
@@ -105,7 +107,7 @@ public final class PromptsModel {
   public func count(of bot: String) -> Int { prompts(of: bot).count }
 
   /// Room for one more.
-  public var canAdd: Bool { canEdit && prompts.count < PromptLibrary.maxPrompts }
+  public var canAdd: Bool { canEdit && entryCount < PromptLibrary.maxPrompts }
 
   // MARK: Choices
 
@@ -136,9 +138,13 @@ public final class PromptsModel {
     return updated
   }
 
-  public func remove(id: String) {
-    sync?.updateApp(.choice) { PromptLibrary.remove(id: id, in: &$0) }
+  @discardableResult
+  public func remove(id: String) -> Bool {
+    var removed = false
+
+    sync?.updateApp(.choice) { removed = PromptLibrary.remove(id: id, in: &$0) }
     refresh()
+    return removed
   }
 
   /// Put a prompt at place `index` among the prompts of its scope.
@@ -162,6 +168,8 @@ public final class PromptsModel {
     guard let sync else {
       return
     }
+
+    entryCount = PromptLibrary.entryCount(in: sync.app)
 
     let next = PromptLibrary.prompts(in: sync.app)
 

@@ -26,7 +26,13 @@ public struct OnboardingFlow: View {
     self.context = context
     self.key = key
     self.accounts = accounts
-    self.session = SetupSessions.shared.session(key) { OnboardingModel(mode: .newGateway, accounts: accounts) }
+    if let offer = context.pairing {
+      self.session = SetupSessions.shared.session(key, offered: offer) {
+        OnboardingModel(mode: .newGateway, accounts: accounts)
+      }
+    } else {
+      self.session = SetupSessions.shared.session(key) { OnboardingModel(mode: .newGateway, accounts: accounts) }
+    }
   }
 
   public var body: some View {
@@ -57,11 +63,6 @@ public struct OnboardingFlow: View {
     }
     .interactiveDismissDisabled()
     .task {
-      // A gateway the person already agreed to (a scanned code, a link): filled in once, and sign-in follows.
-      if let offer = context.pairing {
-        session.model.applyPairing(offer)
-      }
-
       // Before the first step shows: what iCloud Keychain holds that is not here (I11).
       launch.iCloudSync.lookInICloud()
       await session.model.opened()

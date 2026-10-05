@@ -68,7 +68,7 @@ struct PairingAndPromptsViewTests {
     "native.pairing.offer.have", "native.pairing.auth.sessionToken", "native.pairing.auth.cookie",
     "native.pairing.problem.notAnOffer", "native.pairing.problem.notAnAddress", "native.pairing.problem.notSecure",
     "native.pairing.share.action", "native.pairing.share.blurb", "native.pairing.share.label",
-    "native.pairing.share.unavailable", "native.pairing.share.failed", "native.prompts.blurb",
+    "native.pairing.share.unavailable", "native.pairing.share.failed", "native.prompts.saveFailed", "native.prompts.blurb",
     "native.prompts.global", "native.prompts.forBot", "native.prompts.add", "native.prompts.new",
     "native.prompts.edit", "native.prompts.fieldTitle", "native.prompts.titlePlaceholder", "native.prompts.help",
     "native.prompts.fields", "native.prompts.save", "native.prompts.delete", "native.prompts.deleteConfirm",
@@ -82,7 +82,7 @@ struct PairingAndPromptsViewTests {
   }
 
   @Test(arguments: [
-    "native.pairing.sheet.start", "native.pairing.sheet.camera", "native.pairing.auth.nativePKCE",
+    "native.pairing.sheet.start", "native.pairing.sheet.camera", "native.pairing.auth.nativePKCE", "native.pairing.offer.host",
     "native.prompts.title", "native.prompts.perBot", "native.prompts.fieldText", "native.prompts.composer.section"
   ])
   func theSameWordInDutch(_ key: String) throws {

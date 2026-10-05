@@ -112,28 +112,88 @@ struct PairingScanModelTests {
   // MARK: A picture
 
   @Test("a picture of a code is read with Vision and shown as an offer, with or without the camera")
-  func pictureOffer() throws {
+  func pictureOffer() async throws {
     let model = PairingScanModel(authorization: FakeCaptureAuthorization(camera: .denied))
 
-    model.importImage(try png(good))
+    await model.importImage(try png(good))
     #expect(model.offer == offer)
+    #expect(!model.readingImage)
   }
 
   @Test("a picture with no gateway code, or one that is not a picture, is refused")
-  func pictureRefusals() throws {
+  func pictureRefusals() async throws {
     let model = PairingScanModel(authorization: FakeCaptureAuthorization(camera: .granted))
 
-    model.importImage(Data("nope".utf8))
+    await model.importImage(Data("nope".utf8))
     #expect(model.refusal == .notAnOffer)
 
-    model.importImage(try png("https://evil.example"))
+    await model.importImage(try png("https://evil.example"))
     #expect(model.refusal == .notAnOffer)
 
-    model.importImage(try png("hermie://add-gateway?url=http%3A%2F%2Fgw.example.test"))
+    await model.importImage(try png("hermie://add-gateway?url=http%3A%2F%2Fgw.example.test"))
     #expect(model.refusal == .notSecure(host: "gw.example.test"))
 
     model.reset()
-    model.importImage(try png(good))
+    await model.importImage(try png(good))
     #expect(model.offer == offer)
+  }
+
+  @Test("a picture is read off the main actor, and the sheet says it is busy meanwhile")
+  func pictureIsReadAway() async throws {
+    let model = PairingScanModel(authorization: FakeCaptureAuthorization(camera: .granted))
+    let data = try png(good)
+    let reading = Task { await model.importImage(data) }
+
+    // The main actor is free while Vision works: this line runs between the start and the answer.
+    while !model.readingImage, model.offer == nil {
+      await Task.yield()
+    }
+
+    await reading.value
+    #expect(model.offer == offer && !model.readingImage)
+  }
+
+  @Test("a picture that is answered after the sheet was reset is dropped")
+  func staleAfterReset() async throws {
+    let model = PairingScanModel(authorization: FakeCaptureAuthorization(camera: .granted))
+    let data = try png(good)
+    let reading = Task { await model.importImage(data) }
+
+    while !model.readingImage {
+      await Task.yield()
+    }
+
+    model.reset()
+    await reading.value
+    #expect(model.phase == .ready, "the person went back: the late answer does not appear")
+    #expect(!model.readingImage)
+  }
+
+  @Test("a code the camera read while a picture was being read is not replaced by the picture")
+  func cameraBeatsPicture() async throws {
+    let model = PairingScanModel(authorization: FakeCaptureAuthorization(camera: .granted))
+    let other = "hermie://add-gateway?url=https%3A%2F%2Fcamera.example.test"
+    let data = try png(good)
+
+    await model.start()
+
+    let reading = Task { await model.importImage(data) }
+
+    while !model.readingImage {
+      await Task.yield()
+    }
+
+    model.detected(other)
+    await reading.value
+    #expect(model.offer?.host == "camera.example.test")
+  }
+
+  @Test("a picture that is answered with nothing while a code is already shown leaves it alone")
+  func foundStays() async throws {
+    let model = PairingScanModel(authorization: FakeCaptureAuthorization(camera: .granted))
+
+    await model.importImage(try png(good))
+    await model.importImage(Data("nope".utf8))
+    #expect(model.offer == offer, "a second picture does not take a shown offer away")
   }
 }

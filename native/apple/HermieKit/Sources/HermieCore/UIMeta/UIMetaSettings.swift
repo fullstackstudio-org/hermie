@@ -23,7 +23,8 @@ public enum UIMetaField {
   /// shared `archived` flag, which is only read once, to seed it.
   public static let archivedBots = "archivedBots"
   /// The person's reusable prompts (`PromptLibrary`): an array, in their order. Native-only for now;
-  /// the web client carries it and reads nothing of it.
+  /// the web client (`native/web`) keeps its app section as raw documents and carries it untouched; the frozen
+  /// Expo app rebuilds the section from fixed keys and would drop it.
   public static let prompts = "prompts"
   // App section: settings.
   public static let defaults = "defaults"

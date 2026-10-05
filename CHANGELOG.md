@@ -61,7 +61,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The native Apple apps have reusable prompts.** Settings, Prompts and each bot's settings keep snippets with
   `{{fields}}` to fill in; a button next to the message field and the list `/` opens offer them, ask for the
   fields, and put the text in the field without sending it. They follow you to your other devices on the
-  gateway through the same synced settings as the chat list, which other builds carry and ignore.
+  gateway through the same synced settings as the chat list. The web client carries them untouched; the
+  frozen Expo app rebuilds that section from fixed keys and would drop them.
 
 - **The native Apple apps search every conversation of every bot, on every gateway you are signed in
   to.** Search Everywhere (⇧⌘F, or the row under the chat list's search) lists each chat that holds the

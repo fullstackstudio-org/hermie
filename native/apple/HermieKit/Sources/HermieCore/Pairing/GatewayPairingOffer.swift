@@ -53,11 +53,39 @@ public struct GatewayPairingOffer: Sendable, Hashable {
 
   /// Whether `other` is the same gateway address as this offer's, as setup would store it.
   public func matches(address other: String) -> Bool {
-    guard let normalized = try? GatewayAddress.normalizeBaseURL(other) else {
+    guard let theirs = Self.canonical(other), let ours = Self.canonical(address) else {
       return false
     }
 
-    return normalized.lowercased() == address.lowercased()
+    return theirs == ours
+  }
+
+  /// An address as two of them are compared: the scheme and the authority in lower case with the root dot
+  /// of a fully qualified host (`gw.example.test.`) removed, the path exactly as it is (a path is case
+  /// sensitive, so `/Hermes` and `/hermes` are two gateways).
+  static func canonical(_ address: String) -> String? {
+    guard let normalized = try? GatewayAddress.normalizeBaseURL(address), let schemeEnd = normalized.range(of: "://")
+    else {
+      return nil
+    }
+
+    let scheme = normalized[..<schemeEnd.lowerBound].lowercased()
+    let rest = normalized[schemeEnd.upperBound...]
+    let authorityEnd = rest.firstIndex(of: "/") ?? rest.endIndex
+    var authority = rest[..<authorityEnd].lowercased()
+    let path = rest[authorityEnd...]
+
+    // `host.` or `host.:8443`: the root dot is not part of who it is.
+    if let colon = authority.lastIndex(of: ":"), !authority.hasSuffix("]"), authority[authority.index(after: colon)...].allSatisfy(\.isNumber) {
+      var host = String(authority[..<colon])
+
+      if host.hasSuffix(".") { host.removeLast() }
+      authority = host + authority[colon...]
+    } else if authority.hasSuffix(".") {
+      authority.removeLast()
+    }
+
+    return "\(scheme)://\(authority)\(path)"
   }
 
   // MARK: Reading an offer
@@ -79,8 +107,41 @@ public struct GatewayPairingOffer: Sendable, Hashable {
       }
     }
 
-    return .success(
-      Self(address: normalized, name: DeepLink.cleanedName(name), authHint: GatewayAuthMode(rawValue: auth)))
+    // A name is the offering side's word, and one that reads as a domain other than the one it points at
+    // ("bank.example.com" on an address elsewhere) is a way of passing for somebody: dropped, so the host
+    // leads instead.
+    let host = HostClassification.host(ofAddress: normalized)
+    var cleaned = DeepLink.cleanedName(name)
+
+    if Self.readsAsDomain(cleaned), cleaned.lowercased() != host {
+      cleaned = ""
+    }
+
+    return .success(Self(address: normalized, name: cleaned, authHint: GatewayAuthMode(rawValue: auth)))
+  }
+
+  /// Whether a name looks like an address: no spaces, dots between letters or digits, a last part of
+  /// letters; or it names a scheme or begins `www.`.
+  static func readsAsDomain(_ name: String) -> Bool {
+    let lowered = name.lowercased()
+
+    if lowered.contains("://") || lowered.hasPrefix("www.") {
+      return true
+    }
+
+    guard !lowered.contains(" ") else {
+      return false
+    }
+
+    let labels = lowered.split(separator: ".", omittingEmptySubsequences: false)
+
+    guard labels.count >= 2, labels.allSatisfy({ !$0.isEmpty }) else {
+      return false
+    }
+
+    let last = labels[labels.count - 1]
+
+    return last.count >= 2 && last.allSatisfy(\.isLetter)
   }
 
   /// The offer a link holds. Anything other than an add-gateway link is not one.

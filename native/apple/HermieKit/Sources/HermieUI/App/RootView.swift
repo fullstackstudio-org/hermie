@@ -37,6 +37,8 @@ public struct RootView: View {
     .iCloudSyncDisclosure()
     // Behind the lock gate, so a locked app advertises no chat to the owner's other devices.
     .handoffAdvertising(router.handoffLink)
+    // A sheet that went by the system's own road (swiped away, closed) still spends or shows offers.
+    .onChange(of: router.sheet) { _, _ in router.sheetChanged() }
     #if DEBUG
       .onAppear { LaunchTrace.shared.record("root") }
     #endif

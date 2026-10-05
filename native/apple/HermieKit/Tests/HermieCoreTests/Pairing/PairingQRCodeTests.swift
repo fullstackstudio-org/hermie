@@ -65,6 +65,40 @@ struct PairingQRCodeTests {
     #expect(PairingQRCode.payloads(in: Data()).isEmpty)
   }
 
+  @Test("a picture bigger than any camera makes is refused unread, whatever its file size")
+  func tooBig() throws {
+    // 25,000 pixels wide and two high: a few hundred bytes as a PNG, a decompression bomb in the making.
+    let wide = try #require(
+      CGContext(
+        data: nil, width: PairingQRCode.maxSide + 5_000, height: 2, bitsPerComponent: 8, bytesPerRow: 0,
+        space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue)?.makeImage())
+    let data = try png(wide)
+
+    #expect(data.count < 200_000)
+    #expect(PairingQRCode.payloads(in: data).isEmpty)
+    #expect(PairingQRCode.payloads(in: wide).isEmpty)
+  }
+
+  @Test("a code in a large photo is still read, after the picture is scaled down")
+  func largePhoto() throws {
+    let text = "hermie://add-gateway?url=https%3A%2F%2Fgw.example.test"
+    let code = try #require(PairingQRCode.image(for: text, scale: 12))
+    let side = 4_200
+    let context = try #require(
+      CGContext(
+        data: nil, width: side, height: side, bitsPerComponent: 8, bytesPerRow: 0,
+        space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue))
+
+    context.setFillColor(gray: 0.9, alpha: 1)
+    context.fill(CGRect(x: 0, y: 0, width: side, height: side))
+    context.draw(code, in: CGRect(x: 1_500, y: 1_500, width: code.width, height: code.height))
+
+    let photo = try #require(context.makeImage())
+
+    #expect(photo.width > PairingQRCode.readSide)
+    #expect(PairingQRCode.payloads(in: try png(photo)) == [text])
+  }
+
   @Test("a hostile code is read as text and is not an offer: another link, a web address, a credential-bearing address")
   func hostileCodes() throws {
     let hostile = [

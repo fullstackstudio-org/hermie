@@ -288,6 +288,8 @@ struct PromptEditorSheet: View {
   @Environment(\.dismiss) private var dismiss
   @State private var title: String
   @State private var text: String
+  /// The last save did not land (the prompt is gone, the list is full): the editor stays open and says so.
+  @State private var failed = false
   @FocusState private var focused: Field?
 
   private enum Field {
@@ -329,6 +331,13 @@ struct PromptEditorSheet: View {
         } header: {
           Text(NativeStrings.Prompts.fieldText)
         } footer: {
+          if failed {
+            Label(NativeStrings.Prompts.saveFailed, systemImage: "exclamationmark.triangle")
+              .foregroundStyle(.red)
+              .fixedSize(horizontal: false, vertical: true)
+              .accessibilityIdentifier("hermie.prompts.editor.failed")
+          }
+
           VStack(alignment: .leading, spacing: 6) {
             SettingsNote(NativeStrings.Prompts.help)
 
@@ -365,14 +374,20 @@ struct PromptEditorSheet: View {
   }
 
   private func save() {
+    let saved: Bool
+
     if var existing = prompt {
       existing.title = title
       existing.text = text
-      model.update(existing)
+      saved = model.update(existing)
     } else {
-      model.add(title: title, text: text, scope: scope)
+      saved = model.add(title: title, text: text, scope: scope) != nil
     }
 
-    dismiss()
+    if saved {
+      dismiss()
+    } else {
+      failed = true
+    }
   }
 }

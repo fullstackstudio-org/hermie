@@ -219,6 +219,37 @@ import Testing
     await botSettingsEventually("the stored copy") { later.prompts.map(\.id) == ["a"] }
   }
 
+  @Test func theRoomForANewPromptCountsEveryEntryTheSectionHolds() async {
+    let gateway = HoldingGateway()
+    // Ninety-nine entries that are prompts, and a hundred more from a newer build that are not.
+    let valid = (0..<99).map { JSONValue.object(["id": .string("p\($0)"), "title": "T", "text": "x"]) }
+    let foreign = (0..<100).map { JSONValue.string("future \($0)") }
+
+    gateway.write("researcher", [ownerKey: ["v": 1, "updatedAt": .number(noon - hour), "prompts": .array(valid + foreign)]])
+
+    let sync = UIMetaSync.device(gateway.gateway)
+    let prompts = model(sync)
+
+    await sync.reconcile()
+    await botSettingsEventually("the gateway's prompts") { prompts.entryCount == 199 }
+    #expect(prompts.prompts.count == 99)
+    #expect(!prompts.canAdd, "the section is full of entries, which is what the gateway stores")
+    #expect(prompts.add(title: "One more", text: "x", scope: .global) == nil)
+  }
+
+  @Test func anEditOfAPromptThatIsGoneSaysSo() async {
+    let sync = UIMetaSync.device(HoldingGateway().gateway)
+    let prompts = model(sync, ids: ["a"])
+
+    prompts.add(title: "A", text: "x", scope: .global)
+
+    let ghost = Prompt(id: "gone", title: "G", text: "y")
+
+    #expect(!prompts.update(ghost))
+    #expect(!prompts.remove(id: "gone"))
+    #expect(prompts.remove(id: "a"))
+  }
+
   @Test func detachingStopsFollowing() async {
     let sync = UIMetaSync.device(HoldingGateway().gateway)
     let prompts = model(sync, ids: ["a"])

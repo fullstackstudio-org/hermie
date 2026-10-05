@@ -35,6 +35,78 @@ struct OnboardingPairingTests {
     #expect(try await harness.registry().gateways.isEmpty, "and nothing was stored")
   }
 
+  /// A setup somebody filled in for another gateway: an address, the Cloudflare Access pair, custom headers and a
+  /// session token.
+  private func filledIn(_ model: OnboardingModel) {
+    model.address = "https://old.example.test"
+    model.advancedShown = true
+    model.frontDoorKind = .cloudflareAccess
+    model.accessClientID = "client-id-for-old"
+    model.accessClientSecret = "secret-for-old"
+    model.addHeader()
+    model.headers[0].name = "X-Old-Gateway-Key"
+    model.headers[0].value = "key-for-old"
+    model.sessionToken = "token-for-old"
+  }
+
+  @Test("an offer taken over a setup that already holds headers, an Access pair and a token sends none of them")
+  func nothingEnteredBeforeTravels() async throws {
+    let stub = ProbeStub([
+      "https://old.example.test": ProbeStub.ungated("https://old.example.test"),
+      "https://gw.example.test": ProbeStub.ungated("https://gw.example.test")
+    ])
+    let harness = try OnboardingHarness(transport: HTTPTransport(), resolve: stub.resolve)
+    let model = harness.model()
+
+    filledIn(model)
+    await eventually { model.resolved != nil }
+
+    let before = stub.calls.count
+
+    model.applyPairing(offer)
+    #expect(model.headers.isEmpty)
+    #expect(model.frontDoorKind == .custom)
+    #expect(model.accessClientID.isEmpty && model.accessClientSecret.isEmpty)
+    #expect(model.sessionToken.isEmpty)
+    #expect(model.customHeaders.isEmpty && model.wireHeaders.isEmpty)
+    #expect(!model.advancedShown)
+
+    await eventually { model.path == [.signIn] }
+
+    let after = stub.calls.dropFirst(before)
+
+    #expect(!after.isEmpty && after.allSatisfy { $0.raw == "https://gw.example.test" }, "only the offered address is probed")
+    #expect(after.allSatisfy { $0.custom.isEmpty && $0.frontDoor == .none }, "with no header and no Access pair")
+    #expect(model.sessionToken.isEmpty)
+  }
+
+  @Test("an offer ends a sign-in that was half done for the old address")
+  func signInDiscarded() async throws {
+    let stub = ProbeStub(["https://old.example.test": ProbeStub.ungated("https://old.example.test")])
+    let harness = try OnboardingHarness(transport: HTTPTransport(), resolve: stub.resolve)
+    let model = harness.model()
+
+    model.address = "https://old.example.test"
+    await eventually { model.resolved != nil }
+    model.continueFromAddress()
+    #expect(model.path == [.signIn])
+
+    model.applyPairing(offer)
+    #expect(model.path.isEmpty, "back on the address step")
+    #expect(model.signIn == .idle && model.identity == nil)
+    #expect(model.address == "https://gw.example.test")
+  }
+
+  @Test("a name typed for the old gateway is not kept, and the offer's own name is")
+  func oldNameDiscarded() throws {
+    let harness = try OnboardingHarness(transport: HTTPTransport(), resolve: ProbeStub([:]).resolve)
+    let model = harness.model()
+
+    model.name = "Old name"
+    model.applyPairing(GatewayPairingOffer(address: "https://gw.example.test"))
+    #expect(model.name.isEmpty)
+  }
+
   @Test("the offer is only a hurry: a gateway that does not answer leaves the person on the address step")
   func failureStays() async throws {
     let (harness, _) = try setUp([

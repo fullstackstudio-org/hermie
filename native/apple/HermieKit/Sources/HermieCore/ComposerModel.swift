@@ -212,6 +212,8 @@ public final class ComposerModel {
   @ObservationIgnored var remoteTask: Task<Void, Never>?
   /// The reader is inside one run of typing a command (from the slash to the line being sent or
   /// emptied): the list is fetched once per run, and a fetch that failed is not repeated within it.
+  /// The slash line a prompt with fields was picked from, until its form is filled in or put away.
+  @ObservationIgnored var pendingSlashLine: String?
   @ObservationIgnored var inSlashRun = false
   @ObservationIgnored var catalogFailedInRun = false
   @ObservationIgnored var suggestionSerial = 0

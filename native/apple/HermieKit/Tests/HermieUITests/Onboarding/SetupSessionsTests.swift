@@ -42,6 +42,51 @@ struct SetupSessionsTests {
     SetupSessions.shared.end(after.key)
   }
 
+  @Test("an offered gateway always gets a fresh setup: what was typed for another one never reaches it")
+  func offerStartsFresh() {
+    let accounts = accounts()
+    let offer = GatewayPairingOffer(address: "https://gw.example.test", name: "Home")
+    let plain = OnboardingContext(mode: .additionalGateway, finish: { _ in })
+    let before = OnboardingFlow(context: plain, accounts: accounts)
+
+    // Typed for another gateway: headers, the Access pair and a token, all of which a probe would send.
+    before.session.model.address = "https://old.example.test"
+    before.session.model.frontDoorKind = .cloudflareAccess
+    before.session.model.accessClientID = "old-id"
+    before.session.model.accessClientSecret = "old-secret"
+    before.session.model.addHeader()
+    before.session.model.headers[0].name = "X-Old"
+    before.session.model.headers[0].value = "old-value"
+    before.session.model.sessionToken = "old-token"
+
+    let offered = OnboardingFlow(
+      context: OnboardingContext(mode: .additionalGateway, finish: { _ in }, pairing: offer), accounts: accounts)
+    let model = offered.session.model
+
+    #expect(model !== before.session.model, "a new flow, not the old one filled in")
+    #expect(before.session.model.sessionToken.isEmpty, "and the old one was ended, its secrets wiped")
+    #expect(model.pairedOffer == offer)
+    #expect(model.address == "https://gw.example.test" && model.name == "Home")
+    #expect(model.headers.isEmpty && model.accessClientID.isEmpty && model.accessClientSecret.isEmpty)
+    #expect(model.sessionToken.isEmpty && model.wireHeaders.isEmpty)
+    #expect(model.frontDoorKind == .custom)
+
+    // Built again (after an unlock) it is the same flow, still holding the offer, not another fresh one.
+    let again = OnboardingFlow(
+      context: OnboardingContext(mode: .additionalGateway, finish: { _ in }, pairing: offer), accounts: accounts)
+
+    #expect(again.session.model === model)
+
+    // Another offer is another fresh flow.
+    let other = GatewayPairingOffer(address: "https://other.example.test")
+    let next = OnboardingFlow(
+      context: OnboardingContext(mode: .additionalGateway, finish: { _ in }, pairing: other), accounts: accounts)
+
+    #expect(next.session.model !== model)
+    #expect(next.session.model.address == "https://other.example.test")
+    SetupSessions.shared.end(next.key)
+  }
+
   @Test("signing in again is kept per gateway")
   func signInPerGateway() {
     let accounts = accounts()

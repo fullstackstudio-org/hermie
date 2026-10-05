@@ -23,6 +23,7 @@ struct ScanGatewaySheet: View {
   @State private var scan = PairingScanModel()
   @State private var photo: PhotosPickerItem?
   @Environment(\.scenePhase) private var scenePhase
+  @Environment(AppLaunch.self) private var launch
 
   private typealias Words = NativeStrings.Pairing.Sheet
 
@@ -39,7 +40,18 @@ struct ScanGatewaySheet: View {
           scanningSection
         case .found(let offer):
           PairingOfferSummary(offer: offer)
-          StepPrimarySection(title: NativeStrings.Pairing.Offer.add, enabled: true, busy: false) {
+
+          // The same rule as a link's confirmation: a gateway this device has cannot be added again.
+          let have = launch.gateways.entries.contains { offer.matches(address: $0.address) }
+
+          if have {
+            Section {
+              Label(NativeStrings.Pairing.Offer.have, systemImage: "checkmark.circle")
+                .accessibilityIdentifier("hermie.pairing.have")
+            }
+          }
+
+          StepPrimarySection(title: NativeStrings.Pairing.Offer.add, enabled: !have, busy: false) {
             use(offer)
           }
           againSection
@@ -54,7 +66,10 @@ struct ScanGatewaySheet: View {
           unavailableSection(reason)
         }
 
-        if scan.phase == .ready || scan.unavailable != nil {
+        if scan.readingImage {
+          Section { ProgressView().frame(maxWidth: .infinity) }
+            .accessibilityIdentifier("hermie.pairing.reading")
+        } else if scan.phase == .ready || scan.unavailable != nil {
           pictureSection
         }
       }
@@ -171,6 +186,6 @@ struct ScanGatewaySheet: View {
     // A picture the library cannot give is a picture with no code in it.
     let data = (try? await item.loadTransferable(type: Data.self)) ?? Data()
 
-    scan.importImage(data)
+    await scan.importImage(data)
   }
 }

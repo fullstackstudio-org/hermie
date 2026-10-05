@@ -89,6 +89,58 @@ struct GatewayPairingOfferTests {
     #expect(try offer("https://gw.example.test").displayName == "gw.example.test", "no name: the host leads")
   }
 
+  @Test(
+    "a name that reads as another domain than the host is dropped, so the host leads",
+    arguments: [
+      "bank.example.com", "www.bank.com", "https://bank.example.com", "Login.Example.org", "paypal.com", "my.gateway"
+    ]
+  )
+  func impersonatingName(name: String) throws {
+    let accepted = try offer("https://gw.example.test", name: name)
+
+    #expect(accepted.name.isEmpty, "\(name)")
+    #expect(accepted.displayName == "gw.example.test")
+  }
+
+  @Test("a name that is the host itself, or is not a domain, is kept")
+  func honestNames() throws {
+    #expect(try offer("https://gw.example.test", name: "GW.example.test").name == "GW.example.test")
+    #expect(try offer("https://gw.example.test", name: "Home lab").name == "Home lab")
+    #expect(try offer("https://gw.example.test", name: "Work. Mostly").name == "Work. Mostly", "a sentence is not a domain")
+    #expect(try offer("https://gw.example.test", name: "v1.2").name == "v1.2", "a number is not a top-level domain")
+    #expect(try offer("https://gw.example.test", name: "Mijn gateway").name == "Mijn gateway")
+  }
+
+  @Test("an international host is shown as the punycode that will be dialled, so a look-alike cannot pass")
+  func internationalHost() throws {
+    let accepted = try offer("https://аррӏе.example")
+
+    #expect(accepted.host.hasPrefix("xn--"), "\(accepted.host)")
+    #expect(accepted.address.hasPrefix("https://xn--"))
+    #expect(try offer("https://bücher.example").host == "xn--bcher-kva.example")
+  }
+
+  @Test("a root dot on the host is not a different gateway, and a path is case sensitive")
+  func exactMatching() throws {
+    let made = try offer("https://gw.example.test:8443/Hermes")
+
+    #expect(made.matches(address: "https://GW.example.test.:8443/Hermes"))
+    #expect(made.matches(address: "gw.example.test.:8443/Hermes/"))
+    #expect(!made.matches(address: "https://gw.example.test:8443/hermes"), "/Hermes and /hermes are two gateways")
+    #expect(try offer("https://gw.example.test.").matches(address: "https://gw.example.test"))
+    #expect(try offer("https://gw.example.test").matches(address: "https://gw.example.test."))
+  }
+
+  @Test("an IPv4 address written as an IPv6 one is judged by the address inside it, and plain http to a real one is refused")
+  func mappedAddresses() {
+    #expect(problem("http://[::ffff:8.8.8.8]") != nil)
+    #expect(problem("http://[::ffff:808:808]") != nil)
+    #expect(problem("http://[::ffff:10.0.0.5]") != nil, "a private address is not this machine")
+    #expect(problem("http://[::ffff:192.168.1.5]") != nil)
+    // Over https any of them is fine, and they are all the same host to the person: shown as written.
+    #expect((try? offer("https://[::ffff:8.8.8.8]")) != nil)
+  }
+
   // MARK: From a link, from a payload
 
   @Test("only an add-gateway link is an offer")

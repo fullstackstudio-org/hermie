@@ -43,6 +43,26 @@ final class SetupSessions {
     return session
   }
 
+  /**
+   The flow for `key`, for a gateway somebody offered (a QR code, a link): always one that began with
+   THAT offer. A flow that is already there was started by the person typing, and holds what they
+   typed for another gateway (headers, the Access pair, a session token, a sign-in half done), none of
+   which may go to the host the offer names, so it is ended and a fresh one takes the offer. A flow that
+   already took this very offer is kept: the sheet is built again after every unlock.
+   */
+  func session(_ key: String, offered offer: GatewayPairingOffer, make: () -> OnboardingModel) -> Session {
+    if let existing = sessions[key], existing.model.pairedOffer != offer {
+      end(key)
+    }
+
+    return session(key) {
+      let model = make()
+
+      model.applyPairing(offer)
+      return model
+    }
+  }
+
   /// The flow ended: stop what it runs and forget the secrets it held.
   func end(_ key: String) {
     guard let session = sessions.removeValue(forKey: key) else {

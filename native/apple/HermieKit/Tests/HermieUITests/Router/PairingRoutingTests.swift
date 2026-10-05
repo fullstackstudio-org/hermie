@@ -118,6 +118,74 @@ struct PairingRoutingTests {
     #expect(router.sheet == .pairing(GatewayPairingOffer(address: "https://other.example.test")))
   }
 
+  // MARK: What is in the middle of being done is not taken over
+
+  @Test(
+    "an offer that arrives while setup, a sign-in or the emergency stop is up waits, and is shown when that sheet is gone",
+    arguments: [AppSheet.onboarding(.additionalGateway), .signIn(gatewayId: "g0011223344556677"), .emergencyStop]
+  )
+  func waitsBehindProtectedSheets(sheet: AppSheet) throws {
+    let router = AppRouter()
+    router.gatewaysChanged(one)
+    router.present(sheet)
+
+    router.handle(try link(offered))
+    #expect(router.sheet == sheet, "what the person is doing stays up")
+    #expect(router.queuedPairing == offer)
+
+    router.dismissSheet()
+    #expect(router.sheet == .pairing(offer), "and the offer is there after")
+    #expect(router.queuedPairing == nil)
+  }
+
+  @Test("the newest of several waiting offers is the one shown")
+  func newestWaits() throws {
+    let router = AppRouter()
+    router.gatewaysChanged(one)
+    router.present(.onboarding(.additionalGateway))
+
+    router.handle(try link(offered))
+    router.handle(try link("hermie://add-gateway?url=https%3A%2F%2Fother.example.test"))
+    router.dismissSheet(.onboarding(.additionalGateway))
+    #expect(router.sheet == .pairing(GatewayPairingOffer(address: "https://other.example.test")))
+  }
+
+  @Test("sheets that are not in the middle of something are replaced, as a chat link replaces them")
+  func replacesOtherSheets() throws {
+    let router = AppRouter()
+    router.gatewaysChanged(one)
+
+    for sheet in [AppSheet.settings, .search, .gatewayPicker, .needsYou] {
+      router.present(sheet)
+      router.handle(try link(offered))
+      #expect(router.sheet == .pairing(offer), "\(sheet)")
+      router.dismissSheet()
+    }
+
+    #expect(router.queuedPairing == nil)
+  }
+
+  @Test("an offer that setup took is spent when setup is dismissed or replaced, not only when it finishes")
+  func offerIsSpentWithItsSheet() throws {
+    let router = AppRouter()
+    router.gatewaysChanged(one)
+    router.confirmPairing(offer)
+    #expect(router.pairingOffer == offer)
+
+    // The system closes the sheet (a swipe, the lock): the shell reports the change.
+    router.sheet = nil
+    router.sheetChanged()
+    #expect(router.pairingOffer == nil)
+
+    router.confirmPairing(offer)
+    router.present(.settings)
+    #expect(router.pairingOffer == nil, "replaced by another sheet")
+
+    router.confirmPairing(offer)
+    router.dismissSheet()
+    #expect(router.pairingOffer == nil)
+  }
+
   @Test("the notice for a refused link has words")
   func noticeWords() {
     for problem in [GatewayPairingOffer.Problem.notAnOffer, .notAnAddress, .notSecure(host: "x.example")] {

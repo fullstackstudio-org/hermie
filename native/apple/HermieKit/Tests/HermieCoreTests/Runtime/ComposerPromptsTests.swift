@@ -293,10 +293,45 @@ private struct PromptHarness {
     composer.draft = "/mail"
     composer.acceptSuggestion(at: 0)
     #expect(composer.promptToFill?.title == "Mail")
-    #expect(composer.draft.isEmpty, "the slash line is gone while the form is up")
+    #expect(composer.draft == "/mail", "the slash line stays until the prompt lands")
+    #expect(!composer.suggestionsOpen, "the list is shut behind the form")
 
     composer.completePrompt(with: ["who": "Sam"])
-    #expect(composer.draft == "Dear Sam")
+    #expect(composer.draft == "Dear Sam", "now the slash line goes and the prompt takes its place")
+    await opened.shutdown()
+  }
+
+  @Test func puttingTheFormAwayKeepsTheSlashLineAsItWas() async throws {
+    let opened = try await PromptHarness.opened()
+    let composer = opened.composer
+    opened.add("Mail", "Dear {{who}}")
+    try await opened.loadCommands()
+
+    composer.draft = "/mail"
+    composer.acceptSuggestion(at: 0)
+    composer.cancelPrompt()
+    #expect(composer.draft == "/mail")
+    #expect(composer.promptToFill == nil)
+
+    // A later pick from the button is not a slash pick: the draft is left alone.
+    composer.draft = "/mail"
+    composer.use(try #require(opened.prompts.prompts.first))
+    composer.completePrompt(with: ["who": "Sam"])
+    #expect(composer.draft == "/mail\nDear Sam")
+    await opened.shutdown()
+  }
+
+  @Test func aSlashLineThatWasEditedWhileTheFormWasUpIsNotThrownAway() async throws {
+    let opened = try await PromptHarness.opened()
+    let composer = opened.composer
+    opened.add("Mail", "Dear {{who}}")
+    try await opened.loadCommands()
+
+    composer.draft = "/mail"
+    composer.acceptSuggestion(at: 0)
+    composer.draft = "something else the person typed"
+    composer.completePrompt(with: ["who": "Sam"])
+    #expect(composer.draft == "something else the person typed\nDear Sam")
     await opened.shutdown()
   }
 

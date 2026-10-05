@@ -2957,12 +2957,19 @@ address.
   (`native_pkce`, `session_token`, `cookie`). Nothing else: the type has no field for a password, a token, a header or the front
   door's keys, so there is nothing to leave out by mistake, and the tests assert that the link's parameters are exactly those
   three. Whoever scans it still signs in with their own account.
+- **Nothing entered before goes to the offered host.** An offer always starts a FRESH setup (`SetupSessions.session(_:offered:)`
+  ends the one that was there, wiping its secrets), and `OnboardingModel.applyPairing` itself throws away the typed address, the
+  headers, the Cloudflare Access pair, the session token, the provider, a sign-in in progress and the step before it puts
+  the address in, so a scan inside the address step cannot send what was typed for another gateway to the host in the code.
 - **A code is an offer, never an add.** `DeepLink` is the one parser: `url` must be an `http(s)` address with a host and no user
   name, password, query, fragment or white space (at most 2048 characters); `name` is cleaned (control and format characters
   such as a right-to-left override are dropped, white space is one space, 64 characters); `auth` is kept only when it is one of
   the three; every other parameter is dropped, the first of a repeated one wins, and a malformed link is no link. The offer is
   then shown (name, address, the sign-in hint, whether the connection is encrypted, and that the name is the code's word and
-  not checked) and taken only when the person presses Continue. A gateway the device already has cannot be added again.
+  not checked) and taken only when the person presses Continue. The host is the headline; a name that reads as a domain
+  other than the host ("bank.example.com" on another host) is not shown or filled in, the host stands in; an international host
+  is shown as the punycode that is dialled. A gateway the device already has cannot be added again (compared by scheme, host
+  without a root dot, port and path, the path case sensitive), by a link and by a scan alike.
 - **The address rule is stricter than the keyboard's.** Typed, an address may be plain http and is then described and, on a
   public host, confirmed (ADR-0014). From a code only `https://` is accepted, or `http://` for a gateway on this machine
   (`localhost`, `127.0.0.0/8`, `::1`) or a `.local` name, judged on the normal form of the address (`0x7f.1` is loopback, a
@@ -2976,12 +2983,16 @@ address.
 - **From the system.** A `hermie://add-gateway` link opened from anywhere (Camera, a message, a web page) reaches
   `AppRouter.handle`, which shows the same confirmation as a sheet (`AppSheet.pairing`) with Continue opening setup
   (`confirmPairing`) and Cancel; a link whose address may not come from a link is refused in a notice. It works with no
-  gateway at all. Opened and scanned codes are the same thing: the camera's own QR reader opens the app on this link.
+  gateway at all. A link does not take over what the person is in the middle of: while setup, a sign-in or the emergency stop is
+  up the offer waits (the newest one) and is shown when that sheet is gone; other sheets are replaced as a chat link replaces
+  them, and an offer that setup took is spent when setup's sheet goes by any road. Opened and scanned codes are the same thing: the camera's own QR reader opens the app on this link.
 - **Reading.** The camera scanner of the `device.scan` request is reused (`CodeScannerView`: VisionKit's
   `DataScannerViewController` on iPhone and iPad, a capture session with Vision on the frames on the Mac), asked for QR
   only; the camera turns on, and the system asks, only when Scan is pressed (`PairingScanModel`). A picture comes from the
   photo picker (no photo-library permission) and is read with Vision's barcode request (`PairingQRCode.payloads`), on
-  the iPhone, the iPad and the Mac alike. A code that is not a Hermie code, or a picture with none, is refused in a
+  the iPhone, the iPad and the Mac alike, off the main actor and only if the sheet is still waiting for that picture when
+  Vision answers. A picture larger than 20,000 pixels on a side or 120 million in all is refused unread, and one that is read is
+  decoded at no more than 3,000 pixels (ImageIO's thumbnail, orientation applied), so a small file cannot make a huge bitmap. A code that is not a Hermie code, or a picture with none, is refused in a
   sentence and never opened.
 - **Drawing.** CoreImage's QR generator at error correction M, with the quiet zone, in whole pixels per module
   (`PairingQRCode.image`); black on white whatever the appearance.
@@ -3002,9 +3013,9 @@ the Usage and capability rows) manage the person's reusable prompts; the compose
   Insert puts the filled text into the field.
 - **Using one never sends anything.** The text goes into the message field (an empty field takes it as it is, a field with words
   gets it on a new line after them, the caret goes to the field) and the person sends it as anything else they typed. A
-  request that has the composer (`held`) refuses it, as it refuses typing. In the `/` list the slash line that found it is
-  cleared first, Return and Tab take a prompt line (also when the field already says its title), and a prompt line is never
-  run as a command. A bot sees its own prompts first, then the global ones; another bot's are not offered.
+  request that has the composer (`held`) refuses it, as it refuses typing. In the `/` list the slash line that found it goes
+  when the prompt lands, and only then (with a form, once it is filled in; put away, the draft is exactly as it was typed),
+  Return and Tab take a prompt line (also when the field already says its title), and a prompt line is never run as a command. A bot sees its own prompts first, then the global ones; another bot's are not offered.
 - **Managing.** Add, edit, delete (a confirmation) and reorder: drag in edit mode on iPhone and iPad, and Move up and Move
   down in each row's menu and as accessibility actions everywhere. The order is the order everywhere.
 - **Sync** (`PromptsModel`, `PromptLibrary`). The prompts are `prompts` in the person's own app section
@@ -3014,8 +3025,16 @@ the Usage and capability rows) manage the person's reusable prompts; the compose
   `prompts` is among the fields an arriving section that is silent about them leaves alone (`UIMetaDocuments.keptWhenAbsent`),
   so an older build writing the section does not wipe them; deleting the last one writes an empty list, which is taken; an
   entry that is not a prompt (a newer build's) is not offered but stays in its slot, every key of an entry beyond the four
-  is kept when it is edited, and moving a prompt only moves entries of its own scope. The web client carries the field as it
-  carries any unknown one and reads nothing of it. Limits keep the section small: 100 prompts, 60 characters of title, 4000 of
+  is kept when it is edited, and moving a prompt only moves entries of its own scope. The web client (`native/web`) keeps its
+  app section as raw documents (`core/ui-meta-bridge.ts`) and carries the field as it carries any unknown one, even when its own
+  copy of the section is the one that wins, and reads nothing of it (a test pins that, `ui-meta-bridge.test.ts`). The frozen
+  Expo app (`expo/hermie`) rebuilds the section from fixed keys, as ADR-0016 describes, so it would drop `prompts` the next time it
+  wrote: it is frozen and is not changed for this.
+- **What arrives is held to limits.** The section is written by other builds and other devices, so on read only the first 100
+  prompts are offered, a title is cut to 60 characters and a text to 4000, an id or bot name of absurd length is not a
+  prompt, and a text asks for at most 20 different fields (the braces of any further field stay as written). The raw
+  entries are carried as they came until one is edited, and the room for a new one is counted in raw entries, which is what
+  the gateway stores. Limits keep the section small: 100 prompts, 60 characters of title, 4000 of
   text.
 - **Per gateway.** The app section lives on each gateway, so a person with two gateways has two sets of prompts; Settings,
   Prompts edits the live gateway's.

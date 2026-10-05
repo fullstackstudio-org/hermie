@@ -22,6 +22,12 @@ public enum PairingQRCode {
   static let quietZone = 4
   /// The largest picture read, in bytes: a photo from a camera is a few megabytes.
   public static let maxImageBytes = 32 * 1024 * 1024
+  /// The largest picture read, in pixels on a side and in all: a picture bigger than any camera makes is
+  /// refused unread (a small file can hold a decompression bomb), and one that is read is scaled down.
+  public static let maxSide = 20_000
+  public static let maxPixels = 120_000_000
+  /// What a picture is scaled down to before Vision looks at it: far more than a code needs.
+  public static let readSide = 3_000
 
   /// The code for `text` as an image: black modules on white with the quiet zone, `scale` pixels to
   /// a module, no smoothing. Nil when the text cannot be encoded (empty, or too long for a code).
@@ -71,12 +77,36 @@ public enum PairingQRCode {
       return []
     }
 
-    return payloads(handler: VNImageRequestHandler(data: data, options: [:]))
+    guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+      let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+      let width = properties[kCGImagePropertyPixelWidth] as? Int, let height = properties[kCGImagePropertyPixelHeight] as? Int,
+      width > 0, height > 0, width <= maxSide, height <= maxSide, width * height <= maxPixels
+    else {
+      return []
+    }
+
+    // Decoded at no more than `readSide`, with its orientation applied: the full-size bitmap of a big
+    // photo is never made.
+    let options: [CFString: Any] = [
+      kCGImageSourceCreateThumbnailFromImageAlways: true,
+      kCGImageSourceCreateThumbnailWithTransform: true,
+      kCGImageSourceThumbnailMaxPixelSize: readSide
+    ]
+
+    guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
+      return []
+    }
+
+    return payloads(handler: VNImageRequestHandler(cgImage: image, options: [:]))
   }
 
-  /// The text of every QR code in an image.
+  /// The text of every QR code in an image, unless the image is bigger than `maxSide` and `maxPixels`.
   public static func payloads(in image: CGImage) -> [String] {
-    payloads(handler: VNImageRequestHandler(cgImage: image, options: [:]))
+    guard image.width <= maxSide, image.height <= maxSide, image.width * image.height <= maxPixels else {
+      return []
+    }
+
+    return payloads(handler: VNImageRequestHandler(cgImage: image, options: [:]))
   }
 
   private static func payloads(handler: VNImageRequestHandler) -> [String] {

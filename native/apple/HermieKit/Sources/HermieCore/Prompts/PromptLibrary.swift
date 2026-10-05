@@ -48,8 +48,8 @@ public struct Prompt: Sendable, Hashable, Identifiable {
  `prompts` is an array in the person's own app section (`hermie-app:<user>`), in the order the
  person arranged them: one object per prompt, `{ "id", "title", "text", "bot"? }`. It rides the same
  `ui_meta` as the chat list, so it follows the person to every device on the gateway, and it is
- additive in every sense the ADR asks for: a build that does not know it carries it as it came, the
- web client reads nothing of it, and no `v` is bumped.
+ additive in every sense the ADR asks for: a build that does not know it carries it as it came (the frozen Expo app, which rebuilds the section from fixed keys, is the exception), the
+ web client (`native/web`) carries it and reads nothing of it, and no `v` is bumped.
 
  - **Reading is forgiving, writing is careful.** An entry that is not an object, or lacks a text
    `id`, `title` or `text`, or repeats an id, is not offered, but it stays in the array where it
@@ -68,36 +68,53 @@ public enum PromptLibrary {
   public static let maxPrompts = 100
   public static let titleLimit = 60
   public static let textLimit = 4000
+  public static let idLimit = 64
 
   /// The keys of an entry this build reads and writes itself.
   static let knownKeys: Set<String> = ["id", "title", "text", "bot"]
 
   // MARK: Reading
 
-  /// The prompts of an app section, in order, those that read as prompts.
+  /// The prompts of an app section, in order, those that read as prompts, within the limits: it came off a
+  /// wire another build (or somebody on the gateway) wrote, so only the first `maxPrompts` are offered, a
+  /// title longer than `titleLimit` or a text longer than `textLimit` is cut, and an id is at most
+  /// `idLimit` long. The raw entries are not touched: they are carried as they came until one is edited.
   public static func prompts(in app: JSONObject?) -> [Prompt] {
     var seen = Set<String>()
+    var found: [Prompt] = []
 
-    return entries(app).compactMap { entry -> Prompt? in
-      guard let prompt = prompt(entry), seen.insert(prompt.id).inserted else {
-        return nil
+    for entry in entries(app) {
+      guard found.count < maxPrompts else {
+        break
       }
 
-      return prompt
+      guard let prompt = prompt(entry), seen.insert(prompt.id).inserted else {
+        continue
+      }
+
+      found.append(prompt)
     }
+
+    return found
+  }
+
+  /// How many entries the field holds, prompts or not: what the room for a new one is counted in.
+  public static func entryCount(in app: JSONObject?) -> Int {
+    entries(app).count
   }
 
   /// One entry as a prompt, or nil when it is not one.
   static func prompt(_ value: JSONValue) -> Prompt? {
-    guard case .object(let entry) = value, let id = entry["id"]?.stringValue, !id.isEmpty,
+    guard case .object(let entry) = value, let id = entry["id"]?.stringValue, !id.isEmpty, id.count <= idLimit,
       let title = entry["title"]?.stringValue, let text = entry["text"]?.stringValue
     else {
       return nil
     }
 
-    let bot = entry["bot"]?.stringValue.flatMap { $0.isEmpty ? nil : $0 }
+    let bot = entry["bot"]?.stringValue.flatMap { $0.isEmpty || $0.count > idLimit * 2 ? nil : $0 }
 
-    return Prompt(id: id, title: title, text: text, bot: bot, carried: entry)
+    return Prompt(
+      id: id, title: String(title.prefix(titleLimit)), text: String(text.prefix(textLimit)), bot: bot, carried: entry)
   }
 
   private static func entries(_ app: JSONObject?) -> [JSONValue] {

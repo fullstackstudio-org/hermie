@@ -46,7 +46,13 @@ public final class PairingScanModel {
 
   public private(set) var phase = Phase.ready
 
+  /// A picture is being read (off the main actor): the sheet shows it is busy.
+  public private(set) var readingImage = false
+
   @ObservationIgnored private let authorization: any CaptureAuthorizing
+  /// Which picture the sheet is waiting for: a newer one, a reset or a code the camera read since makes
+  /// an older answer stale.
+  @ObservationIgnored private var imageTicket = 0
 
   public init(authorization: any CaptureAuthorizing = SystemCaptureAuthorization()) {
     self.authorization = authorization
@@ -102,6 +108,9 @@ public final class PairingScanModel {
       return
     }
 
+    imageTicket += 1
+    readingImage = false
+
     switch GatewayPairingOffer.offer(fromPayload: payload) {
     case .success(let offer):
       phase = .found(offer)
@@ -131,8 +140,29 @@ public final class PairingScanModel {
 
   /// A picture the person chose: the first usable offer among its QR codes. A picture with no code,
   /// or none that is an offer, is refused in a sentence. The camera, when it was on, goes off.
-  public func importImage(_ data: Data) {
-    switch GatewayPairingOffer.offer(fromPayloads: PairingQRCode.payloads(in: data)) {
+  ///
+  /// Vision runs off the main actor (a photo takes a moment), and what it finds is applied only if the
+  /// sheet is still waiting for THIS picture and has not read an offer meanwhile.
+  public func importImage(_ data: Data) async {
+    imageTicket += 1
+
+    let ticket = imageTicket
+
+    readingImage = true
+
+    let payloads = await Task.detached(priority: .userInitiated) { PairingQRCode.payloads(in: data) }.value
+
+    guard ticket == imageTicket else {
+      return
+    }
+
+    readingImage = false
+
+    if case .found = phase {
+      return
+    }
+
+    switch GatewayPairingOffer.offer(fromPayloads: payloads) {
     case .success(let offer):
       phase = .found(offer)
     case .failure(let problem):
@@ -142,6 +172,9 @@ public final class PairingScanModel {
 
   /// Look again: back to the start, where Scan and Choose a photo are offered.
   public func reset() {
+    imageTicket += 1
+    readingImage = false
+
     switch phase {
     case .found, .refused:
       phase = .ready

@@ -1808,6 +1808,8 @@
 	<string>Adres</string>
 	<key>native.pairing.offer.have</key>
 	<string>Je hebt deze gateway al.</string>
+	<key>native.pairing.offer.host</key>
+	<string>Host</string>
 	<key>native.pairing.offer.local</key>
 	<string>Gewone http, alleen toegestaan omdat de gateway op dit apparaat of dit netwerk staat.</string>
 	<key>native.pairing.offer.name</key>
@@ -2102,6 +2104,8 @@
 	<string>Per bot</string>
 	<key>native.prompts.save</key>
 	<string>Bewaar</string>
+	<key>native.prompts.saveFailed</key>
+	<string>De prompt kon niet worden bewaard. Hij is misschien op een ander apparaat verwijderd, of de grens is bereikt.</string>
 	<key>native.prompts.syncNote</key>
 	<string>Prompts volgen je naar je andere apparaten op deze gateway.</string>
 	<key>native.prompts.title</key>

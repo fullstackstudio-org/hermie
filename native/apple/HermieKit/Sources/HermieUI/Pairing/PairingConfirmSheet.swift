@@ -16,11 +16,23 @@ struct PairingOfferSummary: View {
 
   var body: some View {
     Section {
-      LabeledContent(Words.name) {
-        Text(verbatim: offer.displayName)
+      // The host leads: it is where the person will be sending their sign-in, and the one thing here the
+      // code cannot dress up. The name is the code's word.
+      LabeledContent(Words.host) {
+        Text(verbatim: offer.host)
+          .font(.headline.monospaced())
           .multilineTextAlignment(.trailing)
+          .textSelection(.enabled)
       }
-      .accessibilityIdentifier("hermie.pairing.name")
+      .accessibilityIdentifier("hermie.pairing.host")
+
+      if !offer.name.isEmpty {
+        LabeledContent(Words.name) {
+          Text(verbatim: offer.name)
+            .multilineTextAlignment(.trailing)
+        }
+        .accessibilityIdentifier("hermie.pairing.name")
+      }
 
       LabeledContent(Words.address) {
         Text(verbatim: offer.address)

@@ -390,6 +390,41 @@ describe('carrying what this build does not understand', () => {
     })
   })
 
+  it('carries the native apps’ reusable prompts through a write of its own, and takes a newer list', async () => {
+    const gateway = holdingGateway()
+    const prompts = [
+      { id: 'a', title: 'Weekly', text: 'Summarise {{week}}', emoji: 'wave' },
+      { id: 'b', title: 'Review', text: 'Review this', bot: 'writer' }
+    ]
+
+    await gateway.request('profiles.configure', {
+      name: 'researcher',
+      ui_meta: { [APP_KEY]: { v: 1, entries: [], prompts, updatedAt: 10 } }
+    })
+
+    const one = page(gateway)
+
+    await one.bridge.reconcile()
+    one.layout.getState().setPinned('writer', true)
+    await settled()
+
+    // The web client reads nothing of `prompts` and writes it back as it came.
+    expect(gateway.app()?.prompts).toEqual(prompts)
+
+    // A native device edits them meanwhile; this page's next write does not undo that.
+    const edited = [{ ...prompts[0], title: 'Weekly report' }]
+
+    await gateway.request('profiles.configure', {
+      name: 'researcher',
+      ui_meta: { [APP_KEY]: { ...gateway.app(), prompts: edited, updatedAt: 30 } }
+    })
+    one.textSize.getState().setTextSize('large')
+    await settled()
+
+    expect(gateway.app()?.prompts).toEqual(edited)
+    expect(gateway.app()?.textSize).toBe('large')
+  })
+
   it('keeps a size this build cannot read until the reader picks one here', async () => {
     const gateway = holdingGateway()
 

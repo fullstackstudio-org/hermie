@@ -57,6 +57,8 @@ public final class AppRouter {
   /// The gateway the person agreed to add (`confirmPairing`): the setup that opens next fills it in and
   /// goes straight to sign-in. Cleared when that setup ends.
   public private(set) var pairingOffer: GatewayPairingOffer?
+  /// An offer that arrived while setup, a sign-in or the emergency stop was up: shown once that sheet is gone.
+  public private(set) var queuedPairing: GatewayPairingOffer?
   private var lastFindID = 0
 
   /// Links waiting for the gateway list.
@@ -403,10 +405,12 @@ public final class AppRouter {
 
   public func present(_ next: AppSheet) {
     sheet = next
+    sheetChanged()
   }
 
   public func dismissSheet() {
     sheet = nil
+    sheetChanged()
   }
 
   /// Close `expected` when it is still the sheet up: a flow that finishes late (setup taking
@@ -414,6 +418,24 @@ public final class AppRouter {
   public func dismissSheet(_ expected: AppSheet) {
     if sheet == expected {
       sheet = nil
+      sheetChanged()
+    }
+  }
+
+  /**
+   The sheet changed, by any road (the system closing it included; the shell calls this on every change).
+   An offer that setup took is spent once setup is not the sheet any more, dismissed or replaced, so it
+   cannot fill in a later setup; and an offer that waited behind a protected sheet is shown now.
+   */
+  public func sheetChanged() {
+    if case .onboarding = sheet {
+    } else {
+      pairingOffer = nil
+    }
+
+    if sheet == nil, let offer = queuedPairing {
+      queuedPairing = nil
+      sheet = .pairing(offer)
     }
   }
 
@@ -566,10 +588,20 @@ public final class AppRouter {
 
   // MARK: Pairing
 
-  /// Show an offered gateway for the person to take or leave. A setup already in progress is not lost
-  /// by it: that flow lives outside its sheet (`SetupSessions`).
+  /**
+   Show an offered gateway for the person to take or leave. A link can come from anybody at any time,
+   so it does not take over what the person is in the middle of: while setup, a sign-in or the
+   emergency stop is up the offer waits (the newest one, if several come) and is shown when that sheet
+   is gone, as a chat link leaves setup and sign-in alone. Anything else it replaces, as a chat link does.
+   */
   public func presentPairing(_ offer: GatewayPairingOffer) {
-    sheet = .pairing(offer)
+    switch sheet {
+    case .onboarding?, .signIn?, .emergencyStop?:
+      queuedPairing = offer
+    default:
+      queuedPairing = nil
+      sheet = .pairing(offer)
+    }
   }
 
   /// The person took the offer: setup opens for a new gateway, fills it in and goes on to sign-in.

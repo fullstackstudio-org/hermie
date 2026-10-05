@@ -60,6 +60,22 @@ struct PromptTemplateTests {
     #expect(PromptTemplate.fill("{ {{a}} }", with: ["a": "X"]) == "{ X }")
   }
 
+  @Test("a prompt asks for at most twenty different fields, and the rest of the braces stay as written")
+  func fieldCap() {
+    let text = (0..<30).map { "{{f\($0)}}" }.joined(separator: " ") + " {{f0}}"
+    let fields = PromptTemplate.fields(in: text)
+
+    #expect(fields.count == PromptTemplate.maxFields)
+    #expect(fields.first == "f0" && fields.last == "f19")
+
+    let values = Dictionary(uniqueKeysWithValues: fields.map { ($0, "V") })
+    let filled = PromptTemplate.fill(text, with: values)
+
+    #expect(filled.hasPrefix("V V"))
+    #expect(filled.contains("{{f20}}") && filled.contains("{{f29}}"))
+    #expect(filled.hasSuffix(" V"), "a field already known is filled wherever it is")
+  }
+
   // MARK: Filling
 
   @Test("every place of a field is filled with its value, and the rest is untouched")

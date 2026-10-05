@@ -1808,6 +1808,8 @@
 	<string>Adresse</string>
 	<key>native.pairing.offer.have</key>
 	<string>Du hast dieses Gateway bereits.</string>
+	<key>native.pairing.offer.host</key>
+	<string>Host</string>
 	<key>native.pairing.offer.local</key>
 	<string>Einfaches http, nur erlaubt, weil das Gateway auf diesem Gerät oder in diesem Netzwerk liegt.</string>
 	<key>native.pairing.offer.name</key>
@@ -2102,6 +2104,8 @@
 	<string>Pro Bot</string>
 	<key>native.prompts.save</key>
 	<string>Sichern</string>
+	<key>native.prompts.saveFailed</key>
+	<string>Der Prompt konnte nicht gesichert werden. Er wurde vielleicht auf einem anderen Gerät gelöscht, oder die Grenze wurde erreicht.</string>
 	<key>native.prompts.syncNote</key>
 	<string>Prompts folgen dir auf deine anderen Geräte an diesem Gateway.</string>
 	<key>native.prompts.title</key>

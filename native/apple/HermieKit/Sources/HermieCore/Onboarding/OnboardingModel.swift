@@ -411,6 +411,12 @@ public final class OnboardingModel {
    Take a gateway that was offered (a QR code, a link) as the address to set up, and go straight on
    to sign-in once the probe has found it: the person already saw what it names and said yes.
 
+   **Nothing entered before goes to the offered host.** A setup that already holds a typed address,
+   headers, the Cloudflare Access pair, a session token or a sign-in in progress was filled in for
+   ANOTHER gateway, and the next probe would send those to whoever the code names. So an offer first
+   throws all of it away (`discardWayIn`) and only then puts its own address in. (The shell also
+   starts a fresh setup for an offer, `SetupSessions`; this is the second lock.)
+
    The address goes in as typed text, so it is probed like any other, with nothing assumed about it;
    a probe that fails leaves the person on the address step with the reason, and an address that needs
    a confirmation (it cannot be plain http on a public host, but the same rules are kept) stops the
@@ -421,16 +427,34 @@ public final class OnboardingModel {
       return
     }
 
+    discardWayIn()
     pairedOffer = offer
     advanceWhenFound = true
     name = offer.name
+    address = offer.address
+  }
 
-    if address == offer.address {
-      // Nothing was edited, so no probe starts of its own: what is known already may be enough.
-      advanceIfFound()
-    } else {
-      address = offer.address
-    }
+  /// Everything the person entered on the way in, gone: the address, the headers, the front door, the
+  /// session token, the provider, any sign-in in progress and the step. No probe is left running.
+  private func discardWayIn() {
+    // The address first, so the changes below find nothing to probe.
+    pairedOffer = nil
+    advanceWhenFound = false
+    address = ""
+    probeTicket += 1
+    probeTask?.cancel()
+    probe = .idle
+    frontDoorKind = .custom
+    accessClientID = ""
+    accessClientSecret = ""
+    headers = []
+    advancedShown = false
+    sessionToken = ""
+    selectedProvider = nil
+    confirmedCleartextFor = nil
+    resetSignIn()
+    path = []
+    name = ""
   }
 
   /// Sign-in follows the address when an offer was taken and the probe has found the gateway; the

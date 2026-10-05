@@ -34507,6 +34507,54 @@
           }
         }
       }
+    },
+    "native.pairing.offer.host" : {
+      "comment" : "Row: the machine the offered gateway is on, shown first.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Host"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Host"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Host"
+          }
+        }
+      }
+    },
+    "native.prompts.saveFailed" : {
+      "comment" : "The prompt editor stays open when saving did not land.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Prompt konnte nicht gesichert werden. Er wurde vielleicht auf einem anderen Gerät gelöscht, oder die Grenze wurde erreicht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The prompt could not be saved. It may have been deleted on another device, or the limit was reached."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De prompt kon niet worden bewaard. Hij is misschien op een ander apparaat verwijderd, of de grens is bereikt."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

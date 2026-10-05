@@ -62,6 +62,43 @@ struct PromptLibraryTests {
     #expect(PromptLibrary.prompts(in: section).first?.bot == nil)
   }
 
+  // MARK: Limits on what arrives
+
+  @Test("only the first hundred prompts of a section are offered, and the rest are carried untouched")
+  func readLimit() {
+    let many = (0..<150).map { entry("p\($0)", "P\($0)") }
+    var section = app(many)
+
+    #expect(PromptLibrary.prompts(in: section).count == PromptLibrary.maxPrompts)
+    #expect(ids(section).last == "p99")
+    #expect(PromptLibrary.entryCount(in: section) == 150, "what is not offered is still there to carry")
+    #expect(section["prompts"]?.arrayValue?.count == 150)
+    #expect(!PromptLibrary.add(Prompt(id: "new", title: "T", text: "x"), in: &section), "and there is no room")
+  }
+
+  @Test("a title or a text longer than the limits is cut on read, in the model only")
+  func readCuts() throws {
+    let longTitle = String(repeating: "t", count: PromptLibrary.titleLimit * 5)
+    let longText = String(repeating: "x", count: PromptLibrary.textLimit * 5)
+    let section = app([entry("a", longTitle, longText)])
+    let prompt = try #require(PromptLibrary.prompts(in: section).first)
+
+    #expect(prompt.title.count == PromptLibrary.titleLimit)
+    #expect(prompt.text.count == PromptLibrary.textLimit)
+    #expect(section["prompts"]?.arrayValue?.first?.objectValue?["text"]?.stringValue?.count == longText.count)
+  }
+
+  @Test("an id or a bot name that is absurdly long is not a prompt")
+  func longIdentifiers() {
+    let section = app([
+      entry("a" + String(repeating: "x", count: PromptLibrary.idLimit), "T"), entry("ok", "T", bot: String(repeating: "b", count: 500))
+    ])
+    let prompts = PromptLibrary.prompts(in: section)
+
+    #expect(prompts.map(\.id) == ["ok"])
+    #expect(prompts.first?.bot == nil)
+  }
+
   // MARK: Adding
 
   @Test("a prompt is added at the end, cleaned, and the rest of the section is left alone")

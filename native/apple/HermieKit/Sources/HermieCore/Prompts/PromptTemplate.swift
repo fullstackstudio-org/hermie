@@ -21,6 +21,9 @@ import Foundation
 public enum PromptTemplate {
   /// The longest field name.
   public static let maxNameLength = 40
+  /// The most different fields a prompt asks for. A text with more has the rest of its braces left as
+  /// written, so a synced prompt cannot make the form a page long.
+  public static let maxFields = 20
 
   /// A piece of a snippet: text to keep, or a field to fill.
   enum Piece: Equatable {
@@ -68,6 +71,7 @@ public enum PromptTemplate {
     let scalars = Array(text.unicodeScalars)
     var pieces: [Piece] = []
     var buffer = String.UnicodeScalarView()
+    var known = Set<String>()
     var index = 0
 
     func flush() {
@@ -93,7 +97,8 @@ public enum PromptTemplate {
         let inner = String(String.UnicodeScalarView(scalars[(index + 2)..<close]))
         let name = inner.trimmingCharacters(in: .whitespaces)
 
-        if isFieldName(name) {
+        if isFieldName(name), known.contains(name) || known.count < maxFields {
+          known.insert(name)
           flush()
           pieces.append(.field(name))
           index = close + 2

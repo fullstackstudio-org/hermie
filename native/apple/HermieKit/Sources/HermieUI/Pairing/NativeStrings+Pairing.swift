@@ -48,6 +48,8 @@ extension NativeStrings {
     enum Offer {
       /// Add this gateway? (title)
       static var title: String { String(localized: "native.pairing.offer.title", table: "Native", bundle: .module) }
+      /// Host (the machine the gateway is on, shown first)
+      static var host: String { String(localized: "native.pairing.offer.host", table: "Native", bundle: .module) }
       /// Name
       static var name: String { String(localized: "native.pairing.offer.name", table: "Native", bundle: .module) }
       /// Address

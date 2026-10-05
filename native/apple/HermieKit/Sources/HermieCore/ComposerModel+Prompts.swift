@@ -58,27 +58,39 @@ extension ComposerModel {
   /// Use a prompt (a line of the list, or a row of the prompt button): with fields the form is
   /// asked for (`promptToFill`), without them the text goes into the field at once. Refused while a
   /// request has the composer (`held`), like typing.
-  public func use(_ prompt: Prompt) {
+  ///
+  /// `fromSlashList` is a pick from the list `/` opens: the words of the slash line that found it are
+  /// not part of the message and go when the prompt lands, and ONLY then. With a form that is when it
+  /// is filled in; put away, the draft stays exactly as it was typed. A pick from the button leaves the
+  /// draft alone.
+  public func use(_ prompt: Prompt, fromSlashList: Bool = false) {
     guard !held else {
       return
     }
 
-    // The words of the slash line that found it are not part of the message.
-    if SlashStage(draft: draft) != nil {
-      putDraft("")
-    }
+    let slashLine = fromSlashList && SlashStage(draft: draft) != nil ? draft : nil
 
     if prompt.fields.isEmpty {
+      if slashLine != nil {
+        putDraft("")
+      }
+
       insertPromptText(prompt.filled(with: [:]))
     } else {
+      pendingSlashLine = slashLine
       promptToFill = prompt
+
+      // The list is behind the form: it stays shut until the person types again.
+      if slashLine != nil {
+        dismissSuggestions()
+      }
     }
   }
 
   /// Use the prompt with this id (a line of the list).
   func usePrompt(id: String) {
     if let prompt = prompts?.prompt(id: id) {
-      use(prompt)
+      use(prompt, fromSlashList: true)
     }
   }
 
@@ -89,12 +101,20 @@ extension ComposerModel {
     }
 
     promptToFill = nil
+
+    // The slash line that found it goes now, if it is still what the field holds.
+    if let line = pendingSlashLine, draft == line {
+      putDraft("")
+    }
+
+    pendingSlashLine = nil
     insertPromptText(prompt.filled(with: values))
   }
 
-  /// The form was put away: nothing goes into the field.
+  /// The form was put away: nothing goes into the field, and the draft is as it was.
   public func cancelPrompt() {
     promptToFill = nil
+    pendingSlashLine = nil
   }
 
   /// Put text in the field and give it the caret: an empty field takes it as it is, a field with words

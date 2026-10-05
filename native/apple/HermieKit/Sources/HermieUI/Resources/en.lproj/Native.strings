@@ -1808,6 +1808,8 @@
 	<string>Address</string>
 	<key>native.pairing.offer.have</key>
 	<string>You already have this gateway.</string>
+	<key>native.pairing.offer.host</key>
+	<string>Host</string>
 	<key>native.pairing.offer.local</key>
 	<string>Plain http, accepted only because the gateway is on this device or this network.</string>
 	<key>native.pairing.offer.name</key>
@@ -2102,6 +2104,8 @@
 	<string>Per bot</string>
 	<key>native.prompts.save</key>
 	<string>Save</string>
+	<key>native.prompts.saveFailed</key>
+	<string>The prompt could not be saved. It may have been deleted on another device, or the limit was reached.</string>
 	<key>native.prompts.syncNote</key>
 	<string>Prompts follow you to your other devices on this gateway.</string>
 	<key>native.prompts.title</key>

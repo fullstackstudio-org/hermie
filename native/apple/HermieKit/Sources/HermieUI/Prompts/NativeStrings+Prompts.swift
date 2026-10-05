@@ -38,6 +38,8 @@ extension NativeStrings {
     }
     /// Save
     static var save: String { String(localized: "native.prompts.save", table: "Native", bundle: .module) }
+    /// The prompt could not be saved. It may have been deleted on another device, or the limit was reached.
+    static var saveFailed: String { String(localized: "native.prompts.saveFailed", table: "Native", bundle: .module) }
     /// Delete
     static var delete: String { String(localized: "native.prompts.delete", table: "Native", bundle: .module) }
     /// Delete this prompt?
