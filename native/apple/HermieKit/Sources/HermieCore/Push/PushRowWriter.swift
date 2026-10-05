@@ -11,7 +11,9 @@ import HermieProtocol
    origin, the handle, the send secret (`secret`), the platform, the types, `preview`, the gateway
    key and `updatedAt` — plus `clears: true` (this build handles clearing pushes, so a sender may
    send it one), `requestMethods: true` (it never shows Allow or Deny for a request that is not an
-   approval, so a sender may post those) and every key of this installation's existing row that this
+   approval, so a sender may post those), `urgentBreakthrough: true` while the reader's "Urgent
+   requests break through Focus" is on (a sender may then post an approval, a question or a
+   confirmation as time-sensitive; the key is absent while it is off) and every key of this installation's existing row that this
    build does not write (`enc` from a newer build, say), carried as it came. No row when no type is wanted, which is
    how every reader treats one.
  - **none**: the row is removed, and stays removed: the sync remembers it, so a gateway copy that
@@ -51,6 +53,11 @@ public final class PushRowWriter: UIMetaContributor {
   /// Whether this device wants message text. Senders ignore it for a relay row until the row
   /// carries an encryption key (D29); written so the row says what the reader chose.
   public var preview = false
+  /// "Urgent requests break through Focus" (`PushController.urgentBreaksThroughFocus`, which `LiveWiring`
+  /// hands over): the row carries `urgentBreakthrough: true` while it is on and no such key while it
+  /// is off, so a sender posts an urgent request to this device as time-sensitive only when the reader
+  /// wants that. On until the reader switches it off, like the switch itself.
+  public var urgentBreakthrough = true
 
   /// The plugin reads `{bot, at}` in `seen`. Meaningful once `capabilitiesKnown`.
   public private(set) var perChat = false
@@ -196,8 +203,15 @@ public final class PushRowWriter: UIMetaContributor {
     // that lets a sender post those kinds to this row (`requests` in the contract).
     built[PushRows.requestMethodsKey] = .bool(true)
 
-    // A relay row never also names another transport's address (`pushAddressOf` refuses it).
-    let written = Set(built.keys).union(["token", "endpoint", "keys"])
+    // Whether an urgent request may arrive time-sensitive is this device's choice, and the sender
+    // reads it from here: the key is there while the reader wants it and gone otherwise.
+    if urgentBreakthrough {
+      built[PushRows.urgentBreakthroughKey] = .bool(true)
+    }
+
+    // A relay row never also names another transport's address (`pushAddressOf` refuses it). The
+    // urgent key is ours even when it is off: an older row's `true` must not be carried over it.
+    let written = Set(built.keys).union(["token", "endpoint", "keys", PushRows.urgentBreakthroughKey])
     var carried = (existing ?? [:]).filter { !written.contains($0.key) }
 
     for (key, value) in built where !UIMetaPushRow.knownKeys.contains(key) {

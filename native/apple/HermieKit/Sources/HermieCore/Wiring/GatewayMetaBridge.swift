@@ -142,9 +142,10 @@ public final class GatewayMetaBridge {
     writer.setOpenChat(bot)
   }
 
-  /// The reader changed what this device is told about: the row says so now.
-  public func apply(_ preferences: PushPreferences) {
+  /// The reader changed what this device is told about, or how loudly: the row says so now.
+  public func apply(_ preferences: PushPreferences, urgentBreaksThroughFocus: Bool) {
     writer.apply(preferences)
+    writer.urgentBreakthrough = urgentBreaksThroughFocus
     Task { await writer.refresh() }
   }
 

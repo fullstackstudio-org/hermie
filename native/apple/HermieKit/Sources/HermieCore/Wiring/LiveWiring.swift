@@ -234,13 +234,15 @@ public final class LiveWiring {
       Task { await meta.addressesChanged(ids) }
     }
 
-    // The kinds of notification the reader switched, and the preview: written into this device's row.
+    // The kinds of notification the reader switched, the preview and "Urgent requests break through
+    // Focus": written into this device's row.
     push.onPreferencesChanged = { [weak self] in
       guard let self, let meta = self.meta else {
         return
       }
 
-      meta.apply(self.launch.push.preferences)
+      meta.apply(
+        self.launch.push.preferences, urgentBreaksThroughFocus: self.launch.push.urgentBreaksThroughFocus)
     }
   }
 
@@ -365,6 +367,7 @@ public final class LiveWiring {
 
     meta = bridge
     bridge.writer.apply(launch.push.preferences)
+    bridge.writer.urgentBreakthrough = launch.push.urgentBreaksThroughFocus
     bridge.setForeground(foreground)
     bridge.setOpenChat(openChat?.gatewayId == session.gatewayID ? openChat?.bot : nil)
     bridge.start()

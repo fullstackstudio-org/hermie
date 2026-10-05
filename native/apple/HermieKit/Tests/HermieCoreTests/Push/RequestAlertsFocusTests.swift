@@ -250,8 +250,8 @@ struct UrgentBreakthroughTests {
     #expect(rig.relaunch().urgentBreaksThroughFocus, "a controller that has not started reads the default")
   }
 
-  @Test("it is a choice of this device: switching it writes nothing to the preferences")
-  func notAPreference() async throws {
+  @Test("it is not one of the preferences, but the row hears of it: switching it announces a change, once")
+  func notAPreferenceButTheRowHears() async throws {
     let rig = try PushControllerTests.Rig()
     await started(rig)
     var announced = 0
@@ -259,9 +259,17 @@ struct UrgentBreakthroughTests {
 
     await rig.controller.setUrgentBreaksThroughFocus(false)
 
-    #expect(announced == 0)
+    // The writer puts it in this device's row (`urgentBreakthrough`), so a sender knows.
+    #expect(announced == 1)
     #expect(rig.controller.preferences == .standard)
     #expect(try await rig.settings.string(forKey: StoreKeys.pushPreferences) == nil)
+
+    // The same answer again changes nothing and says nothing.
+    await rig.controller.setUrgentBreaksThroughFocus(false)
+    #expect(announced == 1)
+
+    await rig.controller.setUrgentBreaksThroughFocus(true)
+    #expect(announced == 2)
   }
 
   @Test("an unreadable stored value is the default, on")

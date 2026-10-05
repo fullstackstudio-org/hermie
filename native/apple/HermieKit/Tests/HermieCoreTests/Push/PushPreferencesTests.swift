@@ -202,4 +202,31 @@ struct PushPreferencesRowTests {
 
     #expect(PushRowWriterTests.row(gateway, "i-phone") == nil)
   }
+
+  @Test("the row says whether urgent requests may break through Focus: the key is there while on, gone while off")
+  func urgentBreakthroughInTheRow() async throws {
+    let gateway = HoldingGateway()
+    let phone = PushRowWriterTests.device(gateway, installation: "i-phone")
+    await phone.sync.reconcile()
+    phone.address.state = PushRowWriterTests.address()
+    await phone.writer.refresh()
+    await phone.sync.flush()
+    #expect(PushRowWriterTests.row(gateway, "i-phone")?["urgentBreakthrough"] == true)
+
+    phone.writer.urgentBreakthrough = false
+    await phone.writer.refresh()
+    await phone.sync.flush()
+
+    // Absent, not false, and not carried over from the row it replaces: a sender reads "no key" as
+    // "the reader does not want it", and a build that never knew the key writes none either.
+    let off = try #require(PushRowWriterTests.row(gateway, "i-phone"))
+    #expect(off["urgentBreakthrough"] == nil)
+    #expect(off["clears"] == true)
+    #expect(PushRows.addressOf(.object(off)) != nil)
+
+    phone.writer.urgentBreakthrough = true
+    await phone.writer.refresh()
+    await phone.sync.flush()
+    #expect(PushRowWriterTests.row(gateway, "i-phone")?["urgentBreakthrough"] == true)
+  }
 }

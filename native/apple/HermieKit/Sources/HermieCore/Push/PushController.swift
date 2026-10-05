@@ -197,7 +197,9 @@ public final class PushController {
   public private(set) var preferencesWriteFailed = false
   /// "Urgent requests break through Focus": an approval, a question or a confirmation is posted as a
   /// time-sensitive notification, which a Focus lets through. On until the reader switches it off.
-  /// Device-wide and local: nothing is written to a gateway, so it is not part of `preferences`.
+  /// Device-wide. It is not part of `preferences` (no gateway reads it as a switch), but it does reach
+  /// the sender: this device's row carries `urgentBreakthrough: true` while it is on, and the plugin
+  /// posts an urgent relay push as time-sensitive only for a row that says so (`PushRowWriter`).
   public private(set) var urgentBreaksThroughFocus = true
   /// The last change of `urgentBreaksThroughFocus` could not be stored; it stayed where it was.
   public private(set) var urgentWriteFailed = false
@@ -214,8 +216,9 @@ public final class PushController {
   /// ui_meta push row writer rewrites (or removes) those rows, reading `addressState(for:)`.
   @ObservationIgnored public var onAddressesChanged: (@MainActor (Set<String>) -> Void)?
 
-  /// Called after the preferences changed and were stored: the ui_meta push row writer puts them in
-  /// this installation's row on the live gateway (the others pick them up when they next write).
+  /// Called after the preferences, or "Urgent requests break through Focus", changed and were stored: the
+  /// ui_meta push row writer puts them in this installation's row on the live gateway (the others pick
+  /// them up when they next write).
   @ObservationIgnored public var onPreferencesChanged: (@MainActor () -> Void)?
 
   /// The session seam for reading one bot's open requests. Until it is set, reading fails and an
@@ -434,6 +437,7 @@ public final class PushController {
 
     urgentWriteFailed = false
     urgentBreaksThroughFocus = on
+    onPreferencesChanged?()
   }
 
   /// One change at a time, each made from the choices as they are when its turn comes, so two quick

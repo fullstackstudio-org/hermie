@@ -91,7 +91,10 @@ struct PushRowWriterTests {
           // This build handles clearing pushes, and says so (`clear.optIn` in the contract).
           "clears": true,
           // It never shows Allow or Deny for a request that is not an approval (`requests`).
-          "requestMethods": true
+          "requestMethods": true,
+          // The reader's "Urgent requests break through Focus" is on (the default), so a sender may
+          // post an approval, a question or a confirmation as time-sensitive (`interruption`).
+          "urgentBreakthrough": true
         ]
     )
     #expect(

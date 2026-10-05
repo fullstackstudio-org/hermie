@@ -275,6 +275,44 @@ struct PushContractTests {
     #expect(PushRows.clearsKey == "clears")
   }
 
+  @Test("the interruption level: the methods the contract calls time-sensitive are the urgent ones, and the row opts in")
+  func interruptionLevel() throws {
+    let contract = try Self.contract()
+    let methods = Self.array(Self.object(contract["requests"])["methods"])
+
+    for entry in methods {
+      guard let name = entry["method"]?.stringValue, let method = PushRequestMethod(rawValue: name) else {
+        continue
+      }
+
+      #expect(
+        entry["interruption"] == (method.isUrgent ? .string("time-sensitive") : nil),
+        "interruption of \(name)")
+    }
+
+    let interruption = Self.object(contract["interruption"])
+    #expect(Self.strings(interruption["levels"]) == ["active", "time-sensitive"])
+    #expect(interruption["default"] == "active")
+    #expect(interruption["relayMember"] == "interruption")
+    #expect(interruption["apns"] == "aps.interruption-level")
+    #expect(interruption["optIn"] == .string("registration row field `urgentBreakthrough: true`"))
+    #expect(PushRows.urgentBreakthroughKey == "urgentBreakthrough")
+
+    // An example says `time-sensitive` exactly for the urgent requests it shows, and a clearing push
+    // never does.
+    let list = Self.array(Self.object(contract["examples"])["list"])
+
+    for example in list {
+      let data = Self.object(example["data"])
+      let urgent = data["type"] == "request" && data["clear"] == nil
+        && (data["method"]?.stringValue.flatMap { PushRequestMethod(rawValue: $0)?.isUrgent } ?? false)
+
+      #expect(
+        example["interruption"] == (urgent ? .string("time-sensitive") : nil),
+        "interruption of \(example["name"]?.stringValue ?? "?")")
+    }
+  }
+
   // MARK: The examples
 
   static func examples() throws -> [(name: String, data: JSONObject, category: String?, silent: Bool)] {

@@ -44,6 +44,11 @@ public enum PushRows {
   /// Push row gets a `confirm` or a secure input only with it. Written by `PushRowWriter` beside
   /// `clears`.
   public static let requestMethodsKey = "requestMethods"
+  /// The row field that says this installation lets an urgent request (an approval, a question or a
+  /// confirmation) arrive time-sensitive, so a Focus lets it through (`interruption` in the contract):
+  /// `true` while "Urgent requests break through Focus" is on, absent while it is off. A sender sets
+  /// the level only for a row that says it. Written by `PushRowWriter` beside `clears`.
+  public static let urgentBreakthroughKey = "urgentBreakthrough"
   /// The plugin capability that says the notifier reads `{bot, at}` in `seen`.
   public static let perChatCapability = "push.seen.per_chat"
   /// The plugin capability that says the notifier can deliver to a relay row.
