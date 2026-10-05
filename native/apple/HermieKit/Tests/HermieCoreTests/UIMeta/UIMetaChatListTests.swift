@@ -8,7 +8,10 @@ import Testing
 /// writes, what reaches the gateway, and that the bytes are the web client's
 /// (`projectApp` / `projectBots` / `applyToStores` in `native/web/src/core/ui-meta-bridge.ts`,
 /// `setArchived` / `setPinned` / `setMute` in `native/web/src/state/layout.ts`).
-@Suite(.timeLimit(.minutes(1))) struct UIMetaChatListTests {
+///
+/// The time limit is a safety net, not a budget: these tests live on the main actor, which the UI
+/// suites in the same process keep busy for as long as a loaded runner takes to lay their windows out.
+@Suite(.timeLimit(.minutes(5))) struct UIMetaChatListTests {
   // MARK: Reading
 
   @Test func readsTheFieldsOffTheDevicesCopy() {
@@ -179,7 +182,7 @@ import Testing
     let model = ChatArrangementModel(now: { noon })
     model.attach(sync)
     await sync.reconcile()
-    await eventually("the inherited archive") { model.isArchived("writer") }
+    await uiMetaEventually("the inherited archive") { model.isArchived("writer") }
 
     model.setArchived("writer", false)
     model.setArchived("researcher", true)
@@ -246,7 +249,7 @@ import Testing
     #expect(!phoneSync.pending)
 
     await macSync.reconcile()
-    await eventually("the Mac's rows to follow") { mac.isArchived("writer") }
+    await uiMetaEventually("the Mac's rows to follow") { mac.isArchived("writer") }
     #expect(mac.arrangement == phone.arrangement)
 
     // And back: the Mac unarchives, unpins and unmutes.
@@ -255,24 +258,9 @@ import Testing
     mac.setMute("researcher", until: nil)
     await macSync.reconcile()
     await phoneSync.reconcile()
-    await eventually("the phone's rows to follow") { !phone.isArchived("writer") }
+    await uiMetaEventually("the phone's rows to follow") { !phone.isArchived("writer") }
     #expect(phone.arrangement == ChatListArrangement())
     #expect(gateway.meta("writer")[UIMeta.botKey] == nil)
-  }
-
-  /// Until `condition` holds on the main actor, where the model lives.
-  @MainActor
-  private func eventually(_ what: String, _ condition: () -> Bool) async {
-    let deadline = ContinuousClock.now + .seconds(5)
-
-    while !condition() {
-      guard ContinuousClock.now < deadline else {
-        Issue.record("Timed out waiting for \(what)")
-        return
-      }
-
-      try? await Task.sleep(for: .milliseconds(5))
-    }
   }
 
   @MainActor
@@ -393,15 +381,16 @@ import Testing
     let sync = UIMetaSync.device(gateway.gateway)
     let model = ChatArrangementModel(now: { noon })
     model.attach(sync)
-    // The attach has read the stored copy once the archive seed has landed (the seed and the fold
-    // both wait for that read); only a roster answered after it folds on its own.
-    await eventually("the attach's first read") { sync.app?["archivedBots"] != nil }
+    // The attach has read the stored copy once the model says so (the seed and the fold both wait for
+    // that read); only a roster answered after it folds on its own.
+    await model.untilLoaded()
+    #expect(sync.app?["archivedBots"] != nil)
 
     model.rosterRefreshed(["researcher", "writer"])
     #expect(sync.state.dirtyApp && !sync.state.appChoice)
 
     await sync.reconcile()
-    await eventually("the fold on top of the gateway's copy") { model.arrangement.folderOf["writer"] == "werk" }
+    await uiMetaEventually("the fold on top of the gateway's copy") { model.arrangement.folderOf["writer"] == "werk" }
     // The fold, redone on the copy taken in: gone dropped, researcher placed before the folder,
     // writer left in Werk.
     #expect(sync.app?["entries"] == [["kind": "chat", "name": "researcher"], ["kind": "folder", "id": "werk"]])
@@ -431,7 +420,7 @@ import Testing
     phone.move("writer", to: .before("researcher"), roster: ["researcher", "writer"])
     await phoneSync.reconcile()
     await macSync.reconcile()
-    await eventually("the Mac's order to follow") { mac.arrangement.order == ["writer", "researcher"] }
+    await uiMetaEventually("the Mac's order to follow") { mac.arrangement.order == ["writer", "researcher"] }
 
     #expect(gateway.meta("researcher")[ownerKey]?["entries"] == [
       ["kind": "chat", "name": "writer"], ["kind": "chat", "name": "researcher"]
@@ -523,7 +512,7 @@ import Testing
     model.attach(sync)
 
     await sync.reconcile()
-    await eventually("the seed") { model.isArchived("writer") }
+    await uiMetaEventually("the seed") { model.isArchived("writer") }
     #expect(sync.app?["archivedBots"] == ["writer"])
     // The gateway had no section for Anne: the seed is what it takes.
     await sync.reconcile()
@@ -534,7 +523,7 @@ import Testing
     // change was taken in and the rows were redrawn from it.
     gateway.write("researcher", [UIMeta.botKey: ["v": 1, "archived": true, "colour": "teal"]])
     await sync.reconcile()
-    await eventually("the model to follow the gateway's copy") { model.accent("researcher") == .teal }
+    await uiMetaEventually("the model to follow the gateway's copy") { model.accent("researcher") == .teal }
     #expect(!model.isArchived("researcher"))
     #expect(sync.app?["archivedBots"] == ["writer"])
   }
@@ -549,14 +538,15 @@ import Testing
     let sync = UIMetaSync.device(gateway.gateway, user: "anne")
     let model = ChatArrangementModel(now: { noon })
     model.attach(sync)
-    // The attach has read the stored copy once the archive seed has landed.
-    await eventually("the attach's first read") { sync.app?["archivedBots"] != nil }
+    // The attach has read the stored copy once the model says so (the archive seed is its first chore).
+    await model.untilLoaded()
+    #expect(sync.app?["archivedBots"] != nil)
 
     await sync.reconcile()
     await sync.reconcile()
 
     #expect(gateway.meta("researcher")[UIMeta.appKey(for: "anne")]?["archivedBots"] == [])
-    await eventually("the gateway's empty archive") { !model.isArchived("writer") }
+    await uiMetaEventually("the gateway's empty archive") { !model.isArchived("writer") }
   }
 
   /// A person with no key of their own inherits the anonymous `hermie-app` once, and then writes
@@ -573,7 +563,7 @@ import Testing
     let model = ChatArrangementModel(now: { noon })
     model.attach(sync)
     await sync.reconcile()
-    await eventually("the inherited arrangement") { model.isPinned("writer") }
+    await uiMetaEventually("the inherited arrangement") { model.isPinned("writer") }
 
     #expect(model.arrangement.order == ["writer", "researcher"])
     #expect(gateway.meta("researcher")[UIMeta.appKey(for: "anne")]?["pinned"] == ["writer"])

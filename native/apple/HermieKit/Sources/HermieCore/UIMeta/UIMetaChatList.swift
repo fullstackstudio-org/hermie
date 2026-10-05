@@ -667,6 +667,8 @@ public final class ChatArrangementModel {
 
   @ObservationIgnored private var sync: UIMetaSync?
   @ObservationIgnored private var following: Task<Void, Never>?
+  /// The first read of the attached sync's stored copy, and the chores that wait for it.
+  @ObservationIgnored private var firstRead: Task<Void, Never>?
   @ObservationIgnored private var lapse: Task<Void, Never>?
   /// The sync's stored copy has been read: only then can the archive be seeded, or the seed would
   /// be merged over a person's own archive still on its way off the disk.
@@ -688,11 +690,23 @@ public final class ChatArrangementModel {
     refresh()
 
     let changes = sync.changes()
-    following = Task { [weak self] in
+    let read = Task { [weak self] in
       // The stored copy may still be on its way off the disk; it is what an offline launch shows.
       await sync.load()
-      self?.loaded = true
-      self?.refresh()
+
+      // Only for the sync this read was for: a model attached to another one since (or detached)
+      // must not be told that its copy has been read.
+      guard let self, self.sync === sync, !Task.isCancelled else {
+        return
+      }
+
+      self.loaded = true
+      self.refresh()
+    }
+
+    firstRead = read
+    following = Task { [weak self] in
+      await read.value
 
       for await _ in changes {
         guard let self, !Task.isCancelled else {
@@ -702,6 +716,14 @@ public final class ChatArrangementModel {
         self.refresh()
       }
     }
+  }
+
+  /// Until the attached sync's stored copy has been read and the chores that wait for it (the
+  /// archive seed, the fold of a fresh roster) have had their turn. Returns at once with nothing
+  /// attached. It waits on that work itself and not on the clock, so a main actor that is busy
+  /// with something else only delays it.
+  public func untilLoaded() async {
+    await firstRead?.value
   }
 
   /// Stop reading from `sync`, when it is the one attached. The rows keep what they show.
@@ -714,6 +736,8 @@ public final class ChatArrangementModel {
   private func detach() {
     following?.cancel()
     following = nil
+    firstRead?.cancel()
+    firstRead = nil
     lapse?.cancel()
     lapse = nil
     sync = nil

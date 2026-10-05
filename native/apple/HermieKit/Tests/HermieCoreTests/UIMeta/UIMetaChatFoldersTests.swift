@@ -7,7 +7,10 @@ import Testing
 /// The chat list's folders: what is read off the app section, the edits that write it back (the web
 /// client's `state/folders.ts`), what the list draws from it, and the closed folders kept on the
 /// device.
-@Suite(.timeLimit(.minutes(1))) struct UIMetaChatFoldersTests {
+///
+/// The time limit is a safety net, not a budget: these tests live on the main actor, which the UI
+/// suites in the same process keep busy for as long as a loaded runner takes to lay their windows out.
+@Suite(.timeLimit(.minutes(5))) struct UIMetaChatFoldersTests {
   /// a, F(x, y), b, G(z): loose chats on both sides of a folder.
   private func section() -> JSONObject {
     [
@@ -423,7 +426,7 @@ import Testing
     phone.renameFolder(folder, to: "Office")
     await phoneSync.reconcile()
     await macSync.reconcile()
-    await eventually("the Mac's folder to follow") {
+    await uiMetaEventually("the Mac's folder to follow") {
       mac.arrangement.layout.folder(folder)?.name == "Office"
     }
 
@@ -436,23 +439,8 @@ import Testing
     mac.removeFolder(folder)
     await macSync.reconcile()
     await phoneSync.reconcile()
-    await eventually("the phone's folder to go") { phone.arrangement.layout.folders.isEmpty }
+    await uiMetaEventually("the phone's folder to go") { phone.arrangement.layout.folders.isEmpty }
     #expect(phone.arrangement.layout.placed.contains("writer"))
-  }
-
-  /// Until `condition` holds on the main actor, where the model lives.
-  @MainActor
-  private func eventually(_ what: String, _ condition: () -> Bool) async {
-    let deadline = ContinuousClock.now + .seconds(5)
-
-    while !condition() {
-      guard ContinuousClock.now < deadline else {
-        Issue.record("Timed out waiting for \(what)")
-        return
-      }
-
-      try? await Task.sleep(for: .milliseconds(5))
-    }
   }
 
   @MainActor

@@ -275,17 +275,37 @@ final class GatedSettingsStore: SettingsStore {
   }
 }
 
-/// Until `condition` holds; a deadline turns a hang into a failure.
-func uiMetaEventually(_ what: String, _ condition: () -> Bool) async {
-  let deadline = ContinuousClock.now + .seconds(5)
+/// Until `condition` holds, on the caller's actor (the main actor, for a model that lives there); a
+/// deadline turns a hang into a failure.
+///
+/// The deadline counts only the waiting that is the test's own. The test run is one process whose
+/// UI suites lay windows out on the main actor for seconds on a quiet machine and for far longer on a
+/// loaded runner (a CI run recorded a stall of nearly forty seconds), and a main-actor test that is
+/// merely queued behind them has not hung. Time that a pause overran by is given back.
+func uiMetaEventually(
+  _ what: String,
+  patience: Duration = .seconds(10),
+  isolation: isolated (any Actor)? = #isolation,
+  _ condition: () -> Bool
+) async {
+  let pause = Duration.milliseconds(5)
+  var deadline = ContinuousClock.now + patience
 
   while !condition() {
-    guard ContinuousClock.now < deadline else {
+    let before = ContinuousClock.now
+
+    guard before < deadline else {
       Issue.record("Timed out waiting for \(what)")
       return
     }
 
-    await Task.yield()
+    try? await Task.sleep(for: pause)
+
+    let overrun = ContinuousClock.now - before - pause
+
+    if overrun > .milliseconds(250) {
+      deadline += overrun
+    }
   }
 }
 
