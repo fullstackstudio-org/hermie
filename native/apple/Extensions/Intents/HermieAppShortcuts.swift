@@ -23,11 +23,11 @@ import AppIntents
  parameterised forms ("Ask ⟨bot⟩ in Hermie …") let Siri fill the bot in from
  what was heard, resolved by `HermieBotEntityQuery.entities(matching:)`.
 
- ## Four is the cap
+ ## Five is the cap
 
  The system takes at most ten App Shortcuts per app, and shows far fewer. These
- four are the ones worth spending on: the two that send, the one that opens, and
- the one that answers without opening anything.
+ five are the ones worth spending on: the two that send, the two that open (one to
+ read, one to write in), and the one that answers without opening anything.
  */
 struct HermieAppShortcuts: AppShortcutsProvider {
   static var appShortcuts: [AppShortcut] {
@@ -60,6 +60,17 @@ struct HermieAppShortcuts: AppShortcutsProvider {
       ],
       shortTitle: "Open a chat",
       systemImageName: "text.bubble"
+    )
+
+    AppShortcut(
+      intent: HermieAskBotIntent(),
+      phrases: [
+        "Write to \(\.$bot) in \(.applicationName)",
+        "Chat with \(\.$bot) in \(.applicationName)",
+        "Write to a bot in \(.applicationName)"
+      ],
+      shortTitle: "Write to a bot",
+      systemImageName: "square.and.pencil"
     )
 
     AppShortcut(

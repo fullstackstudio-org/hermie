@@ -4,6 +4,12 @@
 <dict>
 	<key>%@ needs input</key>
 	<string>%@ needs input</string>
+	<key>Ask %@</key>
+	<string>Ask %@</string>
+	<key>Ask Hermie</key>
+	<string>Ask Hermie</string>
+	<key>Bot</key>
+	<string>Bot</string>
 	<key>Chat</key>
 	<string>Chat</string>
 	<key>Chats</key>
@@ -22,12 +28,26 @@
 	<string>One conversation: who it is, what they last said, and whether they need you.</string>
 	<key>Open Hermie to fill this in.</key>
 	<string>Open Hermie to fill this in.</string>
+	<key>Open the chat with one of your bots, ready for you to type.</key>
+	<string>Open the chat with one of your bots, ready for you to type.</string>
+	<key>That chat could not be opened.</key>
+	<string>That chat could not be opened.</string>
 	<key>The three most recent conversations, or one folder's, with what is unread and what needs you.</key>
 	<string>The three most recent conversations, or one folder's, with what is unread and what needs you.</string>
+	<key>Which bot the control opens.</key>
+	<string>Which bot the control opens.</string>
+	<key>Which bot?</key>
+	<string>Which bot?</string>
 	<key>Which conversation this widget shows.</key>
 	<string>Which conversation this widget shows.</string>
 	<key>Which part of your chat list this widget shows.</key>
 	<string>Which part of your chat list this widget shows.</string>
+	<key>Write to ${bot}</key>
+	<string>Write to ${bot}</string>
+	<key>Write to a bot</key>
+	<string>Write to a bot</string>
+	<key>Write to one of your bots straight from here.</key>
+	<string>Write to one of your bots straight from here.</string>
 	<key>need</key>
 	<string>need</string>
 </dict>

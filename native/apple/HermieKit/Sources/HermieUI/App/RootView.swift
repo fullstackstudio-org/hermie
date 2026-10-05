@@ -35,6 +35,8 @@ public struct RootView: View {
       ShellSheet(sheet: sheet)
     }
     .iCloudSyncDisclosure()
+    // Behind the lock gate, so a locked app advertises no chat to the owner's other devices.
+    .handoffAdvertising(router.handoffLink)
     #if DEBUG
       .onAppear { LaunchTrace.shared.record("root") }
     #endif

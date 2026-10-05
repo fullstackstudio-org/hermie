@@ -93,6 +93,29 @@
         }
       }
     },
+    "Chat with ${bot} in ${applicationName}" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chatte mit ${bot} in ${applicationName}"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chat with ${bot} in ${applicationName}"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chat met ${bot} in ${applicationName}"
+          }
+        }
+      }
+    },
     "Open ${bot} in ${applicationName}" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -204,6 +227,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wat wacht er in ${applicationName}"
+          }
+        }
+      }
+    },
+    "Write to ${bot} in ${applicationName}" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schreibe an ${bot} in ${applicationName}"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write to ${bot} in ${applicationName}"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schrijf aan ${bot} in ${applicationName}"
+          }
+        }
+      }
+    },
+    "Write to a bot in ${applicationName}" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schreibe an einen Bot in ${applicationName}"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write to a bot in ${applicationName}"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schrijf aan een bot in ${applicationName}"
           }
         }
       }

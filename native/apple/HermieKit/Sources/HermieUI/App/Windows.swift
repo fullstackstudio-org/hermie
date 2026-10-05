@@ -69,6 +69,9 @@ public struct MainWindow: View {
     .spotlightTaps { link in
       perform(router.handle(link), on: launch)
     }
+    .handoffContinuation { link in
+      perform(router.handle(link), on: launch)
+    }
     .task {
       if let snapshot = RouterSnapshot.decode(saved) {
         router.restore(snapshot)

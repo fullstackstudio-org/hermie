@@ -10,6 +10,9 @@ import WidgetKit
 
  The Mac gets the first two: "N need input" is drawn only in the lock-screen accessory families,
  which macOS does not have.
+
+ And one control, "Ask Hermie" (`HermieAskControl`), for Control Center, the Lock Screen and the
+ Mac's menu bar. A control is not a widget, but it lives in the same bundle.
  */
 @main
 struct HermieWidgetBundle: WidgetBundle {
@@ -19,5 +22,6 @@ struct HermieWidgetBundle: WidgetBundle {
     #if os(iOS)
       HermieNeedsInputWidget()
     #endif
+    HermieAskControl()
   }
 }

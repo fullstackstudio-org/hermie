@@ -49,6 +49,9 @@ public final class AppRouter {
   /// A search hit in one of a bot's other conversations that was followed: the words the viewer it
   /// opened is to find. The viewer takes it and settles it (`settleConversationFind`).
   public private(set) var conversationFind: ConversationFindRequest?
+  /// A chat a `hermie://ask/<bot>` link (the Action button, the control, Siri) asked to have its
+  /// composer focused. The chat screen takes it and settles it (`settleCompose`).
+  public private(set) var composeRequest: ComposeRequest?
   /// The words the next search sheet starts with (the chat list's field, handed on).
   public var searchSeed = ""
   private var lastFindID = 0
@@ -204,6 +207,14 @@ public final class AppRouter {
     detailPath = []
     chatFind = nil
     conversationFind = nil
+    composeRequest = nil
+  }
+
+  /// The chat dealt with a compose request (put the caret in its field). A newer one is left alone.
+  public func settleCompose(_ id: Int) {
+    if composeRequest?.id == id {
+      composeRequest = nil
+    }
   }
 
   /**
@@ -409,7 +420,7 @@ public final class AppRouter {
 
   // MARK: Links
 
-  /// A `hermie://` URL from the system. Anything that is not one of the four shapes is ignored.
+  /// A `hermie://` URL from the system. Anything that is not one of its shapes is ignored.
   @discardableResult
   public func handle(url: URL) -> [RouterEffect] {
     guard let link = DeepLink(url: url) else {
@@ -430,34 +441,10 @@ public final class AppRouter {
 
     switch link {
     case let .chat(bot, key):
-      guard !gateways.isEmpty else {
-        notice = .noGatewayYet
-        return []
-      }
+      return openChatLink(bot: bot, key: key, gateways: gateways, composing: false)
 
-      let target: String?
-
-      if key.isEmpty {
-        target = selectedGatewayId ?? gateways.activeId
-      } else {
-        target = gateways.id(forKey: key)
-      }
-
-      guard let target else {
-        notice = .gatewayNotConfigured
-        return []
-      }
-
-      selectedGatewayId = target
-      openChat(ChatRef(gatewayId: target, bot: bot))
-
-      // The chat should be visible: a settings sheet or the picker would cover it. Setup and
-      // sign-in are left alone; they are a task the reader is in the middle of.
-      if sheet == .settings || sheet == .gatewayPicker {
-        sheet = nil
-      }
-
-      return target == gateways.activeId ? [] : [.activateGateway(target)]
+    case let .ask(bot, key):
+      return openChatLink(bot: bot, key: key, gateways: gateways, composing: true)
 
     case let .conversation(bot, session, key):
       guard !gateways.isEmpty else {
@@ -491,6 +478,76 @@ public final class AppRouter {
       pendingIntents.append(id)
       return []
     }
+  }
+
+  /**
+   A chat link: select its gateway and open the bot's chat, asking for the caret in the composer when
+   the link is an `ask` one. The chat should be visible: a settings sheet or the picker would cover it.
+   Setup and sign-in are left alone; they are a task the reader is in the middle of.
+   */
+  private func openChatLink(bot: String, key: String, gateways: GatewayIndex, composing: Bool) -> [RouterEffect] {
+    guard !gateways.isEmpty else {
+      notice = .noGatewayYet
+      return []
+    }
+
+    let target: String?
+
+    if key.isEmpty {
+      target = selectedGatewayId ?? gateways.activeId
+    } else {
+      target = gateways.id(forKey: key)
+    }
+
+    guard let target else {
+      notice = .gatewayNotConfigured
+      return []
+    }
+
+    let chat = ChatRef(gatewayId: target, bot: bot)
+
+    selectedGatewayId = target
+    openChat(chat)
+
+    if composing {
+      // Over a page pushed on the chat (settings, conversations) the field would not be on screen.
+      showChat()
+      lastFindID += 1
+      composeRequest = ComposeRequest(id: lastFindID, chat: chat)
+    }
+
+    if sheet == .settings || sheet == .gatewayPicker {
+      sheet = nil
+    }
+
+    return target == gateways.activeId ? [] : [.activateGateway(target)]
+  }
+
+  // MARK: Handoff
+
+  /**
+   The link another device of the same Apple ID continues from (`HandoffActivity`): the chat that is
+   open, or the conversation viewer over it. nil with no chat open, before the gateway list is read,
+   for a chat on a gateway this device has no key for, and while the Crons section shows a cron
+   instead of the chat (the chat is still selected under it, but it is not what is on screen).
+   */
+  public var handoffLink: DeepLink? {
+    guard !(section == .routines && selectedCron != nil), let chat = selectedChat,
+      let entry = gateways?.entries.first(where: { $0.id == chat.gatewayId })
+    else {
+      return nil
+    }
+
+    // A conversation whose id is not in the link's alphabet cannot be named: the chat is.
+    if case let .conversation(_, id, _, _)? = detailPath.last {
+      let conversation = DeepLink.conversation(bot: chat.bot, session: id, gatewayKey: entry.key)
+
+      if conversation.string != nil {
+        return conversation
+      }
+    }
+
+    return .chat(bot: chat.bot, gatewayKey: entry.key)
   }
 
   // MARK: Restoration

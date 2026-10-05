@@ -635,6 +635,29 @@
         }
       }
     },
+    "Open the chat with one of your bots, ready for you to type." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Den Chat mit einem deiner Bots öffnen, bereit zum Tippen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open the chat with one of your bots, ready for you to type."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open de chat met een van je bots, klaar om te typen."
+          }
+        }
+      }
+    },
     "Send ${prompt} to ${bot}" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -884,6 +907,75 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wat moet ik versturen?"
+          }
+        }
+      }
+    },
+    "Which bot?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welcher Bot?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Which bot?"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welke bot?"
+          }
+        }
+      }
+    },
+    "Write to ${bot}" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An ${bot} schreiben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write to ${bot}"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schrijf aan ${bot}"
+          }
+        }
+      }
+    },
+    "Write to a bot" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An einen Bot schreiben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write to a bot"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schrijf aan een bot"
           }
         }
       }

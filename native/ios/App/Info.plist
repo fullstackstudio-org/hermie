@@ -95,6 +95,15 @@
 	<string>Hermie adds a reminder when a bot suggests one and you choose to add it. Hermie does not read your other reminders.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Hermie uses on-device speech recognition to turn what you say into the text of a message, or into a transcript of a voice note. Nothing is sent to Apple or to any other service.</string>
+	<!--
+		Handoff: the open chat is advertised under this type (`HandoffActivity.type` in HermieShared) and
+		continued from it. The same string on the iPhone, the iPad and the Mac; the payload is a hermie://
+		chat or conversation link and never a word of the conversation.
+	-->
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>dev.hermie.activity.chat</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

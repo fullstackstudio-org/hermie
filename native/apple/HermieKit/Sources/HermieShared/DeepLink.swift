@@ -18,6 +18,10 @@ import Foundation
    id is NOT decoded and must be in its alphabet (`Identifiers.isSafeSessionId`); `bot` is held to the
    same rule as a chat link's and is required; `gateway` as above. An addition of the native apps: the
    Expo parser ignores a kind it does not know.
+ - `hermie://ask/<bot>?gateway=<key>`: the same chat as `hermie://chat/…`, and the composer is to have
+   the caret. What "Write to a bot" (the Action button, the Control Center control, Siri) opens; the
+   bot and the gateway are held to the chat link's rules, and a link never carries words to type. An
+   addition of the native apps, as `conversation` is.
  - `hermie://share/<id>`, `hermie://intent/<id>`, `hermie://folder/<id>`: the id is NOT decoded and
    must already be in its alphabet (`Identifiers`).
  - `exp+hermie://` is accepted too, the scheme a development client registers.
@@ -29,6 +33,8 @@ public enum DeepLink: Sendable, Hashable {
   /// One of a bot's other conversations, by its stored session id. `gatewayKey` is `""` when the
   /// link named none.
   case conversation(bot: String, session: String, gatewayKey: String)
+  /// A bot's chat, opened with the caret in the composer. `gatewayKey` is `""` when the link named none.
+  case ask(bot: String, gatewayKey: String)
   case share(id: String)
   case intent(id: String)
   case folder(id: String)
@@ -36,7 +42,7 @@ public enum DeepLink: Sendable, Hashable {
   public static let scheme = "hermie"
   public static let developmentScheme = "exp+hermie"
 
-  /// Parse a link, or nil for anything that is not exactly one of the four shapes.
+  /// Parse a link, or nil for anything that is not exactly one of its shapes.
   public init?(_ url: String?) {
     guard let url, let parsed = Self.parse(url) else {
       return nil
@@ -55,16 +61,9 @@ public enum DeepLink: Sendable, Hashable {
   public var string: String? {
     switch self {
     case let .chat(bot, gatewayKey):
-      guard !bot.isEmpty else {
-        return nil
-      }
-
-      // Escaped for a path segment, slash included: a name with a slash in it then fails to parse,
-      // which is the right failure for a surface that cannot report one.
-      let allowed = CharacterSet.urlPathAllowed.subtracting(CharacterSet(charactersIn: "/"))
-      let path = "\(Self.scheme)://chat/\(bot.addingPercentEncoding(withAllowedCharacters: allowed) ?? bot)"
-
-      return Identifiers.isGatewayKey(gatewayKey) ? "\(path)?gateway=\(gatewayKey)" : path
+      return Self.botLink(kind: "chat", bot: bot, gatewayKey: gatewayKey)
+    case let .ask(bot, gatewayKey):
+      return Self.botLink(kind: "ask", bot: bot, gatewayKey: gatewayKey)
     case let .conversation(bot, session, gatewayKey):
       guard Identifiers.isBotName(bot), Identifiers.isSafeSessionId(session) else {
         return nil
@@ -90,6 +89,20 @@ public enum DeepLink: Sendable, Hashable {
 
   public var url: URL? {
     string.flatMap(URL.init(string:))
+  }
+
+  /// `hermie://<kind>/<bot>[?gateway=<key>]`, for the kinds that name a bot in their path.
+  private static func botLink(kind: String, bot: String, gatewayKey: String) -> String? {
+    guard !bot.isEmpty else {
+      return nil
+    }
+
+    // Escaped for a path segment, slash included: a name with a slash in it then fails to parse,
+    // which is the right failure for a surface that cannot report one.
+    let allowed = CharacterSet.urlPathAllowed.subtracting(CharacterSet(charactersIn: "/"))
+    let path = "\(scheme)://\(kind)/\(bot.addingPercentEncoding(withAllowedCharacters: allowed) ?? bot)"
+
+    return Identifiers.isGatewayKey(gatewayKey) ? "\(path)?gateway=\(gatewayKey)" : path
   }
 
   // MARK: Parsing
@@ -154,12 +167,13 @@ public enum DeepLink: Sendable, Hashable {
       return Identifiers.isSafeIntentId(segment) ? .intent(id: segment) : nil
     case "folder":
       return Identifiers.isSafeFolderId(segment) ? .folder(id: segment) : nil
-    case "chat":
+    case "chat", "ask":
       guard let bot = segment.removingPercentEncoding, Identifiers.isBotName(bot) else {
         return nil
       }
 
-      return .chat(bot: bot, gatewayKey: gatewayKey(in: query))
+      return kind == "ask"
+        ? .ask(bot: bot, gatewayKey: gatewayKey(in: query)) : .chat(bot: bot, gatewayKey: gatewayKey(in: query))
     case "conversation":
       guard Identifiers.isSafeSessionId(segment), let bot = value("bot", in: query)?.removingPercentEncoding,
         Identifiers.isBotName(bot)

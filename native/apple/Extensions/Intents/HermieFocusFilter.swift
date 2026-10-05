@@ -23,7 +23,9 @@ import HermieShared
  ## The bots
 
  The picker lists the roster the app last wrote for the widgets (the live gateway's), by gateway key
- and handle. A bot chosen once stays in the filter whatever the roster does later.
+ and handle. A bot chosen once stays in the filter whatever the roster does later. The picker's
+ entity (`HermieFocusBotEntity`, in `AskBot/`) is shared with "Write to a bot", which names a bot the
+ same way.
  */
 
 /** Which bots a Focus lets notify. */
@@ -58,42 +60,6 @@ enum HermieFocusScope: String, AppEnum {
     case .chosen: self = .chosen
     case .none: self = .none
     }
-  }
-}
-
-/** One bot of the Focus filter's picker: identified by gateway key and handle, shown by name. */
-struct HermieFocusBotEntity: AppEntity {
-  /** `<gateway key>/<handle>` (`FocusFilter.Bot.id`). */
-  let id: String
-  let name: String
-
-  static var typeDisplayRepresentation: TypeDisplayRepresentation {
-    TypeDisplayRepresentation(name: "Bot")
-  }
-
-  var displayRepresentation: DisplayRepresentation {
-    DisplayRepresentation(title: "\(name)")
-  }
-
-  static let defaultQuery = HermieFocusBotQuery()
-
-  init(_ choice: FocusBotChoice) {
-    id = choice.id
-    name = choice.displayName
-  }
-}
-
-/** The bots a Focus filter can name: the roster in the App Group, nothing a gateway has to answer. */
-struct HermieFocusBotQuery: EntityQuery {
-  func entities(for identifiers: [String]) async throws -> [HermieFocusBotEntity] {
-    // A bot chosen earlier that the roster no longer lists is kept, under its handle: the filter is a
-    // list of identities, and dropping one here would quietly widen what a Focus lets through.
-    FocusBotChoices.resolve(identifiers, in: FocusBotChoices.load(container: SharedContainer.url()))
-      .map(HermieFocusBotEntity.init)
-  }
-
-  func suggestedEntities() async throws -> [HermieFocusBotEntity] {
-    FocusBotChoices.load(container: SharedContainer.url()).map(HermieFocusBotEntity.init)
   }
 }
 

@@ -281,4 +281,28 @@ struct MessageMenuActionsTests {
     #expect(composer.draft.isEmpty)
     await harness.session.shutdown()
   }
+
+  // MARK: Focus asked for before the field exists
+
+  @Test("a focus request waits for the field when none was on screen to act on it, and is taken once")
+  func focusWaitsForTheField() async throws {
+    let harness = SessionHarness()
+    try await harness.start()
+    let composer = ComposerModel(session: harness.session, bot: bot)
+
+    #expect(!composer.focusWaiting)
+    #expect(!composer.takeFocusWaiting())
+
+    // An "Ask a bot" link opens a chat whose composer is built after the request.
+    composer.requestFocus()
+    #expect(composer.focusRequests == 1)
+    #expect(composer.focusWaiting)
+    #expect(composer.takeFocusWaiting(), "the field takes it when it appears")
+    #expect(!composer.takeFocusWaiting(), "once")
+
+    // Words put back from outside move the caret on their own and leave nothing waiting.
+    #expect(composer.editAndResend("write a haiku"))
+    #expect(!composer.focusWaiting)
+    await harness.session.shutdown()
+  }
 }

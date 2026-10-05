@@ -39,6 +39,9 @@ targetTemplates:
       - path: ../Extensions/Intents
         excludes:
           - '**/*.xcstrings'
+      # "Write to a bot" and the bot picker it shares with the Focus filter: the control in the
+      # widget extension builds the intent, the system runs it here.
+      - path: ../Extensions/AskBot
     dependencies:
       - package: HermieKit
         product: HermieUI
@@ -66,6 +69,8 @@ targetTemplates:
           - '*.entitlements'
           - '**/*.xcstrings'
       - path: ../Extensions/Common
+      # The same intent the app compiles: "Ask Hermie" runs it. It links HermieShared and nothing else.
+      - path: ../Extensions/AskBot
     settings:
       base:
         PRODUCT_NAME: HermieWidgetsExtension

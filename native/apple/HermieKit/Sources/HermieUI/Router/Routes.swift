@@ -63,6 +63,18 @@ public struct ConversationFindRequest: Hashable, Sendable {
   }
 }
 
+/// "Open this chat with the caret in the composer": what an `ask` link (the Action button, the control)
+/// hands the chat screen besides the route. Each request has its own id, so asking twice focuses twice.
+public struct ComposeRequest: Hashable, Sendable {
+  public var id: Int
+  public var chat: ChatRef
+
+  public init(id: Int, chat: ChatRef) {
+    self.id = id
+    self.chat = chat
+  }
+}
+
 /// What the sidebar lists. The Expo app's tabs, minus Settings, which is a sheet or its own window.
 public enum SidebarSection: String, Codable, Hashable, Sendable, CaseIterable {
   case chats

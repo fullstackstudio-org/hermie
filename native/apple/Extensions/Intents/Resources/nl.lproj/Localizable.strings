@@ -52,6 +52,8 @@
 	<string>Open de chat met een van je bots in Hermie.</string>
 	<key>Open the chat with ${bot}</key>
 	<string>Open de chat met ${bot}</string>
+	<key>Open the chat with one of your bots, ready for you to type.</key>
+	<string>Open de chat met een van je bots, klaar om te typen.</string>
 	<key>Send ${prompt} to ${bot}</key>
 	<string>Stuur ${prompt} naar ${bot}</string>
 	<key>Send a message to one of your bots and wait for its reply.</key>
@@ -74,5 +76,11 @@
 	<string>Wat moet ik vragen?</string>
 	<key>What should I send?</key>
 	<string>Wat moet ik versturen?</string>
+	<key>Which bot?</key>
+	<string>Welke bot?</string>
+	<key>Write to ${bot}</key>
+	<string>Schrijf aan ${bot}</string>
+	<key>Write to a bot</key>
+	<string>Schrijf aan een bot</string>
 </dict>
 </plist>

@@ -124,7 +124,14 @@ public struct ComposerView: View {
     }
     // Words put back from a message's menu (Edit and resend): the caret goes to the field.
     .onChange(of: model.focusRequests) { _, _ in
+      model.takeFocusWaiting()
       focusRequest += 1
+    }
+    // A request made before this field existed (the Action button opened the chat): taken on appear.
+    .onAppear {
+      if model.takeFocusWaiting() {
+        focusRequest += 1
+      }
     }
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier("composer")

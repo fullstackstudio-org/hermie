@@ -4,6 +4,12 @@
 <dict>
 	<key>%@ needs input</key>
 	<string>%@ wacht op jou</string>
+	<key>Ask %@</key>
+	<string>Vraag %@</string>
+	<key>Ask Hermie</key>
+	<string>Vraag Hermie</string>
+	<key>Bot</key>
+	<string>Bot</string>
 	<key>Chat</key>
 	<string>Chat</string>
 	<key>Chats</key>
@@ -22,12 +28,26 @@
 	<string>Eén gesprek: wie het is, wat er het laatst gezegd is en of er op jou gewacht wordt.</string>
 	<key>Open Hermie to fill this in.</key>
 	<string>Open Hermie om dit te vullen.</string>
+	<key>Open the chat with one of your bots, ready for you to type.</key>
+	<string>Open de chat met een van je bots, klaar om te typen.</string>
+	<key>That chat could not be opened.</key>
+	<string>De chat kon niet worden geopend.</string>
 	<key>The three most recent conversations, or one folder's, with what is unread and what needs you.</key>
 	<string>De drie recentste gesprekken, of die van één map, met wat ongelezen is en wat op jou wacht.</string>
+	<key>Which bot the control opens.</key>
+	<string>Welke bot de knop opent.</string>
+	<key>Which bot?</key>
+	<string>Welke bot?</string>
 	<key>Which conversation this widget shows.</key>
 	<string>Welk gesprek deze widget toont.</string>
 	<key>Which part of your chat list this widget shows.</key>
 	<string>Welk deel van je chatlijst deze widget toont.</string>
+	<key>Write to ${bot}</key>
+	<string>Schrijf aan ${bot}</string>
+	<key>Write to a bot</key>
+	<string>Schrijf aan een bot</string>
+	<key>Write to one of your bots straight from here.</key>
+	<string>Schrijf vanaf hier meteen aan een van je bots.</string>
 	<key>need</key>
 	<string>wacht</string>
 </dict>

@@ -318,6 +318,7 @@ struct ChatSessionView<Composer: View>: View {
       }
       ChatLifecycleLog.note("screen #\(owner.screen) appeared: \(chat.bot), feed f\(owner.feed?.tag ?? 0)")
       takeFind(router?.chatFind)
+      takeCompose(router?.composeRequest)
     }
     .onDisappear {
       owner.disappeared()
@@ -332,6 +333,10 @@ struct ChatSessionView<Composer: View>: View {
     // A search hit followed to this chat: before the screen exists (taken on appear) or while it is open.
     .onChange(of: router?.chatFind) { _, request in
       takeFind(request)
+    }
+    // The Action button, the control or Siri opened this chat to write in it: the caret goes to the field.
+    .onChange(of: router?.composeRequest) { _, request in
+      takeCompose(request)
     }
     .onKeyPress(.escape) {
       // Back to the list where the chat was pushed over it (iPhone, a narrow iPad window).
@@ -354,6 +359,17 @@ struct ChatSessionView<Composer: View>: View {
 
     let router = self.router
     feed.find(request) { id in router?.settleFind(id) }
+  }
+
+  /// An `ask` link asked this chat for the caret in its composer. The field may not exist yet (the
+  /// request is taken when it appears, `ComposerModel.focusWaiting`).
+  private func takeCompose(_ request: ComposeRequest?) {
+    guard let request, request.chat == chat, let feed = owner.feed else {
+      return
+    }
+
+    feed.composer.requestFocus()
+    router?.settleCompose(request.id)
   }
 
   /// The text the title's long press copies.

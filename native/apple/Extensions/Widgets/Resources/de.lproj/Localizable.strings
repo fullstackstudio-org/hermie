@@ -4,6 +4,12 @@
 <dict>
 	<key>%@ needs input</key>
 	<string>%@ wartet auf dich</string>
+	<key>Ask %@</key>
+	<string>%@ fragen</string>
+	<key>Ask Hermie</key>
+	<string>Hermie fragen</string>
+	<key>Bot</key>
+	<string>Bot</string>
 	<key>Chat</key>
 	<string>Chat</string>
 	<key>Chats</key>
@@ -22,12 +28,26 @@
 	<string>Eine Unterhaltung: wer es ist, was zuletzt gesagt wurde und ob auf dich gewartet wird.</string>
 	<key>Open Hermie to fill this in.</key>
 	<string>Öffne Hermie, um das zu füllen.</string>
+	<key>Open the chat with one of your bots, ready for you to type.</key>
+	<string>Den Chat mit einem deiner Bots öffnen, bereit zum Tippen.</string>
+	<key>That chat could not be opened.</key>
+	<string>Dieser Chat konnte nicht geöffnet werden.</string>
 	<key>The three most recent conversations, or one folder's, with what is unread and what needs you.</key>
 	<string>Die drei neuesten Unterhaltungen oder die eines Ordners, mit dem Ungelesenen und dem, was auf dich wartet.</string>
+	<key>Which bot the control opens.</key>
+	<string>Welchen Bot die Taste öffnet.</string>
+	<key>Which bot?</key>
+	<string>Welcher Bot?</string>
 	<key>Which conversation this widget shows.</key>
 	<string>Welche Unterhaltung dieses Widget zeigt.</string>
 	<key>Which part of your chat list this widget shows.</key>
 	<string>Welchen Teil deiner Chatliste dieses Widget zeigt.</string>
+	<key>Write to ${bot}</key>
+	<string>An ${bot} schreiben</string>
+	<key>Write to a bot</key>
+	<string>An einen Bot schreiben</string>
+	<key>Write to one of your bots straight from here.</key>
+	<string>Schreibe von hier aus direkt an einen deiner Bots.</string>
 	<key>need</key>
 	<string>warten</string>
 </dict>

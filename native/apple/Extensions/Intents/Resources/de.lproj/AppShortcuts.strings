@@ -10,6 +10,8 @@
 	<string>Frage ${bot} in ${applicationName}</string>
 	<key>Ask my ${applicationName} bot</key>
 	<string>Frage meinen ${applicationName}-Bot</string>
+	<key>Chat with ${bot} in ${applicationName}</key>
+	<string>Chatte mit ${bot} in ${applicationName}</string>
 	<key>Open ${bot} in ${applicationName}</key>
 	<string>Öffne ${bot} in ${applicationName}</string>
 	<key>Open a chat in ${applicationName}</key>
@@ -20,5 +22,9 @@
 	<string>Sende an ${bot} in ${applicationName}</string>
 	<key>What is waiting in ${applicationName}</key>
 	<string>Was wartet in ${applicationName}</string>
+	<key>Write to ${bot} in ${applicationName}</key>
+	<string>Schreibe an ${bot} in ${applicationName}</string>
+	<key>Write to a bot in ${applicationName}</key>
+	<string>Schreibe an einen Bot in ${applicationName}</string>
 </dict>
 </plist>

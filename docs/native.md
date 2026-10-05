@@ -2649,6 +2649,48 @@ conversation for …" row under the chat list's own results, which hands its wor
   fake gateway (every conversation of a bot, merged with the local copy, two gateways, a gateway that is down, the row
   found in the conversation a hit names).
 
+## Handoff, the control and the Action button
+
+Two ways into a chat that do not start in the app (plan items NX-6 and NX-7). Both end in a `hermie://` link the router
+already follows, so what they may name is decided in one place (`DeepLink`) and an unknown gateway says so
+(`RouterNotice.gatewayNotConfigured`) instead of opening another chat of the same name.
+
+- **Handoff** (`HandoffActivity`, `HandoffViews`). The open chat is an `NSUserActivity` of type `dev.hermie.activity.chat`
+  (`NSUserActivityTypes` in both apps' Info.plist; the iPhone, the iPad and the Mac all advertise and continue it). Its
+  whole payload is one key, `link`: `hermie://chat/<bot>?gateway=<key>`, or `hermie://conversation/<session>?bot=…&gateway=…`
+  while a past conversation is open in the viewer (`AppRouter.handoffLink`). It never carries a word of the conversation,
+  a draft or a title; the other device reads the chat from its own gateway session. Only a chat or a conversation is
+  handed off or continued: a share, a Shortcut request or a folder names something only the device that made it has. No
+  chat is advertised while the Crons section shows a cron instead of it.
+  **The app lock.** The advertisement (`handoffAdvertising`) sits inside `LockGate`, whose content is not built while the
+  app is locked, so a locked app advertises nothing. The continuation (`handoffContinuation`) sits outside it, beside
+  `onOpenURL`: the router keeps the link and the chat is drawn once the gate opens, so continuing on a locked device still
+  asks for the unlock first. A cold launch is the same path: the router holds the link until the gateway list is read.
+- **Ask a bot** (`HermieAskBotIntent`, title "Write to a bot", in `Extensions/AskBot`). One App Intent behind the Action
+  button, the "Ask Hermie" control, Shortcuts and Siri: it opens the chat of one bot with the caret in the composer. Its
+  parameter is the Focus picker's bot entity (`HermieFocusBotEntity`, `<gateway key>/<handle>`, from the roster the widgets
+  read), which carries the gateway key a link needs; the query is an `EntityStringQuery`, so a spoken name resolves
+  (`FocusBotChoices.matching`). `perform()` turns the entity into `hermie://ask/<bot>?gateway=<key>` (`AskBotRoute`) and
+  returns it as an `OpenURLIntent`. `DeepLink.ask` is a native-only kind: the router opens the chat as a chat link does and
+  posts a `ComposeRequest`, which the chat screen turns into `ComposerModel.requestFocus()`; a field that does not exist
+  yet (the chat was opened by this very link) takes the request when it appears (`focusWaiting`). With no bot chosen the
+  intent only opens the app. The intent asks for an unlocked device (`.requiresAuthentication`) and the app lock still stands
+  in front of the chat.
+  The intent file is compiled into the app AND the widget extension (`project.yml`: the app and the widgets take
+  `Extensions/AskBot`), because the control builds it in the extension and the system runs it in the app
+  (`supportedModes = .foreground`); it therefore links `HermieShared` and nothing else. Its strings are in both targets'
+  `Localizable.xcstrings`. The control (`HermieAskControl`, a `ControlWidget` with an `AppIntentControlConfiguration` whose
+  bot is chosen when the control is added) is in the widget bundle on iPhone, iPad and the Mac. The App Shortcut has three
+  phrases (`Write to ⟨bot⟩ in Hermie`, `Chat with ⟨bot⟩ in Hermie`, `Write to a bot in Hermie`) in English, Dutch and German.
+  Neither needs an entitlement: Handoff only needs the same team and activity type on both devices, and a control needs no
+  capability.
+- **Tests.** `HandoffActivityTests` (the payload, no message text, the round trip, the Info.plist types), `HandoffRoutingTests`
+  (HermieUITests: what is advertised, continuing, the lock gate with a locked app, the ask link and its request),
+  `AskLinkTests` and `AskBotQueryTests` (the link, the entity query), `AppShortcutPhraseTests` (every phrase the provider
+  declares has the app's name and a translation in all three languages), and `focusWaitsForTheField` (HermieCoreTests). What
+  the tests cannot show: that Handoff is offered between two real devices, that the control appears in Control Center, and the
+  Action button; all three need a signed build on devices.
+
 ## Usage
 
 **Settings, Usage** (`UsageSettingsEntry`) lists every bot of the live gateway side by side, and each bot's

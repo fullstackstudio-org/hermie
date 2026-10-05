@@ -300,6 +300,19 @@ public final class ComposerModel {
   /// The quick ask asks for it each time its window opens.
   public func requestFocus() {
     focusRequests += 1
+    focusWaiting = true
+  }
+
+  /// A `requestFocus` the field has not acted on yet: it was asked for before the field existed (a chat
+  /// the Action button opened is built after the link). The field takes it when it appears.
+  public private(set) var focusWaiting = false
+
+  /// The field acted on a focus request, or took one that waited for it. True once per request.
+  @discardableResult
+  public func takeFocusWaiting() -> Bool {
+    defer { focusWaiting = false }
+
+    return focusWaiting
   }
 
   /**
