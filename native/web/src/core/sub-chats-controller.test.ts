@@ -337,6 +337,55 @@ describe('switching conversations', () => {
     expect(forget).not.toHaveBeenCalled()
   })
 
+  it('drops a tail read of the conversation it left that comes back after the switch', async () => {
+    const { controller, gateway } = setup({ rows: [{ id: 'own-1', title: `${LEAD} · Ideas` }] })
+
+    await controller.openChat(bot())
+
+    // What a `sessions.changed` sweep does half a second after a reply: ask for the group chat's newest rows.
+    // The answer is slow, and the reader changes chat while it is on its way.
+    let release: () => void = () => undefined
+
+    gateway.fetchMessages = async () => {
+      await new Promise<void>(resolve => (release = resolve))
+
+      return [{ role: 'user', text: 'hello shared', row_id: 1, timestamp: 1_700_000_000 }] as never
+    }
+
+    const sweep = controller.reconcileTailFor('researcher')
+
+    await controller.selectConversation(bot(), own('own-1', `${LEAD} · Ideas`))
+    release()
+    await sweep
+
+    expect(chat()?.storedSessionId).toBe('own-1')
+    expect(chat()?.order).toHaveLength(0)
+  })
+
+  it('reads a tail again for a conversation it came back to, which is the same conversation', async () => {
+    const { controller, gateway } = setup({ rows: [{ id: 'own-1', title: `${LEAD} · Ideas` }] })
+
+    await controller.openChat(bot())
+
+    let release: () => void = () => undefined
+
+    gateway.fetchMessages = async () => {
+      await new Promise<void>(resolve => (release = resolve))
+
+      return [{ role: 'user', text: 'hello shared', row_id: 1, timestamp: 1_700_000_000 }] as never
+    }
+
+    const sweep = controller.reconcileTailFor('researcher')
+
+    await controller.selectConversation(bot(), own('own-1', `${LEAD} · Ideas`))
+    await controller.selectConversation(bot(), null)
+    release()
+    await sweep
+
+    expect(chat()?.storedSessionId).toBe(GROUP)
+    expect(chat()?.order).toHaveLength(1)
+  })
+
   it('is a no-op on the conversation the bot is already on', async () => {
     const { controller, gateway } = setup({ rows: [{ id: 'own-1', title: `${LEAD} · Ideas` }] })
 

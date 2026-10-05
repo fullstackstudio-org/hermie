@@ -96,6 +96,43 @@ test.describe('the choice', () => {
     await expect(app.transcript.getByText('hello mine')).toHaveCount(0)
   })
 
+  test('keeps a slow read of the shared chat, set off by a reply, out of the own chat', async ({ app, page }) => {
+    // Half a second after a reply the client reads the newest rows of every open chat. Hold that read, so the choice
+    // is made while it is on its way, and let it in only once the own chat is open: it describes the shared chat,
+    // and has to land nowhere.
+    let release: () => void = () => undefined
+    const gate = new Promise<void>(resolve => (release = resolve))
+    const asked = new Promise<void>(resolve => {
+      void page.route('**/api/sessions/*/messages*', async route => {
+        resolve()
+        await gate
+        await route.continue()
+      })
+    })
+
+    await app.open(`#/chat/${BOT}`)
+    await app.ready()
+    await app.send('hello shared')
+    await expect(app.transcript.getByText('hello shared')).toBeVisible()
+    await asked
+
+    await openOptions(page)
+    await mine(page).check()
+    await expect(page.getByText('Now in your own chat.')).toBeAttached()
+    await page.keyboard.press('Escape')
+
+    const answered = page.waitForResponse(response => /\/api\/sessions\/[^/]+\/messages/u.test(response.url()))
+
+    release()
+    await answered
+    // Two frames: whatever the read does with its rows, it has done it by then.
+    await page.evaluate(
+      () => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+    )
+
+    await expect(app.transcript.getByText('hello shared')).toHaveCount(0)
+  })
+
   test('is the same choice on the Conversations page, which then lists the reader’s own chat', async ({
     app,
     page

@@ -1616,6 +1616,11 @@ export class ChatController {
         order: 'latest'
       })
 
+      // A page of the conversation that was left: its rows, and its window, belong to nobody on screen now.
+      if (!this.holdsConversation(botName, chat.storedSessionId)) {
+        return 'unavailable'
+      }
+
       if (rows === null) {
         this.windows.set(botName, { rows: window?.rows ?? 0, reachedStart: true })
 
@@ -1651,6 +1656,19 @@ export class ChatController {
     }
   }
 
+  /**
+   * Whether this key still holds the conversation a read began on.
+   *
+   * A read of rows (the tail a `sessions.changed` sweep fetches, an older page, the Activity prefetch) names its
+   * conversation when it starts and lands on the KEY when it ends. A switch between the two (`switchTo`,
+   * `switchCanonical`) forgets the chat and opens another under the same key, so rows that came back for the
+   * conversation just left would be spliced into the one now on screen, which then shows both. The sweep fires half
+   * a second after a reply, so a reader who changes chat in that half second meets exactly this.
+   */
+  holdsConversation(botName: string, storedSessionId: string): boolean {
+    return this.chats.getState().chats[botName]?.storedSessionId === storedSessionId
+  }
+
   /** Fetch the newest rows and fold them in: fills foreign placeholders, joins DM replies. */
   async reconcileTailFor(botName: string): Promise<void> {
     const chat = this.chats.getState().chats[botName]
@@ -1658,6 +1676,8 @@ export class ChatController {
     if (!chat) {
       return
     }
+
+    const conversation = chat.storedSessionId
 
     let rows = await this.gateway.fetchMessages(chat.resolvedSessionId, {
       limit: TAIL_ROW_LIMIT,
@@ -1681,7 +1701,8 @@ export class ChatController {
       }
     }
 
-    if (!rows.length) {
+    // Read for the conversation the key held when this began, not for whichever it holds now.
+    if (!rows.length || !this.holdsConversation(botName, conversation)) {
       return
     }
 

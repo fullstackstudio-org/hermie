@@ -2406,6 +2406,29 @@ describe('reading further back', () => {
     expect(gateway.restCalls.filter(call => call.offset !== undefined)).toHaveLength(1)
   })
 
+  it('does not put a page of the conversation it left at the front of the one now under the key', async () => {
+    const { controller, gateway } = await openDeepChat(650)
+    const fetched = gateway.fetchMessages
+    let release: () => void = () => undefined
+
+    // The page is slow to come back, and the key moves to another conversation meanwhile.
+    gateway.fetchMessages = async (sessionId, options) => {
+      await new Promise<void>(resolve => (release = resolve))
+
+      return fetched(sessionId, options)
+    }
+
+    const paging = controller.loadOlder('researcher')
+
+    chatsStore.getState().forget('researcher')
+    chatsStore.getState().ensure('researcher', { storedSessionId: 'stored-own', resolvedSessionId: 'stored-own' })
+    release()
+
+    expect(await paging).toBe('unavailable')
+    expect(chatOf().storedSessionId).toBe('stored-own')
+    expect(chatOf().order).toHaveLength(0)
+  })
+
   it('drops rows it already holds rather than drawing them twice', async () => {
     const { controller } = await openDeepChat(650)
 

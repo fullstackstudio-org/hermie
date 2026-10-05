@@ -243,7 +243,7 @@ export async function prefetchTail(c: ChatController, bot: Bot, limit = ACTIVITY
     }
   }
 
-  if (!rows.length) {
+  if (!rows.length || !c.holdsConversation(bot.name, canonical.id)) {
     return
   }
 
