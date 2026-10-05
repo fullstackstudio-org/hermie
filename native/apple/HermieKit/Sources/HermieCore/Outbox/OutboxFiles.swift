@@ -272,8 +272,13 @@ public enum OutboxDownloads {
     let manager = FileManager.default
     if manager.fileExists(atPath: destination.path) {
       _ = try manager.replaceItemAt(destination, withItemAt: file)
-    } else {
+      return
+    }
+    do {
       try manager.moveItem(at: file, to: destination)
+    } catch where manager.fileExists(atPath: destination.path) {
+      // Another window placed the same file a moment ago: the same checked bytes, so take its place instead.
+      _ = try manager.replaceItemAt(destination, withItemAt: file)
     }
   }
 
@@ -301,6 +306,17 @@ public enum OutboxDownloads {
     return digest == attachment.sha256.lowercased()
   }
 
+  /// Whether a token folder was touched after `listed`, or holds a partial download.
+  private static func inUse(_ folder: URL, since listed: Date) -> Bool {
+    let files = (try? FileManager.default.contentsOfDirectory(
+      at: folder, includingPropertiesForKeys: [.contentModificationDateKey])) ?? []
+    return files.contains { file in
+      file.lastPathComponent.hasPrefix(".partial-")
+        || ((try? file.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast)
+          > listed
+    }
+  }
+
   /// Remove what is kept under `root` (one gateway's `directory(gateway:)`) and was not used for `age`, then, oldest
   /// first, what goes beyond `limit` bytes in all. A file is as old as its last use (`download` touches a copy it uses
   /// again). Whole token folders go, and the profile folders they leave empty.
@@ -324,6 +340,8 @@ public enum OutboxDownloads {
 
       for token in tokens {
         let files = (try? manager.contentsOfDirectory(at: token, includingPropertiesForKeys: Array(keys))) ?? []
+        // A folder still being filled (nothing in it yet, or a partial download) is never a candidate.
+        if files.isEmpty || files.contains(where: { $0.lastPathComponent.hasPrefix(".partial-") }) { continue }
         var used = Date.distantPast
         var bytes = 0
 
@@ -343,6 +361,8 @@ public enum OutboxDownloads {
     for entry in kept.sorted(by: { $0.used > $1.used }) {
       full = full || total + entry.bytes > limit
       if full || now.timeIntervalSince(entry.used) > age {
+        // Looked at again just before it goes: a copy used since the listing (or a download begun in it) stays.
+        if Self.inUse(entry.folder, since: entry.used) { continue }
         try? manager.removeItem(at: entry.folder)
       } else {
         total += entry.bytes

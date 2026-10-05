@@ -764,8 +764,10 @@ A reply can carry files (`contract/outbox/`, the gateway fork's contract, copied
   only `OutboxMediaLoader` (an `AVAssetResourceLoaderDelegate`) can load: it answers the content information
   and each byte range itself through `HTTPClient.readRange` (the credential to the gateway's origin only, no
   redirect followed, a 401 retried once, the whole file capped at 200 MiB), and cancels a range the player
-  gives up on. AVFoundation never makes a request of its own, so it can never copy the credential onto a
-  redirect; the video's poster is read through the same asset. `PlaybackArbiter` lets one play at a time and
+  gives up on. The address ends in the extension of a single sound or video type the loader declares
+  (`media.mp4`, `media.m4a`, ...), never the bot's file name, and a playlist type is never declared: an HLS
+  playlist would make the player fetch its segments itself. So AVFoundation makes no request of its own and
+  can never copy the credential onto a redirect; the video's poster is read through the same asset. `PlaybackArbiter` lets one play at a time and
   none while a voice call is on; the system's own player controls are watched (`timeControlStatus`) and ask
   it too. A reply read aloud and a shared sound never play together (`ReadAloudModel.onSpeak`,
   `PlaybackArbiter.onStart`). A stop, pause or closed video while a player is still being made keeps it from

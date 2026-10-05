@@ -381,7 +381,7 @@ private final class Gate: Sendable {
 
     let loader = try files.mediaLoader(for: attachment)
     #expect(loader.url.scheme == OutboxMediaLoader.scheme, "no address a network stack can dial")
-    #expect(loader.url.absoluteString == "hermie-outbox://file/\(attachment.id)/a%20b.mp3")
+    #expect(loader.url.absoluteString == "hermie-outbox://file/\(attachment.id)/media.mp3", "the type's extension, never the name")
     #expect(loader.maxBytes == OutboxLimits.fileBytes)
     do {
       _ = try files.mediaLoader(for: OutboxFixtures.attachment(.video, name: "a.mp4", size: OutboxLimits.fileBytes + 1))

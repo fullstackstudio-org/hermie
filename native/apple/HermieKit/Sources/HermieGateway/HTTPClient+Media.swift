@@ -105,7 +105,12 @@ extension HTTPClient {
       request.setValue(value, forHTTPHeaderField: name)
     }
 
-    let last = plan.length.map { String(plan.offset + $0 - 1) } ?? ""
+    // An open end for no length, and for one too large to add (the cap still holds on what arrives).
+    let last = plan.length.flatMap { length -> String? in
+      guard length > 0 else { return nil }
+      let (end, overflow) = plan.offset.addingReportingOverflow(length - 1)
+      return overflow ? nil : String(end)
+    } ?? ""
     request.setValue("bytes=\(plan.offset)-\(last)", forHTTPHeaderField: "Range")
 
     let sink = RangeSink(plan: plan)

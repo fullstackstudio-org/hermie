@@ -86,8 +86,9 @@ enum MediaAudioSession {
 }
 
 /// One sound or video a bot shared, played from the gateway as it is read: the player seeks by byte ranges (the route
-/// answers them), each of which `OutboxMediaLoader` fetches through the chat's session. The player itself makes no
-/// request, so the credential is never handed to AVFoundation, and never follows a redirect.
+/// answers them), each of which `OutboxMediaLoader` fetches through the chat's session. The asset's address names a single
+/// sound or video type, never a playlist, so the player itself makes no request: the credential is never handed to
+/// AVFoundation, and never follows a redirect.
 ///
 /// Every stop, pause and dismissal bumps `generation`: a `play()` still waiting for its player when one comes does not
 /// start after it.

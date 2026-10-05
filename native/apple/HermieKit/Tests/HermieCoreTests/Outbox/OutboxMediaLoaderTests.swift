@@ -127,7 +127,20 @@ import Testing
     #expect(OutboxMediaLoader.contentType(served: "audio/mpeg", attachment: wav) == "public.mp3")
     #expect(OutboxMediaLoader.contentType(served: "text/html", attachment: wav) == "com.microsoft.waveform-audio")
     #expect(OutboxMediaLoader.contentType(served: nil, attachment: OutboxFixtures.attachment(.video, name: "a.mp4")) == "public.mpeg-4")
-    #expect(OutboxMediaLoader.contentType(served: nil, attachment: OutboxFixtures.attachment(.file, name: "a")) == "public.data")
+    #expect(OutboxMediaLoader.contentType(served: nil, attachment: OutboxFixtures.attachment(.audio, name: "a")) == "public.mpeg-4-audio")
+  }
+
+  @Test("a playlist is never declared, and the player's address never carries the bot's name or its extension")
+  func aPlaylistNameOrTypeNeverMakesAStream() {
+    let video = OutboxFixtures.attachment(.video, name: "clip.m3u8")
+    #expect(OutboxMediaLoader.contentType(served: "application/vnd.apple.mpegurl", attachment: video) == "public.mpeg-4")
+    #expect(OutboxMediaLoader.contentType(served: "audio/mpegurl", attachment: OutboxFixtures.attachment(.audio, name: "a.m3u")) == "public.mpeg-4-audio")
+
+    let url = OutboxMediaLoader(attachment: video, maxBytes: 1000) { _, _, _ in }.url
+    #expect(url.pathExtension == "mp4")
+    #expect(!url.absoluteString.contains("m3u"))
+    #expect(!url.absoluteString.contains("clip"))
+    #expect(url.scheme == OutboxMediaLoader.scheme)
   }
 
   // MARK: Through the gateway's own client, on real sockets

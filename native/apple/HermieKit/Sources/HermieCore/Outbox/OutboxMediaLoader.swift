@@ -64,13 +64,16 @@ public final class OutboxMediaLoader: NSObject, AVAssetResourceLoaderDelegate, S
     self.read = read
   }
 
-  /// The address the asset is made with: not one any network stack can dial.
+  /// The address the asset is made with: not one any network stack can dial. It ends in an extension of the media
+  /// type this loader declares, never the bot's file name: AVFoundation picks the format from the extension, and a
+  /// name ending in `.m3u8` would make it a stream whose segments the player fetches itself, from any host.
   public var url: URL {
+    let ext = Self.mediaType(served: nil, attachment: attachment).preferredFilenameExtension ?? "mp4"
     var components = URLComponents()
     components.scheme = Self.scheme
     components.host = "file"
-    components.percentEncodedPath = "/\(attachment.id)/\(OutboxAttachment.encodedName(attachment.name))"
-    return components.url ?? URL(string: "\(Self.scheme)://file/\(attachment.id)")!
+    components.percentEncodedPath = "/\(attachment.id)/media.\(ext)"
+    return components.url ?? URL(string: "\(Self.scheme)://file/\(attachment.id)/media.mp4")!
   }
 
   /// A new asset this loader serves. The asset holds its delegate weakly: keep the loader as long as the asset.
@@ -224,17 +227,27 @@ public final class OutboxMediaLoader: NSObject, AVAssetResourceLoaderDelegate, S
     }
   }
 
-  /// The type the player is told, as a UTI: the first of what the gateway served and what the attachment says that
-  /// is a sound or a video, then what the name's extension says, then whatever type the attachment names.
+  /// The type the player is told, as a UTI: see `mediaType`.
   static func contentType(served: String?, attachment: OutboxAttachment) -> String {
-    let declared = [served, attachment.mime].compactMap { $0 }.compactMap { UTType(mimeType: $0) }
-    if let media = declared.first(where: { $0.conforms(to: .audiovisualContent) }) { return media.identifier }
+    mediaType(served: served, attachment: attachment).identifier
+  }
 
+  /// The media type of the file: the first of what the gateway served, what the attachment says and what the name's
+  /// extension says that is a single sound or video, never a playlist (an HLS playlist makes the player fetch its
+  /// segments itself), else a plain MPEG-4 movie or sound by the attachment's kind.
+  static func mediaType(served: String?, attachment: OutboxAttachment) -> UTType {
     let ext = (attachment.name as NSString).pathExtension
-    if !ext.isEmpty, let byName = UTType(filenameExtension: ext), byName.conforms(to: .audiovisualContent) {
-      return byName.identifier
-    }
+    let candidates =
+      [served, attachment.mime].compactMap { $0 }.compactMap { UTType(mimeType: $0) }
+      + (ext.isEmpty ? [] : [UTType(filenameExtension: ext)].compactMap { $0 })
+    if let media = candidates.first(where: isSingleMedia) { return media }
+    return attachment.kind == .audio ? .mpeg4Audio : .mpeg4Movie
+  }
 
-    return declared.first?.identifier ?? UTType.data.identifier
+  private static func isSingleMedia(_ type: UTType) -> Bool {
+    guard type.conforms(to: .audiovisualContent), !type.conforms(to: .playlist), !type.conforms(to: .m3uPlaylist)
+    else { return false }
+    let id = type.identifier.lowercased()
+    return !id.contains("m3u") && !id.contains("mpegurl") && !id.contains("playlist")
   }
 }

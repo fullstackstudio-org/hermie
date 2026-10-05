@@ -105,7 +105,12 @@ final class OutboxMedia {
         kLSQuarantineAgentNameKey as String: Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "Hermie",
       ]
       var marked = destination
-      try marked.setResourceValues(values)
+      do {
+        try marked.setResourceValues(values)
+      } catch {
+        try? FileManager.default.removeItem(at: destination)  // never leave a copy that is not marked
+        throw error
+      }
     }
   }
 #endif
