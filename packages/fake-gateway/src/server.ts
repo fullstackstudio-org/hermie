@@ -70,6 +70,16 @@ import {
   type UsageStage
 } from './usage'
 import {
+  APPROVAL_GRANTS_METHODS,
+  APPROVAL_MODES,
+  approvalCall,
+  ApprovalGrantsError,
+  approvalView,
+  emptyApprovalGrantsStage,
+  stagedGrant,
+  type ApprovalGrantsStage
+} from './approval-grants'
+import {
   emptyVaultStage,
   MANAGER as VAULT_MANAGER,
   VAULT_METHODS,
@@ -1261,6 +1271,11 @@ export interface FakeGatewayState {
    * staged through `POST /__fake/vault`.
    */
   vault: VaultStage
+  /**
+   * Every profile's standing approvals, every live session's session approvals and the approval mode
+   * (`approval-grants.ts`), with what a test staged through `POST /__fake/approvals`.
+   */
+  approvals: ApprovalGrantsStage
   /** Images accepted through `image.attach_bytes`, newest last. */
   attachedImages: { session_id: string; filename: string; bytes: number }[]
   /**
@@ -3339,6 +3354,7 @@ function initialState(options: FakeGatewayOptions): FakeGatewayState {
     deniedMethods: new Map<string, { code: number; message: string }>(),
     usage: emptyUsageStage(),
     vault: emptyVaultStage(),
+    approvals: emptyApprovalGrantsStage(),
     attachedImages: [],
     uploadedFiles: new Map(),
     liveSubagents: new Map<string, LiveSubagent>(),
@@ -4961,6 +4977,60 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       }
 
       json(res, 200, { denied: [...state.deniedMethods.keys()] })
+
+      return
+    }
+
+    if (path === '/__fake/approvals' && method === 'POST') {
+      /*
+        Stage the approvals (`approval-grants.ts`). Not part of the contract.
+
+          { clear: true }                                       no grants, mode manual, supported
+          { mode: 'manual' | 'smart' | 'off' }                  the approval mode
+          { permanent: [{ profile, label, kind? }] }            add standing grants (a label of several rules
+                                                                 joins them with "; ")
+          { session: [{ profile, label, tirith? }] }            add session grants to the profile's own chat
+          { session: [{ sessionKey, label, tirith? }] }         ... or to the session with that stored id
+          { unsupported: true | false }                         the approval methods answer -32601
+      */
+      const body = await readBody(req)
+
+      if (body.clear === true) {
+        state.approvals = emptyApprovalGrantsStage()
+      }
+
+      if (typeof body.mode === 'string' && (APPROVAL_MODES as readonly string[]).includes(body.mode)) {
+        state.approvals.mode = body.mode as ApprovalGrantsStage['mode']
+      }
+
+      for (const row of Array.isArray(body.permanent) ? (body.permanent as Record<string, unknown>[]) : []) {
+        const profile = typeof row.profile === 'string' && row.profile ? row.profile : LAUNCH_PROFILE
+        state.approvals.permanent.set(profile, [...(state.approvals.permanent.get(profile) ?? []), stagedGrant(row)])
+      }
+
+      for (const row of Array.isArray(body.session) ? (body.session as Record<string, unknown>[]) : []) {
+        const key =
+          typeof row.sessionKey === 'string' && row.sessionKey
+            ? row.sessionKey
+            : titleHolder('Bot Chat', typeof row.profile === 'string' ? row.profile : LAUNCH_PROFILE)?.storedId
+
+        if (key) {
+          state.approvals.sessions.set(key, [...(state.approvals.sessions.get(key) ?? []), stagedGrant(row)])
+        }
+      }
+
+      if (typeof body.unsupported === 'boolean') {
+        state.approvals.unsupported = body.unsupported
+      }
+
+      json(res, 200, { methods: [...APPROVAL_GRANTS_METHODS], unsupported: state.approvals.unsupported })
+
+      return
+    }
+
+    if (path === '/__fake/approvals' && method === 'GET') {
+      // The grants as the fake holds them (labels only) and every approval call's method, profile and keys.
+      json(res, 200, approvalView(state.approvals))
 
       return
     }
@@ -9613,6 +9683,46 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
           return vaultCall(state.vault, method, params, owner)
         } catch (error) {
           if (error instanceof VaultError) {
+            throw new RpcFault(error.code, error.message)
+          }
+
+          throw error
+        }
+      }
+
+      /*
+        `tui_gateway/methods_prompt.py`: the standing and session approvals a client lists and revokes (see
+        `approval-grants.ts`). `params.profile` names the profile, one the gateway does not serve is 4064; a
+        call without it reaches the named session's profile, else the launch profile.
+      */
+      case 'approval.grants':
+      case 'approval.revoke': {
+        const named = typeof params.profile === 'string' ? params.profile.trim() : ''
+
+        if (named && !state.profiles.some(entry => entry.name === named)) {
+          throw new RpcFault(4064, `Profile '${named}' does not exist.`)
+        }
+
+        const live = [...state.sessions.values()]
+          .filter(entry => !entry.closed)
+          .map(entry => ({
+            id: entry.id,
+            profile: entry.profile,
+            storedId: entry.storedId,
+            yolo: boolWord(state.sessionConfig.get(entry.storedId)?.yolo)
+          }))
+
+        try {
+          return approvalCall(
+            state.approvals,
+            method,
+            params,
+            named || null,
+            state.profiles.find(entry => entry.is_default)?.name ?? LAUNCH_PROFILE,
+            live
+          )
+        } catch (error) {
+          if (error instanceof ApprovalGrantsError) {
             throw new RpcFault(error.code, error.message)
           }
 
