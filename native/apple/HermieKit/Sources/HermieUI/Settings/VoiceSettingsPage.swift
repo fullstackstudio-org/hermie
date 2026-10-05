@@ -348,23 +348,49 @@ private struct VoiceSetupPage: View {
 
   @Environment(\.dismiss) private var dismiss
   @Environment(LiveGateway.self) private var live: LiveGateway?
-  @State private var speaker: (any SpeechSynthesizing)?
+  @State private var speakers = VoiceSetupSpeakers()
 
   var body: some View {
+    // Read here, not once on appear: the session may arrive after the page is open (a gateway still
+    // connecting, or reconnecting), and the page then gets the gateway's voice instead of staying the device's.
     let gateway = live?.session?.speechAccess(profile: nil)
 
-    Group {
-      if let speaker {
-        VoiceSetupView(settings: settings, speaker: speaker, gateway: gateway, firstRun: false, onDone: { dismiss() })
-      } else {
-        Color.black
-      }
+    VoiceSetupView(
+      settings: settings, speaker: speakers.speaker(for: gateway), gateway: gateway, firstRun: false,
+      onDone: { dismiss() }
+    )
+    // The setup keeps the speaker and gateway it was made with: a new connection is a new screen.
+    .id(gateway.map(ObjectIdentifier.init))
+  }
+}
+
+/**
+ The synthesiser the voice setup speaks its samples with: one per gateway it was asked for, and one for none. The
+ same one is handed back for as long as the gateway is the same; when the session arrives late, or is replaced, the
+ next call makes a new one around the gateway that is there now, and the one it replaces is silenced.
+ */
+@MainActor
+final class VoiceSetupSpeakers {
+  private let engines: VoiceEngines
+  private var gateway: ObjectIdentifier?
+  private var current: (any SpeechSynthesizing)?
+
+  init(engines: VoiceEngines = .live) {
+    self.engines = engines
+  }
+
+  func speaker(for access: GatewaySpeechAccess?) -> any SpeechSynthesizing {
+    let key = access.map(ObjectIdentifier.init)
+
+    if let current, key == gateway {
+      return current
     }
-    .onAppear {
-      if speaker == nil {
-        speaker = VoiceEngines.live.speech(gateway: gateway)
-      }
-    }
+
+    current?.stop()
+    let made = engines.speech(gateway: access)
+    current = made
+    gateway = key
+    return made
   }
 }
 
