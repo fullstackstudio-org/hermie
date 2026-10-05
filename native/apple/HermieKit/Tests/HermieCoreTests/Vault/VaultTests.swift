@@ -14,10 +14,13 @@ private let bot = "researcher"
 private let marker = "marker-secret-7f3a"
 
 /// Whether `value` holds `marker` anywhere it can be reached by reflection, including inside a `SecretValue`
-/// or a `VaultAddRequest` (whose mirrors are redacted on purpose, so they are opened here). A child named
-/// `backend` is the test's own stub, which records what was sent, and is skipped.
+/// or a `VaultAddRequest` (whose mirrors are redacted on purpose, so they are opened here). A `VaultBackend` is
+/// skipped: here it is the test's own stub, which records what reached "the gateway".
+///
+/// What reflection cannot reach is out of this check: SwiftUI's own copy of a field's text, and the copy a
+/// task holds while a call is on its way (the tests that look during the call check the form instead).
 private func holds(_ marker: String, in value: Any, depth: Int = 0) -> Bool {
-  guard depth < 16 else {
+  guard depth < 16, !(value is any VaultBackend) else {
     return false
   }
 
@@ -33,9 +36,7 @@ private func holds(_ marker: String, in value: Any, depth: Int = 0) -> Bool {
     return request.secret.values.contains { $0.revealed.contains(marker) }
   }
 
-  return Mirror(reflecting: value).children.contains { child in
-    child.label != "backend" && holds(marker, in: child.value, depth: depth + 1)
-  }
+  return Mirror(reflecting: value).children.contains { holds(marker, in: $0.value, depth: depth + 1) }
 }
 
 /// The gateway's side of the vault calls, scripted, recording what reached it.
@@ -483,7 +484,7 @@ private func refusal(_ message: String, code: Int = 5095) -> GatewayRPCError {
 @Suite("Removing from a vault") @MainActor struct VaultRemoveTests {
   private let item = VaultItem(id: "vault_1", kind: "login", label: "Work")
 
-  @Test func nothingIsRemovedUntilThePersonConfirms() async {
+  @Test func askingSendsNothingAndCancellingClearsTheQuestion() async {
     let backend = StubVault()
     backend.set(items: [item])
     let model = VaultModel(bot: bot, backend: backend)
@@ -495,23 +496,38 @@ private func refusal(_ message: String, code: Int = 5095) -> GatewayRPCError {
 
     model.cancelRemoval()
     #expect(model.pendingRemoval == nil)
-    #expect(!(await model.confirmRemoval()), "a cancelled question removes nothing")
     #expect(backend.removed.isEmpty)
+  }
+
+  /// SwiftUI dismisses a confirmation dialog (its `isPresented` setter, with `false`) before it runs the
+  /// button's action, so the question is gone by the time the yes arrives: the yes carries its item.
+  @Test func theYesRemovesTheItemAfterTheDialogDismissedItself() async {
+    let backend = StubVault()
+    backend.set(items: [item])
+    let model = VaultModel(bot: bot, backend: backend)
+    await model.load()
 
     model.askRemoval(item)
+    model.cancelRemoval()
     backend.set(items: [])
-    #expect(await model.confirmRemoval())
+    let removed = await Task { await model.confirmRemoval(item) }.value
+
+    #expect(removed)
     #expect(backend.removed == ["vault_1"])
     #expect(model.pendingRemoval == nil)
     #expect(model.items.isEmpty, "the list was read again")
+    #expect(model.removing.isEmpty)
   }
 
-  @Test func aPasswordManagersItemIsNotOffered() {
-    let model = VaultModel(bot: bot, backend: StubVault())
+  @Test func aPasswordManagersItemIsNeitherAskedAboutNorRemoved() async {
+    let backend = StubVault()
+    let model = VaultModel(bot: bot, backend: backend)
+    let managed = VaultItem(id: "bw_1", kind: "login", label: "Shop", backend: "bitwarden")
 
-    model.askRemoval(VaultItem(id: "bw_1", kind: "login", label: "Shop", backend: "bitwarden"))
-
+    model.askRemoval(managed)
     #expect(model.pendingRemoval == nil)
+    #expect(!(await model.confirmRemoval(managed)))
+    #expect(backend.removed.isEmpty)
   }
 
   @Test func aRefusedOrMissedRemoveIsSaid() async {
@@ -521,13 +537,11 @@ private func refusal(_ message: String, code: Int = 5095) -> GatewayRPCError {
     let model = VaultModel(bot: bot, backend: backend)
     await model.load()
 
-    model.askRemoval(item)
-    #expect(!(await model.confirmRemoval()))
+    #expect(!(await model.confirmRemoval(item)))
     #expect(model.actionFailure == .failed(""))
 
     backend.failActions(refusal("vault locked"))
-    model.askRemoval(item)
-    #expect(!(await model.confirmRemoval()))
+    #expect(!(await model.confirmRemoval(item)))
     #expect(model.actionFailure == .failed("vault locked"))
   }
 }
@@ -602,7 +616,7 @@ private func refusal(_ message: String, code: Int = 5095) -> GatewayRPCError {
     backend.failActions(refusal("no", code: 4033))
     #expect(!(await model.lock("bitwarden")))
     #expect(model.actionFailure == .refused)
-    #expect(model.working.isEmpty)
+    #expect(model.busySources.isEmpty)
   }
 
   @Test func onlyManagersOnTheHostOrSwitchedOnAreShown() async {
@@ -635,5 +649,133 @@ private func refusal(_ message: String, code: Int = 5095) -> GatewayRPCError {
     await model.load()
     #expect(model.phase == .loaded)
     #expect(model.items.count == 1)
+  }
+}
+
+// MARK: - No answer in time
+
+@Suite("A vault call without an answer in time") @MainActor struct VaultTimeoutTests {
+  @Test func aTimeoutIsNotOfflineOnTheWire() async {
+    let link = ScriptedLink()
+    link.refuse("vault.add") { _ in GatewayRPCError(.timeout, "request timed out after 30s: vault.add") }
+
+    await #expect(throws: VaultFailure.timedOut) {
+      _ = try await VaultService(link: link).add(
+        profile: bot,
+        VaultAddRequest(kind: .login, label: "x", origin: "https://x.example", secret: ["password": SecretValue(marker)]))
+    }
+  }
+
+  @Test func anAddThatTimedOutMayHaveBeenStoredSoTheListIsReadAgain() async {
+    let backend = StubVault()
+    backend.failAdd(GatewayRPCError(.timeout, "request timed out after 30s: vault.add"))
+    backend.set(items: [VaultItem(id: "vault_1", kind: "login", label: "Work")])
+    let model = VaultModel(bot: bot, backend: backend)
+    let form = VaultAddForm()
+    form.label = "Work"
+    form.site = "example.com"
+    form.identifier = "me"
+    form.setSecret("password", marker)
+
+    #expect(!(await form.submit(to: model)))
+
+    #expect(model.addFailure == .timedOut)
+    #expect(backend.lists == 1)
+    #expect(model.items.map(\.label) == ["Work"])
+    #expect(form.secretsEmpty)
+    #expect(!holds(marker, in: model))
+  }
+
+  @Test func anUnlockThatTimedOutReadsTheSourcesAgain() async {
+    let backend = StubVault()
+    backend.failUnlock(GatewayRPCError(.timeout, "request timed out after 30s: vault.unlock"))
+    backend.set(sources: [manager(unlocked: true)])
+    let model = VaultModel(bot: bot, backend: backend)
+
+    #expect(!(await model.unlock("bitwarden", password: SecretValue(marker))))
+
+    #expect(model.unlockFailure == .timedOut)
+    #expect(model.sources.first?.unlocked == true)
+  }
+}
+
+// MARK: - Limits on what a gateway answers
+
+@Suite("A vault listing's limits") struct VaultListLimitTests {
+  private func row(_ id: String, label: String = "x") -> JSONValue {
+    .object(["id": .string(id), "kind": .string("login"), "label": .string(label), "backend": .string("local")])
+  }
+
+  @Test func aListingIsCappedAndKeepsTheFirstOfEachIdAndNoOverlongOne() {
+    var rows = (0..<600).map { row("vault_\($0)") }
+    rows.insert(row("vault_0", label: "duplicate"), at: 1)
+    rows.insert(row(String(repeating: "x", count: VaultItem.idLimit + 1)), at: 2)
+
+    let items = VaultItem.parseList(.object(["items": .array(rows)]))
+
+    #expect(items.count == VaultItem.listLimit)
+    #expect(Set(items.map(\.id)).count == items.count)
+    #expect(items.first?.label == "x")
+    #expect(items.allSatisfy { $0.id.count <= VaultItem.idLimit })
+  }
+
+  @Test func sourcesAreCappedAndUnique() {
+    let rows = (0..<80).map { JSONValue.object(["name": .string("m\($0 % 60)")]) }
+
+    let sources = VaultSource.parseList(.object(["sources": .array(rows)]))
+
+    #expect(sources.count == VaultSource.listLimit)
+    #expect(Set(sources.map(\.name)).count == sources.count)
+  }
+}
+
+// MARK: - The count on the bot settings
+
+@Suite("A vault's count") @MainActor struct VaultCountTests {
+  @Test func aRecentCountIsShownWithoutReadingTheVaultAgain() async {
+    final class Clock { var now = ContinuousClock.now }
+    let clock = Clock()
+    let counts = VaultCounts(now: { clock.now })
+    let backend = StubVault()
+    backend.set(items: [VaultItem(id: "vault_1", kind: "login", label: "Work")])
+    let key = VaultCounts.key(gateway: "g1", bot: bot)
+
+    let first = VaultModel(bot: bot, backend: backend, countKey: key, counts: counts)
+    #expect(first.count == nil)
+    await first.loadCountIfStale()
+    #expect(first.count == 1)
+    #expect(backend.lists == 1)
+
+    // The settings opened again within the minute: the count is there, the vault is not listed.
+    let again = VaultModel(bot: bot, backend: backend, countKey: key, counts: counts)
+    await again.loadCountIfStale()
+    #expect(again.count == 1)
+    #expect(backend.lists == 1)
+
+    // Another bot, another count.
+    let other = VaultModel(
+      bot: "writer", backend: backend, countKey: VaultCounts.key(gateway: "g1", bot: "writer"), counts: counts)
+    #expect(other.count == nil)
+
+    // Past the minute it is read again.
+    clock.now = clock.now.advanced(by: VaultCounts.freshFor + .seconds(1))
+    let later = VaultModel(bot: bot, backend: backend, countKey: key, counts: counts)
+    #expect(later.count == nil)
+    await later.loadCountIfStale()
+    #expect(backend.lists == 2)
+  }
+
+  @Test func whatThePageDoesIsInTheCount() async {
+    let counts = VaultCounts()
+    let backend = StubVault()
+    let model = VaultModel(bot: bot, backend: backend, countKey: "k", counts: counts)
+    await model.load()
+    #expect(model.count == 0)
+
+    backend.set(items: [VaultItem(id: "vault_1", kind: "login", label: "Work")])
+    #expect(await model.add(VaultAddRequest(kind: .login, label: "Work", origin: "https://x.example", secret: [:])))
+
+    #expect(model.count == 1)
+    #expect(counts.count(for: "k") == 1)
   }
 }

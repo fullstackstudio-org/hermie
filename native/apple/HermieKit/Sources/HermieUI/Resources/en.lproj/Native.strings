@@ -2274,6 +2274,8 @@
 	<string>Label</string>
 	<key>native.vault.labelPrompt</key>
 	<string>For example: GitHub work account</string>
+	<key>native.vault.loadTimedOut</key>
+	<string>The vault did not answer in time.</string>
 	<key>native.vault.loading</key>
 	<string>Reading the vault…</string>
 	<key>native.vault.lock</key>
@@ -2306,6 +2308,8 @@
 	<string>Password managers</string>
 	<key>native.vault.sourcesNote</key>
 	<string>Password managers on the gateway's computer. While one is unlocked, %@ can use its logins too.</string>
+	<key>native.vault.timedOut</key>
+	<string>No answer in time. It may have gone through: check the list.</string>
 	<key>native.vault.title</key>
 	<string>Vault</string>
 	<key>native.vault.unlock</key>

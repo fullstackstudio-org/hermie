@@ -85,9 +85,31 @@ public struct VaultItem: Sendable, Equatable, Identifiable, Hashable {
     )
   }
 
-  /// `vault.list`'s answer: its items, the ones without an id left out.
+  /// The most items a listing is read for: a vault is a person's logins, cards and addresses, and a gateway
+  /// that answered more is not believed past this.
+  public static let listLimit = 500
+  /// The longest id kept (the gateway's own are `vault_` and twelve hex digits; a manager's are longer).
+  public static let idLimit = 200
+
+  /// `vault.list`'s answer: its items, at most `listLimit`, without the ones with no id, an overlong id, or an
+  /// id an earlier row already had (the first one stays).
   public static func parseList(_ result: JSONValue) -> [VaultItem] {
-    (result["items"]?.arrayValue ?? []).compactMap(parse)
+    var seen: Set<String> = []
+    var items: [VaultItem] = []
+
+    for row in result["items"]?.arrayValue ?? [] {
+      guard items.count < listLimit else {
+        break
+      }
+
+      guard let item = parse(row), item.id.count <= idLimit, seen.insert(item.id).inserted else {
+        continue
+      }
+
+      items.append(item)
+    }
+
+    return items
   }
 }
 
@@ -137,8 +159,26 @@ public struct VaultSource: Sendable, Equatable, Identifiable, Hashable {
     )
   }
 
+  /// `vault.sources`' answer: at most `listLimit` sources, the first of each name.
+  public static let listLimit = 50
+
   public static func parseList(_ result: JSONValue) -> [VaultSource] {
-    (result["sources"]?.arrayValue ?? []).compactMap(parse)
+    var seen: Set<String> = []
+    var sources: [VaultSource] = []
+
+    for row in result["sources"]?.arrayValue ?? [] {
+      guard sources.count < listLimit else {
+        break
+      }
+
+      guard let source = parse(row), source.name.count <= VaultItem.idLimit, seen.insert(source.name).inserted else {
+        continue
+      }
+
+      sources.append(source)
+    }
+
+    return sources
   }
 }
 
@@ -192,8 +232,11 @@ public struct VaultAddRequest: Sendable, Equatable, CustomStringConvertible, Cus
 public enum VaultFailure: Error, Sendable, Equatable {
   /// The gateway has no such method (an older one).
   case unsupported
-  /// No connection to ask over, or none in time.
+  /// No connection to ask over.
   case offline
+  /// The answer did not come in time. The gateway may still have done it (an add may be stored, an unlock may
+  /// have taken), so the page reads the vault again and says to check.
+  case timedOut
   /// The gateway does not let this connection do that (an agent's connection: 4033).
   case refused
   /// The gateway said no, in its own words (untrusted text, already cleaned of what was sent).
@@ -213,7 +256,8 @@ public enum VaultFailure: Error, Sendable, Equatable {
 
     if let rpc = error as? GatewayRPCError {
       switch rpc.kind {
-      case .notConnected, .closed, .timeout: return .offline
+      case .notConnected, .closed: return .offline
+      case .timeout: return .timedOut
       case .rejected:
         if rpc.code == -32601 {
           return .unsupported

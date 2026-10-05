@@ -2274,6 +2274,8 @@
 	<string>Bezeichnung</string>
 	<key>native.vault.labelPrompt</key>
 	<string>Zum Beispiel: GitHub-Arbeitskonto</string>
+	<key>native.vault.loadTimedOut</key>
+	<string>Der Tresor hat nicht rechtzeitig geantwortet.</string>
 	<key>native.vault.loading</key>
 	<string>Tresor wird gelesen…</string>
 	<key>native.vault.lock</key>
@@ -2306,6 +2308,8 @@
 	<string>Passwortmanager</string>
 	<key>native.vault.sourcesNote</key>
 	<string>Passwortmanager auf dem Rechner des Gateways. Solange einer entsperrt ist, kann %@ auch dessen Anmeldungen verwenden.</string>
+	<key>native.vault.timedOut</key>
+	<string>Keine Antwort rechtzeitig. Es könnte trotzdem geklappt haben: sieh in der Liste nach.</string>
 	<key>native.vault.title</key>
 	<string>Tresor</string>
 	<key>native.vault.unlock</key>

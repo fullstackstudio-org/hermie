@@ -25823,6 +25823,29 @@
         }
       }
     },
+    "native.vault.loadTimedOut" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Tresor hat nicht rechtzeitig geantwortet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The vault did not answer in time."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De kluis antwoordde niet op tijd."
+          }
+        }
+      }
+    },
     "native.vault.loading" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -26192,6 +26215,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wachtwoordmanagers op de computer van de gateway. Zolang er een ontgrendeld is, kan %@ ook de logins daarin gebruiken."
+          }
+        }
+      }
+    },
+    "native.vault.timedOut" : {
+      "comment" : "An add, unlock, remove or switch whose answer did not come in time; the gateway may have done it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Antwort rechtzeitig. Es könnte trotzdem geklappt haben: sieh in der Liste nach."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No answer in time. It may have gone through: check the list."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen antwoord op tijd. Het kan toch gelukt zijn: kijk in de lijst."
           }
         }
       }

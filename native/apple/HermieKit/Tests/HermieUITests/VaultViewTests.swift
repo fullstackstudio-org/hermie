@@ -27,6 +27,25 @@ private struct QuietVault: VaultBackend {
   func setSourceEnabled(profile: String, source: String, enabled: Bool) async throws {}
 }
 
+/// A gateway that removes what it is asked to and records it.
+private final class RemovingVault: VaultBackend, @unchecked Sendable {
+  private let mutex = NSLock()
+  private var ids: [String] = []
+
+  var removed: [String] { mutex.withLock { ids } }
+
+  func list(profile: String) async throws -> [VaultItem] { [] }
+  func sources(profile: String) async throws -> [VaultSource] { [] }
+  func add(profile: String, _ request: VaultAddRequest) async throws -> String { "" }
+  func remove(profile: String, id: String) async throws -> Bool {
+    mutex.withLock { ids.append(id) }
+    return true
+  }
+  func unlock(profile: String, source: String, password: SecretValue) async throws {}
+  func lock(profile: String, source: String?) async throws {}
+  func setSourceEnabled(profile: String, source: String, enabled: Bool) async throws {}
+}
+
 @MainActor
 @Suite("Vault: route and words")
 struct VaultViewTests {
@@ -41,10 +60,42 @@ struct VaultViewTests {
     #expect(router.detailPath == [.vault(chat)])
   }
 
-  @Test func eachFailureHasItsOwnSentenceAndAnAddRefusalAsksForTheSecretAgain() {
-    let loads = [VaultWords.load(.unsupported), VaultWords.load(.offline), VaultWords.load(.refused)]
+  /// The remove dialog's two ends in the order SwiftUI calls them for its Remove button: the dismissal (the
+  /// `isPresented` setter, with `false`) first, then the button's action.
+  @Test func theRemoveDialogRemovesWhenItDismissesItselfBeforeTheYes() async {
+    let backend = RemovingVault()
+    let model = VaultModel(bot: "researcher", backend: backend)
+    let item = VaultItem(id: "vault_1", kind: "login", label: "Work")
 
-    #expect(Set(loads).count == 3)
+    model.askRemoval(item)
+    VaultRemovalDialog.dismissed(model)
+    let removed = await VaultRemovalDialog.confirmed(model, item).value
+
+    #expect(removed)
+    #expect(backend.removed == ["vault_1"])
+    #expect(model.pendingRemoval == nil)
+  }
+
+  @Test func theRemoveDialogsCancelRemovesNothing() async {
+    let backend = RemovingVault()
+    let model = VaultModel(bot: "researcher", backend: backend)
+
+    model.askRemoval(VaultItem(id: "vault_1", kind: "login", label: "Work"))
+    VaultRemovalDialog.dismissed(model)
+    await Task.yield()
+
+    #expect(model.pendingRemoval == nil)
+    #expect(backend.removed.isEmpty)
+  }
+
+  @Test func eachFailureHasItsOwnSentenceAndAnAddRefusalAsksForTheSecretAgain() {
+    let loads = [
+      VaultWords.load(.unsupported), VaultWords.load(.offline), VaultWords.load(.refused), VaultWords.load(.timedOut)
+    ]
+
+    #expect(Set(loads).count == 4)
+    #expect(VaultWords.add(.timedOut) == NativeStrings.Vault.timedOut)
+    #expect(VaultWords.unlock(.timedOut) == NativeStrings.Vault.timedOut)
     #expect(VaultWords.load(.failed("disk full")).contains("disk full"))
     #expect(VaultWords.add(.failed("bad origin")).contains("bad origin"))
     #expect(VaultWords.add(.failed("bad origin")) != NativeStrings.Vault.addFailedNoReason)
@@ -69,6 +120,7 @@ struct VaultViewTests {
   @Test(arguments: [
     "native.vault.title", "native.vault.about", "native.vault.empty", "native.vault.loading",
     "native.vault.unsupported", "native.vault.offline", "native.vault.refused", "native.vault.failed",
+    "native.vault.loadTimedOut", "native.vault.timedOut",
     "native.vault.actionFailed", "native.vault.actionFailedNoReason", "native.vault.kind", "native.vault.kind.login",
     "native.vault.kind.payment", "native.vault.kind.address", "native.vault.inManager", "native.vault.withOTP",
     "native.vault.add", "native.vault.addTitle", "native.vault.label", "native.vault.labelPrompt",

@@ -30,6 +30,10 @@ extension NativeStrings {
     static var offline: String { string("native.vault.offline") }
     /// The gateway does not allow this from here.
     static var refused: String { string("native.vault.refused") }
+    /// The vault did not answer in time.
+    static var loadTimedOut: String { string("native.vault.loadTimedOut") }
+    /// No answer in time. It may have gone through: check the list.
+    static var timedOut: String { string("native.vault.timedOut") }
     /// The vault could not be read: {reason}
     static func failed(_ reason: String) -> String {
       String(
@@ -187,6 +191,7 @@ enum VaultWords {
     switch failure {
     case .unsupported: NativeStrings.Vault.unsupported
     case .offline: NativeStrings.Vault.offline
+    case .timedOut: NativeStrings.Vault.loadTimedOut
     case .refused: NativeStrings.Vault.refused
     case .failed(let reason): reason.isEmpty ? NativeStrings.Vault.unsupported : NativeStrings.Vault.failed(reason)
     }
@@ -196,6 +201,7 @@ enum VaultWords {
     switch failure {
     case .unsupported: NativeStrings.Vault.unsupported
     case .offline: NativeStrings.Vault.offline
+    case .timedOut: NativeStrings.Vault.timedOut
     case .refused: NativeStrings.Vault.refused
     case .failed(let reason):
       reason.isEmpty ? NativeStrings.Vault.actionFailedNoReason : NativeStrings.Vault.actionFailed(reason)

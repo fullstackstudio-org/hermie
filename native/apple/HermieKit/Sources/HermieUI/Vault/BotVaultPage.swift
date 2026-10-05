@@ -4,6 +4,10 @@ import SwiftUI
 /**
  A bot's Vault, on its settings page: one row, in the style of the capability and usage rows, that says how
  many items the bot's vault holds and opens its page (`BotVaultPage`).
+
+ The row and the page share one model, so what the page adds or removes is in the row's count on the way back.
+ The count is read when the row appears unless a read within the last minute already gave it (`VaultCounts`):
+ a listing can ask a password manager on the gateway's host, which is not instant.
  */
 struct BotVaultSection: View {
   let chat: ChatRef
@@ -22,7 +26,7 @@ struct BotVaultSection: View {
 
     Section {
       NavigationLink {
-        BotVaultPage(session: session, bot: chat.bot)
+        BotVaultPage(session: session, bot: chat.bot, model: model)
       } label: {
         LabeledContent {
           summary
@@ -34,22 +38,21 @@ struct BotVaultSection: View {
     }
     .task(id: connected) {
       if connected {
-        await model.load()
+        await model.loadCountIfStale()
       }
     }
   }
 
   /// How many items, a spinner while they are read, a dash where they cannot be.
   @ViewBuilder private var summary: some View {
-    switch model.phase {
-    case .idle, .loading:
-      ProgressView()
-        .controlSize(.small)
-    case .loaded:
-      Text(verbatim: model.items.isEmpty ? "–" : String(model.items.count))
+    if let count = model.count {
+      Text(verbatim: count == 0 ? "–" : String(count))
         .foregroundStyle(.secondary)
         .monospacedDigit()
-    case .failed:
+    } else if model.phase == .loading {
+      ProgressView()
+        .controlSize(.small)
+    } else {
       Text(verbatim: "–")
         .foregroundStyle(.secondary)
     }
@@ -93,10 +96,12 @@ struct BotVaultPage: View {
   @State private var adding = false
   @State private var unlocking: VaultSource?
 
-  init(session: GatewaySession, bot: String) {
+  /// - Parameter model: the bot settings row's model, so the row's count follows what is done here; nil
+  ///   builds one for this page (opened from the chat's menu).
+  init(session: GatewaySession, bot: String, model: VaultModel? = nil) {
     self.session = session
     self.bot = bot
-    _model = State(initialValue: session.vault(for: bot))
+    _model = State(initialValue: model ?? session.vault(for: bot))
   }
 
   var body: some View {
@@ -163,16 +168,16 @@ struct BotVaultPage: View {
       model.pendingRemoval.map { NativeStrings.Vault.removeTitle($0.label) } ?? "",
       isPresented: Binding(
         get: { model.pendingRemoval != nil },
-        set: { if !$0 { model.cancelRemoval() } }
+        set: { if !$0 { VaultRemovalDialog.dismissed(model) } }
       ),
       titleVisibility: .visible,
       presenting: model.pendingRemoval
-    ) { _ in
+    ) { item in
       Button(NativeStrings.Vault.remove, role: .destructive) {
-        Task { await model.confirmRemoval() }
+        VaultRemovalDialog.confirmed(model, item)
       }
       .accessibilityIdentifier("hermie.vault.remove.confirm")
-      Button(Strings.App.Common.cancel, role: .cancel) { model.cancelRemoval() }
+      Button(Strings.App.Common.cancel, role: .cancel) {}
     } message: { _ in
       Text(NativeStrings.Vault.removeMessage(name))
     }
@@ -194,7 +199,7 @@ struct BotVaultPage: View {
         }
 
         ForEach(model.items) { item in
-          VaultItemRow(item: item, manager: model.managerName(of: item), removing: model.working.contains(item.id)) {
+          VaultItemRow(item: item, manager: model.managerName(of: item), removing: model.removing.contains(item.id)) {
             model.askRemoval(item)
           }
         }
@@ -288,7 +293,7 @@ struct VaultSourceRow: View {
   let unlock: () -> Void
 
   var body: some View {
-    let busy = model.working.contains(source.name)
+    let busy = model.busySources.contains(source.name)
 
     VStack(alignment: .leading, spacing: 8) {
       Toggle(
@@ -333,5 +338,26 @@ struct VaultSourceRow: View {
     }
 
     return source.unlocked ? NativeStrings.Vault.unlocked : NativeStrings.Vault.locked
+  }
+}
+
+/**
+ What the remove question's two ends do, in the order SwiftUI calls them: a button of a confirmation dialog
+ first dismisses the dialog (its `isPresented` setter, with `false`) and only then runs its action. So the yes
+ carries the item the dialog presented, and the dismissal clears the question only while one is still asked.
+ */
+@MainActor
+enum VaultRemovalDialog {
+  /// The dialog went away (Cancel, a tap outside, Esc, or before any button's action).
+  static func dismissed(_ model: VaultModel) {
+    if model.pendingRemoval != nil {
+      model.cancelRemoval()
+    }
+  }
+
+  /// Remove: `item` is the one the dialog presented.
+  @discardableResult
+  static func confirmed(_ model: VaultModel, _ item: VaultItem) -> Task<Bool, Never> {
+    Task { await model.confirmRemoval(item) }
   }
 }

@@ -2274,6 +2274,8 @@
 	<string>Naam</string>
 	<key>native.vault.labelPrompt</key>
 	<string>Bijvoorbeeld: GitHub-werkaccount</string>
+	<key>native.vault.loadTimedOut</key>
+	<string>De kluis antwoordde niet op tijd.</string>
 	<key>native.vault.loading</key>
 	<string>Kluis lezen…</string>
 	<key>native.vault.lock</key>
@@ -2306,6 +2308,8 @@
 	<string>Wachtwoordmanagers</string>
 	<key>native.vault.sourcesNote</key>
 	<string>Wachtwoordmanagers op de computer van de gateway. Zolang er een ontgrendeld is, kan %@ ook de logins daarin gebruiken.</string>
+	<key>native.vault.timedOut</key>
+	<string>Geen antwoord op tijd. Het kan toch gelukt zijn: kijk in de lijst.</string>
 	<key>native.vault.title</key>
 	<string>Kluis</string>
 	<key>native.vault.unlock</key>

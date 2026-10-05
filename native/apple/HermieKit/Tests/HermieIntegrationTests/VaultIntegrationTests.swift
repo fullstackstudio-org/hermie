@@ -159,8 +159,10 @@ extension Integration {
         model.cancelRemoval()
         #expect(try await gateway.vaultContents(researcher)["items"]?.arrayValue?.count == 1)
 
+        // As SwiftUI does it: the dialog dismisses itself, then the yes runs with the item it presented.
         model.askRemoval(item)
-        #expect(await model.confirmRemoval())
+        model.cancelRemoval()
+        #expect(await model.confirmRemoval(item))
         #expect(model.items.isEmpty)
         #expect(try await gateway.vaultContents(researcher)["items"]?.arrayValue?.isEmpty == true)
       }
