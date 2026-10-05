@@ -438,7 +438,9 @@ private struct SlashHarness {
     opened.clock.advance(minutes: 4)
     composer.draft = "/"
     composer.draft = ""
-    try await Task.sleep(for: .milliseconds(30))
+    // The cached list is read on a task of its own. Left running, it would meet the clock as it is moved on below and
+    // ask the gateway before the test has told the link to hold the request.
+    await waitUntil("the cached list to be read") { composer.catalogTask == nil }
     #expect(opened.link.calls(RPC.CommandsCatalog.name).count == 1)
 
     // Past it: the old list answers the keystroke at once, and a fresh one is asked for. A skill the
