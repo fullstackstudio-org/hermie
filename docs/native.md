@@ -2711,6 +2711,53 @@ settings page has a **Usage** row, beside the capability rows, that shows today'
   `UsageViewTests`, and `UsageIntegrationTests` against the fake gateway, which now has the four calls
   (`packages/fake-gateway/src/usage.ts`, staged with `POST /__fake/usage`, pinned by `usage.test.ts`).
 
+## Quick ask
+
+The Mac asks a bot something without opening the app (NX-2, `HermieUI/QuickAsk`, `HermieCore/QuickAsk`):
+a **menu bar item** with a small window (a `MenuBarExtra` in the window style), a **global shortcut** that opens
+it from any app (Option-Space), **Send to Hermie** in the Services menu for the text or files selected anywhere,
+and files, pictures and words **dropped on it**. Everything Mac-only is behind `#if os(macOS)`; the model and
+the shortcut's value types are plain Swift and are in `HermieCore`.
+
+- **A message in the bot's normal chat.** `QuickAskModel` owns no session type of its own. The window has a bot
+  picker (the last bot used on the live gateway, else the first), the chat's own `ComposerModel` through
+  `ComposerView` (so the slash commands, the queue, the attachment tray and the field's keys are the chat's), and
+  the answer: the chat's items that arrived after the send (`exchange`), drawn with the transcript's own rows
+  (`TranscriptItemView`). `stage` says where it stands (composing, sending, waiting, streaming, done). The chat's
+  model is held the way a chat screen holds it (`ChatLeases`, passed in as `Hold`), so a chat that is open in a
+  window keeps its model when the quick ask lets go. A chat that is not live is opened as `ChatFeed` opens it, once
+  the connection is up. **Open in Hermie** asks the main window for the chat (`ShellRequests.openChat`,
+  `AppRouter.openFromQuickAsk`, which is a chat link: it waits for the gateway list and beats a restored selection),
+  bringing a main window forward or asking the system to reopen the app when there is none.
+- **Where the window is.** SwiftUI cannot open a `MenuBarExtra`'s window from code, so the shortcut presses the
+  item's own button (`QuickAskWindows`: `performClick` on the app's own `NSStatusBarButton`, found among the app's
+  own windows; no permission and no events posted to the system). When the item is switched off (Settings,
+  General, "Show in menu bar", read from `UserDefaults` so the item is right from the first frame) or cannot be
+  found, the same view is shown in a small floating panel that does not bring the app's other windows forward, so
+  the shortcut and the Services menu work either way. `QuickAskPresenter` decides, over a `QuickAskWindowing` the
+  tests fake. The window is behind the app lock (`LockGate`).
+- **The shortcut** (`HotKeyShortcut`, `GlobalHotKeyController`, `CarbonHotKeyRegistrar`). Carbon's
+  `RegisterEventHotKey`: no Accessibility, no Input Monitoring, works in the sandbox, no dependency. Default
+  Option-Space; Settings, General records another (a local key monitor of the app's own events), clears it or
+  puts the default back. A shortcut needs Command, Option or Control (a function key may stand alone), is stored
+  as `option+space` and reads back the usual spellings; one the system refuses (taken by another app) is said under
+  the field. Pressed while the window is open it closes it.
+- **Send to Hermie.** `NSServices` in `native/macos/App/Info.plist` (message `sendToHermie`, one entry for text and
+  file types) and `QuickAskServicesProvider`, set as the application's services provider at launch. The menu item's
+  words are the app's own `ServicesMenu.strings` (the Info.plist and Services tables are the app bundle's, so
+  they are not in `Native.xcstrings`). Files win over text; the bot picker has the keyboard so the person says who
+  gets it. What is handed over before the window or a session exists waits in the model.
+- **Dropping.** Files and pictures take the chat's road (`AttachmentIntake.addDropped`: a chip at once, copied in,
+  uploaded). Words and links, which a chat refuses, are typed into the field, or attached as a text file when
+  they are longer than `QuickAskModel.inlineTextLimit` characters.
+- **Not verified here.** Nothing of the Mac side was run: the status item's button and window are found by AppKit
+  class name (`NSStatusBarWindow`, `MenuBarExtraWindow`), the bot picker's focus and a Services entry need
+  `pbs -update` or a relaunch to appear. The tests cover the models, the value types, the routing, the drop and the
+  pasteboard reading with fakes and no window.
+- **Tests.** `HotKeyTests`, `QuickAskSettingsTests`, `QuickAskModelTests` (HermieCoreTests, over the scripted
+  gateway); `QuickAskPresenterTests`, `QuickAskDropTests` (with the Services input and the recorder),
+  `QuickAskRoutingAndStringsTests`, `QuickAskViewTests` (HermieUITests; hosting controllers that are never shown).
+
 ## Licences and the gateway's facts
 
 **Settings › About › Licences** (`LicencesPage`) lists what the Apple apps owe to others, each entry opening its licence
