@@ -2840,6 +2840,40 @@ are in `HermieCore/Vault`; the sheets in `HermieUI/Vault/VaultSheets.swift`.
   staged password manager, `POST /__fake/vault` to stage it and `GET /__fake/vault` to see what reached a profile's
   vault; pinned by `vault.test.ts`).
 
+## Permissions
+
+Each bot has a **Permissions** page (NX-19): a row on its settings page after Vault (`BotPermissionsSection`, with the
+number of approvals) opens `BotPermissionsPage`. It lists what the bot may do without asking, and takes it back. The
+model and the calls are in `HermieCore/Permissions`; the page in `HermieUI/Permissions`.
+
+- **The calls.** The fork's `approval.grants {profile?, session_id?}` and `approval.revoke {scope, id? | all?,
+session_id?, profile?}` (`tui_gateway/approval_grants.py`, `methods_prompt.py`). `PermissionsService` sends
+  `profile` (the bot's name) on every call, never `session_id` on a list, `all: true` or one `id` on a revoke and
+  `session_id` only for a session scope. Errors: 4033 (an agent's connection, `refused`), 4064 (an unknown profile),
+  4001 (a session that is not live), 4006 (bad params, shown in the gateway's words), -32601 (an older gateway).
+- **What is shown.** The approval mode (`manual`, `smart`, `off`: shown and explained; it is the gateway's
+  configuration, so the page does not change it); **Always allowed** (the profile's standing approvals); and **This
+  session** for each live session that holds a session approval or has YOLO on (whether YOLO is on is shown; turning
+  it off stays in the chat's options). A grant's `id` is opaque; its `label` may name several rules joined with
+  `"; "` and is shown as one plain text (cleaned, at most 1,000 characters). The bot's own chat is told from another
+  live session by its runtime or stored id.
+- **A revoke asks first.** `PermissionsModel` has no public call that revokes: `ask` raises the question (one
+  approval, or "Revoke all" of a scope), `cancel` drops it and only `confirm` sends. The dialog dismisses itself
+  before its button runs, so the yes carries the revocation (`PermissionRevokeDialog`). The rows the gateway said it
+  removed are taken off the page, and the lists are read again after each revoke, whatever it answered. An id that
+  is already gone answers `revoked: 0`: not an error. No answer in time may have gone through, so nothing is taken
+  off and the read says.
+- **What the page says about scope.** A revoke applies on this gateway at once; other Hermes processes on the same
+  profile (a `hermes` CLI session, a separate messaging gateway) follow on their next reload. Session approvals end
+  when the session is closed.
+- **The decision log.** A revoke the gateway carried out is written with the approval's label (for "Revoke all", the
+  labels it took, joined and cut at 120 characters); one that removed nothing or failed is not.
+- **Tests.** `PermissionsTests` (the wire per call, the listing, the model: list, one, all, session, errors, refresh,
+  the confirmation, the decision log), `PermissionsViewTests` (the dialog's ends, the words in three languages),
+  `PermissionsIntegrationTests` against the fake gateway (`packages/fake-gateway/src/approval-grants.ts`: standing
+  approvals per profile, session approvals per live session, `POST /__fake/approvals` to stage them and `GET` to see
+  what the gateway holds; pinned by `approval-grants.test.ts`).
+
 ## Decision log
 
 **Settings › Decision log** (`SettingsCategory.decisions`, `DecisionLogScreen`) and a row on each bot's settings page
@@ -2847,9 +2881,9 @@ are in `HermieCore/Vault`; the sheets in `HermieUI/Vault/VaultSheets.swift`.
 the recorder and the model are in `HermieCore/DecisionLog`; the views in `HermieUI/DecisionLog`.
 
 - **What is an entry.** `DecisionEntry`: when, gateway (id and name then), bot, the runtime session the request
-  named, kind (`approval`, `clarify`, `confirm`, `secure`, `device`, `input`, `review`, `connector`), outcome
-  (`approved`, `approvedSession`, `approvedAlways`, `denied`, `answered`, `confirmed`, `declined`, `entered`,
-  `shared`, `authorised`, `skipped`), method (`tap`, `passkey`, `notification`, `keyboard`) and a summary.
+  named, kind (`approval`, `clarify`, `confirm`, `secure`, `device`, `input`, `review`, `connector`,
+  `permissionRevoked`), outcome (`approved`, `approvedSession`, `approvedAlways`, `denied`, `answered`, `confirmed`,
+  `declined`, `entered`, `shared`, `authorised`, `skipped`, `revoked`), method (`tap`, `passkey`, `notification`, `keyboard`) and a summary.
 - **Where it is written.** One place per way a request is answered, once the answer went out (never for one that did
   not, and never when the log cannot be written: a failing log must not fail an answer). Each takes the session's
   `DecisionRecorder` (`GatewaySession.decisions`, built from `GatewaySession.Options.decisions`): approvals and
@@ -2881,8 +2915,10 @@ the recorder and the model are in `HermieCore/DecisionLog`; the views in `Hermie
   accents and case ignored), and exported as what the filters leave: CSV (RFC 4180, CRLF, a cell a spreadsheet would
   run as a formula gets an apostrophe) or JSON, through the share sheet on iPhone and iPad and the save panel on the
   Mac (`DecisionExport`, `DecisionExportFile`, `DecisionExportDocument`). "Clear the log" asks first.
-- **Not yet.** Standing permissions (NX-19: see and revoke "always allow" and session grants) need a list and a revoke
-  call in the fork; the gateway's own audit of confirm outcomes would be a second source for this log.
+- **A revoke** on the Permissions page (below) is an entry too: kind `permissionRevoked`, outcome `revoked`, the
+  approval's label as the summary (`DecisionRecorder.permissionRevoked`; the gateway already redacted the label, and
+  `DecisionSummary.label` holds it to 120 characters in all anyway). Not yet: the gateway's own audit of confirm
+  outcomes would be a second source for this log.
 - **Tests.** `DecisionLogTests` (storage, the two limits, purges), `DecisionSummaryTests`, `DecisionExportTests`,
   `DecisionLogModelTests` (scope, filters, search, days), `DecisionRecordingTests` (every kind and outcome through the
   real answering paths, no value in the log), `DecisionLogWiringTests` (the launch's log, sign-out and removal),

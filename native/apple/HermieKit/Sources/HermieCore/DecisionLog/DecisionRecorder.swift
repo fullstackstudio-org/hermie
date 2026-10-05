@@ -106,6 +106,15 @@ public struct DecisionRecorder: Sendable {
       summary: name.flatMap(DecisionSummary.name))
   }
 
+  /// An approval taken back on the Permissions page (the gateway said it removed it). `label` is the grant's own
+  /// label, already redacted by the gateway; it is held to `DecisionSummary.limit` characters all the same. `session` is
+  /// the runtime session of a session approval, empty for a standing one.
+  public func permissionRevoked(bot: String, session: String, label: String) async {
+    await write(
+      kind: .permissionRevoked, outcome: .revoked, method: .tap, bot: bot, session: session,
+      summary: DecisionSummary.label(label))
+  }
+
   // MARK: Mapping
 
   /// What an approval's choice decided; a choice this build does not know is only `answered`.

@@ -18,6 +18,9 @@ public enum DecisionKind: String, Sendable, Codable, CaseIterable, Hashable, Ide
   case review
   /// A connector the agent waits on to be authorised, or any other row of a connection card.
   case connector
+  /// An approval the person took back on the Permissions page: a standing one or one of a session. The
+  /// summary is the approval's label, which the gateway has already redacted.
+  case permissionRevoked
 
   public var id: Self { self }
 }
@@ -46,6 +49,8 @@ public enum DecisionOutcome: String, Sendable, Codable, CaseIterable, Hashable, 
   case authorised
   /// Left out on purpose: Skip, "Not now".
   case skipped
+  /// Taken back: an approval the person revoked.
+  case revoked
 
   public var id: Self { self }
 }

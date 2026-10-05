@@ -566,6 +566,8 @@
 	<string>Geräteanfrage</string>
 	<key>native.decisions.kind.input</key>
 	<string>Formular oder Dateien</string>
+	<key>native.decisions.kind.permissionRevoked</key>
+	<string>Berechtigung widerrufen</string>
 	<key>native.decisions.kind.review</key>
 	<string>Prüfung</string>
 	<key>native.decisions.kind.secure</key>
@@ -600,6 +602,8 @@
 	<string>Abgelehnt</string>
 	<key>native.decisions.outcome.entered</key>
 	<string>Eingegeben</string>
+	<key>native.decisions.outcome.revoked</key>
+	<string>Widerrufen</string>
 	<key>native.decisions.outcome.shared</key>
 	<string>Geteilt</string>
 	<key>native.decisions.outcome.skipped</key>
@@ -2050,6 +2054,94 @@
 	<string>Passkeys auf %@</string>
 	<key>native.passkeys.title</key>
 	<string>Passkeys</string>
+	<key>native.permissions.about</key>
+	<string>Was %@ tun darf, ohne dich zu fragen. Das Gateway verwahrt diese Genehmigungen; Hermie listet sie auf und nimmt sie zurück.</string>
+	<key>native.permissions.actionFailed</key>
+	<string>Das hat nicht geklappt: %@</string>
+	<key>native.permissions.actionFailedNoReason</key>
+	<string>Das hat nicht geklappt.</string>
+	<key>native.permissions.always</key>
+	<string>Immer erlaubt</string>
+	<key>native.permissions.alwaysEmpty</key>
+	<string>Nichts ist immer erlaubt.</string>
+	<key>native.permissions.alwaysNote</key>
+	<string>In jedem Chat von %@ erlaubt, bis du sie widerrufst.</string>
+	<key>native.permissions.failed</key>
+	<string>Die Genehmigungen konnten nicht gelesen werden: %@</string>
+	<key>native.permissions.loadTimedOut</key>
+	<string>Das Gateway hat nicht rechtzeitig geantwortet.</string>
+	<key>native.permissions.loading</key>
+	<string>Genehmigungen werden gelesen …</string>
+	<key>native.permissions.mode</key>
+	<string>Genehmigungsmodus</string>
+	<key>native.permissions.mode.footer</key>
+	<string>Der Modus wird in der Konfiguration des Gateways festgelegt, nicht hier.</string>
+	<key>native.permissions.mode.manual</key>
+	<string>Manuell</string>
+	<key>native.permissions.mode.manualNote</key>
+	<string>Jeder gefährliche Befehl wartet auf deine Antwort.</string>
+	<key>native.permissions.mode.off</key>
+	<string>Aus</string>
+	<key>native.permissions.mode.offNote</key>
+	<string>Gefährliche Befehle laufen, ohne dich zu fragen.</string>
+	<key>native.permissions.mode.otherNote</key>
+	<string>Das Gateway nutzt einen Modus, den diese Hermie-Version nicht kennt.</string>
+	<key>native.permissions.mode.smart</key>
+	<string>Intelligent</string>
+	<key>native.permissions.mode.smartNote</key>
+	<string>Ein zweites Modell beurteilt jeden gefährlichen Befehl. Unkritische laufen durch, gefährliche werden abgelehnt, bei Unsicherheit wirst du gefragt.</string>
+	<key>native.permissions.off</key>
+	<string>Aus</string>
+	<key>native.permissions.offline</key>
+	<string>Ohne Verbindung lassen sich die Genehmigungen nicht lesen.</string>
+	<key>native.permissions.on</key>
+	<string>An</string>
+	<key>native.permissions.refused</key>
+	<string>Das Gateway erlaubt das von hier aus nicht.</string>
+	<key>native.permissions.revoke</key>
+	<string>Widerrufen</string>
+	<key>native.permissions.revokeAll</key>
+	<string>Alle widerrufen</string>
+	<key>native.permissions.revokeAllMessage</key>
+	<string>%@ fragt bei jeder Genehmigung wieder nach.</string>
+	<key>native.permissions.revokeAllSessionTitle</key>
+	<string>Alle Genehmigungen dieser Sitzung widerrufen?</string>
+	<key>native.permissions.revokeAllTitle</key>
+	<string>Alle immer erlaubten Genehmigungen widerrufen?</string>
+	<key>native.permissions.revokeMessage</key>
+	<string>%@ fragt wieder nach, sobald es das braucht.</string>
+	<key>native.permissions.revokeSessionMessage</key>
+	<string>%@ fragt in dieser Sitzung wieder nach.</string>
+	<key>native.permissions.revokeTitle</key>
+	<string>„%@“ widerrufen?</string>
+	<key>native.permissions.scopeNote</key>
+	<string>Ein Widerruf gilt sofort auf diesem Gateway. Andere Hermes-Prozesse mit demselben Profil, etwa eine hermes-Sitzung im Terminal oder ein separates Messaging-Gateway, folgen beim nächsten Neuladen.</string>
+	<key>native.permissions.sessionEmpty</key>
+	<string>Keine Genehmigungen für diese Sitzung.</string>
+	<key>native.permissions.sessionGone</key>
+	<string>Diese Sitzung läuft nicht mehr.</string>
+	<key>native.permissions.sessionOther</key>
+	<string>Andere Sitzung (%lld)</string>
+	<key>native.permissions.sessionThis</key>
+	<string>Diese Sitzung</string>
+	<key>native.permissions.sessionsEmpty</key>
+	<string>Keine laufende Sitzung hat eine Genehmigung.</string>
+	<key>native.permissions.sessionsFooter</key>
+	<string>Sitzungsgenehmigungen enden, wenn die Sitzung geschlossen wird.</string>
+	<key>native.permissions.timedOut</key>
+	<string>Keine Antwort rechtzeitig. Es kann trotzdem geklappt haben: sieh in der Liste nach.</string>
+	<key>native.permissions.tirith</key>
+	<string>Befund der Inhaltsprüfung</string>
+	<key>native.permissions.title</key>
+	<string>Berechtigungen</string>
+	<key>native.permissions.unknownProfile</key>
+	<string>Das Gateway kennt diesen Bot nicht.</string>
+	<key>native.permissions.unsupported</key>
+	<string>Dieses Gateway kann keine Genehmigungen auflisten.</string>
+	<key>native.permissions.yolo</key>
+	<string>YOLO</string>
+	<key>native.permissions.yoloNote</key>
+	<string>YOLO überspringt jede Genehmigung in dieser Sitzung. Schalte es in den Chat-Optionen aus.</string>
 	<key>native.prompts.add</key>
 	<string>Prompt hinzufügen</string>
 	<key>native.prompts.alsoGlobal</key>

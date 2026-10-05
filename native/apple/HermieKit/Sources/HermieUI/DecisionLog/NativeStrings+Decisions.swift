@@ -59,6 +59,8 @@ extension NativeStrings {
       case .input: String(localized: "native.decisions.kind.input", table: "Native", bundle: .module)
       case .review: String(localized: "native.decisions.kind.review", table: "Native", bundle: .module)
       case .connector: String(localized: "native.decisions.kind.connector", table: "Native", bundle: .module)
+      case .permissionRevoked:
+        String(localized: "native.decisions.kind.permissionRevoked", table: "Native", bundle: .module)
       }
     }
 
@@ -78,6 +80,7 @@ extension NativeStrings {
       case .shared: String(localized: "native.decisions.outcome.shared", table: "Native", bundle: .module)
       case .authorised: String(localized: "native.decisions.outcome.authorised", table: "Native", bundle: .module)
       case .skipped: String(localized: "native.decisions.outcome.skipped", table: "Native", bundle: .module)
+      case .revoked: String(localized: "native.decisions.outcome.revoked", table: "Native", bundle: .module)
       }
     }
 
@@ -125,7 +128,7 @@ extension NativeStrings {
 
       switch entry.kind {
       case .secure, .device, .input, .review: return subject(request: summary) ?? summary
-      case .approval, .clarify, .confirm, .connector: return summary
+      case .approval, .clarify, .confirm, .connector, .permissionRevoked: return summary
       }
     }
   }

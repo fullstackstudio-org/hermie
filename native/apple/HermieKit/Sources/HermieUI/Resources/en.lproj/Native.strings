@@ -566,6 +566,8 @@
 	<string>Device request</string>
 	<key>native.decisions.kind.input</key>
 	<string>Form or files</string>
+	<key>native.decisions.kind.permissionRevoked</key>
+	<string>Permission revoked</string>
 	<key>native.decisions.kind.review</key>
 	<string>Review</string>
 	<key>native.decisions.kind.secure</key>
@@ -600,6 +602,8 @@
 	<string>Denied</string>
 	<key>native.decisions.outcome.entered</key>
 	<string>Entered</string>
+	<key>native.decisions.outcome.revoked</key>
+	<string>Revoked</string>
 	<key>native.decisions.outcome.shared</key>
 	<string>Shared</string>
 	<key>native.decisions.outcome.skipped</key>
@@ -2050,6 +2054,94 @@
 	<string>Passkeys on %@</string>
 	<key>native.passkeys.title</key>
 	<string>Passkeys</string>
+	<key>native.permissions.about</key>
+	<string>What %@ may do without asking you. The gateway keeps these approvals; Hermie lists them and takes them back.</string>
+	<key>native.permissions.actionFailed</key>
+	<string>That did not work: %@</string>
+	<key>native.permissions.actionFailedNoReason</key>
+	<string>That did not work.</string>
+	<key>native.permissions.always</key>
+	<string>Always allowed</string>
+	<key>native.permissions.alwaysEmpty</key>
+	<string>Nothing is always allowed.</string>
+	<key>native.permissions.alwaysNote</key>
+	<string>Allowed in every chat of %@ until you revoke them.</string>
+	<key>native.permissions.failed</key>
+	<string>The approvals could not be read: %@</string>
+	<key>native.permissions.loadTimedOut</key>
+	<string>The gateway did not answer in time.</string>
+	<key>native.permissions.loading</key>
+	<string>Reading the approvals…</string>
+	<key>native.permissions.mode</key>
+	<string>Approval mode</string>
+	<key>native.permissions.mode.footer</key>
+	<string>The mode is set in the gateway's configuration, not here.</string>
+	<key>native.permissions.mode.manual</key>
+	<string>Manual</string>
+	<key>native.permissions.mode.manualNote</key>
+	<string>Every dangerous command waits for your answer.</string>
+	<key>native.permissions.mode.off</key>
+	<string>Off</string>
+	<key>native.permissions.mode.offNote</key>
+	<string>Dangerous commands run without asking you.</string>
+	<key>native.permissions.mode.otherNote</key>
+	<string>The gateway uses a mode this version of Hermie does not know.</string>
+	<key>native.permissions.mode.smart</key>
+	<string>Smart</string>
+	<key>native.permissions.mode.smartNote</key>
+	<string>A second model judges each dangerous command. Low-risk ones go through, dangerous ones are refused, and uncertain ones ask you.</string>
+	<key>native.permissions.off</key>
+	<string>Off</string>
+	<key>native.permissions.offline</key>
+	<string>The approvals cannot be read without a connection.</string>
+	<key>native.permissions.on</key>
+	<string>On</string>
+	<key>native.permissions.refused</key>
+	<string>The gateway does not allow this from here.</string>
+	<key>native.permissions.revoke</key>
+	<string>Revoke</string>
+	<key>native.permissions.revokeAll</key>
+	<string>Revoke all</string>
+	<key>native.permissions.revokeAllMessage</key>
+	<string>%@ will ask again for each one.</string>
+	<key>native.permissions.revokeAllSessionTitle</key>
+	<string>Revoke every approval of this session?</string>
+	<key>native.permissions.revokeAllTitle</key>
+	<string>Revoke every always-allowed approval?</string>
+	<key>native.permissions.revokeMessage</key>
+	<string>%@ will ask again the next time it needs this.</string>
+	<key>native.permissions.revokeSessionMessage</key>
+	<string>%@ will ask again in this session.</string>
+	<key>native.permissions.revokeTitle</key>
+	<string>Revoke “%@”?</string>
+	<key>native.permissions.scopeNote</key>
+	<string>A revoke applies on this gateway at once. Other Hermes processes on the same profile, such as a hermes session in a terminal or a separate messaging gateway, follow on their next reload.</string>
+	<key>native.permissions.sessionEmpty</key>
+	<string>No approvals for this session.</string>
+	<key>native.permissions.sessionGone</key>
+	<string>That session is no longer live.</string>
+	<key>native.permissions.sessionOther</key>
+	<string>Another session (%lld)</string>
+	<key>native.permissions.sessionThis</key>
+	<string>This session</string>
+	<key>native.permissions.sessionsEmpty</key>
+	<string>No live session holds an approval.</string>
+	<key>native.permissions.sessionsFooter</key>
+	<string>Session approvals end when the session is closed.</string>
+	<key>native.permissions.timedOut</key>
+	<string>No answer in time. It may have gone through: check the list.</string>
+	<key>native.permissions.tirith</key>
+	<string>Content-security finding</string>
+	<key>native.permissions.title</key>
+	<string>Permissions</string>
+	<key>native.permissions.unknownProfile</key>
+	<string>The gateway does not serve this bot.</string>
+	<key>native.permissions.unsupported</key>
+	<string>This gateway cannot list approvals.</string>
+	<key>native.permissions.yolo</key>
+	<string>YOLO</string>
+	<key>native.permissions.yoloNote</key>
+	<string>YOLO skips every approval in this session. Turn it off in the chat's options.</string>
 	<key>native.prompts.add</key>
 	<string>Add prompt</string>
 	<key>native.prompts.alsoGlobal</key>

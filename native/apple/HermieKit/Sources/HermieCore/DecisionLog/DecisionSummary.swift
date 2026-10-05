@@ -40,6 +40,18 @@ public enum DecisionSummary {
     return text.isEmpty ? nil : text
   }
 
+  /// A label the gateway already redacted (a revoked approval's), cleaned to one line and held to `limit`
+  /// characters in all, the ellipsis included. `nil` for an empty one.
+  public static func label(_ raw: String) -> String? {
+    let text = line(raw)
+
+    guard text.count > limit else {
+      return text.isEmpty ? nil : text
+    }
+
+    return String(text.prefix(limit - 1)) + "…"
+  }
+
   /// One line of display text: the request's own words cleaned of control and direction characters
   /// (`SecurePrompt.displayText`), then cut at `limit`.
   static func line(_ raw: String) -> String {

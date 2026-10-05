@@ -90,7 +90,7 @@ struct DecisionLogViewTests {
 
       switch outcome {
       case .denied, .declined: #expect(symbol == "xmark.circle.fill", "\(outcome)")
-      case .skipped: #expect(symbol == "minus.circle.fill", "\(outcome)")
+      case .skipped, .revoked: #expect(symbol == "minus.circle.fill", "\(outcome)")
       default: #expect(symbol == "checkmark.circle.fill", "\(outcome)")
       }
     }

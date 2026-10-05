@@ -566,6 +566,8 @@
 	<string>Apparaatverzoek</string>
 	<key>native.decisions.kind.input</key>
 	<string>Formulier of bestanden</string>
+	<key>native.decisions.kind.permissionRevoked</key>
+	<string>Toestemming ingetrokken</string>
 	<key>native.decisions.kind.review</key>
 	<string>Beoordeling</string>
 	<key>native.decisions.kind.secure</key>
@@ -600,6 +602,8 @@
 	<string>Geweigerd</string>
 	<key>native.decisions.outcome.entered</key>
 	<string>Ingevoerd</string>
+	<key>native.decisions.outcome.revoked</key>
+	<string>Ingetrokken</string>
 	<key>native.decisions.outcome.shared</key>
 	<string>Gedeeld</string>
 	<key>native.decisions.outcome.skipped</key>
@@ -2050,6 +2054,94 @@
 	<string>Passkeys op %@</string>
 	<key>native.passkeys.title</key>
 	<string>Passkeys</string>
+	<key>native.permissions.about</key>
+	<string>Wat %@ mag doen zonder het jou te vragen. De gateway bewaart deze goedkeuringen; Hermie toont ze en trekt ze in.</string>
+	<key>native.permissions.actionFailed</key>
+	<string>Dat is niet gelukt: %@</string>
+	<key>native.permissions.actionFailedNoReason</key>
+	<string>Dat is niet gelukt.</string>
+	<key>native.permissions.always</key>
+	<string>Altijd toegestaan</string>
+	<key>native.permissions.alwaysEmpty</key>
+	<string>Niets is altijd toegestaan.</string>
+	<key>native.permissions.alwaysNote</key>
+	<string>Toegestaan in elke chat van %@ tot je ze intrekt.</string>
+	<key>native.permissions.failed</key>
+	<string>De goedkeuringen konden niet worden gelezen: %@</string>
+	<key>native.permissions.loadTimedOut</key>
+	<string>De gateway antwoordde niet op tijd.</string>
+	<key>native.permissions.loading</key>
+	<string>Goedkeuringen ophalen…</string>
+	<key>native.permissions.mode</key>
+	<string>Goedkeuringsmodus</string>
+	<key>native.permissions.mode.footer</key>
+	<string>De modus staat in de configuratie van de gateway, niet hier.</string>
+	<key>native.permissions.mode.manual</key>
+	<string>Handmatig</string>
+	<key>native.permissions.mode.manualNote</key>
+	<string>Elk gevaarlijk commando wacht op jouw antwoord.</string>
+	<key>native.permissions.mode.off</key>
+	<string>Uit</string>
+	<key>native.permissions.mode.offNote</key>
+	<string>Gevaarlijke commando's draaien zonder het jou te vragen.</string>
+	<key>native.permissions.mode.otherNote</key>
+	<string>De gateway gebruikt een modus die deze versie van Hermie niet kent.</string>
+	<key>native.permissions.mode.smart</key>
+	<string>Slim</string>
+	<key>native.permissions.mode.smartNote</key>
+	<string>Een tweede model beoordeelt elk gevaarlijk commando. Laag risico gaat door, gevaarlijke worden geweigerd en bij twijfel vraagt het jou.</string>
+	<key>native.permissions.off</key>
+	<string>Uit</string>
+	<key>native.permissions.offline</key>
+	<string>Zonder verbinding zijn de goedkeuringen niet te lezen.</string>
+	<key>native.permissions.on</key>
+	<string>Aan</string>
+	<key>native.permissions.refused</key>
+	<string>De gateway staat dit vanaf hier niet toe.</string>
+	<key>native.permissions.revoke</key>
+	<string>Intrekken</string>
+	<key>native.permissions.revokeAll</key>
+	<string>Alles intrekken</string>
+	<key>native.permissions.revokeAllMessage</key>
+	<string>%@ vraagt bij elke goedkeuring opnieuw.</string>
+	<key>native.permissions.revokeAllSessionTitle</key>
+	<string>Alle goedkeuringen van deze sessie intrekken?</string>
+	<key>native.permissions.revokeAllTitle</key>
+	<string>Alle altijd-toegestane goedkeuringen intrekken?</string>
+	<key>native.permissions.revokeMessage</key>
+	<string>%@ vraagt het opnieuw zodra het dit nodig heeft.</string>
+	<key>native.permissions.revokeSessionMessage</key>
+	<string>%@ vraagt het in deze sessie opnieuw.</string>
+	<key>native.permissions.revokeTitle</key>
+	<string>“%@” intrekken?</string>
+	<key>native.permissions.scopeNote</key>
+	<string>Intrekken geldt meteen op deze gateway. Andere Hermes-processen op hetzelfde profiel, zoals een hermes-sessie in een terminal of een aparte berichtengateway, volgen bij hun volgende herlaadbeurt.</string>
+	<key>native.permissions.sessionEmpty</key>
+	<string>Geen goedkeuringen voor deze sessie.</string>
+	<key>native.permissions.sessionGone</key>
+	<string>Die sessie loopt niet meer.</string>
+	<key>native.permissions.sessionOther</key>
+	<string>Andere sessie (%lld)</string>
+	<key>native.permissions.sessionThis</key>
+	<string>Deze sessie</string>
+	<key>native.permissions.sessionsEmpty</key>
+	<string>Geen lopende sessie heeft een goedkeuring.</string>
+	<key>native.permissions.sessionsFooter</key>
+	<string>Sessiegoedkeuringen vervallen als de sessie wordt gesloten.</string>
+	<key>native.permissions.timedOut</key>
+	<string>Geen antwoord op tijd. Het kan toch gelukt zijn: kijk in de lijst.</string>
+	<key>native.permissions.tirith</key>
+	<string>Bevinding van de inhoudscontrole</string>
+	<key>native.permissions.title</key>
+	<string>Rechten</string>
+	<key>native.permissions.unknownProfile</key>
+	<string>De gateway kent deze bot niet.</string>
+	<key>native.permissions.unsupported</key>
+	<string>Deze gateway kan geen goedkeuringen tonen.</string>
+	<key>native.permissions.yolo</key>
+	<string>YOLO</string>
+	<key>native.permissions.yoloNote</key>
+	<string>YOLO slaat elke goedkeuring in deze sessie over. Zet het uit in de opties van de chat.</string>
 	<key>native.prompts.add</key>
 	<string>Prompt toevoegen</string>
 	<key>native.prompts.alsoGlobal</key>

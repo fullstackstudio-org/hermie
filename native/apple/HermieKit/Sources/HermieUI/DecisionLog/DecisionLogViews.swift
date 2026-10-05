@@ -247,7 +247,7 @@ struct DecisionRow: View {
   static func symbol(_ outcome: DecisionOutcome) -> String {
     switch outcome {
     case .denied, .declined: "xmark.circle.fill"
-    case .skipped: "minus.circle.fill"
+    case .skipped, .revoked: "minus.circle.fill"
     default: "checkmark.circle.fill"
     }
   }
@@ -256,6 +256,7 @@ struct DecisionRow: View {
     switch outcome {
     case .denied, .declined: .red
     case .skipped: .secondary
+    case .revoked: .orange
     default: .green
     }
   }
