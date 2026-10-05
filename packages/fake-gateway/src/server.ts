@@ -9754,8 +9754,15 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         // plain one over the process's live sessions and never reads the profile
         // it accepts (`tui_gateway/methods_session.py`). Honouring it here hid
         // the bug where one busy session marked every bot as working.
+        //
+        // A session parked on an open server request (an approval, a question, a form) is `waiting`:
+        // `LiveSessionStatus` has the word, and a real gateway reports it while the turn waits for the
+        // person. Such a session is listed even when no turn of the fake is running in it, because a
+        // request staged through `POST /__fake/request` has no turn behind it and still has to read as a
+        // bot waiting for somebody.
+        const waiting = new Set([...state.openServerRequests.values()].map(request => request.session_id))
         const sessions = [...state.sessions.values()]
-          .filter(session => state.runningSessions.has(session.storedId))
+          .filter(session => state.runningSessions.has(session.storedId) || waiting.has(session.id))
           .map(session => ({
             current: false,
             id: session.id,
@@ -9765,7 +9772,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
             preview: session.messages[session.messages.length - 1]?.text ?? '',
             session_key: session.storedId,
             started_at: nowSeconds() - 600,
-            status: 'working',
+            status: waiting.has(session.id) ? 'waiting' : 'working',
             title: session.title
           }))
 
