@@ -61,6 +61,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   when the gateway refuses it. Remove asks first. A password manager on the gateway's computer can be
   switched on or off for the bot, unlocked with its master password (under the same rules) and locked.
   The fake gateway answers the vault calls per profile (`packages/fake-gateway/src/vault.ts`).
+- **The native Apple apps keep a decision log.** Settings › Decision log lists what you approved or denied
+  (once, for the session, always), answered, confirmed (with a passkey or declined), entered or skipped on a
+  secure prompt, shared or declined for a device request, and authorised for a connector, newest first by day,
+  with the bot, the gateway and how it was decided (a tap, a passkey, a notification action, the Return key).
+  It can be narrowed by bot and kind, searched, and exported as CSV or JSON (the share sheet on iPhone and iPad,
+  the save panel on the Mac); each bot's settings has a row for its own part. It is kept on this device only, for
+  90 days or 5,000 entries, never travels with iCloud, and goes with a gateway you sign out of or remove. An
+  approval keeps the first line of its command and nothing at all when the command looks like it carries a secret;
+  a typed secret, a position, a contact, a signature, a scanned value or the text of a form is never kept.
 
 - **The native Apple apps show the files a bot shares.** A reply that carries files
   (`contract/outbox/`) draws a picture as a thumbnail that opens the gallery (several are a grid), a

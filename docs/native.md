@@ -2840,6 +2840,54 @@ are in `HermieCore/Vault`; the sheets in `HermieUI/Vault/VaultSheets.swift`.
   staged password manager, `POST /__fake/vault` to stage it and `GET /__fake/vault` to see what reached a profile's
   vault; pinned by `vault.test.ts`).
 
+## Decision log
+
+**Settings › Decision log** (`SettingsCategory.decisions`, `DecisionLogScreen`) and a row on each bot's settings page
+(`BotDecisionLogSection`, with the count) list what the person decided on a request (NX-18). The log, the entry types,
+the recorder and the model are in `HermieCore/DecisionLog`; the views in `HermieUI/DecisionLog`.
+
+- **What is an entry.** `DecisionEntry`: when, gateway (id and name then), bot, the runtime session the request
+  named, kind (`approval`, `clarify`, `confirm`, `secure`, `device`, `input`, `review`, `connector`), outcome
+  (`approved`, `approvedSession`, `approvedAlways`, `denied`, `answered`, `confirmed`, `declined`, `entered`,
+  `shared`, `authorised`, `skipped`), method (`tap`, `passkey`, `notification`, `keyboard`) and a summary.
+- **Where it is written.** One place per way a request is answered, once the answer went out (never for one that did
+  not, and never when the log cannot be written: a failing log must not fail an answer). Each takes the session's
+  `DecisionRecorder` (`GatewaySession.decisions`, built from `GatewaySession.Options.decisions`): approvals and
+  questions in `TranscriptStore.respondApproval` / `respondClarify` (the card, the sheet, a retry, and a
+  notification's Allow and Deny through `GatewaySession.pushRespond`, with a card or by `approval.respond`);
+  confirmations in `PasskeyModel.answer` (a passkey confirm, or a decline, once the gateway took it); secure
+  prompts in `SecureInputCenter.deliver` (`entered`, or `declined` for Skip; the Return key in a field is
+  `keyboard`); interactive and device requests in `InteractiveRequestCenter.send` when the gateway took the answer,
+  and "Don't share" (`cannotShow` with reason `declined`; a refused permission or a failed upload is not a
+  decision); connection cards in `ConnectionRequestsModel` (the authorisation link opened, once, "Not now",
+  Cancel). A `plain` confirm has no sheet yet (the app declines it `-32601`): there is nothing to log.
+- **What is never in it.** The recorder has one method per kind and none takes a typed value, a device payload or
+  the text of a form or a question, so none can be stored. A secure or interactive request is logged by its method
+  name only (`secret`, `device.location`, ...); a connector by its name, not its link; a confirmation by its kind
+  (not its title, summary, detail or assertion). An approval keeps its command's first line, cut at 120 characters
+  (`DecisionSummary`), and nothing when the gateway or the tool marks it sensitive or the command looks like it
+  carries a secret (a password, token, key or credential word anywhere in it, a well-known token shape, a password
+  in a URL): the gateway marks no approval as sensitive today, so the app judges by what it can see.
+  `DecisionRecordingTests` checks every kind with marker values in the log's rows, the CSV and the JSON.
+- **Where it is kept.** The `decisions` table of `hermie.sqlite` (schema version 2): one row per entry, `ns` the
+  gateway id, `bot` and `at` as columns. The database is outside the App Group and excluded from iCloud and device
+  backups, and nothing of it reaches the keychain's synced set, so it never leaves the device. At most 5,000 entries
+  and 90 days (`DecisionLimits.standard`), whichever limit is hit first: every write prunes in its own transaction,
+  and the launch prunes a log nobody wrote to. A gateway removed takes its rows in the registry's own transaction
+  (`GatewayRegistryStore.purge`); signing out purges them too (`GatewayAccounts.signOut`), as the system surfaces are.
+  Not rescued after a damaged database file (`kv` is): the log is local history, not settings.
+- **The screen.** Grouped by day (the device's calendar), filtered by bot (not on a bot's own page) and kind,
+  searched (every word, in any order, in the bot, gateway, summary and the words shown for the kind and outcome,
+  accents and case ignored), and exported as what the filters leave: CSV (RFC 4180, CRLF, a cell a spreadsheet would
+  run as a formula gets an apostrophe) or JSON, through the share sheet on iPhone and iPad and the save panel on the
+  Mac (`DecisionExport`, `DecisionExportFile`, `DecisionExportDocument`). "Clear the log" asks first.
+- **Not yet.** Standing permissions (NX-19: see and revoke "always allow" and session grants) need a list and a revoke
+  call in the fork; the gateway's own audit of confirm outcomes would be a second source for this log.
+- **Tests.** `DecisionLogTests` (storage, the two limits, purges), `DecisionSummaryTests`, `DecisionExportTests`,
+  `DecisionLogModelTests` (scope, filters, search, days), `DecisionRecordingTests` (every kind and outcome through the
+  real answering paths, no value in the log), `DecisionLogWiringTests` (the launch's log, sign-out and removal),
+  `DecisionLogViewTests` (HermieUITests: the words in three languages, the category, the row's lines).
+
 ## Licences and the gateway's facts
 
 **Settings › About › Licences** (`LicencesPage`) lists what the Apple apps owe to others, each entry opening its licence
