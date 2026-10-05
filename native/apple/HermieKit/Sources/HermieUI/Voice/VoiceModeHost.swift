@@ -43,7 +43,11 @@ struct VoiceModeHost: ViewModifier {
             }
           })
       ) {
-        if let settings = feed.voiceSettings {
+        if let settings = feed.voiceSettings, VoiceSheetKind.of(setUp: settings.voiceModeSetUp, inCall: feed.voiceMode != nil) == .callVoice {
+          // From the call's settings glyph: this bot's voice, and the call's options.
+          CallVoiceSheet(
+            settings: settings, chat: feed.chat, gateway: feed.gatewaySpeech, onDone: { feed.voiceSetupClosed() })
+        } else if let settings = feed.voiceSettings {
           VoiceSetupSheet(
             settings: settings, engines: feed.voiceEngines, gateway: feed.gatewaySpeech,
             firstRun: !settings.voiceModeSetUp, onDone: { feed.voiceSetupClosed() })

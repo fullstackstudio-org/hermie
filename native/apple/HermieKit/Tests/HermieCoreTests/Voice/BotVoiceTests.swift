@@ -174,6 +174,33 @@ import Testing
     #expect(other.spoken[0].voice == "apple.samantha")
   }
 
+  @Test func theVoiceIsReadForEachSentenceNotOnceWhenTheReaderIsMade() {
+    let settings = VoiceSettings()
+    settings.setBotVoice(BotVoice(source: .apple, voice: "apple.xander"), bot: "hermes", gatewayID: "g1")
+    let synth = FakeSynthesiser()
+    let model = reader(settings, synth)
+
+    model.enqueue(id: "a1", markdown: "First.")
+    model.enqueue(id: "a2", markdown: "Second.")
+    model.enqueue(id: "a3", markdown: "Third.")
+
+    #expect(synth.prefetched.map(\.voice) == ["apple.xander"], "fetched ahead in the voice of the time")
+
+    settings.setBotVoice(BotVoice(source: .gateway, voice: "voice-bella"), bot: "hermes", gatewayID: "g1")
+    synth.finishCurrent()
+
+    #expect(synth.spoken.map(\.request.id) == ["a1", "a2"])
+    #expect(synth.spoken[0].voice == "apple.xander")
+    #expect(synth.spoken[1].request.source == .gateway, "the sentence after the change is spoken in the new voice")
+    #expect(synth.spoken[1].request.gatewayVoice == "voice-bella")
+
+    settings.setBotVoice(nil, bot: "hermes", gatewayID: "g1")
+    synth.finishCurrent()
+
+    #expect(synth.spoken[2].request.source == .apple)
+    #expect(synth.spoken[2].voice == nil)
+  }
+
   @Test func theReplyAfterTheOneBeingReadIsPrefetchedWithTheSameSource() {
     let settings = VoiceSettings()
     settings.setSpeechSource(.gateway)

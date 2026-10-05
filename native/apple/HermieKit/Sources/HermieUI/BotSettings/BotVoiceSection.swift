@@ -91,26 +91,75 @@ struct BotVoiceSection: View {
   }
 }
 
+/// What one bot's voice choice reads and writes: the bot's own voice in the settings. The page and the
+/// call's voice sheet both go through it, so what one shows the other shows.
+@MainActor
+struct BotVoiceEditor {
+  let settings: VoiceSettings
+  let bot: String
+  let gatewayID: String
+
+  init(settings: VoiceSettings, chat: ChatRef) {
+    self.settings = settings
+    bot = chat.bot
+    gatewayID = chat.gatewayId
+  }
+
+  /// The voice this bot was given of its own; nil is Default (it follows the Voice screen).
+  var current: BotVoice? { settings.botVoice(bot: bot, gatewayID: gatewayID) }
+
+  /// Who speaks for this bot now, as the reader resolves it for each sentence.
+  var speech: SpeechChoice { settings.speech(bot: bot, gatewayID: gatewayID) }
+
+  func choose(_ voice: BotVoice) {
+    settings.setBotVoice(voice, bot: bot, gatewayID: gatewayID)
+  }
+
+  /// Back to following the Voice screen.
+  func useDefault() {
+    settings.setBotVoice(nil, bot: bot, gatewayID: gatewayID)
+  }
+}
+
 /// The page behind the row: Default, the device's voices, and the gateway's where it has them.
 struct BotVoicePage: View {
   let chat: ChatRef
   let settings: VoiceSettings
   let gateway: GatewaySpeechAccess?
 
+  var body: some View {
+    BotVoiceList(chat: chat, settings: settings, gateway: gateway) {}
+  }
+}
+
+/**
+ The bot's voice choices as a list: Default, the device's voices, the gateway's. `extra` adds sections
+ after them: the call's voice sheet puts the call's options there. The bot-settings page uses it as it is.
+ */
+struct BotVoiceList<Extra: View>: View {
+  let chat: ChatRef
+  let settings: VoiceSettings
+  let gateway: GatewaySpeechAccess?
+  let extra: Extra
+
   @State private var appleVoices: [SpeechVoice] = []
   /// Hearing a gateway voice before choosing it; one for as long as the page is shown.
   @State private var previewer: GatewayVoicePreviewer?
 
-  init(chat: ChatRef, settings: VoiceSettings, gateway: GatewaySpeechAccess?) {
+  init(
+    chat: ChatRef, settings: VoiceSettings, gateway: GatewaySpeechAccess?, @ViewBuilder extra: () -> Extra
+  ) {
     self.chat = chat
     self.settings = settings
     self.gateway = gateway
+    self.extra = extra()
     _previewer = State(
       initialValue: gateway.map { GatewayVoicePreviewer(access: $0, sentence: NativeStrings.VoiceSetup.sample) })
   }
 
   var body: some View {
-    let current = settings.botVoice(bot: chat.bot, gatewayID: chat.gatewayId)
+    let editor = BotVoiceEditor(settings: settings, chat: chat)
+    let current = editor.current
 
     List {
       Section {
@@ -118,7 +167,7 @@ struct BotVoicePage: View {
           NativeStrings.BotSettings.voiceDefault, detail: NativeStrings.BotSettings.voiceDefaultDetail,
           selected: current == nil, id: "default"
         ) {
-          settings.setBotVoice(nil, bot: chat.bot, gatewayID: chat.gatewayId)
+          editor.useDefault()
         }
       }
 
@@ -217,6 +266,8 @@ struct BotVoicePage: View {
           }
         }
       }
+
+      extra
     }
     .navigationTitle(NativeStrings.BotSettings.voice)
     #if os(iOS)
@@ -232,7 +283,7 @@ struct BotVoicePage: View {
   }
 
   private func choose(_ voice: BotVoice) {
-    settings.setBotVoice(voice, bot: chat.bot, gatewayID: chat.gatewayId)
+    BotVoiceEditor(settings: settings, chat: chat).choose(voice)
   }
 
   private func row(

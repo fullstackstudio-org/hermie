@@ -397,6 +397,59 @@ private let mine = GatewayVoice(id: "voice-clone-1", name: "Mine", label: "Mine 
       "the row names the voice by its id when the list has none")
   }
 
+  // MARK: The call's voice sheet
+
+  private func chat(_ bot: String = "hermes") -> ChatRef {
+    ChatRef(gatewayId: "g1", bot: bot)
+  }
+
+  @Test func theCallsVoiceSheetShowsThisBotsVoiceAndChangesIt() {
+    let settings = VoiceSettings()
+    settings.setVoiceIdentifier("apple.samantha")
+    let editor = BotVoiceEditor(settings: settings, chat: chat())
+
+    #expect(editor.current == nil, "Default: it follows the Voice screen")
+    #expect(editor.speech == SpeechChoice(source: .apple, appleVoice: "apple.samantha"))
+
+    editor.choose(BotVoice(source: .gateway, voice: "voice-rachel"))
+
+    #expect(editor.current == BotVoice(source: .gateway, voice: "voice-rachel"))
+    #expect(
+      editor.speech == SpeechChoice(source: .gateway, appleVoice: "apple.samantha", gatewayVoice: "voice-rachel"),
+      "what the call's reader resolves for the next sentence")
+    #expect(
+      BotVoiceLogic.summary(editor.current, appleVoices: [], gateway: nil) == "Gateway · voice-rachel",
+      "the sheet shows the choice, as chosen, before the gateway has answered")
+
+    editor.choose(BotVoice(source: .apple, voice: "apple.xander"))
+
+    #expect(editor.speech == SpeechChoice(source: .apple, appleVoice: "apple.xander"))
+
+    editor.useDefault()
+
+    #expect(editor.current == nil)
+    #expect(editor.speech.appleVoice == "apple.samantha")
+  }
+
+  @Test func theCallsGlyphOpensTheVoiceSheetAndTheFirstRunKeepsTheSetup() {
+    #expect(VoiceSheetKind.of(setUp: true, inCall: true) == .callVoice)
+    #expect(VoiceSheetKind.of(setUp: false, inCall: false) == .setup, "before the first call")
+    #expect(VoiceSheetKind.of(setUp: false, inCall: true) == .setup)
+    #expect(VoiceSheetKind.of(setUp: true, inCall: false) == .setup)
+  }
+
+  @Test func theSheetChangesOnlyTheBotItWasOpenedFor() {
+    let settings = VoiceSettings()
+    BotVoiceEditor(settings: settings, chat: chat("hermes")).choose(BotVoice(source: .apple, voice: "apple.xander"))
+
+    #expect(BotVoiceEditor(settings: settings, chat: chat("hermes")).current == BotVoice(source: .apple, voice: "apple.xander"))
+    #expect(BotVoiceEditor(settings: settings, chat: chat("writer")).current == nil)
+    #expect(
+      BotVoiceEditor(settings: settings, chat: ChatRef(gatewayId: "g2", bot: "hermes")).current == nil,
+      "the same handle on another gateway is another bot")
+    #expect(settings.speechSource == .apple, "the Voice screen's own choice is not touched")
+  }
+
   @Test func aBotsGatewayVoiceNotInTheListIsKept() async {
     let access = GatewaySpeechAccess(transport: StubSpeech(config: elevenLabs, voices: [rachel]), profile: "hermes")
     await access.loadConfig()
