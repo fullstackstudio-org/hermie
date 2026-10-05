@@ -281,6 +281,8 @@ struct ShellSheet: View {
       NeedsYouSheet()
     case .emergencyStop:
       EmergencyStopSheet()
+    case .search:
+      SearchEverywhereSheet()
     }
   }
 }

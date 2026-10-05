@@ -199,4 +199,22 @@ extension ChatFindWalk.Hooks {
       revision: revision
     )
   }
+
+  /// The walk's view of one conversation in the read-only viewer: its visible items, whether its first
+  /// page is in, and one older page at a time (`ConversationViewerModel.loadOlderForFind`). `reveal` and
+  /// `revision` are the screen's, as for a chat.
+  public static func conversation(
+    _ model: ConversationViewerModel,
+    reveal: @escaping @MainActor (String) -> Bool,
+    revision: @escaping @MainActor () -> Int,
+    items: (@MainActor () -> [VisibleItem])? = nil
+  ) -> ChatFindWalk.Hooks {
+    ChatFindWalk.Hooks(
+      items: items ?? { model.items },
+      loaded: { model.phase == .ready },
+      reveal: reveal,
+      loadOlder: { await model.loadOlderForFind() },
+      revision: revision
+    )
+  }
 }

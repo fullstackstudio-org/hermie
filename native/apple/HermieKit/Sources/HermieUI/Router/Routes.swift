@@ -44,6 +44,25 @@ public struct ChatFindRequest: Hashable, Sendable {
   }
 }
 
+/// "Open this conversation of the bot's at the words I searched for": what a search hit in one of the
+/// bot's other conversations hands the viewer besides the route. Its own id for each request, so the same
+/// words asked twice in one conversation are looked for twice.
+public struct ConversationFindRequest: Hashable, Sendable {
+  public var id: Int
+  public var chat: ChatRef
+  /// The stored id of the conversation, which names the viewer it is for.
+  public var conversationID: String
+  /// The words, as typed (trimmed).
+  public var query: String
+
+  public init(id: Int, chat: ChatRef, conversationID: String, query: String) {
+    self.id = id
+    self.chat = chat
+    self.conversationID = conversationID
+    self.query = query
+  }
+}
+
 /// What the sidebar lists. The Expo app's tabs, minus Settings, which is a sheet or its own window.
 public enum SidebarSection: String, Codable, Hashable, Sendable, CaseIterable {
   case chats
@@ -83,6 +102,8 @@ public enum AppSheet: Hashable, Sendable, Identifiable {
   case needsYou
   /// The emergency stop: ask, stop every running turn, say what was stopped (`EmergencyStopSheet`).
   case emergencyStop
+  /// The search over every conversation of every bot on every signed-in gateway.
+  case search
 
   public var id: Self { self }
 }

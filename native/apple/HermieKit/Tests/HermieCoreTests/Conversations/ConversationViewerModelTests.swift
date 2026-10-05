@@ -158,3 +158,131 @@ private func texts(_ model: ConversationViewerModel) -> [String] {
     #expect(texts(model) == ["question", "answer"])
   }
 }
+
+/// A conversation opened from a search hit, looking for the row the words are in: the same walk the chat
+/// runs, over the viewer's own pages.
+@MainActor
+@Suite(.timeLimit(.minutes(1))) struct ConversationViewerFindTests {
+  /// What a walk did, held where the main actor's closures can write it.
+  @MainActor
+  private final class Log {
+    var revealed: [String] = []
+    var settled: [ChatFindWalk.Outcome] = []
+  }
+
+  private func twoPages() -> StubConversations {
+    let backend = StubConversations()
+    backend.state.withLock {
+      // Newest rows 4...6 first; the page before them is rows 1...3.
+      $0.pages[0] = ConversationTranscriptPage(rows: ConversationFixture.restRows(3, from: 4), shape: .rest, reachedStart: false)
+      $0.pages[3] = ConversationTranscriptPage(rows: ConversationFixture.restRows(3), shape: .rest, reachedStart: true)
+    }
+    return backend
+  }
+
+  private func walk(_ query: String, over model: ConversationViewerModel, log: Log) -> ChatFindWalk {
+    ChatFindWalk(
+      query: query,
+      hooks: .conversation(
+        model,
+        reveal: { id in
+          log.revealed.append(id)
+          return true
+        },
+        revision: { model.revision }),
+      onSettled: { log.settled.append($0) })
+  }
+
+  @Test func aRowOnThePageThatIsInIsFoundWithoutReadingMore() async {
+    let backend = twoPages()
+    let model = viewer(backend)
+    await model.load()
+    let log = Log()
+
+    let found = walk("row 5", over: model, log: log)
+    found.step()
+
+    #expect(log.settled == [.found(itemID: log.revealed.first ?? "")])
+    #expect(log.revealed.count == 1)
+    #expect(backend.calls == ["transcript p1 0"])
+  }
+
+  @Test func theWalkReadsOlderPagesUntilTheWordsAreThere() async {
+    let backend = twoPages()
+    let model = viewer(backend)
+    await model.load()
+    let log = Log()
+    let found = walk("row 2", over: model, log: log)
+
+    found.step()
+    await waitUntil("the walk to settle") { !log.settled.isEmpty }
+
+    #expect(backend.calls == ["transcript p1 0", "transcript p1 3"])
+    guard case .found = log.settled.first else {
+      Issue.record("not found: \(log.settled)")
+      return
+    }
+  }
+
+  @Test func wordsThatAreNowhereEndAtTheStartOfTheHistoryAsNotFound() async {
+    let backend = twoPages()
+    let model = viewer(backend)
+    await model.load()
+    let log = Log()
+    let found = walk("nowhere", over: model, log: log)
+
+    found.step()
+    await waitUntil("the walk to settle") { !log.settled.isEmpty }
+
+    #expect(log.settled == [.notFound])
+    #expect(log.revealed.isEmpty)
+    #expect(!model.canLoadOlder)
+  }
+
+  @Test func aWalkWaitsForTheFirstPageInsteadOfCallingItAMiss() async {
+    let backend = twoPages()
+    let model = viewer(backend)
+    let log = Log()
+    let found = walk("row 2", over: model, log: log)
+
+    // Nothing is loaded yet: not a miss, so no page is read and nothing is settled.
+    found.step()
+    #expect(log.settled.isEmpty)
+    #expect(backend.calls.isEmpty)
+
+    await model.load()
+    found.step()
+    await waitUntil("the walk to settle") { !log.settled.isEmpty }
+
+    guard case .found = log.settled.first else {
+      Issue.record("not found: \(log.settled)")
+      return
+    }
+  }
+
+  @Test func aPageThatCannotBeReadEndsTheWalkAsNotFound() async {
+    let backend = twoPages()
+    let model = viewer(backend)
+    await model.load()
+    backend.fail("transcript", GatewayRPCError(.timeout, "request timed out"))
+    let log = Log()
+    let found = walk("row 2", over: model, log: log)
+
+    found.step()
+    await waitUntil("the walk to settle") { !log.settled.isEmpty }
+
+    #expect(log.settled == [.notFound])
+  }
+
+  @Test func loadingOlderForAFindSaysWhereTheHistoryCameOut() async {
+    let backend = twoPages()
+    let model = viewer(backend)
+
+    // Not loaded: nothing to page.
+    #expect(await model.loadOlderForFind() == .start)
+
+    await model.load()
+    #expect(await model.loadOlderForFind() == .grew)
+    #expect(await model.loadOlderForFind() == .start)
+  }
+}

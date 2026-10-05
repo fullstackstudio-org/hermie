@@ -125,6 +125,32 @@ public final class ConversationViewerModel {
     }
   }
 
+  /**
+   One older page for a search that is looking for words in this conversation (`ChatFindWalk`): waits for
+   a page already being read rather than racing it, and says where the history came out. A page that
+   could not be read ends the walk (`.start`): "not found" is the honest answer when the history cannot
+   be read any further, and the reader's own scroll offers the retry.
+   */
+  public func loadOlderForFind() async -> OlderHistory {
+    while loadingOlder || loading {
+      try? await Task.sleep(for: .milliseconds(20))
+    }
+
+    guard phase == .ready, canLoadOlder else {
+      return .start
+    }
+
+    let before = rowsRead
+
+    await loadOlder()
+
+    if olderError != nil {
+      return .start
+    }
+
+    return rowsRead > before ? .grew : .start
+  }
+
   private func publish() {
     items = visibleItems(state, visibility)
     revision += 1

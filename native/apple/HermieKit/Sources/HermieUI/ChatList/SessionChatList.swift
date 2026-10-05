@@ -69,6 +69,8 @@ struct SessionChatList: View {
       archive(rows, ready: ready, actions: actions)
 
       messageHits(status, rows: rows, ready: ready)
+
+      everywhereRow(rows)
     }
     .overlay { overlay(list: list, rows: rows, messages: status) }
     // Searched once the field has been still, and again when what is searched changes; a task that
@@ -418,6 +420,22 @@ struct SessionChatList: View {
           .selectionDisabled()
       } header: {
         Text(Strings.App.Bots.messagesHeader)
+      }
+    }
+  }
+
+  /// Under a search: the way to the search over every conversation, which lists every chat of every bot on
+  /// every gateway that holds the words, not only the best one per bot of this gateway.
+  @ViewBuilder private func everywhereRow(_ rows: ChatListRows) -> some View {
+    if rows.searching, let router {
+      Section {
+        Button {
+          router.presentSearch(seed: query)
+        } label: {
+          Label(NativeStrings.Search.everywhere(query: MessageSearchModel.normalized(query)), systemImage: "magnifyingglass")
+            .lineLimit(2)
+        }
+        .accessibilityIdentifier("hermie.chatList.searchEverywhere")
       }
     }
   }

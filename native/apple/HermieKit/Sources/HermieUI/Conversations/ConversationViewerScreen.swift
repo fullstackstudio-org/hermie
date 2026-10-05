@@ -57,6 +57,7 @@ struct ConversationViewerContent: View {
   @State private var listState = TranscriptListState()
   @State private var expansion = TranscriptExpansion()
   @State private var pipeline = ChatRowPipeline()
+  @State private var finder = ConversationFinder()
   @Environment(AppRouter.self) private var router: AppRouter?
 
   init(chat: ChatRef, conversation: Conversation, session: GatewaySession) {
@@ -73,15 +74,22 @@ struct ConversationViewerContent: View {
       banner
 
       ZStack {
-        TranscriptList(rows, state: listState, spacing: ChatTranscript.rowSpacing) { row in
+        TranscriptList(finder.marked(rows), state: listState, spacing: ChatTranscript.rowSpacing) { row in
           TranscriptItemView(row: row, gaps: .chat)
             .padding(.horizontal, ChatTranscript.margin)
+            .modifier(FoundRowMark(active: row.flash))
         }
         .environment(\.transcriptExpansion, expansion)
         .modifier(OwnAuthor(session: session))
         .overlay(alignment: .top) {
-          if model.loadingOlder {
-            loadingEarlier
+          VStack(spacing: 8) {
+            if let notice = finder.notice {
+              findNotice(notice)
+            }
+
+            if model.loadingOlder {
+              loadingEarlier
+            }
           }
         }
 
@@ -99,13 +107,47 @@ struct ConversationViewerContent: View {
       }
 
       rows = await pipeline.rows(for: model.items, historyComplete: !model.canLoadOlder).rows
+      // After the rows are in: the row a search hit is about may have arrived with them.
+      finder.rowsChanged(rows)
+    }
+    // A search hit followed to this conversation: before the screen exists (taken on appear) or while
+    // it is open.
+    .onChange(of: router?.conversationFind, initial: true) { _, request in
+      take(request)
     }
     .onAppear {
       listState.onNearTop = { Task { await model.loadOlder() } }
     }
     .onDisappear {
       listState.onNearTop = nil
+      finder.stop()
     }
+  }
+
+  /// A search hit asked this conversation to show the row its words are in; the finder looks for it and
+  /// tells the router when it is done.
+  private func take(_ request: ConversationFindRequest?) {
+    guard let request, request.chat == chat, request.conversationID == conversation.id else {
+      return
+    }
+
+    let router = self.router
+
+    finder.find(request, model: model, listState: listState) { id in router?.settleConversationFind(id) }
+  }
+
+  /// The sentence for words that were not in the visible text of this conversation.
+  private func findNotice(_ text: String) -> some View {
+    Text(verbatim: text)
+      .font(.footnote)
+      .multilineTextAlignment(.leading)
+      .padding(.horizontal, 14)
+      .padding(.vertical, 8)
+      .background(.regularMaterial, in: .rect(cornerRadius: 14, style: .continuous))
+      .padding(.horizontal, ChatSpacing.edgeMargin)
+      .padding(.top, 8)
+      .transition(.opacity)
+      .accessibilityIdentifier("hermie.conversationViewer.findNotice")
   }
 
   /// "You are reading an earlier conversation": it cannot be answered, and here is the way back.

@@ -46,6 +46,12 @@ public struct HermieCommands: Commands {
       }
       .keyboardShortcut("f", modifiers: .command)
       .disabled(router == nil)
+
+      Button(NativeStrings.Commands.searchEverywhere) {
+        router?.presentSearch()
+      }
+      .keyboardShortcut("f", modifiers: [.command, .shift])
+      .disabled(router == nil)
     }
 
     #if os(macOS)

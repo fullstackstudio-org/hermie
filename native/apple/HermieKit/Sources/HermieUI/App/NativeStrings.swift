@@ -194,6 +194,48 @@ enum NativeStrings {
     static var failed: String {
       String(localized: "native.search.failed", table: "Native", bundle: .module)
     }
+    /// Search Everywhere (the title of the search over every conversation)
+    static var title: String { String(localized: "native.search.title", table: "Native", bundle: .module) }
+    /// Search every conversation (the placeholder of its field)
+    static var prompt: String { String(localized: "native.search.prompt", table: "Native", bundle: .module) }
+    /// What the search covers and what a tap does (under its empty field)
+    static var hint: String { String(localized: "native.search.hint", table: "Native", bundle: .module) }
+    /// No conversation mentions “{query}”.
+    static func none(query: String) -> String {
+      String(
+        localized: "native.search.none", defaultValue: "No conversation mentions “\(query)”.", table: "Native",
+        bundle: .module)
+    }
+    /// Searching… (under the results while the gateways are being asked)
+    static var searching: String { String(localized: "native.search.searching", table: "Native", bundle: .module) }
+    /// Could not search: {names}. Showing what this device kept.
+    static func unreachable(names: String) -> String {
+      String(
+        localized: "native.search.unreachable", defaultValue: "Could not search: \(names). Showing what this device kept.",
+        table: "Native", bundle: .module)
+    }
+    /// Only on this device (a result the gateway did not confirm)
+    static var onDevice: String { String(localized: "native.search.onDevice", table: "Native", bundle: .module) }
+    /// Bot Chat (what a result in the bot's own chat is called)
+    static var botChat: String { String(localized: "native.search.botChat", table: "Native", bundle: .module) }
+    /// My chat (a result in one of the reader's own chats)
+    static var ownChat: String { String(localized: "native.search.ownChat", table: "Native", bundle: .module) }
+    /// Branch (a result in a branch whose title says nothing more)
+    static var branch: String { String(localized: "native.search.branch", table: "Native", bundle: .module) }
+    /// Earlier conversation (a result in a past conversation with no title)
+    static var past: String { String(localized: "native.search.past", table: "Native", bundle: .module) }
+    /// Opens the conversation at this message. (the hint of a result)
+    static var openAt: String { String(localized: "native.search.openAt", table: "Native", bundle: .module) }
+    /// Search every conversation for “{query}” (the row under the chat list's results)
+    static func everywhere(query: String) -> String {
+      String(
+        localized: "native.search.everywhere", defaultValue: "Search every conversation for “\(query)”",
+        table: "Native", bundle: .module)
+    }
+    /// Conversations (the header over the results)
+    static var resultsHeader: String {
+      String(localized: "native.search.resultsHeader", table: "Native", bundle: .module)
+    }
   }
 
   enum Commands {
@@ -209,6 +251,10 @@ enum NativeStrings {
     static var chatMenu: String { String(localized: "native.commands.chatMenu", table: "Native", bundle: .module) }
     /// Find…
     static var find: String { String(localized: "native.commands.find", table: "Native", bundle: .module) }
+    /// Search Everywhere… (opens the search over every conversation)
+    static var searchEverywhere: String {
+      String(localized: "native.commands.searchEverywhere", table: "Native", bundle: .module)
+    }
     /// New Chat Window
     static var newChatWindow: String {
       String(localized: "native.commands.newChatWindow", table: "Native", bundle: .module)

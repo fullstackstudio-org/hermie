@@ -2804,6 +2804,30 @@
         }
       }
     },
+    "native.commands.searchEverywhere" : {
+      "comment" : "Menu item that opens the search over every conversation (⇧⌘F).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Überall suchen …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search Everywhere…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overal zoeken…"
+          }
+        }
+      }
+    },
     "native.commands.switchGateway" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21493,6 +21517,78 @@
         }
       }
     },
+    "native.search.botChat" : {
+      "comment" : "What a result in the bot's own chat is called, under the bot's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bot-Chat"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bot Chat"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bot Chat"
+          }
+        }
+      }
+    },
+    "native.search.branch" : {
+      "comment" : "What a result in a branch is called when its title says nothing more.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verzweigung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Branch"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vertakking"
+          }
+        }
+      }
+    },
+    "native.search.everywhere" : {
+      "comment" : "Row under the chat list's search results that opens the search over every conversation. {query}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%@“ in allen Unterhaltungen suchen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search every conversation for “%@”"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoek “%@” in alle gesprekken"
+          }
+        }
+      }
+    },
     "native.search.failed" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21535,6 +21631,270 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "“%@” gevonden in deze chat."
+          }
+        }
+      }
+    },
+    "native.search.hint" : {
+      "comment" : "Under the empty field of the search over every conversation.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Durchsuche die Nachrichten aller Bots auf allen Gateways, bei denen du angemeldet bist. Tippe auf ein Ergebnis, um die Unterhaltung bei dieser Nachricht zu öffnen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search the messages of every bot on every gateway you are signed in to. Tap a result to open the conversation at that message."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoek in de berichten van elke bot op elke gateway waarop je bent ingelogd. Tik op een resultaat om het gesprek bij dat bericht te openen."
+          }
+        }
+      }
+    },
+    "native.search.none" : {
+      "comment" : "No conversation held the words. {query}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Unterhaltung erwähnt „%@“."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No conversation mentions “%@”."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen gesprek noemt “%@”."
+          }
+        }
+      }
+    },
+    "native.search.onDevice" : {
+      "comment" : "Marks a result only this device's own copy of the chat holds; the gateway did not confirm it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur auf diesem Gerät"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only on this device"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alleen op dit apparaat"
+          }
+        }
+      }
+    },
+    "native.search.openAt" : {
+      "comment" : "Hint of a result: what a tap does.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnet die Unterhaltung bei dieser Nachricht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens the conversation at this message."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opent het gesprek bij dit bericht."
+          }
+        }
+      }
+    },
+    "native.search.ownChat" : {
+      "comment" : "What a result in one of the reader's own chats is called when it has no name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mein Chat"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My chat"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mijn chat"
+          }
+        }
+      }
+    },
+    "native.search.past" : {
+      "comment" : "What a result in an earlier conversation is called when it has no title.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frühere Unterhaltung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Earlier conversation"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eerder gesprek"
+          }
+        }
+      }
+    },
+    "native.search.prompt" : {
+      "comment" : "Placeholder of the field of the search over every conversation.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In allen Unterhaltungen suchen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search every conversation"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoek in alle gesprekken"
+          }
+        }
+      }
+    },
+    "native.search.resultsHeader" : {
+      "comment" : "Header over the results of the search over every conversation.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unterhaltungen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conversations"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesprekken"
+          }
+        }
+      }
+    },
+    "native.search.searching" : {
+      "comment" : "Under the results while the gateways are still being asked.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suche läuft …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Searching…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoeken…"
+          }
+        }
+      }
+    },
+    "native.search.title" : {
+      "comment" : "Title of the search over every conversation, and its menu item without the dots.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Überall suchen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search Everywhere"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overal zoeken"
+          }
+        }
+      }
+    },
+    "native.search.unreachable" : {
+      "comment" : "Under the results: the gateways that could not be searched. {names}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht durchsuchbar: %@. Angezeigt wird, was dieses Gerät gespeichert hat."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not search: %@. Showing what this device kept."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kon niet doorzoeken: %@. Dit apparaat toont wat het zelf bewaarde."
           }
         }
       }

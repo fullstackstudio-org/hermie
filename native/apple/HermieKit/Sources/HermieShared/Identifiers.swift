@@ -23,6 +23,23 @@ public enum Identifiers {
     isSegment(value, allowingDots: false)
   }
 
+  /// A stored session id as a link segment: `^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`. The ids the gateway
+  /// mints (a date, a time and a few hex digits) are inside it; anything else is left out of a link.
+  public static func isSafeSessionId(_ value: String) -> Bool {
+    let scalars = Array(value.unicodeScalars)
+
+    guard let first = scalars.first, scalars.count <= 128,
+      ("A"..."Z").contains(first) || ("a"..."z").contains(first) || ("0"..."9").contains(first)
+    else {
+      return false
+    }
+
+    return scalars.allSatisfy { scalar in
+      ("A"..."Z").contains(scalar) || ("a"..."z").contains(scalar) || ("0"..."9").contains(scalar)
+        || scalar == "_" || scalar == "-" || scalar == "." || scalar == ":"
+    }
+  }
+
   /// `isGatewayKey`: sixteen lowercase hex digits, what `gatewayKeyOf` produces.
   public static func isGatewayKey(_ value: String) -> Bool {
     let scalars = Array(value.unicodeScalars)

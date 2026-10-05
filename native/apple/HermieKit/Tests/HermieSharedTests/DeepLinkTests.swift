@@ -126,6 +126,8 @@ struct DeepLinkTests {
       .chat(bot: "researcher", gatewayKey: key),
       .chat(bot: "code reviewer", gatewayKey: key),
       .chat(bot: "ünïcödé ✓ & friends?#%", gatewayKey: ""),
+      .conversation(bot: "researcher", session: "20260915_142233_a1b2c3", gatewayKey: key),
+      .conversation(bot: "code reviewer & co?", session: "s1", gatewayKey: ""),
       .share(id: "0f2a4c6e8a0c2e4f6a8c0e2f4a6c8e0f"),
       .intent(id: "req.1"),
       .folder(id: "fm4k2a1")
@@ -153,5 +155,45 @@ struct DeepLinkTests {
     #expect(DeepLink(DeepLink.chat(bot: "a/b", gatewayKey: "").string) == nil)
     // A malformed key is left off rather than written.
     #expect(DeepLink.chat(bot: "x", gatewayKey: "nope").string == "hermie://chat/x")
+  }
+
+  // MARK: Conversation links
+
+  @Test("reads the conversation, the bot and the gateway out of a conversation link")
+  func conversation() {
+    #expect(
+      DeepLink("hermie://conversation/20260915_142233_a1b2c3?bot=researcher&gateway=\(key)")
+        == .conversation(bot: "researcher", session: "20260915_142233_a1b2c3", gatewayKey: key))
+    #expect(
+      DeepLink("hermie://conversation/s1?bot=code%20reviewer")
+        == .conversation(bot: "code reviewer", session: "s1", gatewayKey: ""))
+    // The order of the parameters is nobody's business.
+    #expect(
+      DeepLink("hermie://conversation/s1?gateway=\(key)&bot=a")
+        == .conversation(bot: "a", session: "s1", gatewayKey: key))
+  }
+
+  @Test(
+    "refuses a conversation link that names no usable bot or session",
+    arguments: [
+      ("no bot", "hermie://conversation/s1"),
+      ("an empty bot", "hermie://conversation/s1?bot="),
+      ("a bot with an escaped slash", "hermie://conversation/s1?bot=a%2Fb"),
+      ("a session that climbs", "hermie://conversation/..?bot=a"),
+      ("a session with an escape", "hermie://conversation/a%2Fb?bot=a"),
+      ("a second segment", "hermie://conversation/s1/extra?bot=a")
+    ] as [(String, String)]
+  )
+  func conversationRefusals(label: String, url: String) {
+    #expect(DeepLink(url) == nil, "\(label)")
+  }
+
+  @Test("a conversation link with a session or bot outside the alphabet is not built")
+  func conversationRefusedBuilds() {
+    #expect(DeepLink.conversation(bot: "a", session: "../x", gatewayKey: "").string == nil)
+    #expect(DeepLink.conversation(bot: "a", session: "", gatewayKey: "").string == nil)
+    #expect(DeepLink.conversation(bot: "", session: "s1", gatewayKey: "").string == nil)
+    #expect(
+      DeepLink.conversation(bot: "a", session: "s1", gatewayKey: "nope").string == "hermie://conversation/s1?bot=a")
   }
 }
