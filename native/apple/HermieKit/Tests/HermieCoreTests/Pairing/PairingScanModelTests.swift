@@ -153,17 +153,33 @@ struct PairingScanModelTests {
     #expect(model.offer == offer && !model.readingImage)
   }
 
+  /// A picture reader that answers only when the test lets it: the race is ordered, not timed.
+  private final class HeldReader: @unchecked Sendable {
+    private let release = DispatchSemaphore(value: 0)
+    let answer: [String]
+
+    init(answer: [String]) { self.answer = answer }
+
+    func read(_ data: Data) -> [String] {
+      release.wait()
+      return answer
+    }
+
+    func letGo() { release.signal() }
+  }
+
   @Test("a picture that is answered after the sheet was reset is dropped")
   func staleAfterReset() async throws {
-    let model = PairingScanModel(authorization: FakeCaptureAuthorization(camera: .granted))
-    let data = try png(good)
-    let reading = Task { await model.importImage(data) }
+    let reader = HeldReader(answer: [good])
+    let model = PairingScanModel(authorization: FakeCaptureAuthorization(camera: .granted), readCodes: reader.read)
+    let reading = Task { await model.importImage(Data([1])) }
 
     while !model.readingImage {
       await Task.yield()
     }
 
     model.reset()
+    reader.letGo()
     await reading.value
     #expect(model.phase == .ready, "the person went back: the late answer does not appear")
     #expect(!model.readingImage)
@@ -171,19 +187,20 @@ struct PairingScanModelTests {
 
   @Test("a code the camera read while a picture was being read is not replaced by the picture")
   func cameraBeatsPicture() async throws {
-    let model = PairingScanModel(authorization: FakeCaptureAuthorization(camera: .granted))
+    let reader = HeldReader(answer: [good])
+    let model = PairingScanModel(authorization: FakeCaptureAuthorization(camera: .granted), readCodes: reader.read)
     let other = "hermie://add-gateway?url=https%3A%2F%2Fcamera.example.test"
-    let data = try png(good)
 
     await model.start()
 
-    let reading = Task { await model.importImage(data) }
+    let reading = Task { await model.importImage(Data([1])) }
 
     while !model.readingImage {
       await Task.yield()
     }
 
     model.detected(other)
+    reader.letGo()
     await reading.value
     #expect(model.offer?.host == "camera.example.test")
   }

@@ -50,12 +50,19 @@ public final class PairingScanModel {
   public private(set) var readingImage = false
 
   @ObservationIgnored private let authorization: any CaptureAuthorizing
+  /// What reads a picture's codes, off the main actor (Vision; a test holds it to order the race).
+  @ObservationIgnored private let readCodes: @Sendable (Data) -> [String]
   /// Which picture the sheet is waiting for: a newer one, a reset or a code the camera read since makes
   /// an older answer stale.
   @ObservationIgnored private var imageTicket = 0
 
-  public init(authorization: any CaptureAuthorizing = SystemCaptureAuthorization()) {
+  public convenience init(authorization: any CaptureAuthorizing = SystemCaptureAuthorization()) {
+    self.init(authorization: authorization, readCodes: { PairingQRCode.payloads(in: $0) })
+  }
+
+  init(authorization: any CaptureAuthorizing, readCodes: @escaping @Sendable (Data) -> [String]) {
     self.authorization = authorization
+    self.readCodes = readCodes
   }
 
   /// The offer that was read, once there is one.
@@ -150,7 +157,8 @@ public final class PairingScanModel {
 
     readingImage = true
 
-    let payloads = await Task.detached(priority: .userInitiated) { PairingQRCode.payloads(in: data) }.value
+    let read = readCodes
+    let payloads = await Task.detached(priority: .userInitiated) { read(data) }.value
 
     guard ticket == imageTicket else {
       return
