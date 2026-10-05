@@ -40,6 +40,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The native Apple apps search every conversation of every bot, on every gateway you are signed in
+  to.** Search Everywhere (⇧⌘F, or the row under the chat list's search) lists each chat that holds the
+  words, not only the best one per bot: the Bot Chat, its branches, earlier conversations and your own
+  chats, each with the bot, the chat's title, the words around the match and the date. A result opens
+  the conversation at that message, switching gateway first where it is on another one; what this
+  device kept of a chat answers when a gateway cannot be asked, and a gateway that could not be searched
+  is named. The titles of a bot's other conversations are in Spotlight, and so is the text of the chats
+  unless the app lock is set or the chat cache is off; signing out of a gateway takes its items out.
+- **The native Apple apps show usage per bot and per day, and warn at a limit.** Each bot's settings page
+  and Settings, Usage show today, a week or a month, day by day: tokens and cost (a cost the gateway
+  priced itself is marked ~), sessions and messages, how full the chat's context window is, the Nous
+  balance, and the provider account's limits as the gateway words them. A limit on a day's cost or
+  tokens, across every bot of the gateway, gives a notification once a day while the app is running.
+  The fake gateway answers the four usage calls (`packages/fake-gateway/src/usage.ts`).
+
 - **The native Apple apps show the files a bot shares.** A reply that carries files
   (`contract/outbox/`) draws a picture as a thumbnail that opens the gallery (several are a grid), a
   sound as a row with a scrubber, a video as a poster that plays full screen, a PDF as a card that

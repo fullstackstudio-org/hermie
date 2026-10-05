@@ -2594,6 +2594,123 @@ one line per turn (bot, gateway, stopped / already finished / failed), the count
   (HermieCoreTests; a scripted link), `NeedsYouViewTests` (HermieUITests), `EmergencyStopIntegrationTests` (the fake
   gateway: the app's own chat and a second client's turn stopped from one control).
 
+## Search everywhere
+
+One field over every conversation of every bot on every gateway this device is signed in to
+(`SearchEverywhereSheet`, `HermieUI/Search`; `EverywhereSearchModel` and friends in `HermieCore/Search`). It is
+the second search the app has: the chat list's field (see Message search, above) answers "which bot's chat
+mentions this", one hit per bot of the live gateway; this answers "where did we talk about this". It opens with
+⇧⌘F (Search Everywhere… in the Edit menu, on the Mac and with an iPad keyboard), and from the "Search every
+conversation for …" row under the chat list's own results, which hands its words over (`AppRouter.presentSearch`).
+⌘F stays "focus the sidebar's field".
+
+- **What the gateway can and cannot do.** `GET /api/sessions/search` is scoped to one profile, so a search is one
+  request per (gateway, bot), at most four at a time across every gateway, 8 s each, ten hits per bot. It answers
+  one hit per conversation (collapsed onto the compression lineage root), so a bot's Bot Chat, its branches, its
+  past conversations and the reader's own chats are all results, each with the gateway's title and snippet. It
+  names no message: a hit opens a conversation, and the row is found again on this side. There is no
+  `session.search` RPC; the fork's `hermes_state_search.py` is what the route reads.
+- **Two halves, merged** (`SearchMerge`). The gateway's hits, and this device's own copy of a bot's Bot Chat
+  (`LocalChatSearch`: the chat the session holds in memory, else the cache, searched by `FindInChat`'s rules, so a
+  hit here is a row the chat itself would find). The local half answers first, while the gateways are asked, and
+  answers when they cannot (offline, signed out, timed out); a result only it holds says "Only on this device".
+  A conversation found by both is one result (the same Bot Chat under its stored id, its lineage tip or its root;
+  the same lineage root), keeping the gateway's snippet and date. Newest first, then gateway, bot, title: the
+  order never depends on which request landed first. At most 100 results.
+- **Every signed-in gateway.** The app keeps one live session (ADR-0024), so only that gateway has a roster and
+  chats in memory. The others are searched through the REST client built from the credentials stored for them
+  (`GatewayAccounts.client(for:)`, the one token coordinator per gateway), with the roster and chats this device
+  cached for them (`SearchSources`). A bot created on such a gateway since it was last live is not searched there
+  until it is live again. A gateway with nothing to sign in with, or whose every bot failed, is named under the
+  list ("Could not search: …") rather than being a silent gap; a failing bot costs only itself.
+- **Opening a result** (`SearchDestination`, `AppRouter.openSearchResult`). The Bot Chat opens as a message-search
+  hit does (`openChat(_:finding:)`, `ChatFeed.find`). Any other conversation opens in the read-only viewer, pushed
+  over the bot's Conversations page, with a request (`ConversationFindRequest`) that the viewer's `ConversationFinder`
+  takes: the same bounded `ChatFindWalk`, over the viewer's own older pages (`loadOlderForFind`), scrolling to
+  and marking the row, or saying the words are not in the visible text. A result on another gateway makes it the
+  live one first (`RouterEffect.activateGateway`); the request waits in the router for the screen the new session
+  builds. A gateway this device no longer has opens nothing and says so.
+- **Core Spotlight** (`ChatSpotlightIndex`, `ChatSpotlightIndexer`, with the bots' own `BotSpotlightIndex`). The
+  titles of a bot's other conversations (from `session.list`, newest 25 per bot, 40 bots) are always indexed; the
+  message text of the bots' chats (the last 6,000 characters of each, from what the app already holds) only under
+  `ChatSpotlightPolicy`: not while the app lock is configured (`hidePreviews`, the rule that blanks the widgets'
+  and the bots' previews) and not while the chat cache is switched off. Either one turning text off takes every
+  gateway's text out in one call and leaves the titles; turning it on again writes it afresh. Each gateway has
+  a domain of its own for each kind (`dev.hermie.app.conversations.<key>`, `dev.hermie.app.chattext.<key>`), so a
+  sign-out or a removal purges its titles and text with `SystemSurfaces.purge`, and a read still in flight when
+  that happens writes nothing afterwards. An item's identifier is a link the router already opens
+  (`hermie://conversation/<session>?bot=…&gateway=…`, a new kind; the bot's chat for text, with a fragment so
+  it never shares the bot item's identifier), and `MainWindow` hands a tap on a result (`CSSearchableItemActionType`)
+  to `AppRouter.handle`. The indexer is asked often and reads little: titles at most every 30 minutes (at once when
+  the gateway's sessions changed), text at most once a minute, and only what changed is written.
+- **Tests.** `EverywhereSearchTests` (merge, dedup, kinds, routing, the model), `ConversationViewerFindTests`,
+  `ChatSpotlightTests` (policy, the items, purge on sign-out, in-flight purge), `SearchRoutingTests` and
+  `SearchEverywhereViewTests` (HermieUITests), `DeepLinkTests`, and `SearchEverywhereIntegrationTests` against the
+  fake gateway (every conversation of a bot, merged with the local copy, two gateways, a gateway that is down, the row
+  found in the conversation a hit names).
+
+## Usage
+
+**Settings, Usage** (`UsageSettingsEntry`) lists every bot of the live gateway side by side, and each bot's
+settings page has a **Usage** section (`BotUsageSection`, the same content); both are `HermieCore/Usage`.
+
+- **What the gateway can tell.** Four calls say something about use and none says it all:
+  `GET /api/analytics/usage?days=<n>&profile=<bot>` (the dashboard's route, scoped to one profile) is the only
+  source of tokens and cost per day: it groups the profile's sessions by the UTC day each STARTED on. `session.usage`
+  is one live session's tokens and how full its context window is (the chat's ring uses the same numbers), and
+  carries the provider account's limits as text lines (`account_lines`, `credits_lines`). `usage.bars` is the Nous
+  account's plan and top-up balance as display strings and fractions; any other account answers
+  `{available: false}`. `insights.get` counts sessions and messages and nothing else. `days` on the route is
+  a `Query(ge=1, le=365)`, so a value outside it is a 422 and not a clamp (the app asks for 30 and narrows to 7 itself).
+- **What the app shows** (`BotUsageModel`, `UsageOverviewModel`). Today and the chosen span (7 or 30 days): tokens
+  (in, out, cached), cost, sessions, model calls, messages; day by day with a bar to the heaviest day; per bot,
+  heaviest first, each bot opening its own page; the chat's context window where the chat has said how big it
+  is (a ring needs both numbers: none is not zero); the Nous balance as bars; and the account lines as the gateway
+  worded them, plain text. The days are the gateway's UTC days and a cost the gateway priced itself is marked `~`:
+  the footer says both. A failed bot is named and keeps its earlier days; a gateway without the route says so once
+  (`UsageFailure.unsupported`: a 404, or `-32601`) instead of offering a retry that cannot work.
+- **Provider account usage.** What the gateway offers today is the Nous bars and the account lines, both only as
+  the fork renders them: Anthropic's subscription windows (`five_hour`, `seven_day`, per-model weekly) and Codex's
+  quota exist only as text lines inside `/usage` and `session.usage`, so they are drawn as text, and only while a
+  chat of the bot has a live session to ask. Drawing them as bars, and for a bot that has no chat open, needs one
+  structured, profile-scoped RPC in the fork (not built; the app does not change the fork for it). The shape the
+  app would read, from `agent/account_usage.py`'s `AccountUsageSnapshot`:
+
+  ```text
+  account.usage { profile?: string, refresh?: boolean }
+  -> { ok: true, profile: string,
+       providers: [{
+         provider: string,                 // "anthropic", "openai-codex", "nous", …: the provider the profile's model runs on
+         source: string,                   // snapshot.source
+         title: string, plan: string | null,
+         available: boolean, unavailable_reason: string | null,
+         fetched_at: string,               // ISO 8601, UTC
+         windows: [{ id: string,           // "five_hour", "seven_day", "seven_day_opus", "seven_day_sonnet", …
+                     label: string,        // "Current session", "Current week", …
+                     used_percent: number | null,   // 0…100
+                     reset_at: string | null,       // ISO 8601, UTC
+                     detail: string | null }],
+         details: string[],                // the snapshot's free-text lines (Codex banked resets, …)
+         credits: { currency: string, remaining: number, total: number | null } | null   // Nous, OpenRouter
+       }] }
+  ```
+
+  Never a credential, a header or the provider's raw body; a snapshot cached for a minute or so and the provider
+  fetch rate limited, as `/usage` already is by the provider's own limits.
+
+- **The limit** (`UsageAlertSettingsModel`, `UsageAlertMonitor`, `UsageAlertDriver`). A switch and a cost and a
+  token limit per day, on this device (`hermie.usage.alerts`). The day's total across every bot of the live gateway
+  is compared with the limits (`UsageAlertEvaluator`: reached at the limit, told once per gateway, day and limit;
+  a changed limit is a new alert), and a local notification says how much, where, and (only when previews are
+  allowed) which bot used the most. It needs notifications allowed, and then nothing is marked as told until they are.
+  The driver reads each bot's last two days when the limit is switched on or changed, when the connection comes up, and
+  every ten minutes while the app runs: nothing wakes a suspended app, so an alert is told the next time the app is
+  awake and looks. What was told is kept (`hermie.usage.alertState`) and dropped with the gateway.
+- **Tests.** `UsageAggregationTests` (the analytics rows, UTC days, per day and per bot, the provider parsing),
+  `UsageModelsTests` (the models, the service's failures), `UsageAlertTests` (the evaluator, the monitor, the driver),
+  `UsageViewTests`, and `UsageIntegrationTests` against the fake gateway, which now has the four calls
+  (`packages/fake-gateway/src/usage.ts`, staged with `POST /__fake/usage`, pinned by `usage.test.ts`).
+
 ## Licences and the gateway's facts
 
 **Settings › About › Licences** (`LicencesPage`) lists what the Apple apps owe to others, each entry opening its licence
