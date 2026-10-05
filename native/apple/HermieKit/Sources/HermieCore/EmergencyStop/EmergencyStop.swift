@@ -14,12 +14,15 @@ public struct RunningTurn: Sendable, Equatable, Identifiable {
   public var botName: String
   /// What the gateway titles the session, for one that names no bot. Cleaned and bounded.
   public var title: String
+  /// Where the turn was started from (`tui`, `cli`, a messaging platform), where the gateway says.
+  public var source: String
 
-  public init(id: String, chatKey: String? = nil, botName: String = "", title: String = "") {
+  public init(id: String, chatKey: String? = nil, botName: String = "", title: String = "", source: String = "") {
     self.id = id
     self.chatKey = chatKey
     self.botName = botName
     self.title = title
+    self.source = source
   }
 }
 
@@ -52,6 +55,38 @@ public enum StopOutcome: Sendable, Equatable {
   case failed(String)
 }
 
+/// What the gateway's stop-everything (`session.interrupt_all`) answered.
+public struct StopEverythingReport: Sendable, Equatable {
+  /// The turns it stopped, named as the person knows them (the bot, else the profile).
+  public var stopped: [RunningTurn]
+  /// Sessions with no turn running, or whose turn ended during the call.
+  public var alreadyIdle: Int
+  /// Running turns it may not stop: other people's, in a chat more than one person is in.
+  public var notAllowed: Int
+  /// Turns whose stop failed on the gateway.
+  public var failed: Int
+
+  public init(stopped: [RunningTurn], alreadyIdle: Int = 0, notAllowed: Int = 0, failed: Int = 0) {
+    self.stopped = stopped
+    self.alreadyIdle = alreadyIdle
+    self.notAllowed = notAllowed
+    self.failed = failed
+  }
+}
+
+/// How the one-call stop went on one gateway.
+public enum StopEverythingOutcome: Sendable, Equatable {
+  /// The gateway stopped what it could and says what.
+  case answered(StopEverythingReport)
+  /// The gateway has no such method (it answers `-32601`): stop the turns one by one.
+  case unsupported
+  /// The connection to the gateway was gone before the call went out.
+  case notConnected
+  /// The call did not go through, or the gateway refused it. The gateway's own words. Nothing is known to
+  /// have been stopped, so the turns are stopped one by one.
+  case failed(String)
+}
+
 /**
  One gateway the app has a connection to, as the emergency stop sees it. The live session is the
  only one today (ADR-0024: one socket); the model takes a list so a second connection is one more
@@ -65,6 +100,14 @@ public protocol StoppableGateway: AnyObject, Sendable {
   /// What runs on it now, or nil when it cannot be asked (the socket is not up).
   func runningTurns() async -> RunningTurnReading?
   func stop(_ turn: RunningTurn) async -> StopOutcome
+  /// Stop every turn of the caller's that the gateway can, in one call (`session.interrupt_all`): the turns of
+  /// every bot, from every client of this person, which also reaches a turn this connection cannot see. The
+  /// default is a gateway that cannot, and the stop goes turn by turn.
+  func stopEverything() async -> StopEverythingOutcome
+}
+
+extension StoppableGateway {
+  public func stopEverything() async -> StopEverythingOutcome { .unsupported }
 }
 
 // MARK: - The plan and its outcome
@@ -88,15 +131,25 @@ public struct StopPlan: Sendable, Equatable {
   /// Some gateway's own list could not be read: a turn another client started may be running that
   /// this plan does not know of.
   public var incomplete: Bool
+  /// Of `unreachable`, how many each gateway had (by id). Where the gateway can stop everything in one call
+  /// (`StoppableGateway.stopEverything`) those are answered by it, and no longer a caveat.
+  public var unreachableByGateway: [String: Int]
+  /// The gateways (by id) whose own list could not be read, which `incomplete` is about.
+  public var incompleteGateways: [String]
 
   /// How many turns will be stopped.
   public var total: Int { entries.reduce(0) { $0 + $1.turns.count } }
 
-  public init(entries: [Entry], unreachable: Int = 0, notAsked: [String] = [], incomplete: Bool = false) {
+  public init(
+    entries: [Entry], unreachable: Int = 0, notAsked: [String] = [], incomplete: Bool = false,
+    unreachableByGateway: [String: Int] = [:], incompleteGateways: [String] = []
+  ) {
     self.entries = entries
     self.unreachable = unreachable
     self.notAsked = notAsked
     self.incomplete = incomplete
+    self.unreachableByGateway = unreachableByGateway
+    self.incompleteGateways = incompleteGateways
   }
 }
 
@@ -120,32 +173,52 @@ public struct StopRecord: Sendable, Equatable, Identifiable {
 /// What the stop did, to show afterwards.
 public struct StopSummary: Sendable, Equatable {
   public var records: [StopRecord]
+  /// Running sessions nobody could stop from here, on gateways that were stopped turn by turn.
   public var unreachable: Int
   public var notAsked: [String]
   public var incomplete: Bool
+  /// Some gateway was stopped in one call (`session.interrupt_all`): the summary is its answer, which covers
+  /// the turns of every client of this person, and says what it left running. Scheduled (cron) runs are
+  /// outside that call and keep running.
+  public var usedStopEverything: Bool
+  /// What that call counted beyond the turns it names: sessions with no turn running (`alreadyIdleCount`),
+  /// running turns it may not stop (another person's, in a shared chat) and turns whose stop failed.
+  public var alreadyIdleCount: Int
+  public var notAllowed: Int
+  public var failedCount: Int
 
-  public init(records: [StopRecord], unreachable: Int = 0, notAsked: [String] = [], incomplete: Bool = false) {
+  public init(
+    records: [StopRecord], unreachable: Int = 0, notAsked: [String] = [], incomplete: Bool = false,
+    usedStopEverything: Bool = false, alreadyIdleCount: Int = 0, notAllowed: Int = 0, failedCount: Int = 0
+  ) {
     self.records = records
     self.unreachable = unreachable
     self.notAsked = notAsked
     self.incomplete = incomplete
+    self.usedStopEverything = usedStopEverything
+    self.alreadyIdleCount = alreadyIdleCount
+    self.notAllowed = notAllowed
+    self.failedCount = failedCount
   }
 
   public var stopped: Int { records.filter { $0.outcome == .stopped }.count }
+  /// Turns that ended by themselves before their stop went out.
   public var alreadyDone: Int { records.filter { $0.outcome == .alreadyDone }.count }
 
   /// How many turns could not be stopped.
   public var failed: Int {
-    records.filter {
-      switch $0.outcome {
-      case .failed, .notConnected: true
-      case .stopped, .alreadyDone: false
-      }
-    }.count
+    failedCount
+      + records.filter {
+        switch $0.outcome {
+        case .failed, .notConnected: true
+        case .stopped, .alreadyDone: false
+        }
+      }.count
   }
 
-  /// Nothing was running that could be stopped.
-  public var wasIdle: Bool { records.isEmpty }
+  /// Nothing was running that could be stopped, and nothing was left running that should have been. Sessions
+  /// that were idle all along do not count: they are not a turn.
+  public var wasIdle: Bool { records.isEmpty && notAllowed == 0 && failedCount == 0 }
 }
 
 // MARK: - The model
@@ -214,8 +287,10 @@ public final class EmergencyStopModel {
 
     var entries: [StopPlan.Entry] = []
     var unreachable = 0
+    var unreachableBy: [String: Int] = [:]
     var notAsked = notConnected()
     var incomplete = false
+    var incompleteBy: [String] = []
 
     for gateway in gateways() {
       guard let reading = await gateway.runningTurns() else {
@@ -225,6 +300,14 @@ public final class EmergencyStopModel {
 
       unreachable += reading.unreachable
       incomplete = incomplete || !reading.complete
+
+      if reading.unreachable > 0 {
+        unreachableBy[gateway.gatewayId] = reading.unreachable
+      }
+
+      if !reading.complete {
+        incompleteBy.append(gateway.gatewayId)
+      }
 
       if !reading.turns.isEmpty {
         entries.append(
@@ -238,7 +321,9 @@ public final class EmergencyStopModel {
       return
     }
 
-    let plan = StopPlan(entries: entries, unreachable: unreachable, notAsked: notAsked, incomplete: incomplete)
+    let plan = StopPlan(
+      entries: entries, unreachable: unreachable, notAsked: notAsked, incomplete: incomplete,
+      unreachableByGateway: unreachableBy, incompleteGateways: incompleteBy)
 
     if plan.total == 0 {
       phase = .finished(StopSummary(records: [], unreachable: unreachable, notAsked: notAsked, incomplete: incomplete))
@@ -257,6 +342,13 @@ public final class EmergencyStopModel {
 
     let live = gateways()
     var records: [StopRecord] = []
+    /// What the gateways stopped in one call answered for: their `unreachable` and unreadable lists are no
+    /// longer a caveat, since that call does not go by the list.
+    var answeredBy = Set<String>()
+    var usedStopEverything = false
+    var alreadyIdle = 0
+    var notAllowed = 0
+    var failedCount = 0
 
     for entry in plan.entries {
       guard let gateway = live.first(where: { $0.gatewayId == entry.gatewayId }) else {
@@ -271,6 +363,34 @@ public final class EmergencyStopModel {
         continue
       }
 
+      switch await gateway.stopEverything() {
+      case .answered(let report):
+        usedStopEverything = true
+        answeredBy.insert(entry.gatewayId)
+        alreadyIdle += report.alreadyIdle
+        notAllowed += report.notAllowed
+        failedCount += report.failed
+
+        for turn in report.stopped {
+          records.append(
+            StopRecord(gatewayId: entry.gatewayId, gatewayName: entry.gatewayName, turn: turn, outcome: .stopped))
+        }
+
+        continue
+      case .notConnected:
+        for turn in entry.turns {
+          records.append(
+            StopRecord(
+              gatewayId: entry.gatewayId, gatewayName: entry.gatewayName, turn: turn, outcome: .notConnected))
+        }
+
+        continue
+      case .unsupported, .failed:
+        // An older gateway, or a call that did not go through: stop what the plan lists, one by one. A turn
+        // that was stopped after all by the call that failed answers "nothing left to interrupt".
+        break
+      }
+
       let outcomes = await Self.stopAll(entry.turns, on: gateway)
 
       for (index, turn) in entry.turns.enumerated() {
@@ -281,9 +401,14 @@ public final class EmergencyStopModel {
       }
     }
 
+    let unreachable = plan.unreachableByGateway.reduce(0) { answeredBy.contains($1.key) ? $0 : $0 + $1.value }
+    let incomplete = plan.incompleteGateways.contains { !answeredBy.contains($0) }
+
     phase = .finished(
       StopSummary(
-        records: records, unreachable: plan.unreachable, notAsked: plan.notAsked, incomplete: plan.incomplete))
+        records: records, unreachable: unreachable, notAsked: plan.notAsked, incomplete: incomplete,
+        usedStopEverything: usedStopEverything, alreadyIdleCount: alreadyIdle, notAllowed: notAllowed,
+        failedCount: failedCount))
   }
 
   /// Every turn at once, each its own call; the outcomes by the turn's place in `turns`.

@@ -172,6 +172,13 @@ private struct SummaryList: View {
 
               VStack(alignment: .leading, spacing: 2) {
                 Text(StopNames.name(of: record.turn))
+
+                if let detail = StopNames.detail(of: record.turn) {
+                  Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+
                 Text(NativeStrings.EmergencyStop.outcome(record.outcome))
                   .font(.caption)
                   .foregroundStyle(.secondary)
@@ -182,7 +189,9 @@ private struct SummaryList: View {
         }
       }
 
-      Notes(unreachable: summary.unreachable, notAsked: summary.notAsked, incomplete: summary.incomplete)
+      Notes(
+        unreachable: summary.unreachable, notAsked: summary.notAsked, incomplete: summary.incomplete,
+        cronRunsKeepRunning: summary.usedStopEverything)
     }
     .accessibilityIdentifier("hermie.emergencyStop.summary")
   }
@@ -198,13 +207,7 @@ private struct SummaryList: View {
   }
 
   private var counts: String {
-    var parts: [String] = []
-
-    if summary.stopped > 0 { parts.append(NativeStrings.EmergencyStop.stoppedCount(summary.stopped)) }
-    if summary.alreadyDone > 0 { parts.append(NativeStrings.EmergencyStop.alreadyDoneCount(summary.alreadyDone)) }
-    if summary.failed > 0 { parts.append(NativeStrings.EmergencyStop.failedCount(summary.failed)) }
-
-    return parts.joined(separator: " · ")
+    StopCounts.line(of: summary)
   }
 
   private func icon(_ outcome: StopOutcome) -> String {
@@ -229,9 +232,11 @@ private struct Notes: View {
   let unreachable: Int
   let notAsked: [String]
   let incomplete: Bool
+  /// The stop was made in one call, which leaves scheduled (cron) runs alone: said, so nobody thinks they stopped.
+  var cronRunsKeepRunning = false
 
   var body: some View {
-    if unreachable > 0 || !notAsked.isEmpty || incomplete {
+    if unreachable > 0 || !notAsked.isEmpty || incomplete || cronRunsKeepRunning {
       Section {
         if unreachable > 0 {
           Text(NativeStrings.EmergencyStop.unreachable(unreachable))
@@ -243,6 +248,11 @@ private struct Notes: View {
 
         if incomplete {
           Text(NativeStrings.EmergencyStop.incomplete)
+        }
+
+        if cronRunsKeepRunning {
+          Text(NativeStrings.EmergencyStop.cronNote)
+            .accessibilityIdentifier("hermie.emergencyStop.cronNote")
         }
       }
       .font(.footnote)
@@ -259,5 +269,36 @@ enum StopNames {
     }
 
     return turn.title.isEmpty ? NativeStrings.EmergencyStop.unnamed : turn.title
+  }
+
+  /// What more is known of a turn beside its name: its title where the bot's name leads, and where it was
+  /// started from. Nil where there is nothing to add.
+  static func detail(of turn: RunningTurn) -> String? {
+    var parts: [String] = []
+
+    if !turn.botName.isEmpty, !turn.title.isEmpty {
+      parts.append(turn.title)
+    }
+
+    if !turn.source.isEmpty {
+      parts.append(turn.source)
+    }
+
+    return parts.isEmpty ? nil : parts.joined(separator: " · ")
+  }
+}
+
+/// The summary's counts, as one line.
+enum StopCounts {
+  static func line(of summary: StopSummary) -> String {
+    var parts: [String] = []
+
+    if summary.stopped > 0 { parts.append(NativeStrings.EmergencyStop.stoppedCount(summary.stopped)) }
+    if summary.alreadyDone > 0 { parts.append(NativeStrings.EmergencyStop.alreadyDoneCount(summary.alreadyDone)) }
+    if summary.alreadyIdleCount > 0 { parts.append(NativeStrings.EmergencyStop.alreadyIdleCount(summary.alreadyIdleCount)) }
+    if summary.notAllowed > 0 { parts.append(NativeStrings.EmergencyStop.notAllowedCount(summary.notAllowed)) }
+    if summary.failed > 0 { parts.append(NativeStrings.EmergencyStop.failedCount(summary.failed)) }
+
+    return parts.joined(separator: " · ")
   }
 }

@@ -802,6 +802,8 @@
 	<string>Stop all</string>
 	<key>native.emergencyStop.confirmMessage</key>
 	<string>Every bot is interrupted at once. What a bot has written so far is kept.</string>
+	<key>native.emergencyStop.cronNote</key>
+	<string>Scheduled (cron) runs are not stopped by this.</string>
 	<key>native.emergencyStop.idle.message</key>
 	<string>No bot has a turn that can be stopped from here.</string>
 	<key>native.emergencyStop.idle.title</key>
@@ -826,8 +828,12 @@
 	<string>Everything is stopped</string>
 	<key>native.emergencyStop.summary.alreadyDone</key>
 	<string>Already finished: %lld</string>
+	<key>native.emergencyStop.summary.alreadyIdle</key>
+	<string>Already idle: %lld</string>
 	<key>native.emergencyStop.summary.failed</key>
 	<string>Could not be stopped: %lld</string>
+	<key>native.emergencyStop.summary.notAllowed</key>
+	<string>Left running, not yours: %lld</string>
 	<key>native.emergencyStop.summary.someFailed</key>
 	<string>Some turns could not be stopped</string>
 	<key>native.emergencyStop.summary.stopped</key>

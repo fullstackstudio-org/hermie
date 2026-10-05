@@ -55,6 +55,15 @@ public enum RPC {
     public typealias Result = SessionInterruptResult
   }
 
+  /// The fork's stop-everything: `{profile?}` → `{stopped: [{session_id, session_key, profile, title, source}],
+  /// already_idle, not_allowed, failed}`. Not in the vendored TypeScript contract, which predates it; a
+  /// gateway without it answers `-32601`.
+  public enum SessionInterruptAll: RPCMethod {
+    public static let name = "session.interrupt_all"
+    public typealias Params = JSONValue
+    public typealias Result = JSONValue
+  }
+
   public enum SessionSteer: RPCMethod {
     public static let name = "session.steer"
     public typealias Params = SessionCorrectionParams
@@ -94,6 +103,14 @@ public enum RPC {
   public enum SessionUsage: RPCMethod {
     public static let name = "session.usage"
     public typealias Params = SessionParams
+    public typealias Result = JSONValue
+  }
+
+  /// The fork's provider account usage: `{profile?, refresh?}` → `{ok, profile, providers: [...]}`. Not in the
+  /// vendored TypeScript contract; a gateway without it answers `-32601`.
+  public enum AccountUsage: RPCMethod {
+    public static let name = "account.usage"
+    public typealias Params = JSONValue
     public typealias Result = JSONValue
   }
 
@@ -428,7 +445,7 @@ public enum RPC {
   /// The wire name of every method in this catalogue.
   public static let allMethodNames: [String] = [
     SessionCreate.name, SessionResume.name, SessionList.name, SessionHistory.name,
-    SessionEventsSince.name, SessionInterrupt.name, SessionSteer.name, SessionClose.name,
+    SessionEventsSince.name, SessionInterrupt.name, SessionInterruptAll.name, AccountUsage.name, SessionSteer.name, SessionClose.name,
     SessionDelete.name, SessionTitle.name, SessionSetHidden.name, SessionBranch.name,
     SessionUsage.name, SessionActiveList.name, SessionStatus.name, PromptSubmit.name, ImageAttachBytes.name,
     ApprovalRespond.name, ApprovalPending.name, ApprovalReceived.name, ClarifyLock.name,

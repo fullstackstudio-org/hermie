@@ -19,6 +19,9 @@ final class FakeStoppable: StoppableGateway {
   private var inFlight = 0
   /// Held until `release()`, so a test can look at the model while the stops are under way.
   var gate: Gate?
+  /// How the one-call stop goes: an older gateway, unless a test says otherwise.
+  var everything = StopEverythingOutcome.unsupported
+  private(set) var everythingCalls = 0
 
   /// One gate for every call to wait at.
   final class Gate: Sendable {
@@ -58,6 +61,11 @@ final class FakeStoppable: StoppableGateway {
   func runningTurns() async -> RunningTurnReading? {
     reads += 1
     return reading
+  }
+
+  func stopEverything() async -> StopEverythingOutcome {
+    everythingCalls += 1
+    return everything
   }
 
   func stop(_ turn: RunningTurn) async -> StopOutcome {

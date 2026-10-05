@@ -111,6 +111,11 @@ extension Integration {
         #expect(summary.stopped == 2)
         #expect(summary.failed == 0)
         #expect(summary.records.allSatisfy { $0.outcome == .stopped })
+        // The fake has the fork's `session.interrupt_all`, so this was one call, and its answer is the summary.
+        #expect(summary.usedStopEverything)
+        #expect(summary.records.map(\.turn.botName).sorted() == [app.session.chatName(researcher), app.session.chatName(writer)].sorted())
+        #expect(summary.records.allSatisfy { !$0.turn.source.isEmpty })
+        #expect(summary.unreachable == 0)
 
         try await stopWait("the app's own turn to end") { !app.composer.turnActive }
         try await stopWait("the other client's turn to end") { !other.composer.turnActive }
@@ -127,6 +132,66 @@ extension Integration {
 
         await app.session.shutdown()
         await other.session.shutdown()
+      }
+    }
+
+    @Test("a gateway without stop-everything is stopped turn by turn, as before, and the summary says it did not use the call")
+    func olderGatewayFallsBack() async throws {
+      try await withStopGateway(FakeGateway.Options(streamDelayMs: 60)) { gateway in
+        try await gateway.stageStopAll(["unsupported": true])
+
+        let app = try await Client.open(gateway, id: "g-app", bot: researcher)
+        let other = try await Client.open(gateway, id: "g-other", bot: writer)
+
+        try await app.startLongTurn()
+        try await other.startLongTurn()
+
+        let model = EmergencyStopModel(gateways: { [SessionStopGateway(session: app.session, name: "fake")] })
+        await model.begin()
+        await model.confirm()
+
+        guard case .finished(let summary) = model.phase else {
+          Issue.record("expected a summary, got \(model.phase)")
+          return
+        }
+
+        #expect(!summary.usedStopEverything)
+        #expect(summary.stopped == 2)
+        #expect(summary.failed == 0)
+
+        try await stopWait("the app's own turn to end") { !app.composer.turnActive }
+        try await stopWait("the other client's turn to end") { !other.composer.turnActive }
+
+        await app.session.shutdown()
+        await other.session.shutdown()
+      }
+    }
+
+    @Test("what the gateway left running or failed to stop is counted in the summary beside the turns it stopped")
+    func countsWhatItLeftRunning() async throws {
+      try await withStopGateway(FakeGateway.Options(streamDelayMs: 60)) { gateway in
+        try await gateway.stageStopAll(["notAllowed": 2, "failed": 1])
+
+        let app = try await Client.open(gateway, id: "g-app", bot: researcher)
+        try await app.startLongTurn()
+
+        let model = EmergencyStopModel(gateways: { [SessionStopGateway(session: app.session, name: "fake")] })
+        await model.begin()
+        await model.confirm()
+
+        guard case .finished(let summary) = model.phase else {
+          Issue.record("expected a summary, got \(model.phase)")
+          return
+        }
+
+        #expect(summary.usedStopEverything)
+        #expect(summary.stopped == 1)
+        #expect(summary.notAllowed == 2)
+        #expect(summary.failed == 1)
+        #expect(!summary.wasIdle)
+
+        try await stopWait("the app's own turn to end") { !app.composer.turnActive }
+        await app.session.shutdown()
       }
     }
 

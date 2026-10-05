@@ -202,7 +202,17 @@ struct LiveWiringInboxTests {
       with: [
         "sessions": [["id": .string(Fixture.runtime), "session_key": .string(Fixture.stored), "status": "working"]]
       ])
-    rig.harness.link.respond(to: RPC.SessionInterrupt.name, with: ["status": "interrupted"])
+    rig.harness.link.respond(
+      to: RPC.SessionInterruptAll.name,
+      with: [
+        "stopped": [
+          [
+            "session_id": .string(Fixture.runtime), "session_key": .string(Fixture.stored),
+            "profile": .string(Fixture.profile), "title": .null, "source": "tui"
+          ]
+        ],
+        "already_idle": 0, "not_allowed": 0, "failed": 0
+      ])
 
     let stop = rig.wiring.emergencyStop
     await stop.begin()
@@ -225,7 +235,9 @@ struct LiveWiringInboxTests {
     }
 
     #expect(summary.stopped == 1)
-    #expect(rig.harness.link.calls(RPC.SessionInterrupt.name).count == 1)
+    #expect(summary.usedStopEverything, "the live gateway has the one-call stop, and it is used")
+    #expect(rig.harness.link.calls(RPC.SessionInterruptAll.name).count == 1)
+    #expect(rig.harness.link.calls(RPC.SessionInterrupt.name).isEmpty)
 
     await rig.live.shutdown()
   }

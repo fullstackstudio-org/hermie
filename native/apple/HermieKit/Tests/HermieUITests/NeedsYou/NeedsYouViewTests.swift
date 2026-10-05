@@ -160,6 +160,38 @@ struct NeedsYouViewTests {
     #expect(StopNames.name(of: RunningTurn(id: "1")) == NativeStrings.EmergencyStop.unnamed)
   }
 
+  @Test("beside its name a turn says its title where the bot leads, and where it was started from")
+  func details() {
+    #expect(StopNames.detail(of: RunningTurn(id: "1", botName: "Researcher", title: "Quarterly", source: "tui")) == "Quarterly · tui")
+    #expect(StopNames.detail(of: RunningTurn(id: "1", botName: "Researcher", source: "cli")) == "cli")
+    #expect(StopNames.detail(of: RunningTurn(id: "1", botName: "Researcher", title: "Quarterly")) == "Quarterly")
+    // The title already is the name where no bot is: it is not said twice.
+    #expect(StopNames.detail(of: RunningTurn(id: "1", title: "Nightly report", source: "cron")) == "cron")
+    #expect(StopNames.detail(of: RunningTurn(id: "1", title: "Nightly report")) == nil)
+    #expect(StopNames.detail(of: RunningTurn(id: "1", botName: "Researcher")) == nil)
+  }
+
+  @Test("the summary's counts name what was stopped, idle, left running and failed, and leave out zeros")
+  func counts() {
+    let stopped = StopRecord(
+      gatewayId: "g", gatewayName: "Home", turn: RunningTurn(id: "1", botName: "Researcher"), outcome: .stopped)
+
+    let all = StopSummary(
+      records: [stopped, stopped], usedStopEverything: true, alreadyIdleCount: 5, notAllowed: 2, failedCount: 1)
+    #expect(
+      StopCounts.line(of: all)
+        == [
+          NativeStrings.EmergencyStop.stoppedCount(2), NativeStrings.EmergencyStop.alreadyIdleCount(5),
+          NativeStrings.EmergencyStop.notAllowedCount(2), NativeStrings.EmergencyStop.failedCount(1)
+        ].joined(separator: " · "))
+
+    #expect(StopCounts.line(of: StopSummary(records: [stopped])) == NativeStrings.EmergencyStop.stoppedCount(1))
+    #expect(StopCounts.line(of: StopSummary(records: [])).isEmpty)
+    #expect(!NativeStrings.EmergencyStop.cronNote.hasPrefix("native."))
+    #expect(NativeStrings.EmergencyStop.alreadyIdleCount(5).contains("5"))
+    #expect(NativeStrings.EmergencyStop.notAllowedCount(2).contains("2"))
+  }
+
   @Test(arguments: [
     "native.needsYou.title", "native.needsYou.empty.title", "native.needsYou.empty.message",
     "native.needsYou.waiting", "native.needsYou.rowHint", "native.needsYou.otherGateways",
@@ -173,7 +205,8 @@ struct NeedsYouViewTests {
     "native.emergencyStop.summary.alreadyDone", "native.emergencyStop.summary.failed", "native.emergencyStop.unnamed",
     "native.emergencyStop.notAsked", "native.emergencyStop.incomplete", "native.emergencyStop.outcome.stopped",
     "native.emergencyStop.outcome.alreadyDone", "native.emergencyStop.outcome.notConnected",
-    "native.emergencyStop.outcome.failed", "native.emergencyStop.button"
+    "native.emergencyStop.outcome.failed", "native.emergencyStop.button", "native.emergencyStop.summary.alreadyIdle",
+    "native.emergencyStop.summary.notAllowed", "native.emergencyStop.cronNote"
   ])
   func everySentenceIsTranslated(_ key: String) throws {
     try expectTranslated(key)

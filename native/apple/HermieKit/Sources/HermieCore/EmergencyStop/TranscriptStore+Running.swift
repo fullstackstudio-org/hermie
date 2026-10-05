@@ -101,6 +101,12 @@ extension TranscriptStore {
     return Self.interrupted(reply.result)
   }
 
+  /// Stop every running turn of the caller's, in one call (`session.interrupt_all`): the fork's own method.
+  /// Throws `GatewayRPCError` with code `-32601` on a gateway that does not have it.
+  func interruptEverything() async throws -> JSONValue {
+    try await link.requestReply(RPC.SessionInterruptAll.name, params: [:]).result
+  }
+
   private static func text(_ value: JSONValue?) -> String {
     value?.stringValue ?? ""
   }

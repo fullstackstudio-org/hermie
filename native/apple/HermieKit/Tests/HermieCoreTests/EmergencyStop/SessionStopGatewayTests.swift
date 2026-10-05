@@ -183,9 +183,10 @@ struct SessionStopGatewayTests {
     await harness.session.shutdown()
   }
 
-  @Test("the whole flow: every running turn is interrupted once, the one that fails is in the summary")
+  @Test("the whole flow on a gateway without stop-everything: every running turn is interrupted once, the one that fails is in the summary")
   func wholeFlow() async throws {
     let (harness, gateway) = try await running()
+    harness.link.refuse(RPC.SessionInterruptAll.name) { _ in GatewayRPCError(.rejected, "unknown method", code: -32601) }
 
     list(
       harness,
@@ -226,6 +227,153 @@ struct SessionStopGatewayTests {
     let interrupted = harness.link.calls(RPC.SessionInterrupt.name).compactMap { $0.params["session_id"]?.stringValue }
     #expect(Set(interrupted) == [Fixture.runtime, "rt-a", "rt-b"])
     #expect(interrupted.count == 3, "each turn once")
+
+    await harness.session.shutdown()
+  }
+
+  // MARK: - In one call (session.interrupt_all)
+
+  private static let everything: JSONValue = [
+    "stopped": [
+      ["session_id": "rt-1", "session_key": "stored-1", "profile": .string(Fixture.profile), "title": "Quarterly", "source": "tui"],
+      ["session_id": "rt-2", "session_key": "stored-2", "profile": "ghost", "title": .null, "source": "cli"]
+    ],
+    "already_idle": 3, "not_allowed": 1, "failed": 0
+  ]
+
+  @Test("one call stops everything: no params, each stopped turn named by the bot of its profile")
+  func stopsEverythingInOneCall() async throws {
+    let (harness, gateway) = try await running()
+    harness.link.respond(to: RPC.SessionInterruptAll.name, with: Self.everything)
+
+    let outcome = await gateway.stopEverything()
+
+    guard case .answered(let report) = outcome else {
+      Issue.record("expected an answer, got \(outcome)")
+      return
+    }
+
+    #expect(report.stopped.map(\.id) == ["rt-1", "rt-2"])
+    #expect(report.stopped[0].botName == harness.session.chatName(Fixture.profile))
+    #expect(report.stopped[0].title == "Quarterly")
+    #expect(report.stopped[0].source == "tui")
+    #expect(report.stopped[1].botName == "ghost", "a profile the roster does not know is named by its handle")
+    #expect(report.stopped[1].title.isEmpty)
+    #expect(report.alreadyIdle == 3)
+    #expect(report.notAllowed == 1)
+    #expect(report.failed == 0)
+
+    let calls = harness.link.calls(RPC.SessionInterruptAll.name)
+    #expect(calls.count == 1)
+    #expect(calls.first?.params["profile"] == nil, "every profile")
+    #expect(harness.link.calls(RPC.SessionInterrupt.name).isEmpty)
+    #expect(harness.link.calls(RPC.SessionActiveList.name).isEmpty, "it does not read the list to stop")
+
+    await harness.session.shutdown()
+  }
+
+  @Test("a gateway that answers -32601 is unsupported, and is not asked again")
+  func methodNotFound() async throws {
+    let (harness, gateway) = try await running()
+    harness.link.refuse(RPC.SessionInterruptAll.name) { _ in GatewayRPCError(.rejected, "unknown method", code: -32601) }
+
+    #expect(await gateway.stopEverything() == .unsupported)
+    #expect(await gateway.stopEverything() == .unsupported)
+    #expect(harness.link.calls(RPC.SessionInterruptAll.name).count == 1, "told once is enough")
+
+    await harness.session.shutdown()
+  }
+
+  @Test("another refusal is the gateway's own words, and is asked again next time")
+  func otherRefusal() async throws {
+    let (harness, gateway) = try await running()
+    harness.link.refuse(RPC.SessionInterruptAll.name) { _ in GatewayRPCError(.rejected, "agents may not stop turns", code: 4033) }
+
+    #expect(await gateway.stopEverything() == .failed("agents may not stop turns"))
+    #expect(await gateway.stopEverything() == .failed("agents may not stop turns"))
+    #expect(harness.link.calls(RPC.SessionInterruptAll.name).count == 2)
+
+    await harness.session.shutdown()
+  }
+
+  @Test("an answer that is not this call's is a failure, and a socket that is down is not connected")
+  func unusableAndDown() async throws {
+    let (harness, gateway) = try await running()
+    harness.link.respond(to: RPC.SessionInterruptAll.name, with: ["status": "interrupted"])
+
+    #expect(await gateway.stopEverything() == .failed(""))
+
+    harness.link.refuse(RPC.SessionInterruptAll.name) { _ in GatewayRPCError(.closed, "socket closed") }
+    #expect(await gateway.stopEverything() == .notConnected)
+
+    harness.link.status(.disconnected)
+    try await eventually("the session to see it") { await harness.session.status.phase != .ready }
+
+    let calls = harness.link.calls(RPC.SessionInterruptAll.name).count
+    #expect(await gateway.stopEverything() == .notConnected)
+    #expect(harness.link.calls(RPC.SessionInterruptAll.name).count == calls, "nothing is sent with the socket down")
+
+    await harness.session.shutdown()
+  }
+
+  @Test("the whole flow in one call: the question reads the list, the yes is one call, the summary is the gateway's answer")
+  func wholeFlowInOneCall() async throws {
+    let (harness, gateway) = try await running()
+
+    list(harness, [Self.row(id: Fixture.runtime, key: Fixture.stored), Self.row(id: "", key: "c", status: "working")])
+    harness.link.respond(to: RPC.SessionInterruptAll.name, with: Self.everything)
+
+    let model = EmergencyStopModel(gateways: { [gateway] })
+    await model.begin()
+
+    guard case .confirming(let plan) = model.phase else {
+      Issue.record("expected a question, got \(model.phase)")
+      return
+    }
+
+    #expect(plan.total == 1)
+    #expect(plan.unreachable == 1)
+    #expect(harness.link.calls(RPC.SessionInterruptAll.name).isEmpty, "nothing before the yes")
+
+    await model.confirm()
+
+    guard case .finished(let summary) = model.phase else {
+      Issue.record("expected a summary, got \(model.phase)")
+      return
+    }
+
+    #expect(summary.usedStopEverything)
+    #expect(summary.stopped == 2)
+    #expect(summary.alreadyIdleCount == 3)
+    #expect(summary.notAllowed == 1)
+    #expect(summary.failed == 0)
+    #expect(summary.unreachable == 0, "the caveat is gone: the call does not go by the list")
+    #expect(harness.link.calls(RPC.SessionInterruptAll.name).count == 1)
+    #expect(harness.link.calls(RPC.SessionInterrupt.name).isEmpty, "no interrupt per session")
+
+    await harness.session.shutdown()
+  }
+
+  @Test("a gateway that has no stop-everything falls back inside the same confirm, with a turn by turn stop")
+  func fallsBackOnMethodNotFound() async throws {
+    let (harness, gateway) = try await running()
+
+    list(harness, [Self.row(id: Fixture.runtime, key: Fixture.stored)])
+    harness.link.refuse(RPC.SessionInterruptAll.name) { _ in GatewayRPCError(.rejected, "unknown method", code: -32601) }
+    harness.link.respond(to: RPC.SessionInterrupt.name, with: ["status": "interrupted"])
+
+    let model = EmergencyStopModel(gateways: { [gateway] })
+    await model.begin()
+    await model.confirm()
+
+    guard case .finished(let summary) = model.phase else {
+      Issue.record("expected a summary, got \(model.phase)")
+      return
+    }
+
+    #expect(!summary.usedStopEverything)
+    #expect(summary.stopped == 1)
+    #expect(harness.link.calls(RPC.SessionInterrupt.name).count == 1)
 
     await harness.session.shutdown()
   }

@@ -802,6 +802,8 @@
 	<string>Alles stoppen</string>
 	<key>native.emergencyStop.confirmMessage</key>
 	<string>Elke bot wordt direct onderbroken. Wat een bot tot nu toe heeft geschreven, blijft staan.</string>
+	<key>native.emergencyStop.cronNote</key>
+	<string>Geplande (cron) runs worden hiermee niet gestopt.</string>
 	<key>native.emergencyStop.idle.message</key>
 	<string>Geen enkele bot heeft een antwoord dat je vanaf hier kunt stoppen.</string>
 	<key>native.emergencyStop.idle.title</key>
@@ -826,8 +828,12 @@
 	<string>Alles is gestopt</string>
 	<key>native.emergencyStop.summary.alreadyDone</key>
 	<string>Al klaar: %lld</string>
+	<key>native.emergencyStop.summary.alreadyIdle</key>
+	<string>Al inactief: %lld</string>
 	<key>native.emergencyStop.summary.failed</key>
 	<string>Niet te stoppen: %lld</string>
+	<key>native.emergencyStop.summary.notAllowed</key>
+	<string>Blijven draaien, niet van jou: %lld</string>
 	<key>native.emergencyStop.summary.someFailed</key>
 	<string>Een paar antwoorden konden niet worden gestopt</string>
 	<key>native.emergencyStop.summary.stopped</key>

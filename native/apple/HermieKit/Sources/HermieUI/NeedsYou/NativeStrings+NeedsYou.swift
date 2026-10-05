@@ -102,6 +102,22 @@ extension NativeStrings {
         localized: "native.emergencyStop.summary.failed", defaultValue: "Could not be stopped: \(count)",
         table: "Native", bundle: .module)
     }
+    /// Already idle: {count} (sessions with no turn running, in the summary of a stop made in one call)
+    static func alreadyIdleCount(_ count: Int) -> String {
+      String(
+        localized: "native.emergencyStop.summary.alreadyIdle", defaultValue: "Already idle: \(count)",
+        table: "Native", bundle: .module)
+    }
+    /// Left running, not yours: {count} (other people's turns in shared chats)
+    static func notAllowedCount(_ count: Int) -> String {
+      String(
+        localized: "native.emergencyStop.summary.notAllowed", defaultValue: "Left running, not yours: \(count)",
+        table: "Native", bundle: .module)
+    }
+    /// Scheduled (cron) runs are not stopped by this.
+    static var cronNote: String {
+      String(localized: "native.emergencyStop.cronNote", table: "Native", bundle: .module)
+    }
     /// Another session (a running turn the gateway does not say whose it is)
     static var unnamed: String { String(localized: "native.emergencyStop.unnamed", table: "Native", bundle: .module) }
     /// {count} other running turn(s) on the gateway cannot be stopped from here.

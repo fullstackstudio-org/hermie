@@ -1,5 +1,6 @@
 import Foundation
 import HermieGateway
+import HermieProtocol
 
 /// The emergency stop's view of one live session.
 @MainActor
@@ -7,6 +8,8 @@ public final class SessionStopGateway: StoppableGateway {
   public let gatewayId: String
   public let gatewayName: String
   private let session: GatewaySession
+  /// The gateway answered `-32601` to `session.interrupt_all`.
+  private var isWithoutStopEverything = false
 
   public init(session: GatewaySession, name: String? = nil) {
     self.session = session
@@ -56,6 +59,52 @@ public final class SessionStopGateway: StoppableGateway {
     } catch {
       return .failed(ChatResolver.describe(error))
     }
+  }
+
+  /// Stops everything of the caller's in one call, where the gateway has `session.interrupt_all`. A gateway
+  /// that answers `-32601` is remembered as one that has not, so the next stop does not ask again.
+  public func stopEverything() async -> StopEverythingOutcome {
+    guard session.status.phase == .ready else {
+      return .notConnected
+    }
+
+    guard !isWithoutStopEverything else {
+      return .unsupported
+    }
+
+    do {
+      guard let answer = InterruptAllResult.parse(try await session.store.interruptEverything()) else {
+        return .failed("")
+      }
+
+      return .answered(report(of: answer))
+    } catch let error as GatewayRPCError {
+      switch error.kind {
+      case .rejected where error.code == -32601:
+        isWithoutStopEverything = true
+        return .unsupported
+      case .notConnected, .closed:
+        return .notConnected
+      default:
+        return .failed(ChatResolver.describe(error))
+      }
+    } catch {
+      return .failed(ChatResolver.describe(error))
+    }
+  }
+
+  /// The one-call answer, with each turn named by the bot of its profile as the person knows it.
+  private func report(of answer: InterruptAllResult) -> StopEverythingReport {
+    StopEverythingReport(
+      stopped: answer.stopped.map { entry in
+        RunningTurn(
+          id: entry.sessionID,
+          botName: entry.profile.isEmpty ? "" : session.chatName(entry.profile),
+          title: entry.title,
+          source: entry.source
+        )
+      },
+      alreadyIdle: answer.alreadyIdle, notAllowed: answer.notAllowed, failed: answer.failed)
   }
 
   /// The bot whose own chat the gateway lists under `key` (its stored or resolved id), if the roster

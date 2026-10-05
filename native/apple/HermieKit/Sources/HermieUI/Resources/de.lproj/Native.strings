@@ -802,6 +802,8 @@
 	<string>Alles stoppen</string>
 	<key>native.emergencyStop.confirmMessage</key>
 	<string>Jeder Bot wird sofort unterbrochen. Was ein Bot bisher geschrieben hat, bleibt erhalten.</string>
+	<key>native.emergencyStop.cronNote</key>
+	<string>Geplante (Cron-)Läufe werden dadurch nicht gestoppt.</string>
 	<key>native.emergencyStop.idle.message</key>
 	<string>Kein Bot hat eine Antwort, die sich von hier aus stoppen lässt.</string>
 	<key>native.emergencyStop.idle.title</key>
@@ -826,8 +828,12 @@
 	<string>Alles ist gestoppt</string>
 	<key>native.emergencyStop.summary.alreadyDone</key>
 	<string>Schon fertig: %lld</string>
+	<key>native.emergencyStop.summary.alreadyIdle</key>
+	<string>Schon inaktiv: %lld</string>
 	<key>native.emergencyStop.summary.failed</key>
 	<string>Nicht zu stoppen: %lld</string>
+	<key>native.emergencyStop.summary.notAllowed</key>
+	<string>Läuft weiter, nicht deine: %lld</string>
 	<key>native.emergencyStop.summary.someFailed</key>
 	<string>Einige Antworten konnten nicht gestoppt werden</string>
 	<key>native.emergencyStop.summary.stopped</key>

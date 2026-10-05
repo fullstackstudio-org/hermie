@@ -80,11 +80,28 @@ extension FakeGateway {
   }
 
   /// `POST /__fake/usage`: stage what the usage calls answer: a profile's days (`days`), the Nous balance
-  /// (`bars`), the provider account lines `session.usage` carries (`accountLines`), a gateway with none of
-  /// it (`unsupported`), or `clear` to take it all back.
+  /// (`bars`), the provider account lines `session.usage` carries (`accountLines`), the providers
+  /// `account.usage` answers with (`account`), a gateway with no `account.usage` (`accountUnsupported`), a
+  /// gateway with none of it (`unsupported`), or `clear` to take it all back.
   @discardableResult
   func stageUsage(_ fields: JSONObject) async throws -> JSONValue {
     try await control("POST", "/__fake/usage", body: .object(fields))
+  }
+
+  /// `GET /__fake/usage`: what `account.usage` was asked, oldest first: `{profile: String?, refresh: Bool}` each.
+  func accountUsageCalls() async throws -> [(profile: String?, refresh: Bool)] {
+    let body = try await control("GET", "/__fake/usage")
+
+    return (body["accountCalls"]?.arrayValue ?? []).map { call in
+      (call["profile"]?.stringValue, call["refresh"] == .bool(true))
+    }
+  }
+
+  /// `POST /__fake/stop-all`: stage what `session.interrupt_all` answers beyond the sessions it stops
+  /// (`notAllowed`, `failed`), a gateway without the method (`unsupported`), or `clear`.
+  @discardableResult
+  func stageStopAll(_ fields: JSONObject) async throws -> JSONValue {
+    try await control("POST", "/__fake/stop-all", body: .object(fields))
   }
 
   /// `GET /__fake/push`: the push section as the gateway holds it.

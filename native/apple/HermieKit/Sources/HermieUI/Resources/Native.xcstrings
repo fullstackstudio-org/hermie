@@ -31058,6 +31058,78 @@
         }
       }
     },
+    "native.emergencyStop.summary.alreadyIdle" : {
+      "comment" : "Summary count: sessions that had no turn running when the gateway stopped everything. {count}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schon inaktiv: %lld"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already idle: %lld"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Al inactief: %lld"
+          }
+        }
+      }
+    },
+    "native.emergencyStop.summary.notAllowed" : {
+      "comment" : "Summary count: running turns the gateway would not stop, because they are other people's in a shared chat. {count}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Läuft weiter, nicht deine: %lld"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Left running, not yours: %lld"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blijven draaien, niet van jou: %lld"
+          }
+        }
+      }
+    },
+    "native.emergencyStop.cronNote" : {
+      "comment" : "Footnote under the summary of a stop made in one call: cron runs are outside it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geplante (Cron-)Läufe werden dadurch nicht gestoppt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scheduled (cron) runs are not stopped by this."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geplande (cron) runs worden hiermee niet gestopt."
+          }
+        }
+      }
+    },
     "native.emergencyStop.notAsked" : {
       "extractionState" : "manual",
       "localizations" : {
