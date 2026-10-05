@@ -79,6 +79,14 @@ extension FakeGateway {
     return RaisedRequest(method: body["raised"]?.stringValue ?? "", sessionID: body["session_id"]?.stringValue ?? "")
   }
 
+  /// `POST /__fake/usage`: stage what the usage calls answer: a profile's days (`days`), the Nous balance
+  /// (`bars`), the provider account lines `session.usage` carries (`accountLines`), a gateway with none of
+  /// it (`unsupported`), or `clear` to take it all back.
+  @discardableResult
+  func stageUsage(_ fields: JSONObject) async throws -> JSONValue {
+    try await control("POST", "/__fake/usage", body: .object(fields))
+  }
+
   /// `GET /__fake/push`: the push section as the gateway holds it.
   func pushSection() async throws -> JSONValue {
     try await control("GET", "/__fake/push")
