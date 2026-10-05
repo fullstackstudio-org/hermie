@@ -63,6 +63,19 @@ public protocol UsageBackend: Sendable {
   /// One live session's tokens, context window and account lines (`session.usage`); nil where the
   /// gateway had nothing to say.
   func session(runtimeID: String, profile: String) async throws -> SessionUsage?
+  /// The provider accounts a profile's models run on, as fields (`account.usage`): plan, quota windows,
+  /// credits. `profile` nil is the gateway's launch profile. `refresh` asks the gateway to read the providers
+  /// again instead of from its cache, which it does at most once per 15 seconds. Nil where the gateway sent
+  /// nothing usable; throws `UsageFailure.unsupported` on a gateway that has no such method.
+  func accountUsage(profile: String?, refresh: Bool) async throws -> AccountUsage?
+}
+
+extension UsageBackend {
+  /// A backend without the method (an older gateway, a test's script that has no account): the screens fall
+  /// back to the text lines of `session.usage`.
+  public func accountUsage(profile: String?, refresh: Bool) async throws -> AccountUsage? {
+    throw UsageFailure.unsupported
+  }
 }
 
 /**
@@ -76,6 +89,8 @@ public struct UsageService: UsageBackend {
   /// The longest span asked for, which is the route's own ceiling (`days` is clamped to 1…365).
   public static let maxDays = 365
   public static let route = "/api/analytics/usage"
+  /// The fork's structured twin of `session.usage`'s account lines.
+  public static let accountMethod = RPC.AccountUsage.name
 
   let link: any GatewayLink
   let rest: (any GatewayREST)?
@@ -124,6 +139,24 @@ public struct UsageService: UsageBackend {
   public func nousBars() async throws -> NousUsageBars? {
     do {
       return NousUsageBars.parse(try await link.requestReply("usage.bars", params: .object([:])).result)
+    } catch {
+      throw UsageFailure.classify(error)
+    }
+  }
+
+  public func accountUsage(profile: String?, refresh: Bool) async throws -> AccountUsage? {
+    var fields: [String: JSONValue] = [:]
+
+    if let profile, !profile.isEmpty {
+      fields["profile"] = .string(profile)
+    }
+
+    if refresh {
+      fields["refresh"] = .bool(true)
+    }
+
+    do {
+      return AccountUsage.parse(try await link.requestReply(Self.accountMethod, params: .object(fields)).result)
     } catch {
       throw UsageFailure.classify(error)
     }

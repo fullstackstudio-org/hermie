@@ -101,11 +101,11 @@ struct BotUsageContent: View {
 
     if model.phase == .loaded {
       Section {
-        ProviderAccountRows(accountLines: model.live?.accountLines ?? [], nous: model.nous)
+        AccountSectionRows(account: model.account, accountLines: model.live?.accountLines ?? [], nous: model.nous)
       } header: {
         Text(NativeStrings.Usage.account)
       } footer: {
-        Text(NativeStrings.Usage.accountNote)
+        Text(AccountSectionRows.footer(structured: model.account.isStructured, forBot: true))
           .foregroundStyle(Color.primary)
       }
       .accessibilityIdentifier("hermie.usage.accountSection")

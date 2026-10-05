@@ -17,14 +17,27 @@ final class StubUsage: UsageBackend, Sendable {
     var insights: Result<InsightsSummary?, any Error> = .success(nil)
     var nous: Result<NousUsageBars?, any Error> = .success(nil)
     var session: Result<SessionUsage?, any Error> = .success(nil)
+    /// An older gateway until a test gives it the method.
+    var account: Result<AccountUsage?, any Error> = .failure(UsageFailure.unsupported)
+    var accountCalls: [AccountCall] = []
     var calls: [String] = []
     var inFlight = 0
     var peak = 0
     var gated = false
   }
 
+  /// One `account.usage` call: whose profile (nil: the launch profile's) and whether it asked for a refresh.
+  struct AccountCall: Sendable, Equatable {
+    var profile: String?
+    var refresh: Bool
+  }
+
   private let state = Mutex(State())
   let gate = SearchGate()
+
+  var accountCalls: [AccountCall] { state.withLock { $0.accountCalls } }
+  func set(account: AccountUsage?) { state.withLock { $0.account = .success(account) } }
+  func failAccount(_ error: any Error) { state.withLock { $0.account = .failure(error) } }
 
   var calls: [String] { state.withLock { $0.calls } }
   var peak: Int { state.withLock { $0.peak } }
@@ -67,6 +80,15 @@ final class StubUsage: UsageBackend, Sendable {
   func session(runtimeID: String, profile: String) async throws -> SessionUsage? {
     state.withLock { $0.calls.append("session \(runtimeID) \(profile)") }
     return try state.withLock { $0.session }.get()
+  }
+
+  func accountUsage(profile: String?, refresh: Bool) async throws -> AccountUsage? {
+    state.withLock {
+      $0.calls.append("account \(profile ?? "-") \(refresh)")
+      $0.accountCalls.append(AccountCall(profile: profile, refresh: refresh))
+    }
+
+    return try state.withLock { $0.account }.get()
   }
 }
 

@@ -223,6 +223,108 @@ extension Integration {
       }
     }
 
+    @Test("the provider accounts are fields: plan, windows with a share and a reset time, and why one has nothing")
+    func accountFields() async throws {
+      try await withUsageSession { _, session in
+        let model = session.usage(for: researcher)
+
+        await model.load()
+
+        #expect(model.account.phase == .loaded)
+
+        let usage = try #require(model.account.usage)
+        #expect(usage.profile == researcher, "the bot's own profile is asked for")
+
+        let claude = try #require(usage.providers.first { $0.provider == "anthropic" })
+        #expect(claude.plan == "Max")
+        #expect(claude.available)
+        #expect(claude.windows.map(\.id) == ["current_session", "current_week"])
+        #expect(claude.windows.first?.usedPercent == 18)
+        #expect(claude.windows.first?.fraction == 0.18)
+        #expect(claude.windows.first?.resetAt.map { $0 > Date() } == true)
+        #expect(claude.fetchedAt != nil)
+        #expect(claude.details == ["Extra usage is off for this account."])
+
+        let router = try #require(usage.providers.first { $0.provider == "openrouter" })
+        #expect(!router.available)
+        #expect(router.unavailableReason == "Not signed in to this provider in this profile.")
+      }
+    }
+
+    @Test("credits and an uncapped balance come through as money")
+    func accountCredits() async throws {
+      try await withUsageSession { gateway, session in
+        try await gateway.stageUsage([
+          "account": .array([
+            .object([
+              "provider": "nous", "source": "portal-account", "title": "Nous credits", "plan": .null,
+              "available": true, "unavailable_reason": .null, "fetched_at": "2026-10-05T12:00:00Z",
+              "windows": .array([]), "details": .array([]),
+              "credits": .object(["currency": "USD", "remaining": 4.2, "total": 10])
+            ])
+          ])
+        ])
+
+        let model = session.usage(for: researcher)
+        await model.load()
+
+        let nous = try #require(model.account.usage?.providers.first)
+        #expect(nous.credits == AccountCredits(currency: "USD", remaining: 4.2, total: 10))
+        #expect(nous.windows.isEmpty)
+      }
+    }
+
+    @Test("the overview reads the launch profile's accounts, with no profile in the call")
+    func accountOverview() async throws {
+      try await withUsageSession { gateway, session in
+        let model = session.usageOverview()
+        await model.load()
+
+        #expect(model.account.isStructured)
+        #expect(model.account.usage?.providers.isEmpty == false)
+
+        let calls = try await gateway.accountUsageCalls()
+        #expect(calls.contains { $0.profile == nil && !$0.refresh })
+      }
+    }
+
+    @Test("refresh asks the gateway to read the providers again, once, and a second tap inside 15 s is a plain read")
+    func accountRefresh() async throws {
+      try await withUsageSession { gateway, session in
+        let model = session.usage(for: researcher)
+        await model.load()
+
+        await model.account.refresh()
+        await model.account.refresh()
+
+        let calls = try await gateway.accountUsageCalls().filter { $0.profile == researcher }
+        #expect(calls.map(\.refresh) == [false, true, false])
+        #expect(model.account.phase == .loaded)
+        #expect(!model.account.isRefreshing)
+      }
+    }
+
+    @Test("a gateway with the usage calls and not account.usage keeps the text lines of the live session")
+    func accountFallsBackToLines() async throws {
+      try await withUsageSession(open: true) { gateway, session in
+        try await gateway.stageUsage(["accountUnsupported": true, "accountLines": true])
+
+        let model = session.usage(for: researcher)
+        await model.load()
+
+        // The days are untouched: only this part of the page is missing.
+        #expect(model.phase == .loaded)
+        #expect(model.account.phase == .unsupported)
+        #expect(!model.account.isStructured)
+        #expect(model.live?.accountLines.contains("Current session: 82% remaining (18% used) • resets in 2h 10m") == true)
+
+        // And a gateway that gains the method gets the fields.
+        try await gateway.stageUsage(["accountUnsupported": false])
+        await model.load()
+        #expect(model.account.isStructured)
+      }
+    }
+
     @Test("a gateway without the calls says so, in a sentence, and not as a failure to try again")
     func unsupportedGateway() async throws {
       try await withUsageSession { gateway, session in

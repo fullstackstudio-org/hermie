@@ -2532,6 +2532,16 @@
 	<string>Nog geen providerlimieten gemeld.</string>
 	<key>native.usage.accountNote</key>
 	<string>De limieten van het account waarop het model van deze bot draait, zoals de gateway ze verwoordt. Ze worden gemeld zolang een chat van deze bot open is.</string>
+	<key>native.usage.accountNoteGateway</key>
+	<string>De limieten van de accounts waarop de eigen modellen van de gateway draaien, zoals de providers ze melden.</string>
+	<key>native.usage.accountNoteLive</key>
+	<string>De limieten van de accounts waarop de modellen van deze bot draaien, zoals de providers ze via de gateway melden.</string>
+	<key>native.usage.accountRefresh</key>
+	<string>Vernieuwen</string>
+	<key>native.usage.accountRefreshing</key>
+	<string>Bezig met vernieuwen…</string>
+	<key>native.usage.accountUnavailable</key>
+	<string>Geen verbruik gemeld voor dit account.</string>
 	<key>native.usage.alertCost</key>
 	<string>%1$@ vandaag uitgegeven op %2$@, boven je limiet van %3$@.</string>
 	<key>native.usage.alertCostLimit</key>
@@ -2568,6 +2578,10 @@
 	<string>%1$@ van %2$@ tokens</string>
 	<key>native.usage.contextNone</key>
 	<string>Onbekend tot de chat van deze bot geopend is geweest.</string>
+	<key>native.usage.credits</key>
+	<string>Tegoed</string>
+	<key>native.usage.creditsLeft</key>
+	<string>%1$@ van %2$@ over</string>
 	<key>native.usage.dayNote</key>
 	<string>De gateway telt dagen in UTC, naar de dag waarop elk gesprek begon. Een kost met ~ is de schatting van de gateway; de provider meldde hem niet.</string>
 	<key>native.usage.failed</key>
@@ -2598,6 +2612,8 @@
 	<string>%@ over</string>
 	<key>native.usage.renews</key>
 	<string>Verlengt %@</string>
+	<key>native.usage.resetsIn</key>
+	<string>Reset over %@</string>
 	<key>native.usage.sessions</key>
 	<string>Sessies</string>
 	<key>native.usage.span</key>
@@ -2620,6 +2636,8 @@
 	<string>Deze gateway meldt geen gebruik.</string>
 	<key>native.usage.updated</key>
 	<string>Bijgewerkt %@</string>
+	<key>native.usage.windowUsed</key>
+	<string>%@ gebruikt</string>
 	<key>native.vault.about</key>
 	<string>Opgeslagen op de gateway, versleuteld, in de eigen kluis van %1$@. %2$@ kan ze gebruiken om in te loggen en formulieren in te vullen. Hermie laat nooit zien wat erin staat.</string>
 	<key>native.vault.actionFailed</key>

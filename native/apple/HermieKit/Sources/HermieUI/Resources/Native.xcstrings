@@ -25824,6 +25824,222 @@
         }
       }
     },
+    "native.usage.accountNoteLive" : {
+      "comment" : "Footer under the provider accounts of one bot, read as fields.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Limits der Konten, auf denen die Modelle dieses Bots laufen, wie die Anbieter sie über das Gateway melden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The limits of the accounts this bot's models run on, as the providers report them through the gateway."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De limieten van de accounts waarop de modellen van deze bot draaien, zoals de providers ze via de gateway melden."
+          }
+        }
+      }
+    },
+    "native.usage.accountNoteGateway" : {
+      "comment" : "Footer under the provider accounts of the whole gateway (the overview).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Limits der Konten, auf denen die eigenen Modelle des Gateways laufen, wie die Anbieter sie melden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The limits of the accounts the gateway's own models run on, as the providers report them."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De limieten van de accounts waarop de eigen modellen van de gateway draaien, zoals de providers ze melden."
+          }
+        }
+      }
+    },
+    "native.usage.accountRefresh" : {
+      "comment" : "Button: read the provider accounts again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktualisieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refresh"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vernieuwen"
+          }
+        }
+      }
+    },
+    "native.usage.accountRefreshing" : {
+      "comment" : "While the provider accounts are read again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird aktualisiert…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refreshing…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bezig met vernieuwen…"
+          }
+        }
+      }
+    },
+    "native.usage.resetsIn" : {
+      "comment" : "When a quota window starts over. {duration}, e.g. 2h 10m.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird in %@ zurückgesetzt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resets in %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset over %@"
+          }
+        }
+      }
+    },
+    "native.usage.windowUsed" : {
+      "comment" : "How much of a quota window is used. {percent}, e.g. 18%.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ genutzt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ used"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ gebruikt"
+          }
+        }
+      }
+    },
+    "native.usage.accountUnavailable" : {
+      "comment" : "A provider account with nothing to show and no reason given by the gateway.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für dieses Konto wird keine Nutzung gemeldet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No usage reported for this account."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen verbruik gemeld voor dit account."
+          }
+        }
+      }
+    },
+    "native.usage.credits" : {
+      "comment" : "The label of a provider's money balance.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guthaben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Credits"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tegoed"
+          }
+        }
+      }
+    },
+    "native.usage.creditsLeft" : {
+      "comment" : "A balance with a cap. {remaining} {total}, both amounts with their currency.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ von %2$@ übrig"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ of %2$@ left"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ van %2$@ over"
+          }
+        }
+      }
+    },
     "native.usage.nous" : {
       "comment" : "Header of the Nous account's balance.",
       "extractionState" : "manual",

@@ -69,12 +69,19 @@ struct UsageSettingsContent: View {
         botsSection
         daysSection
 
-        if let nous = model.nous {
+        // The accounts as fields where the gateway has them; else the Nous balance, which is all an older one has.
+        if model.account.isStructured || model.nous != nil {
           Section {
-            ProviderAccountRows(accountLines: [], nous: nous)
+            AccountSectionRows(account: model.account, nous: model.nous)
           } header: {
             Text(NativeStrings.Usage.account)
+          } footer: {
+            if model.account.isStructured {
+              Text(AccountSectionRows.footer(structured: true, forBot: false))
+                .foregroundStyle(Color.primary)
+            }
           }
+          .accessibilityIdentifier("hermie.usage.accountSection")
         }
       }
 

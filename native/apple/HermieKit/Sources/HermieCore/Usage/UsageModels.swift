@@ -52,6 +52,9 @@ public final class BotUsageModel {
   public private(set) var nous: NousUsageBars?
   /// When the days were last read.
   public private(set) var refreshedAt: Date?
+  /// The provider accounts this bot's models run on, as fields. Where the gateway has no such method it says
+  /// so (`AccountUsageModel.phase`), and the screen draws `live`'s text lines and `nous` instead.
+  public let account: AccountUsageModel
 
   @ObservationIgnored private let backend: any UsageBackend
   @ObservationIgnored private let runtimeID: @Sendable () async -> String?
@@ -71,6 +74,7 @@ public final class BotUsageModel {
     self.runtimeID = runtimeID
     self.contextMeter = contextMeter
     self.now = now
+    self.account = AccountUsageModel(profile: bot, backend: backend, now: now)
   }
 
   // MARK: What the screen draws
@@ -110,8 +114,10 @@ public final class BotUsageModel {
     async let balance = Result { try await backend.nousBars() }
     async let session = liveUsage()
     async let meter = contextMeter()
+    async let accounts: Void = account.load()
 
     let (daysRead, insightsRead, balanceRead, sessionRead, meterRead) = await (read, counted, balance, session, meter)
+    await accounts
 
     guard generation == mine else {
       return
@@ -169,6 +175,8 @@ public final class UsageOverviewModel {
   public private(set) var contexts: [String: ContextUsage] = [:]
   public private(set) var nous: NousUsageBars?
   public private(set) var refreshedAt: Date?
+  /// The provider accounts of the gateway's launch profile, as fields; the Nous balance is the fallback.
+  public let account: AccountUsageModel
 
   @ObservationIgnored private let backend: any UsageBackend
   @ObservationIgnored private let botNames: @MainActor @Sendable () -> [String]
@@ -189,6 +197,7 @@ public final class UsageOverviewModel {
     self.loadContexts = contexts
     self.concurrency = max(1, concurrency)
     self.now = now
+    self.account = AccountUsageModel(profile: nil, backend: backend, now: now)
   }
 
   // MARK: What the screen draws
@@ -230,9 +239,11 @@ public final class UsageOverviewModel {
 
     async let balance = Result { try await backend.nousBars() }
     async let meters = loadContexts()
+    async let accounts: Void = account.load()
 
     let outcomes = await Self.readAll(names, backend: backend, days: span, width: min(concurrency, max(1, names.count)))
     let (balanceRead, metersRead) = await (balance, meters)
+    await accounts
 
     guard generation == mine else {
       return

@@ -2532,6 +2532,16 @@
 	<string>No provider limits reported yet.</string>
 	<key>native.usage.accountNote</key>
 	<string>The limits of the account this bot's model runs on, as the gateway words them. It reports them while a chat of this bot is open.</string>
+	<key>native.usage.accountNoteGateway</key>
+	<string>The limits of the accounts the gateway's own models run on, as the providers report them.</string>
+	<key>native.usage.accountNoteLive</key>
+	<string>The limits of the accounts this bot's models run on, as the providers report them through the gateway.</string>
+	<key>native.usage.accountRefresh</key>
+	<string>Refresh</string>
+	<key>native.usage.accountRefreshing</key>
+	<string>Refreshing…</string>
+	<key>native.usage.accountUnavailable</key>
+	<string>No usage reported for this account.</string>
 	<key>native.usage.alertCost</key>
 	<string>%1$@ spent today on %2$@, over your limit of %3$@.</string>
 	<key>native.usage.alertCostLimit</key>
@@ -2568,6 +2578,10 @@
 	<string>%1$@ of %2$@ tokens</string>
 	<key>native.usage.contextNone</key>
 	<string>Not known until this bot's chat has been open.</string>
+	<key>native.usage.credits</key>
+	<string>Credits</string>
+	<key>native.usage.creditsLeft</key>
+	<string>%1$@ of %2$@ left</string>
 	<key>native.usage.dayNote</key>
 	<string>The gateway counts days in UTC, by the day each conversation started. A cost marked ~ is the gateway’s estimate; the provider did not report it.</string>
 	<key>native.usage.failed</key>
@@ -2598,6 +2612,8 @@
 	<string>%@ left</string>
 	<key>native.usage.renews</key>
 	<string>Renews %@</string>
+	<key>native.usage.resetsIn</key>
+	<string>Resets in %@</string>
 	<key>native.usage.sessions</key>
 	<string>Sessions</string>
 	<key>native.usage.span</key>
@@ -2620,6 +2636,8 @@
 	<string>This gateway does not report usage.</string>
 	<key>native.usage.updated</key>
 	<string>Updated %@</string>
+	<key>native.usage.windowUsed</key>
+	<string>%@ used</string>
 	<key>native.vault.about</key>
 	<string>Stored on the gateway, encrypted, in %1$@'s own vault. %2$@ can use them to sign in and fill in forms. Hermie never shows what they hold.</string>
 	<key>native.vault.actionFailed</key>

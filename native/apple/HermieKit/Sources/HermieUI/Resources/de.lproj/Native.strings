@@ -2532,6 +2532,16 @@
 	<string>Noch keine Anbieter-Limits gemeldet.</string>
 	<key>native.usage.accountNote</key>
 	<string>Die Limits des Kontos, auf dem das Modell dieses Bots läuft, wie das Gateway sie formuliert. Es meldet sie, solange ein Chat dieses Bots geöffnet ist.</string>
+	<key>native.usage.accountNoteGateway</key>
+	<string>Die Limits der Konten, auf denen die eigenen Modelle des Gateways laufen, wie die Anbieter sie melden.</string>
+	<key>native.usage.accountNoteLive</key>
+	<string>Die Limits der Konten, auf denen die Modelle dieses Bots laufen, wie die Anbieter sie über das Gateway melden.</string>
+	<key>native.usage.accountRefresh</key>
+	<string>Aktualisieren</string>
+	<key>native.usage.accountRefreshing</key>
+	<string>Wird aktualisiert…</string>
+	<key>native.usage.accountUnavailable</key>
+	<string>Für dieses Konto wird keine Nutzung gemeldet.</string>
 	<key>native.usage.alertCost</key>
 	<string>%1$@ heute auf %2$@ ausgegeben, über deinem Limit von %3$@.</string>
 	<key>native.usage.alertCostLimit</key>
@@ -2568,6 +2578,10 @@
 	<string>%1$@ von %2$@ Tokens</string>
 	<key>native.usage.contextNone</key>
 	<string>Unbekannt, bis der Chat dieses Bots geöffnet war.</string>
+	<key>native.usage.credits</key>
+	<string>Guthaben</string>
+	<key>native.usage.creditsLeft</key>
+	<string>%1$@ von %2$@ übrig</string>
 	<key>native.usage.dayNote</key>
 	<string>Das Gateway zählt Tage in UTC, nach dem Tag, an dem jede Unterhaltung begann. Ein Betrag mit ~ ist die Schätzung des Gateways; der Anbieter hat ihn nicht gemeldet.</string>
 	<key>native.usage.failed</key>
@@ -2598,6 +2612,8 @@
 	<string>%@ übrig</string>
 	<key>native.usage.renews</key>
 	<string>Verlängert sich %@</string>
+	<key>native.usage.resetsIn</key>
+	<string>Wird in %@ zurückgesetzt</string>
 	<key>native.usage.sessions</key>
 	<string>Sitzungen</string>
 	<key>native.usage.span</key>
@@ -2620,6 +2636,8 @@
 	<string>Dieses Gateway meldet keine Nutzung.</string>
 	<key>native.usage.updated</key>
 	<string>Aktualisiert %@</string>
+	<key>native.usage.windowUsed</key>
+	<string>%@ genutzt</string>
 	<key>native.vault.about</key>
 	<string>Verschlüsselt auf dem Gateway gespeichert, im eigenen Tresor von %1$@. %2$@ kann sie zum Anmelden und Ausfüllen von Formularen verwenden. Hermie zeigt nie, was sie enthalten.</string>
 	<key>native.vault.actionFailed</key>

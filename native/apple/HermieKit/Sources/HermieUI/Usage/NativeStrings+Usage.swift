@@ -80,6 +80,42 @@ extension NativeStrings {
     static var account: String { String(localized: "native.usage.account", table: "Native", bundle: .module) }
     /// The limits of the account this bot's model runs on… (footer)
     static var accountNote: String { String(localized: "native.usage.accountNote", table: "Native", bundle: .module) }
+    /// The limits of the accounts this bot's models run on, as the providers report them… (footer)
+    static var accountNoteLive: String {
+      String(localized: "native.usage.accountNoteLive", table: "Native", bundle: .module)
+    }
+    /// The limits of the accounts the gateway's own models run on… (footer of the overview)
+    static var accountNoteGateway: String {
+      String(localized: "native.usage.accountNoteGateway", table: "Native", bundle: .module)
+    }
+    /// Refresh (reads the provider accounts again)
+    static var accountRefresh: String {
+      String(localized: "native.usage.accountRefresh", table: "Native", bundle: .module)
+    }
+    /// Refreshing…
+    static var accountRefreshing: String {
+      String(localized: "native.usage.accountRefreshing", table: "Native", bundle: .module)
+    }
+    /// Resets in {duration}
+    static func resetsIn(_ duration: String) -> String {
+      String(localized: "native.usage.resetsIn", defaultValue: "Resets in \(duration)", table: "Native", bundle: .module)
+    }
+    /// {percent} used
+    static func windowUsed(_ percent: String) -> String {
+      String(localized: "native.usage.windowUsed", defaultValue: "\(percent) used", table: "Native", bundle: .module)
+    }
+    /// No usage reported for this account.
+    static var accountUnavailable: String {
+      String(localized: "native.usage.accountUnavailable", table: "Native", bundle: .module)
+    }
+    /// Credits
+    static var credits: String { String(localized: "native.usage.credits", table: "Native", bundle: .module) }
+    /// {remaining} of {total} left
+    static func creditsLeft(remaining: String, total: String) -> String {
+      String(
+        localized: "native.usage.creditsLeft", defaultValue: "\(remaining) of \(total) left", table: "Native",
+        bundle: .module)
+    }
     /// No provider limits reported yet.
     static var accountNone: String { String(localized: "native.usage.accountNone", table: "Native", bundle: .module) }
     /// Nous credits

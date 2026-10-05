@@ -38,6 +38,71 @@ struct UsageViewTests {
     #expect(UsageWords.words(.failed("")) == UsageWords.words(.unsupported))
   }
 
+  // MARK: The provider accounts
+
+  private let english = Locale(identifier: "en_US")
+  private let now = Date(timeIntervalSince1970: 1_791_201_600)
+
+  @Test func aWindowIsSaidAsAShareAndAResetCountdown() {
+    let window = AccountWindow(
+      id: "current_session", label: "Current session", usedPercent: 18, resetAt: now.addingTimeInterval(2 * 3600 + 600))
+
+    #expect(AccountWords.percent(window, locale: english) == "18%")
+    #expect(AccountWords.used(window, locale: english) == NativeStrings.Usage.windowUsed("18%"))
+    #expect(AccountWords.resets(window, now: now, locale: english) == NativeStrings.Usage.resetsIn("2h 10m"))
+    #expect(NativeStrings.Usage.resetsIn("2h 10m").contains("2h 10m"))
+  }
+
+  @Test func aWindowWithNoShareOrNoFutureResetSaysNothingMadeUp() {
+    let none = AccountWindow(id: "w", label: "Weekly")
+    let past = AccountWindow(id: "w", label: "Weekly", usedPercent: 50, resetAt: now.addingTimeInterval(-5))
+
+    #expect(AccountWords.percent(none) == "–")
+    #expect(AccountWords.used(none) == "–")
+    #expect(AccountWords.resets(none, now: now) == nil)
+    #expect(AccountWords.resets(past, now: now) == nil)
+    #expect(none.fraction == nil, "no bar is drawn without a share")
+  }
+
+  @Test func creditsAreSaidWithTheirCurrencyAndTheCapWhereThereIsOne() {
+    let capped = AccountCredits(currency: "USD", remaining: 4.2, total: 10)
+    let open = AccountCredits(currency: "USD", remaining: 4.2)
+
+    #expect(AccountWords.credits(capped, locale: english) == NativeStrings.Usage.creditsLeft(remaining: "$4.20", total: "$10.00"))
+    #expect(AccountWords.credits(open, locale: english) == NativeStrings.Usage.remaining("$4.20"))
+  }
+
+  @Test func aProviderWithNothingSaysWhyInTheGatewaysWordsOrInOurs() {
+    let told = ProviderAccountUsage(
+      provider: "openrouter", title: "OpenRouter credits", available: false,
+      unavailableReason: "Not signed in to this provider in this profile.")
+    let silent = ProviderAccountUsage(provider: "codex", title: "Codex", available: false)
+
+    #expect(AccountWords.reason(told) == "Not signed in to this provider in this profile.")
+    #expect(AccountWords.reason(silent) == NativeStrings.Usage.accountUnavailable)
+    #expect(!NativeStrings.Usage.accountUnavailable.hasPrefix("native."))
+  }
+
+  @Test func whenTheProviderWasReadIsRelativeAndNeverInTheFuture() {
+    let read = ProviderAccountUsage(
+      provider: "anthropic", title: "Claude", fetchedAt: now.addingTimeInterval(-120))
+    let ahead = ProviderAccountUsage(provider: "anthropic", title: "Claude", fetchedAt: now.addingTimeInterval(600))
+    let unknown = ProviderAccountUsage(provider: "anthropic", title: "Claude")
+
+    #expect(AccountWords.updated(read, now: now, locale: english)?.contains("2 minutes ago") == true)
+    #expect(AccountWords.updated(ahead, now: now, locale: english)?.contains("minutes") == false)
+    #expect(AccountWords.updated(unknown, now: now) == nil)
+  }
+
+  @Test func theFooterSaysWhereTheNumbersCameFrom() {
+    let live = AccountSectionRows.footer(structured: true, forBot: true)
+    let gateway = AccountSectionRows.footer(structured: true, forBot: false)
+    let lines = AccountSectionRows.footer(structured: false, forBot: true)
+
+    #expect(Set([live, gateway, lines]).count == 3)
+    #expect(lines == NativeStrings.Usage.accountNote, "the older gateway's text lines keep their own note")
+  }
+
   // MARK: The limit fields
 
   @Test func aCostIsReadFromWhatWasTyped() {
@@ -104,7 +169,10 @@ struct UsageViewTests {
     "native.usage.remaining", "native.usage.spendable", "native.usage.allBots", "native.usage.failedBots",
     "native.usage.alertSwitch", "native.usage.alertCostLimit", "native.usage.alertTokenLimit",
     "native.usage.alertOff", "native.usage.alertFooter", "native.usage.alertTitle", "native.usage.alertCost",
-    "native.usage.alertCostTop", "native.usage.alertTokens", "native.usage.alertTokensTop"
+    "native.usage.alertCostTop", "native.usage.alertTokens", "native.usage.alertTokensTop",
+    "native.usage.accountNoteLive", "native.usage.accountNoteGateway", "native.usage.accountRefresh",
+    "native.usage.accountRefreshing", "native.usage.resetsIn", "native.usage.windowUsed",
+    "native.usage.accountUnavailable", "native.usage.credits", "native.usage.creditsLeft"
   ])
   func everySentenceIsTranslated(_ key: String) throws {
     try expectTranslated(key)

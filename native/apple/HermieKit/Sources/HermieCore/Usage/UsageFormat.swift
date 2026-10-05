@@ -38,4 +38,34 @@ public enum UsageFormat {
 
     return value.formatted(.percent.precision(.fractionLength(0)).locale(locale))
   }
+
+  /// How long until `date`, as the two largest units of days, hours and minutes: "2h 10m", "3d 4h", "45m".
+  /// Under a minute is "1m". Nil for a time that has already passed, which is no countdown.
+  public static func timeUntil(_ date: Date, from now: Date, locale: Locale = .current) -> String? {
+    let seconds = date.timeIntervalSince(now)
+
+    guard seconds.isFinite, seconds > 0 else {
+      return nil
+    }
+
+    let minutes = max(1, Int((seconds / 60).rounded(.up)))
+    let style = Duration.UnitsFormatStyle(
+      allowedUnits: [.days, .hours, .minutes], width: .narrow, maximumUnitCount: 2, zeroValueUnits: .hide
+    ).locale(locale)
+
+    return Duration.seconds(minutes * 60).formatted(style)
+  }
+
+  /// A money balance in its currency: "$12.00". A currency that is not a three-letter code is written after the
+  /// number, as the provider named it.
+  public static func money(_ amount: Double, currency: String, locale: Locale = .current) -> String {
+    let value = amount.isFinite ? max(0, amount) : 0
+    let code = currency.uppercased()
+
+    if code.count == 3, code.unicodeScalars.allSatisfy({ ("A"..."Z").contains($0) }) {
+      return value.formatted(.currency(code: code).locale(locale))
+    }
+
+    return "\(value.formatted(.number.precision(.fractionLength(0...2)).locale(locale))) \(currency)"
+  }
 }
