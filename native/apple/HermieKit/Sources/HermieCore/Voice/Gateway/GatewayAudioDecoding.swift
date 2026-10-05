@@ -76,12 +76,16 @@ enum GatewayAudioDecoding {
   static let maxFrames: AVAudioFrameCount = 48_000 * 120
 
   /// A clip from `POST /api/audio/speak` (mp3, wav, m4a, …) as buffers of about a second each.
-  static func decode(_ clip: GatewayAudioClip) throws -> [AVAudioPCMBuffer] {
+  /// `directory` is where the clip is written for the decoder while it reads it (the temporary
+  /// directory; a test passes its own, so another test decoding at the same time is not counted).
+  static func decode(
+    _ clip: GatewayAudioClip, directory: URL = FileManager.default.temporaryDirectory
+  ) throws -> [AVAudioPCMBuffer] {
     guard !clip.data.isEmpty else {
       throw DecodeError.empty
     }
 
-    let url = FileManager.default.temporaryDirectory
+    let url = directory
       .appendingPathComponent("hermie-speech-\(UUID().uuidString)")
       .appendingPathExtension(fileExtension(for: clip.mimeType))
 

@@ -82,15 +82,14 @@ import Testing
   }
 
   @Test func theFileIsNotLeftBehind() throws {
-    let before = try FileManager.default.contentsOfDirectory(atPath: FileManager.default.temporaryDirectory.path)
-      .filter { $0.hasPrefix("hermie-speech-") }
+    // A folder of its own: other tests decode into the shared temporary directory at the same time.
+    let folder = FileManager.default.temporaryDirectory.appendingPathComponent("hermie-decode-\(UUID().uuidString)")
+    try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: folder) }
 
-    _ = try GatewayAudioDecoding.decode(AudioFixtures.clip())
+    _ = try GatewayAudioDecoding.decode(AudioFixtures.clip(), directory: folder)
 
-    let after = try FileManager.default.contentsOfDirectory(atPath: FileManager.default.temporaryDirectory.path)
-      .filter { $0.hasPrefix("hermie-speech-") }
-
-    #expect(after.count <= before.count)
+    #expect(try FileManager.default.contentsOfDirectory(atPath: folder.path).isEmpty)
   }
 
   @Test func bytesThatAreNotAudioAreUnreadable() {
