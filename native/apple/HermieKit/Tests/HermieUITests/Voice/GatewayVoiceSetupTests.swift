@@ -259,6 +259,49 @@ private let mine = GatewayVoice(id: "voice-clone-1", name: "Mine", label: "Mine 
     #expect(speaker.spoken[0].request.gatewayVoice == nil)
   }
 
+  // MARK: The provider a voice is chosen from
+
+  @Test func aGatewayVoiceIsKeptWithTheProviderOfTheGatewayItWasChosenFrom() async {
+    let settings = VoiceSettings()
+    settings.setSpeechSource(.gateway)
+    let edge = GatewayVoiceConfig(
+      ttsAvailable: true, provider: "edge", voiceSelection: true,
+      voices: [GatewayVoice(id: "nl-NL-FennaNeural", name: "Fenna", language: "nl-NL")])
+    let (setup, speaker) = model(StubSpeech(config: edge), settings: settings)
+    await setup.loadGateway()
+
+    setup.selectGatewayVoice("nl-NL-FennaNeural")
+
+    #expect(settings.gatewayVoice == "nl-NL-FennaNeural")
+    #expect(settings.gatewayVoiceProvider == "edge")
+    #expect(speaker.spoken.last?.request.gatewayVoice == "nl-NL-FennaNeural")
+    #expect(speaker.spoken.last?.request.gatewayProvider == "edge", "the sample says which provider the voice is from")
+
+    setup.selectGatewayVoice(nil)
+
+    #expect(settings.gatewayVoice == nil)
+    #expect(settings.gatewayVoiceProvider == nil, "the gateway's own voice has no provider to keep")
+    #expect(speaker.spoken.last?.request.gatewayProvider == nil)
+  }
+
+  @Test func aBotsGatewayVoiceIsKeptWithItsProfilesProviderAndADeviceVoiceWithNone() {
+    let settings = VoiceSettings()
+    let editor = BotVoiceEditor(settings: settings, chat: chat("postman"))
+
+    editor.choose(BotVoice(source: .gateway, voice: "voice-rachel"), provider: "elevenlabs")
+
+    #expect(editor.current?.provider == "elevenlabs")
+    #expect(editor.speech == SpeechChoice(source: .gateway, gatewayVoice: "voice-rachel", gatewayProvider: "elevenlabs"))
+
+    editor.choose(BotVoice(source: .gateway), provider: "elevenlabs")
+
+    #expect(editor.current?.provider == nil, "the gateway's own voice is not a voice of any provider")
+
+    editor.choose(BotVoice(source: .apple, voice: "apple.xander"), provider: "elevenlabs")
+
+    #expect(editor.current?.provider == nil)
+  }
+
   // MARK: The gateway's voices
 
   @Test func elevenLabsIsNamedAndItsVoicesAreListedWhereTheGatewayTakesOne() async {

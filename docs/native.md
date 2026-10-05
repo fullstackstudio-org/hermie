@@ -2416,7 +2416,15 @@ where the gateway can speak, see "The gateway's voice" below).
   up to 3 times, then offers a retry like `unavailable`. A stream `error` frame (`invalid_voice`, `unknown_voice`,
   `voice_unsupported`, `voice_failed`, `invalid_prosody`) is spoken from the file route like `fallback`; a voice the
   gateway does not know or could not make is not asked for again in the session, one it cannot stream is not
-  streamed again.
+  streamed again. A voice the profile refuses (stream frame, or `400` on `speak` with `detail.code` `unknown_voice`,
+  `invalid_voice`, `voice_unsupported`, `voice_failed`: `GatewayError.code`, `GatewaySpeechError.voiceRefused`) is
+  not a reason to leave the gateway: the same sentence is asked again without `voice`, so the profile's configured
+  voice speaks, and only if that fails too does the device. The refusal is remembered per profile
+  (`GatewaySpeechAccess.refusals`, shared by every renderer of it), so later sentences go straight to no voice. The
+  Voice screen asks `voice-config` for the gateway's default profile, whose provider may not be a bot's, so the
+  provider is kept beside a chosen voice (`gatewayVoiceProvider`, `BotVoice.provider`, optional: a choice kept before
+  has none and is sent once, then given up on if refused) and a voice is only sent to a profile that speaks through
+  the same provider (`ReadRequest.gatewayProvider`).
 - **A voice per bot** (bot settings › Voice, `BotVoiceSection`): Default (the Voice screen's choice) or a source and
   a voice for that bot, kept in the `hermie.voice` blob per gateway and bot (`VoiceSettings.botVoices`) and resolved
   by `VoiceSettings.speech(bot:gatewayID:)` when `ReadAloudModel` starts a request, which is what "Read aloud", the

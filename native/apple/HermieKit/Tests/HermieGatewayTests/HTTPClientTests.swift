@@ -255,6 +255,28 @@ import Testing
     #expect(await gatewayError { try await http.post("/api/b") }?.hint == nil)
   }
 
+  @Test("a refusal's own code rides on the error, from a detail object, the body, or a detail that is a bare code")
+  func detailCode() async throws {
+    let server = StubServer { request in
+      switch request.path {
+      case "/api/a": .json("{\"detail\":{\"code\":\"unknown_voice\",\"message\":\"No such voice\"}}", status: 400)
+      case "/api/b": .json("{\"code\":\"invalid_voice\"}", status: 400)
+      case "/api/c": .json("{\"error\":{\"code\":\"voice_unsupported\"}}", status: 400)
+      case "/api/d": .json("{\"detail\":\"unknown_voice\"}", status: 400)
+      case "/api/e": .json("{\"detail\":\"Text is required\"}", status: 400)
+      default: .text("<html>nope</html>", status: 400)
+      }
+    }
+    let http = try HTTPClient(baseURL: Self.base, credentials: AnonymousCredentials(), transport: server.transport())
+
+    #expect(await gatewayError { try await http.post("/api/a") }?.code == "unknown_voice")
+    #expect(await gatewayError { try await http.post("/api/b") }?.code == "invalid_voice")
+    #expect(await gatewayError { try await http.post("/api/c") }?.code == "voice_unsupported")
+    #expect(await gatewayError { try await http.post("/api/d") }?.code == "unknown_voice")
+    #expect(await gatewayError { try await http.post("/api/e") }?.code == nil, "a sentence is not a code")
+    #expect(await gatewayError { try await http.post("/api/f") }?.code == nil)
+  }
+
   @Test("sends the extra headers beside the credential, JSON in and out, never cached")
   func sendsHeadersAndBody() async throws {
     let server = StubServer { _ in .json("{}") }

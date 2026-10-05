@@ -398,7 +398,7 @@ final class VoiceSetupModel {
 
   /// Choose a gateway voice (nil is the gateway's own), and say the sample in it.
   func selectGatewayVoice(_ id: String?) {
-    settings.setGatewayVoice(id)
+    settings.setGatewayVoice(id, provider: gateway?.config?.provider)
     preview()
   }
 
@@ -485,7 +485,8 @@ final class VoiceSetupModel {
     let request = ReadRequest(
       id: "preview", text: sample, language: selectedVoice?.language ?? language,
       pitch: VoiceProsody.pitch(expressivity: settings.expressivity, sentence: 0),
-      source: spoken.speechSource, gatewayVoice: spoken == .gateway ? settings.gatewayVoice : nil)
+      source: spoken.speechSource, gatewayVoice: spoken == .gateway ? settings.gatewayVoice : nil,
+      gatewayProvider: spoken == .gateway ? settings.gatewayVoiceProvider : nil)
 
     previewing = true
     speaker.speak(request, rate: settings.rate, voice: settings.voiceIdentifier) { [weak self] in

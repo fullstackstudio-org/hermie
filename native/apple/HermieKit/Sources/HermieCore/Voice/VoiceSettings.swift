@@ -72,6 +72,9 @@ public final class VoiceSettings {
   public private(set) var speechSource = SpeechSource.apple
   /// The gateway voice replies are spoken in when the source is the gateway; nil is the gateway's own.
   public private(set) var gatewayVoice: String?
+  /// The provider `gatewayVoice` was chosen from (`edge`, `elevenlabs`), when it was kept: a voice is only sent to a
+  /// profile that speaks through the same one. Nil for a voice kept before this was, which is sent as it is.
+  public private(set) var gatewayVoiceProvider: String?
   /// The bots that have a voice of their own: `<bot>@<gateway id>`. A bot without one follows the
   /// choices above.
   public private(set) var botVoices: [String: BotVoice] = [:]
@@ -139,6 +142,8 @@ public final class VoiceSettings {
     autoReadChats = Set(chats.keys)
     speechSource = blob[Field.speechSource]?.stringValue.flatMap(SpeechSource.init(rawValue:)) ?? .apple
     gatewayVoice = blob[Field.gatewayVoice]?.stringValue.flatMap { $0.isEmpty ? nil : $0 }
+    gatewayVoiceProvider = gatewayVoice == nil
+      ? nil : blob[Field.gatewayVoiceProvider]?.stringValue.flatMap { $0.isEmpty ? nil : $0 }
     botVoices = (blob[Field.botVoices]?.objectValue ?? [:]).compactMapValues(BotVoice.init(json:))
 
     return migrate(from: blob[Field.schema]?.intValue ?? 1)
@@ -254,8 +259,14 @@ public final class VoiceSettings {
     change { $0.speechSource = value }
   }
 
-  public func setGatewayVoice(_ value: String?) {
-    change { $0.gatewayVoice = (value?.isEmpty ?? true) ? nil : value }
+  /// - Parameter provider: the provider the voice was chosen from (the gateway's `voice-config`, as the screen
+  ///   chose it), kept beside it.
+  public func setGatewayVoice(_ value: String?, provider: String? = nil) {
+    change {
+      let voice = (value?.isEmpty ?? true) ? nil : value
+      $0.gatewayVoice = voice
+      $0.gatewayVoiceProvider = voice == nil || (provider?.isEmpty ?? true) ? nil : provider
+    }
   }
 
   /// The voice this bot was given of its own, or nil when it follows the Voice screen.
@@ -285,12 +296,16 @@ public final class VoiceSettings {
       case .apple:
         return SpeechChoice(source: .apple, appleVoice: own.voice, gatewayVoice: nil)
       case .gateway:
-        return SpeechChoice(source: .gateway, appleVoice: voiceIdentifier, gatewayVoice: own.voice)
+        return SpeechChoice(
+          source: .gateway, appleVoice: voiceIdentifier, gatewayVoice: own.voice,
+          gatewayProvider: own.voice == nil ? nil : own.provider)
       }
     }
 
+    let gateway = speechSource == .gateway
     return SpeechChoice(
-      source: speechSource, appleVoice: voiceIdentifier, gatewayVoice: speechSource == .gateway ? gatewayVoice : nil)
+      source: speechSource, appleVoice: voiceIdentifier, gatewayVoice: gateway ? gatewayVoice : nil,
+      gatewayProvider: gateway && gatewayVoice != nil ? gatewayVoiceProvider : nil)
   }
 
   /// The key a chat is kept under in `autoReadChats`.
@@ -332,6 +347,7 @@ public final class VoiceSettings {
       $0.autoReadChats = []
       $0.speechSource = .apple
       $0.gatewayVoice = nil
+      $0.gatewayVoiceProvider = nil
       $0.botVoices = [:]
     }
   }
@@ -353,11 +369,12 @@ public final class VoiceSettings {
     static let expressivity = "expressivity"
     static let speechSource = "speechSource"
     static let gatewayVoice = "gatewayVoice"
+    static let gatewayVoiceProvider = "gatewayVoiceProvider"
     static let botVoices = "botVoices"
     static let schema = "nativeSchema"
     static let all = [
       rate, dictationLanguage, voice, confirm, stopOnBackground, autoRead, silence, bargeIn, captions, orb, setUp,
-      expressivity, speechSource, gatewayVoice, botVoices, schema
+      expressivity, speechSource, gatewayVoice, gatewayVoiceProvider, botVoices, schema
     ]
   }
 
@@ -381,8 +398,10 @@ public final class VoiceSettings {
       String(rate), dictationLanguage, voiceIdentifier ?? "", String(confirmBeforeSending),
       String(stopOnBackground), autoReadChats.sorted().joined(separator: "\n"), String(voiceModeSilence),
       String(voiceModeBargeIn), String(voiceModeCaptions), voiceModeOrb.rawValue, String(voiceModeSetUp),
-      String(expressivity), speechSource.rawValue, gatewayVoice ?? "",
-      botVoices.keys.sorted().map { "\($0)=\(botVoices[$0]?.source.rawValue ?? "")/\(botVoices[$0]?.voice ?? "")" }
+      String(expressivity), speechSource.rawValue, gatewayVoice ?? "", gatewayVoiceProvider ?? "",
+      botVoices.keys.sorted().map {
+        "\($0)=\(botVoices[$0]?.source.rawValue ?? "")/\(botVoices[$0]?.voice ?? "")/\(botVoices[$0]?.provider ?? "")"
+      }
         .joined(separator: "\n")
     ]
   }
@@ -410,6 +429,10 @@ public final class VoiceSettings {
 
     if let gatewayVoice {
       blob[Field.gatewayVoice] = .string(gatewayVoice)
+
+      if let gatewayVoiceProvider {
+        blob[Field.gatewayVoiceProvider] = .string(gatewayVoiceProvider)
+      }
     }
 
     blob[Field.botVoices] = .object(botVoices.mapValues(\.json))

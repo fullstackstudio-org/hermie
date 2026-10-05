@@ -18,10 +18,13 @@ public struct ReadRequest: Sendable, Equatable {
   public var source: SpeechSource
   /// The gateway's voice for it, when `source` is the gateway and a voice is chosen.
   public var gatewayVoice: String?
+  /// The gateway provider `gatewayVoice` was chosen from (`edge`, `elevenlabs`), when it was kept. A voice is only sent to a
+  /// profile that speaks through the same provider; nil (a choice kept before this was) is sent as it is.
+  public var gatewayProvider: String?
 
   public init(
     id: String, text: String, language: String? = nil, pitch: Double = 1, source: SpeechSource = .apple,
-    gatewayVoice: String? = nil
+    gatewayVoice: String? = nil, gatewayProvider: String? = nil
   ) {
     self.id = id
     self.text = text
@@ -29,6 +32,7 @@ public struct ReadRequest: Sendable, Equatable {
     self.pitch = pitch
     self.source = source
     self.gatewayVoice = gatewayVoice
+    self.gatewayProvider = gatewayProvider
   }
 }
 
@@ -292,6 +296,7 @@ public final class ReadAloudModel {
     var resolved = request
     resolved.source = choice.source
     resolved.gatewayVoice = choice.gatewayVoice
+    resolved.gatewayProvider = choice.gatewayProvider
     return (resolved, choice.appleVoice)
   }
 

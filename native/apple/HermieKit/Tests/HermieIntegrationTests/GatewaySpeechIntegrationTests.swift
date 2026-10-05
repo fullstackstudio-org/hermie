@@ -331,9 +331,9 @@ extension Integration {
 
     // MARK: The stream's error frame
 
-    @Test("an error frame is spoken from the file route, and a voice the gateway does not know is not asked for again")
+    @Test("a voice the stream refuses is spoken by the gateway without it, and not asked for again")
     func errorFrame() async throws {
-      let arguments = ["--tts-voice-selection", "--tts-stream-error", "unknown_voice"]
+      let arguments = ["--tts-voice-selection", "--tts-stream-error", "unknown_voice", "--tts-error-voice", "ghost"]
 
       try await withCapabilitySession(FakeGateway.Options(extraArguments: arguments)) { session, gateway in
         let (renderer, fallback) = renderer(try access(session))
@@ -344,14 +344,36 @@ extension Integration {
         renderer.render(request, rate: 1, voice: nil, deliver: first.deliver)
         try await wait("the sentence") { first.ended }
 
-        #expect(first.frames == 1_600, "the file route's clip, not the stream's")
+        #expect(first.frames == 7_200, "the stream's audio, from the profile's own voice")
+        #expect(fallback.renders == 0, "not the device")
+        #expect(try await requests(gateway).map { $0["voice"] ?? .null } == [.string("ghost"), .null])
+
+        let second = Heard()
+        renderer.render(request, rate: 1, voice: nil, deliver: second.deliver)
+        try await wait("the next sentence") { second.ended }
+
+        #expect(second.frames == 7_200)
         #expect(fallback.renders == 0)
-        #expect(try await requests(gateway).compactMap { $0["kind"]?.stringValue } == ["stream", "speak"])
+        #expect(try await requests(gateway).map { $0["voice"] ?? .null } == [.string("ghost"), .null, .null], "the refused voice is not sent again")
+      }
+    }
 
-        renderer.render(request, rate: 1, voice: nil, deliver: Heard().deliver)
+    @Test("a 400 unknown_voice on speak is spoken again without the voice, from the same gateway")
+    func speakRefusedForTheVoice() async throws {
+      let arguments = ["--no-tts-stream", "--tts-voice-selection", "--tts-speak-error", "unknown_voice", "--tts-error-voice", "ghost"]
 
-        #expect(fallback.renders == 1, "the device speaks it")
-        #expect(try await requests(gateway).count == 2, "and the gateway was not asked again")
+      try await withCapabilitySession(FakeGateway.Options(extraArguments: arguments)) { session, gateway in
+        let (renderer, fallback) = renderer(try access(session))
+        let heard = Heard()
+        var request = sentence
+        request.gatewayVoice = "ghost"
+
+        renderer.render(request, rate: 1, voice: nil, deliver: heard.deliver)
+        try await wait("the sentence") { heard.ended }
+
+        #expect(heard.frames == 1_600, "the file route's clip")
+        #expect(fallback.renders == 0, "not the device")
+        #expect(try await requests(gateway).map { $0["voice"] ?? .null } == [.string("ghost"), .null])
       }
     }
 

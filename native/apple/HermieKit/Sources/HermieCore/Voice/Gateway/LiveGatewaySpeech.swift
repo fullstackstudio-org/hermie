@@ -72,7 +72,18 @@ public struct LiveGatewaySpeech: GatewaySpeechTransport {
       body["voice"] = .string(voice)
     }
 
-    let answer = try await http.post(Self.speakPath + Self.query(profile), body: .object(body), timeoutMs: Self.speakTimeoutMs)
+    let answer: JSONValue?
+
+    do {
+      answer = try await http.post(Self.speakPath + Self.query(profile), body: .object(body), timeoutMs: Self.speakTimeoutMs)
+    } catch let error as GatewayError {
+      // A voice the gateway will not speak in (400 `unknown_voice`, …) is told apart from a gateway that is down.
+      if error.status == 400, let code = error.code, GatewaySpeechError.voiceRefusals.contains(code) {
+        throw GatewaySpeechError.voiceRefused(code: code)
+      }
+
+      throw error
+    }
 
     guard let clip = GatewayAudioClip.parse(answer) else {
       throw GatewayError(.protocol, "The gateway answered /api/audio/speak without audio.")

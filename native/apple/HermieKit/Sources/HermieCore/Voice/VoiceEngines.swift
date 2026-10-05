@@ -84,6 +84,7 @@ public struct GatewayVoiceEngines: Sendable {
   private static func renderer(_ access: GatewaySpeechAccess) -> GatewaySpeechRenderer {
     GatewaySpeechRenderer(
       transport: access.transport, profile: access.profile, fallback: AppleSpeechRenderer(),
-      available: { [weak access] in access?.mayBeAvailable ?? false })
+      available: { [weak access] in access?.mayBeAvailable ?? false },
+      provider: { [weak access] in access?.config?.provider }, support: access.refusals)
   }
 }

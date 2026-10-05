@@ -102,6 +102,73 @@ import Testing
     #expect(again.botVoice(bot: "writer", gatewayID: "g1") == BotVoice(source: .gateway))
   }
 
+  // MARK: The provider a gateway voice was chosen from
+
+  @Test func aGatewayVoiceKeepsTheProviderItWasChosenFromAndTheReaderHandsItOver() async throws {
+    let keyValues = try open()
+    let settings = VoiceSettings(keyValues: keyValues)
+    await settings.hydrate()
+    settings.setSpeechSource(.gateway)
+    settings.setGatewayVoice("nl-NL-FennaNeural", provider: "edge")
+    settings.setBotVoice(
+      BotVoice(source: .gateway, voice: "voice-rachel", provider: "elevenlabs"), bot: "postman", gatewayID: "g1")
+    await settings.settled()
+
+    let again = VoiceSettings(keyValues: keyValues)
+    await again.hydrate()
+
+    #expect(again.gatewayVoiceProvider == "edge")
+    #expect(again.botVoice(bot: "postman", gatewayID: "g1")?.provider == "elevenlabs")
+    #expect(
+      again.speech(bot: "hermes", gatewayID: "g1")
+        == SpeechChoice(source: .gateway, gatewayVoice: "nl-NL-FennaNeural", gatewayProvider: "edge"))
+    #expect(
+      again.speech(bot: "postman", gatewayID: "g1")
+        == SpeechChoice(source: .gateway, gatewayVoice: "voice-rachel", gatewayProvider: "elevenlabs"))
+
+    let synth = FakeSynthesiser()
+    reader(again, synth).enqueue(id: "a1", markdown: "Hello there.")
+
+    #expect(synth.spoken[0].request.gatewayVoice == "nl-NL-FennaNeural")
+    #expect(synth.spoken[0].request.gatewayProvider == "edge")
+  }
+
+  @Test func aVoiceKeptBeforeTheProviderWasKeptStillLoadsAndHasNone() async throws {
+    let keyValues = try open()
+    try await keyValues.set(
+      try JSONValue(
+        parsing:
+          #"{"speechSource":"gateway","gatewayVoice":"nl-NL-FennaNeural","botVoices":{"postman@g1":{"source":"gateway","voice":"voice-rachel"}}}"#
+      ).objectValue ?? [:], forKey: StoreKeys.voice)
+
+    let settings = VoiceSettings(keyValues: keyValues)
+    await settings.hydrate()
+
+    #expect(settings.gatewayVoice == "nl-NL-FennaNeural")
+    #expect(settings.gatewayVoiceProvider == nil)
+    #expect(settings.speech(bot: "hermes", gatewayID: "g1") == SpeechChoice(source: .gateway, gatewayVoice: "nl-NL-FennaNeural"))
+    #expect(settings.speech(bot: "postman", gatewayID: "g1").gatewayProvider == nil)
+  }
+
+  @Test func theProviderGoesWhenTheVoiceDoesOrIsReplaced() {
+    let settings = VoiceSettings()
+    settings.setSpeechSource(.gateway)
+    settings.setGatewayVoice("nl-NL-FennaNeural", provider: "edge")
+    settings.setGatewayVoice("voice-rachel")
+
+    #expect(settings.gatewayVoiceProvider == nil, "a voice chosen without its provider does not keep the last one's")
+
+    settings.setGatewayVoice("nl-NL-FennaNeural", provider: "edge")
+    settings.setGatewayVoice(nil, provider: "edge")
+
+    #expect(settings.gatewayVoiceProvider == nil, "the gateway's own voice has no provider to keep")
+
+    settings.setGatewayVoice("nl-NL-FennaNeural", provider: "edge")
+    settings.reset()
+
+    #expect(settings.gatewayVoiceProvider == nil)
+  }
+
   @Test func whatIsStoredThatIsNotAVoiceIsIgnoredAndTheRestIsKept() async throws {
     let keyValues = try open()
     try await keyValues.set(

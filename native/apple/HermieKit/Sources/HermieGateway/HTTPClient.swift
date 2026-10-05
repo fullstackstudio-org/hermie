@@ -401,7 +401,8 @@ public struct HTTPClient: Sendable {
         .protocol,
         "\(method) \(path) failed with HTTP \(response.status).",
         status: response.status,
-        hint: Self.detail(of: response.text)
+        hint: Self.detail(of: response.text),
+        code: Self.code(of: response.text)
       )
     }
 
@@ -410,6 +411,22 @@ public struct HTTPClient: Sendable {
     }
 
     return try FetchJSON.parseJSONBody(response.text, url: attempt.url, kind: .protocol)
+  }
+
+  /// A refusal's own code out of a JSON error body: `detail.code` (the gateway's `{detail: {code, message}}`),
+  /// a top-level or `error.code`, or a `detail` that is itself a bare snake_case code.
+  static func code(of text: String) -> String? {
+    guard JSText.hasPrefix(JSText.trim(text), "{"), case .object(let body)? = try? JSONValue(parsing: text) else {
+      return nil
+    }
+
+    var candidates = [body["detail"]?["code"]?.stringValue, body["code"]?.stringValue, body["error"]?["code"]?.stringValue]
+
+    if let detail = body["detail"]?.stringValue, detail.range(of: #"^[a-z][a-z0-9_]*$"#, options: .regularExpression) != nil {
+      candidates.append(detail)
+    }
+
+    return candidates.compactMap { $0 }.first { !$0.isEmpty }
   }
 
   /// A refusal's own sentence out of a JSON error body (`detailOf`): a

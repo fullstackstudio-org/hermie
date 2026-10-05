@@ -28,6 +28,10 @@ public final class GatewaySpeechAccess {
   @ObservationIgnored private let loadingRetryDelay: Duration
   public static let loadingRetries = 3
 
+  /// What the gateway has refused this profile this session (a voice it does not know, a voice it cannot stream),
+  /// shared by every renderer that speaks as it: one refusal is learned once, not by each chat and call.
+  @ObservationIgnored public let refusals = GatewayStreamSupport()
+
   @ObservationIgnored private var configFailed = false
   @ObservationIgnored private var loadingConfig: Task<Void, Never>?
 

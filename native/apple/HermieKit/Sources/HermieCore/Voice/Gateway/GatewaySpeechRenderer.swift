@@ -14,7 +14,9 @@ enum GatewayFetchEvent: Sendable {
 /// know one or could not make it (`unknown_voice`, `invalid_voice`, `voice_failed`), so that voice is not asked for again, or it cannot
 /// stream one (`voice_unsupported`), so that voice is not streamed again. Read and written from
 /// whichever task is fetching.
-final class GatewayStreamSupport: Sendable {
+public final class GatewayStreamSupport: Sendable {
+  public init() {}
+
   private struct Refused {
     var voices: Set<String> = []
     var streamed: Set<String> = []
@@ -62,11 +64,17 @@ final class GatewayStreamSupport: Sendable {
       return
     }
 
-    switch code {
-    case "unknown_voice", "invalid_voice", "voice_failed": reject(voice: voice)
-    case "voice_unsupported": _ = refused.withLock { $0.streamed.insert(voice) }
-    default: break
+    if Self.refusesVoice(code: code) {
+      reject(voice: voice)
+    } else if code == "voice_unsupported" {
+      _ = refused.withLock { $0.streamed.insert(voice) }
     }
+  }
+
+  /// The stream's refusals that mean the gateway will not speak in this voice at all: it does not know it, it was
+  /// not a voice id, or it could not make it. (`voice_unsupported` is only about the stream: the file route may.)
+  static func refusesVoice(code: String) -> Bool {
+    ["unknown_voice", "invalid_voice", "voice_failed"].contains(code)
   }
 }
 
@@ -121,17 +129,54 @@ final class GatewayFetch {
     task.cancel()
   }
 
+  /// How one pass over the routes with one voice ended.
+  private enum Route {
+    /// The sentence's audio has been handed over, to its end.
+    case finished
+    /// Nothing more is wanted (the consumer went away).
+    case cancelled
+    /// The gateway could not speak it.
+    case failed
+    /// The gateway would not speak it in the voice that was named; no audio came.
+    case voiceRefused
+  }
+
+  /// The sentence in `voice`; and when the gateway refuses that voice (the profile it is asked as does not have it:
+  /// a voice chosen for another provider, a clone that was deleted), the same sentence without one, which is the
+  /// profile's own voice. The refused voice is remembered, so no sentence after it asks for it again.
   private static func run(
     transport: any GatewaySpeechTransport, text: String, profile: String?, voice: String?,
     support: GatewayStreamSupport, clock: @Sendable () -> Double, streamBackoff: Double,
     into continuation: AsyncStream<GatewayFetchEvent>.Continuation
   ) async {
+    var route = await attempt(
+      transport: transport, text: text, profile: profile, voice: voice, support: support, clock: clock,
+      streamBackoff: streamBackoff, into: continuation)
+
+    if route == .voiceRefused, voice != nil {
+      support.reject(voice: voice)
+      route = await attempt(
+        transport: transport, text: text, profile: profile, voice: nil, support: support, clock: clock,
+        streamBackoff: streamBackoff, into: continuation)
+    }
+
+    if route == .failed || route == .voiceRefused {
+      continuation.yield(.failed)
+    }
+  }
+
+  private static func attempt(
+    transport: any GatewaySpeechTransport, text: String, profile: String?, voice: String?,
+    support: GatewayStreamSupport, clock: @Sendable () -> Double, streamBackoff: Double,
+    into continuation: AsyncStream<GatewayFetchEvent>.Continuation
+  ) async -> Route {
     var delivered = false
 
     if support.allowed(at: clock()), support.allowsStream(voice: voice) {
       var decoder: GatewayAudioDecoding.PCM16Stream?
       var rejected = false
       var refusedByGateway = false
+      var refusedVoice = false
 
       do {
         for try await event in transport.stream(text: text, profile: profile, voice: voice) {
@@ -145,16 +190,21 @@ final class GatewayFetch {
               continuation.yield(.audio(PCMChunk(buffer: buffer)))
             }
           case .end:
-            continuation.yield(delivered && !rejected ? .end : .failed)
-            return
+            if delivered && !rejected {
+              continuation.yield(.end)
+              return .finished
+            }
+
+            return .failed
           case .fallback:
             // This provider has no stream: the route is not tried again.
             support.disable(until: .infinity)
           case .error(let code, _):
-            // The gateway refused the voice (or the prosody) and closed: the sentence goes on as a
-            // file, and a voice it does not know is not asked for again.
+            // The gateway refused the voice (or the prosody) and closed. A voice it does not know is not asked for
+            // again, and the sentence goes on without it; any other refusal goes on as a file.
             support.streamRefused(code: code, voice: voice)
             refusedByGateway = true
+            refusedVoice = voice != nil && GatewayStreamSupport.refusesVoice(code: code)
           }
 
           if rejected || refusedByGateway {
@@ -164,17 +214,21 @@ final class GatewayFetch {
 
         if delivered {
           continuation.yield(.end)
-          return
+          return .finished
+        }
+
+        if refusedVoice {
+          return .voiceRefused
         }
       } catch {
         if Task.isCancelled {
-          return
+          return .cancelled
         }
 
         if delivered {
           // A stream that broke part-way: what was heard is the sentence, as far as it went.
           continuation.yield(.end)
-          return
+          return .finished
         }
 
         support.disable(until: clock() + streamBackoff)
@@ -182,14 +236,14 @@ final class GatewayFetch {
     }
 
     guard !Task.isCancelled else {
-      return
+      return .cancelled
     }
 
     do {
       let clip = try await transport.speak(text: text, profile: profile, voice: voice)
 
       guard !Task.isCancelled else {
-        return
+        return .cancelled
       }
 
       for buffer in try GatewayAudioDecoding.decode(clip) {
@@ -197,10 +251,11 @@ final class GatewayFetch {
       }
 
       continuation.yield(.end)
+      return .finished
+    } catch GatewaySpeechError.voiceRefused where voice != nil {
+      return Task.isCancelled ? .cancelled : .voiceRefused
     } catch {
-      if !Task.isCancelled {
-        continuation.yield(.failed)
-      }
+      return Task.isCancelled ? .cancelled : .failed
     }
   }
 }
@@ -218,6 +273,10 @@ final class GatewayFetch {
    and the sentence after it does not wait on the gateway again for `Timing.cooldown`: a gateway that is
    down must not cost two seconds a sentence. The first fall-back of a renderer's life says so
    (`onFallback`, once), because a different voice mid-call is something to be told.
+ - **The profile's own voice before the device's.** A voice the gateway refuses for this profile (one chosen
+   from another provider, a clone that is gone) is not given up on by falling back to the device: the same
+   sentence is asked again without a voice, so the gateway speaks it in the profile's configured one, and the
+   refused voice is not asked for again this session. Only if that fails too is the sentence the device's.
  - **Only for what asks for it.** A request whose source is the device goes straight to the device's
    renderer, so one call can hold both (a bot with a voice of its own).
  - **What is not carried.** The gateway's voice takes no pace or pitch of its own (the request has
@@ -271,7 +330,8 @@ public final class GatewaySpeechRenderer: VoiceSpeechRenderer {
   private let timing: Timing
   private let clock: @Sendable () -> Double
   private let available: @MainActor () -> Bool
-  private let support = GatewayStreamSupport()
+  private let providerOfProfile: @MainActor () -> String?
+  private let support: GatewayStreamSupport
 
   private var generation = 0
   private var current: Playing?
@@ -291,10 +351,15 @@ public final class GatewaySpeechRenderer: VoiceSpeechRenderer {
   ///     the gateway could not.
   ///   - available: whether the gateway has text-to-speech at all (its `voice-config`); where it
   ///     does not, everything is the device's, and nothing is said about it.
+  ///   - provider: the provider this profile speaks through (its `voice-config`), when known: a request's voice
+  ///     chosen from another provider is not sent.
+  ///   - support: what the gateway has refused for this profile (voices, the stream); shared by every renderer of
+  ///     one profile, so a refusal is remembered for the session and not once per chat or call.
   public init(
     transport: any GatewaySpeechTransport, profile: String?, fallback: any VoiceSpeechRenderer,
     timing: Timing = Timing(), clock: @escaping @Sendable () -> Double = GatewaySpeechRenderer.uptime,
-    available: @escaping @MainActor () -> Bool = { true }
+    available: @escaping @MainActor () -> Bool = { true }, provider: @escaping @MainActor () -> String? = { nil },
+    support: GatewayStreamSupport = GatewayStreamSupport()
   ) {
     self.transport = transport
     self.profile = profile
@@ -302,6 +367,8 @@ public final class GatewaySpeechRenderer: VoiceSpeechRenderer {
     self.timing = timing
     self.clock = clock
     self.available = available
+    providerOfProfile = provider
+    self.support = support
   }
 
   public nonisolated static func uptime() -> Double {
@@ -326,7 +393,7 @@ public final class GatewaySpeechRenderer: VoiceSpeechRenderer {
       return
     }
 
-    let fetch = takePrefetched(for: Key(text: request.text, voice: request.gatewayVoice)) ?? makeFetch(request)
+    let fetch = takePrefetched(for: Key(text: request.text, voice: gatewayVoice(for: request))) ?? makeFetch(request)
     let playing = Playing(fetch: fetch)
     current = playing
 
@@ -390,7 +457,7 @@ public final class GatewaySpeechRenderer: VoiceSpeechRenderer {
       return
     }
 
-    let key = Key(text: request.text, voice: request.gatewayVoice)
+    let key = Key(text: request.text, voice: gatewayVoice(for: request))
 
     guard !prefetched.contains(where: { $0.key == key }) else {
       return
@@ -417,15 +484,33 @@ public final class GatewaySpeechRenderer: VoiceSpeechRenderer {
 
   // MARK: Inside
 
-  /// The gateway is asked for this request: it is meant for it, the gateway has text-to-speech, it
-  /// has not just let the call down, and it has not said it does not know the voice.
+  /// The gateway is asked for this request: it is meant for it, the gateway has text-to-speech and it
+  /// has not just let the call down.
   private func wantsGateway(_ request: ReadRequest) -> Bool {
-    request.source == .gateway && available() && clock() >= downUntil && !support.isRejected(voice: request.gatewayVoice)
+    request.source == .gateway && available() && clock() >= downUntil
+  }
+
+  /// The voice the gateway is asked for in this request, if any. None where the voice was chosen from another
+  /// provider than the one this profile speaks through (an Edge voice is no voice of ElevenLabs), and where the
+  /// gateway has refused it this session: the profile's own voice speaks then. A voice kept without its provider
+  /// is sent as it is, and given up on if it is refused.
+  private func gatewayVoice(for request: ReadRequest) -> String? {
+    guard let voice = request.gatewayVoice, !voice.isEmpty else {
+      return nil
+    }
+
+    if let chosenFrom = request.gatewayProvider, let speaksWith = providerOfProfile(),
+      chosenFrom.lowercased() != speaksWith.lowercased()
+    {
+      return nil
+    }
+
+    return support.isRejected(voice: voice) ? nil : voice
   }
 
   private func makeFetch(_ request: ReadRequest) -> GatewayFetch {
     GatewayFetch(
-      transport: transport, text: request.text, profile: profile, voice: request.gatewayVoice, support: support,
+      transport: transport, text: request.text, profile: profile, voice: gatewayVoice(for: request), support: support,
       clock: clock, streamBackoff: timing.streamBackoff)
   }
 

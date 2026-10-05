@@ -111,8 +111,16 @@ struct BotVoiceEditor {
   /// Who speaks for this bot now, as the reader resolves it for each sentence.
   var speech: SpeechChoice { settings.speech(bot: bot, gatewayID: gatewayID) }
 
-  func choose(_ voice: BotVoice) {
-    settings.setBotVoice(voice, bot: bot, gatewayID: gatewayID)
+  /// - Parameter provider: the provider of this bot's gateway profile, kept with a gateway voice so it is only ever
+  ///   sent to a profile that speaks through it.
+  func choose(_ voice: BotVoice, provider: String? = nil) {
+    var chosen = voice
+
+    if chosen.source == .gateway, chosen.voice != nil {
+      chosen.provider = provider
+    }
+
+    settings.setBotVoice(chosen, bot: bot, gatewayID: gatewayID)
   }
 
   /// Back to following the Voice screen.
@@ -283,7 +291,7 @@ struct BotVoiceList<Extra: View>: View {
   }
 
   private func choose(_ voice: BotVoice) {
-    BotVoiceEditor(settings: settings, chat: chat).choose(voice)
+    BotVoiceEditor(settings: settings, chat: chat).choose(voice, provider: gateway?.config?.provider)
   }
 
   private func row(

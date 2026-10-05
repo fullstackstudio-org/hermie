@@ -44,6 +44,8 @@ public struct GatewayError: Error, Sendable, Equatable {
   public var hint: String?
   /// For `notHermes`: a web page came back where JSON was expected.
   public var sawLandingPage: Bool?
+  /// For a refused request: the gateway's own code for why (`detail.code`, e.g. `unknown_voice`), when it names one.
+  public var code: String?
 
   public init(
     _ kind: GatewayErrorKind,
@@ -53,7 +55,8 @@ public struct GatewayError: Error, Sendable, Equatable {
     redirectedTo: String? = nil,
     redirectedOrigin: String? = nil,
     hint: String? = nil,
-    sawLandingPage: Bool? = nil
+    sawLandingPage: Bool? = nil,
+    code: String? = nil
   ) {
     self.kind = kind
     self.message = message
@@ -63,5 +66,6 @@ public struct GatewayError: Error, Sendable, Equatable {
     self.redirectedOrigin = redirectedOrigin
     self.hint = hint
     self.sawLandingPage = sawLandingPage
+    self.code = code
   }
 }

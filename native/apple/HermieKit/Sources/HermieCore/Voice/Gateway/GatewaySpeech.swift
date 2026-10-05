@@ -259,6 +259,16 @@ public protocol GatewaySpeechTransport: Sendable {
   func stream(text: String, profile: String?, voice: String?) -> AsyncThrowingStream<GatewayStreamEvent, any Error>
 }
 
+/// Why a sentence could not be spoken, when the gateway said why.
+public enum GatewaySpeechError: Error, Equatable, Sendable {
+  /// The gateway refused the voice the request named (`400` with `unknown_voice`, `invalid_voice`, `voice_unsupported`
+  /// or `voice_failed`): the same sentence without a voice is spoken in the profile's own.
+  case voiceRefused(code: String)
+
+  /// The codes that say the gateway will not speak in the voice that was named.
+  static let voiceRefusals: Set<String> = ["unknown_voice", "invalid_voice", "voice_unsupported", "voice_failed"]
+}
+
 /// Why a voice's sample could not be had.
 public enum GatewayPreviewError: Error, Equatable, Sendable {
   /// The gateway has no sample of this voice.

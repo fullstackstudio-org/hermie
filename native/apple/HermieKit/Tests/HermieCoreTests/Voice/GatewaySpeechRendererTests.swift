@@ -12,13 +12,14 @@ import Testing
 
   private func make(
     _ transport: FakeGatewayTransport = FakeGatewayTransport(), firstAudio: Duration = .seconds(5),
-    cooldown: Double = 30, clock: SpeechTestClock = SpeechTestClock(), available: @escaping @MainActor () -> Bool = { true }
+    cooldown: Double = 30, clock: SpeechTestClock = SpeechTestClock(), available: @escaping @MainActor () -> Bool = { true },
+    provider: String? = nil, support: GatewayStreamSupport = GatewayStreamSupport()
   ) -> (renderer: GatewaySpeechRenderer, fallback: FakeFallbackRenderer, transport: FakeGatewayTransport) {
     let fallback = FakeFallbackRenderer()
     let renderer = GatewaySpeechRenderer(
       transport: transport, profile: "researcher", fallback: fallback,
       timing: .init(firstAudio: firstAudio, cooldown: cooldown, streamBackoff: 60), clock: clock.read,
-      available: available)
+      available: available, provider: { provider }, support: support)
     return (renderer, fallback, transport)
   }
 
@@ -133,9 +134,10 @@ import Testing
 
   // MARK: The stream's error frame
 
-  private func voiced(_ voice: String?, _ text: String = "Hello there.") -> ReadRequest {
+  private func voiced(_ voice: String?, _ text: String = "Hello there.", provider: String? = nil) -> ReadRequest {
     var request = ReadRequest(id: "a#0", text: text, language: "en", source: .gateway)
     request.gatewayVoice = voice
+    request.gatewayProvider = provider
     return request
   }
 
@@ -171,30 +173,183 @@ import Testing
   }
 
   @Test(arguments: ["unknown_voice", "invalid_voice", "voice_failed"])
-  func aVoiceTheGatewayDoesNotKnowIsNotAskedForAgainThisSession(_ code: String) async {
+  func aVoiceTheStreamRefusesIsSpokenByTheGatewayWithoutAVoiceAndNotAskedForAgain(_ code: String) async {
     let transport = FakeGatewayTransport()
     transport.stream = { call in call.voice == "ghost" ? .events([.error(code: code, message: "")]) : .pcm([100]) }
     transport.speak = { _ in AudioFixtures.clip() }
-    let clock = SpeechTestClock()
-    let (renderer, fallback, _) = make(transport, cooldown: 1, clock: clock)
+    let (renderer, fallback, _) = make(transport)
+    let told = Told()
+    renderer.setFallbackHandler { told.count += 1 }
     let first = Delivered()
 
-    renderer.render(voiced("ghost"), rate: 1, voice: nil, deliver: first.deliver)
+    renderer.render(voiced("ghost"), rate: 1, voice: "apple.voice", deliver: first.deliver)
     await eventually { first.ended }
 
-    let asked = transport.calls.count
-    clock.advance(5)
-    renderer.render(voiced("ghost", "Again."), rate: 1, voice: "apple.voice", deliver: Delivered().deliver)
-    renderer.prefetch(voiced("ghost", "Later."), rate: 1, voice: nil)
+    #expect(first.buffers == [100], "the same sentence, from the gateway")
+    #expect(transport.streamCalls.map(\.voice) == ["ghost", nil], "the voice was refused; the profile's own is asked for")
+    #expect(transport.speakCalls.isEmpty)
+    #expect(fallback.renders.isEmpty, "not the device")
+    #expect(told.count == 0, "the call is not told of a switch to the gateway's other voice")
 
-    #expect(transport.calls.count == asked, "the gateway is not asked in that voice again, not even a prefetch")
-    #expect(fallback.renders.map(\.request.text) == ["Again."], "the device speaks it")
+    let second = Delivered()
+    renderer.render(voiced("ghost", "Again."), rate: 1, voice: "apple.voice", deliver: second.deliver)
+    renderer.prefetch(voiced("ghost", "Later."), rate: 1, voice: nil)
+    await eventually { second.ended }
+    await eventually { transport.streamCalls.count == 4 }
+
+    #expect(
+      transport.streamCalls.map(\.voice) == ["ghost", nil, nil, nil],
+      "the refused voice is not asked for again, not even by a prefetch: straight to no voice")
+    #expect(fallback.renders.isEmpty)
 
     let other = Delivered()
-    renderer.render(voiced("voice-adam"), rate: 1, voice: nil, deliver: other.deliver)
+    renderer.render(voiced("voice-adam", "Third."), rate: 1, voice: nil, deliver: other.deliver)
     await eventually { other.ended }
 
     #expect(transport.streamCalls.last?.voice == "voice-adam", "another voice is as good as ever")
+  }
+
+  @Test(arguments: ["unknown_voice", "invalid_voice", "voice_unsupported", "voice_failed"])
+  func aVoiceTheFileRouteRefusesIsSpokenByTheGatewayWithoutAVoice(_ code: String) async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { _ in .fail }
+    transport.speak = { call in
+      if call.voice != nil {
+        throw GatewaySpeechError.voiceRefused(code: code)
+      }
+
+      return AudioFixtures.clip(frames: 1_600)
+    }
+    let (renderer, fallback, _) = make(transport)
+    let first = Delivered()
+    let second = Delivered()
+
+    renderer.render(voiced("ghost"), rate: 1, voice: nil, deliver: first.deliver)
+    await eventually { first.ended }
+    renderer.render(voiced("ghost", "Again."), rate: 1, voice: nil, deliver: second.deliver)
+    await eventually { second.ended }
+
+    #expect(first.buffers.reduce(0, +) == 1_600)
+    #expect(second.buffers.reduce(0, +) == 1_600)
+    #expect(transport.speakCalls.map(\.voice) == ["ghost", nil, nil], "asked once with the voice, then never again")
+    #expect(fallback.renders.isEmpty)
+  }
+
+  @Test func aVoiceThatIsRefusedAndNoVoiceThatFailsTooIsSpokenByTheDevice() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { call in call.voice == "ghost" ? .events([.error(code: "unknown_voice", message: "")]) : .fail }
+    let (renderer, fallback, _) = make(transport)
+    let told = Told()
+    renderer.setFallbackHandler { told.count += 1 }
+
+    renderer.render(voiced("ghost"), rate: 1, voice: "apple.voice", deliver: Delivered().deliver)
+    await eventually { !fallback.renders.isEmpty }
+
+    #expect(transport.streamCalls.map(\.voice) == ["ghost", nil])
+    #expect(transport.speakCalls.map(\.voice) == [nil], "the file route without a voice was the last try")
+    #expect(fallback.renders == [.init(request: voiced("ghost"), voice: "apple.voice")])
+    #expect(told.count == 1, "this one the call is told of")
+  }
+
+  @Test func aVoiceTheFileRouteRefusesWhenNoVoiceIsSentIsNotRetriedAndTheDeviceSpeaks() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { _ in .fail }
+    transport.speak = { _ in throw GatewaySpeechError.voiceRefused(code: "unknown_voice") }
+    let (renderer, fallback, _) = make(transport)
+
+    renderer.render(sentence, rate: 1, voice: nil, deliver: Delivered().deliver)
+    await eventually { !fallback.renders.isEmpty }
+
+    #expect(transport.speakCalls.count == 1, "no voice was named: there is nothing to give up and ask again without")
+  }
+
+  @Test func aRefusalIsKeptForTheSessionOfTheProfileAndNotJustOneRenderer() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { call in call.voice == "ghost" ? .events([.error(code: "unknown_voice", message: "")]) : .pcm([100]) }
+    let support = GatewayStreamSupport()
+    let (first, _, _) = make(transport, support: support)
+    let (second, _, _) = make(transport, support: support)
+    let one = Delivered()
+    let two = Delivered()
+
+    first.render(voiced("ghost"), rate: 1, voice: nil, deliver: one.deliver)
+    await eventually { one.ended }
+    second.render(voiced("ghost", "Again."), rate: 1, voice: nil, deliver: two.deliver)
+    await eventually { two.ended }
+
+    #expect(transport.streamCalls.map(\.voice) == ["ghost", nil, nil], "the other renderer never asked for it")
+  }
+
+  // MARK: The voice and the profile's provider
+
+  @Test func aVoiceChosenFromAnotherProviderIsNotSentAndTheProfilesOwnVoiceSpeaks() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { _ in .pcm([100]) }
+    let (renderer, fallback, _) = make(transport, provider: "elevenlabs")
+    let delivered = Delivered()
+
+    renderer.render(voiced("nl-NL-FennaNeural", provider: "edge"), rate: 1, voice: nil, deliver: delivered.deliver)
+    await eventually { delivered.ended }
+
+    #expect(transport.streamCalls.map(\.voice) == [nil], "an Edge voice is not asked of an ElevenLabs profile")
+    #expect(transport.streamCalls.count == 1, "and nothing was refused: it was never sent")
+    #expect(fallback.renders.isEmpty)
+  }
+
+  @Test func aPrefetchOfAVoiceFromAnotherProviderIsTheOneThatIsPlayed() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { _ in .pcm([100]) }
+    let (renderer, _, _) = make(transport, provider: "elevenlabs")
+    let delivered = Delivered()
+    let request = voiced("nl-NL-FennaNeural", provider: "edge")
+
+    renderer.prefetch(request, rate: 1, voice: nil)
+    await eventually { transport.streamCalls.count == 1 }
+    renderer.render(request, rate: 1, voice: nil, deliver: delivered.deliver)
+    await eventually { delivered.ended }
+
+    #expect(transport.streamCalls.map(\.voice) == [nil], "the fetch made ahead was in the same voice, so it was used")
+  }
+
+  @Test func aVoiceChosenFromTheProvidersOwnIsSent() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { _ in .pcm([100]) }
+    let (renderer, _, _) = make(transport, provider: "ElevenLabs")
+    let delivered = Delivered()
+
+    renderer.render(voiced("voice-rachel", provider: "elevenlabs"), rate: 1, voice: nil, deliver: delivered.deliver)
+    await eventually { delivered.ended }
+
+    #expect(transport.streamCalls.map(\.voice) == ["voice-rachel"], "the same provider, however it is spelled")
+  }
+
+  @Test func aVoiceKeptWithoutItsProviderIsSentOnceAndGivenUpOnWhenRefused() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { call in call.voice == nil ? .pcm([100]) : .events([.error(code: "unknown_voice", message: "")]) }
+    let (renderer, fallback, _) = make(transport, provider: "elevenlabs")
+    let first = Delivered()
+    let second = Delivered()
+
+    renderer.render(voiced("nl-NL-FennaNeural"), rate: 1, voice: nil, deliver: first.deliver)
+    await eventually { first.ended }
+    renderer.render(voiced("nl-NL-FennaNeural", "Again."), rate: 1, voice: nil, deliver: second.deliver)
+    await eventually { second.ended }
+
+    #expect(transport.streamCalls.map(\.voice) == ["nl-NL-FennaNeural", nil, nil], "sent once, refused, then not again")
+    #expect(first.buffers == [100] && second.buffers == [100])
+    #expect(fallback.renders.isEmpty)
+  }
+
+  @Test func aVoiceIsSentWhileTheProfilesProviderIsNotKnownYet() async {
+    let transport = FakeGatewayTransport()
+    transport.stream = { _ in .pcm([100]) }
+    let (renderer, _, _) = make(transport, provider: nil)
+    let delivered = Delivered()
+
+    renderer.render(voiced("nl-NL-FennaNeural", provider: "edge"), rate: 1, voice: nil, deliver: delivered.deliver)
+    await eventually { delivered.ended }
+
+    #expect(transport.streamCalls.map(\.voice) == ["nl-NL-FennaNeural"])
   }
 
   @Test func aVoiceThatCannotBeStreamedIsSpokenFromTheFileRouteWithoutTryingTheStreamAgain() async {
