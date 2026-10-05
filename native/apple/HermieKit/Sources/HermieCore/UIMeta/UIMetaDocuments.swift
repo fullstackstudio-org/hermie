@@ -46,7 +46,7 @@ public struct UIMetaDocuments: Sendable, Hashable, Codable {
   public static let keptWhenAbsent: Set<String> = [
     UIMetaField.entries, UIMetaField.folders, UIMetaField.pinned, UIMetaField.myChats, UIMetaField.current,
     UIMetaField.labels, UIMetaField.mutes, UIMetaField.archivedBots, UIMetaField.defaults, UIMetaField.botNameOrder, UIMetaField.textSize,
-    UIMetaField.themeChoice, UIMetaField.themes
+    UIMetaField.themeChoice, UIMetaField.themes, UIMetaField.prompts
   ]
 
   /// Fields no build writes any more. The reference's projection leaves them

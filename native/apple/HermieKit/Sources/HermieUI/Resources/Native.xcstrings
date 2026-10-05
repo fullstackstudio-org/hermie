@@ -32947,6 +32947,1566 @@
           }
         }
       }
+    },
+    "native.pairing.scan" : {
+      "comment" : "Button in the setup flow that opens the QR scanner.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "QR-Code scannen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan QR code"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "QR-code scannen"
+          }
+        }
+      }
+    },
+    "native.pairing.scanFooter" : {
+      "comment" : "Under the Scan QR code button in setup.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scanne den Code, den ein anderes Gerät unter Einstellungen, Gateways, Per QR teilen anzeigt, oder wähle ein Bild davon."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan the code another device shows under Settings, Gateways, Share via QR, or choose a picture of it."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan de code die een ander apparaat toont onder Instellingen, Gateways, Delen via QR, of kies een afbeelding ervan."
+          }
+        }
+      }
+    },
+    "native.pairing.sheet.title" : {
+      "comment" : "Title of the sheet that scans a gateway's QR code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gateway scannen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan a gateway"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gateway scannen"
+          }
+        }
+      }
+    },
+    "native.pairing.sheet.intro" : {
+      "comment" : "The scanner sheet before the camera is on.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Halte den QR-Code des Gateways vor die Kamera. Die Kamera schaltet sich erst ein, wenn du auf Scannen tippst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold the gateway's QR code in front of the camera. The camera turns on when you press Scan."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Houd de QR-code van de gateway voor de camera. De camera gaat pas aan als je op Scan drukt."
+          }
+        }
+      }
+    },
+    "native.pairing.sheet.start" : {
+      "comment" : "Button that turns the camera on to scan.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scannen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan"
+          }
+        }
+      }
+    },
+    "native.pairing.sheet.aim" : {
+      "comment" : "Under the camera while it looks for a code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Richte die Kamera auf den QR-Code."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aim the camera at the QR code."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Richt de camera op de QR-code."
+          }
+        }
+      }
+    },
+    "native.pairing.sheet.camera" : {
+      "comment" : "Accessibility label of the camera view in the scanner.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kamera"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera"
+          }
+        }
+      }
+    },
+    "native.pairing.sheet.chooseImage" : {
+      "comment" : "Button that opens the photo picker to read a QR code from a picture.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bild auswählen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a picture"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kies een afbeelding"
+          }
+        }
+      }
+    },
+    "native.pairing.sheet.again" : {
+      "comment" : "Button that goes back to scanning another code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut scannen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan again"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opnieuw scannen"
+          }
+        }
+      }
+    },
+    "native.pairing.sheet.denied" : {
+      "comment" : "The camera is not allowed for Hermie.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie darf die Kamera nicht verwenden. Du kannst das in den Einstellungen erlauben oder stattdessen ein Bild des Codes auswählen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie cannot use the camera. You can allow it in Settings, or choose a picture of the code instead."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hermie mag de camera niet gebruiken. Je kunt dat toestaan in Instellingen, of kies in plaats daarvan een afbeelding van de code."
+          }
+        }
+      }
+    },
+    "native.pairing.sheet.restricted" : {
+      "comment" : "The camera is switched off by a profile or a restriction.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Kamera ist auf diesem Gerät durch ein Profil oder eine Einschränkung ausgeschaltet. Wähle stattdessen ein Bild des Codes aus."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The camera is turned off on this device by a profile or a restriction. Choose a picture of the code instead."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De camera is op dit apparaat uitgezet door een profiel of een beperking. Kies in plaats daarvan een afbeelding van de code."
+          }
+        }
+      }
+    },
+    "native.pairing.sheet.noCamera" : {
+      "comment" : "There is no usable camera.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hier konnte keine Kamera verwendet werden. Wähle stattdessen ein Bild des Codes aus."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No camera could be used here. Choose a picture of the code instead."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hier kon geen camera worden gebruikt. Kies in plaats daarvan een afbeelding van de code."
+          }
+        }
+      }
+    },
+    "native.pairing.sheet.found" : {
+      "comment" : "Announced to VoiceOver when a gateway code was read.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gateway-Code gefunden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gateway code found."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gatewaycode gevonden."
+          }
+        }
+      }
+    },
+    "native.pairing.offer.title" : {
+      "comment" : "Title of the sheet that shows a gateway offered by a code or a link.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gateway hinzufügen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add this gateway?"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateway toevoegen?"
+          }
+        }
+      }
+    },
+    "native.pairing.offer.name" : {
+      "comment" : "Row: the name of the offered gateway.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naam"
+          }
+        }
+      }
+    },
+    "native.pairing.offer.address" : {
+      "comment" : "Row: the address of the offered gateway.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adresse"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Address"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adres"
+          }
+        }
+      }
+    },
+    "native.pairing.offer.signIn" : {
+      "comment" : "Row: how the offered gateway signs people in.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anmeldung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign-in"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inloggen"
+          }
+        }
+      }
+    },
+    "native.pairing.offer.secure" : {
+      "comment" : "The offered gateway is reached over https.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verschlüsselte Verbindung (https)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encrypted connection (https)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versleutelde verbinding (https)"
+          }
+        }
+      }
+    },
+    "native.pairing.offer.local" : {
+      "comment" : "The offered gateway is reached over plain http, which is only accepted for this device or this network.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einfaches http, nur erlaubt, weil das Gateway auf diesem Gerät oder in diesem Netzwerk liegt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plain http, accepted only because the gateway is on this device or this network."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gewone http, alleen toegestaan omdat de gateway op dit apparaat of dit netwerk staat."
+          }
+        }
+      }
+    },
+    "native.pairing.offer.note" : {
+      "comment" : "Footer of an offered gateway.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Code enthält nur eine Adresse und einen Namen. Es wird nichts hinzugefügt, bevor du fortfährst, und danach meldest du dich selbst an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The code holds only an address and a name. Nothing is added until you continue, and then you sign in yourself."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De code bevat alleen een adres en een naam. Er wordt niets toegevoegd voordat je doorgaat, en daarna log je zelf in."
+          }
+        }
+      }
+    },
+    "native.pairing.offer.unverified" : {
+      "comment" : "Footer of an offered gateway: the name is not checked.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Name stammt aus dem Code und wird nicht geprüft. Fahre nur fort, wenn du weißt, woher der Code stammt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The name comes from the code and is not checked. Continue only if you know where the code came from."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De naam komt uit de code en wordt niet gecontroleerd. Ga alleen door als je weet waar de code vandaan komt."
+          }
+        }
+      }
+    },
+    "native.pairing.offer.add" : {
+      "comment" : "Button that takes an offered gateway and goes on to sign-in.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weiter"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Doorgaan"
+          }
+        }
+      }
+    },
+    "native.pairing.offer.have" : {
+      "comment" : "The offered gateway is already on this device.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du hast dieses Gateway bereits."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You already have this gateway."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je hebt deze gateway al."
+          }
+        }
+      }
+    },
+    "native.pairing.auth.nativePKCE" : {
+      "comment" : "How an offered gateway signs people in: with its own sign-in page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Single Sign-on"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Single sign-on"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Single sign-on"
+          }
+        }
+      }
+    },
+    "native.pairing.auth.sessionToken" : {
+      "comment" : "How an offered gateway signs people in: with a session token.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sitzungstoken"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Session token"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sessietoken"
+          }
+        }
+      }
+    },
+    "native.pairing.auth.cookie" : {
+      "comment" : "How an offered gateway signs people in: with a browser cookie.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browser-Cookie"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browser cookie"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browsercookie"
+          }
+        }
+      }
+    },
+    "native.pairing.problem.notAnOffer" : {
+      "comment" : "A scanned code or a picture holds no Hermie gateway code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Hermie-Gateway-Code gefunden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Hermie gateway code found."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen Hermie-gatewaycode gevonden."
+          }
+        }
+      }
+    },
+    "native.pairing.problem.notAnAddress" : {
+      "comment" : "A gateway code holds an address that cannot be used.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Code enthält eine Adresse, die Hermie nicht verwenden kann."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The code holds an address Hermie cannot use."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De code bevat een adres dat Hermie niet kan gebruiken."
+          }
+        }
+      }
+    },
+    "native.pairing.problem.notSecure" : {
+      "comment" : "A gateway code points at plain http on a host that is not this device. {host}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Code verweist auf %@ über einfaches http. Aus einem Code wird nur https akzeptiert, außer für ein Gateway auf diesem Gerät oder mit einem .local-Namen. Du kannst es weiterhin hinzufügen, indem du die Adresse eintippst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The code points to %@ over plain http. Only https is accepted from a code, except for a gateway on this device or a .local name. You can still add it by typing its address."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De code verwijst naar %@ via gewone http. Uit een code wordt alleen https geaccepteerd, behalve voor een gateway op dit apparaat of met een .local-naam. Je kunt hem nog steeds toevoegen door het adres te typen."
+          }
+        }
+      }
+    },
+    "native.pairing.share.action" : {
+      "comment" : "Action on a gateway and title of the sheet that shows its QR code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per QR teilen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share via QR"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delen via QR"
+          }
+        }
+      }
+    },
+    "native.pairing.share.blurb" : {
+      "comment" : "Footer under a gateway's QR code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Code enthält die Adresse, den Namen und die Anmeldeart des Gateways. Er enthält kein Passwort, kein Token und keinen Header: Wer ihn scannt, meldet sich weiterhin mit dem eigenen Konto an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The code holds the address, the name and how the gateway signs in. It holds no password, token or header: whoever scans it still signs in with their own account."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De code bevat het adres, de naam en hoe de gateway inlogt. Er zit geen wachtwoord, token of header in: wie hem scant, logt nog steeds in met een eigen account."
+          }
+        }
+      }
+    },
+    "native.pairing.share.label" : {
+      "comment" : "Accessibility label of the QR code. {name}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "QR-Code für %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "QR code for %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "QR-code voor %@"
+          }
+        }
+      }
+    },
+    "native.pairing.share.unavailable" : {
+      "comment" : "This gateway cannot be shown as a code. {reason}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gateway kann nicht als Code geteilt werden. %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This gateway cannot be shared as a code. %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze gateway kan niet als code worden gedeeld. %@"
+          }
+        }
+      }
+    },
+    "native.pairing.share.failed" : {
+      "comment" : "The QR code could not be drawn.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Code konnte nicht gezeichnet werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The code could not be drawn."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De code kon niet worden getekend."
+          }
+        }
+      }
+    },
+    "native.prompts.title" : {
+      "comment" : "Settings category, bot settings row and composer list: reusable prompts.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompts"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompts"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompts"
+          }
+        }
+      }
+    },
+    "native.prompts.blurb" : {
+      "comment" : "Under the Prompts category in Settings.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Texte, die du immer wieder verwendest, mit Feldern zum Ausfüllen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Texts you use again and again, with fields to fill in."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teksten die je steeds opnieuw gebruikt, met velden om in te vullen."
+          }
+        }
+      }
+    },
+    "native.prompts.global" : {
+      "comment" : "Header of the prompts that every chat offers.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für jeden Bot"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For every bot"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voor elke bot"
+          }
+        }
+      }
+    },
+    "native.prompts.forBot" : {
+      "comment" : "Header of one bot's own prompts. {bot}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voor %@"
+          }
+        }
+      }
+    },
+    "native.prompts.perBot" : {
+      "comment" : "Header of the list of bots in the Prompts settings.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro Bot"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per bot"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per bot"
+          }
+        }
+      }
+    },
+    "native.prompts.add" : {
+      "comment" : "Button that adds a prompt.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompt hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add prompt"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompt toevoegen"
+          }
+        }
+      }
+    },
+    "native.prompts.new" : {
+      "comment" : "Title of the editor for a new prompt.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neuer Prompt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New prompt"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nieuwe prompt"
+          }
+        }
+      }
+    },
+    "native.prompts.edit" : {
+      "comment" : "Title of the editor for an existing prompt, and its menu action.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompt bearbeiten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit prompt"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompt bewerken"
+          }
+        }
+      }
+    },
+    "native.prompts.fieldTitle" : {
+      "comment" : "The prompt's title field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titel"
+          }
+        }
+      }
+    },
+    "native.prompts.titlePlaceholder" : {
+      "comment" : "Placeholder of the prompt's title field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kurzer Name"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Short name"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Korte naam"
+          }
+        }
+      }
+    },
+    "native.prompts.fieldText" : {
+      "comment" : "Label of the prompt's text field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompt"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompt"
+          }
+        }
+      }
+    },
+    "native.prompts.help" : {
+      "comment" : "Footer under a prompt's text: how a field is written.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Setze {{Name}} dorthin, wo du jedes Mal etwas einträgst, zum Beispiel {{Thema}}. Derselbe Name zweimal ist ein Feld."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Put {{name}} where something is filled in each time, for example {{topic}}. The same name twice is one field."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zet {{naam}} op de plek waar je telkens iets invult, bijvoorbeeld {{onderwerp}}. Dezelfde naam twee keer is één veld."
+          }
+        }
+      }
+    },
+    "native.prompts.fields" : {
+      "comment" : "The fields a prompt's text asks for. {names}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Felder: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fields: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velden: %@"
+          }
+        }
+      }
+    },
+    "native.prompts.save" : {
+      "comment" : "Button that saves a prompt.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sichern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bewaar"
+          }
+        }
+      }
+    },
+    "native.prompts.delete" : {
+      "comment" : "Button that deletes a prompt.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Löschen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwijder"
+          }
+        }
+      }
+    },
+    "native.prompts.deleteConfirm" : {
+      "comment" : "Question before a prompt is deleted.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diesen Prompt löschen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete this prompt?"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze prompt verwijderen?"
+          }
+        }
+      }
+    },
+    "native.prompts.moveUp" : {
+      "comment" : "Menu action that moves a prompt one place up.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach oben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move up"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naar boven"
+          }
+        }
+      }
+    },
+    "native.prompts.moveDown" : {
+      "comment" : "Menu action that moves a prompt one place down.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach unten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move down"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naar beneden"
+          }
+        }
+      }
+    },
+    "native.prompts.none" : {
+      "comment" : "A list of prompts that is empty.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch keine Prompts."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No prompts yet."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nog geen prompts."
+          }
+        }
+      }
+    },
+    "native.prompts.syncNote" : {
+      "comment" : "Footer of the Prompts settings.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompts folgen dir auf deine anderen Geräte an diesem Gateway."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompts follow you to your other devices on this gateway."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompts volgen je naar je andere apparaten op deze gateway."
+          }
+        }
+      }
+    },
+    "native.prompts.notReady" : {
+      "comment" : "Footer when prompts cannot be added yet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompts können hinzugefügt werden, sobald das Gateway verbunden ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompts can be added once the gateway has connected."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompts kunnen worden toegevoegd zodra de gateway verbonden is."
+          }
+        }
+      }
+    },
+    "native.prompts.limit" : {
+      "comment" : "Footer when the limit of prompts is reached. {count}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du hast die Grenze von %lld Prompts erreicht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You have reached the limit of %lld prompts."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je hebt de grens van %lld prompts bereikt."
+          }
+        }
+      }
+    },
+    "native.prompts.alsoGlobal" : {
+      "comment" : "On a bot's prompts page: how many prompts for every bot are offered as well. {count}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hier ebenfalls angeboten: %lld für jeden Bot."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Also offered here: %lld for every bot."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ook hier beschikbaar: %lld voor elke bot."
+          }
+        }
+      }
+    },
+    "native.prompts.fill.title" : {
+      "comment" : "Title of the form that asks for a prompt's fields.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompt ausfüllen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fill in the prompt"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vul de prompt in"
+          }
+        }
+      }
+    },
+    "native.prompts.fill.insert" : {
+      "comment" : "Button that puts the filled-in prompt into the message field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einfügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Insert"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invoegen"
+          }
+        }
+      }
+    },
+    "native.prompts.fill.preview" : {
+      "comment" : "Header of the preview of the filled-in prompt.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorschau"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preview"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voorbeeld"
+          }
+        }
+      }
+    },
+    "native.prompts.composer.button" : {
+      "comment" : "The composer's prompt button, and the title of its list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompt einfügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Insert a prompt"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een prompt invoegen"
+          }
+        }
+      }
+    },
+    "native.prompts.composer.hint" : {
+      "comment" : "Accessibility hint of the prompt button.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es wird nichts gesendet: Der Text kommt in das Nachrichtenfeld."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing is sent: the text goes into the message field."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er wordt niets verstuurd: de tekst komt in het berichtveld."
+          }
+        }
+      }
+    },
+    "native.prompts.composer.section" : {
+      "comment" : "Header of the prompts section in the list the slash opens.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompts"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompts"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompts"
+          }
+        }
+      }
+    },
+    "native.prompts.composer.insertHint" : {
+      "comment" : "Accessibility hint of a prompt in the list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Setzt den Prompt in das Nachrichtenfeld."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puts the prompt in the message field."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zet de prompt in het berichtveld."
+          }
+        }
+      }
+    },
+    "native.prompts.composer.empty" : {
+      "comment" : "The prompt list when the person has none.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du hast noch keine Prompts. Füge sie unter Einstellungen, Prompts oder in den Einstellungen eines Bots hinzu."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You have no prompts yet. Add some under Settings, Prompts, or in a bot's settings."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je hebt nog geen prompts. Voeg ze toe onder Instellingen, Prompts, of in de instellingen van een bot."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

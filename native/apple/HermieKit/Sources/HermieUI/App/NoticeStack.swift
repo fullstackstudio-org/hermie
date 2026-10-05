@@ -46,6 +46,7 @@ struct NoticeStack: View {
     switch notice {
     case .gatewayNotConfigured: NativeStrings.Notice.gatewayNotConfigured
     case .noGatewayYet: NativeStrings.Notice.noGateway
+    case .pairingRefused(let problem): NativeStrings.Pairing.problem(problem)
     }
   }
 }

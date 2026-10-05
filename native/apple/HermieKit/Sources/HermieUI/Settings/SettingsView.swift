@@ -10,6 +10,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
   case passkeys
   case mcp
   case chats
+  case prompts
   case notifications
   case usage
   case memory
@@ -31,7 +32,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
     public static let groups: [[SettingsCategory]] = [
       [.general],
       [.account, .gateways, .passkeys, .mcp],
-      [.chats, .notifications, .usage, .memory],
+      [.chats, .prompts, .notifications, .usage, .memory],
       [.appearance, .privacy, .decisions, .voice],
       [.skills, .mcpServers, .connectors, .kanban],
       [.advanced, .about]
@@ -39,7 +40,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
   #else
     public static let groups: [[SettingsCategory]] = [
       [.account, .gateways, .passkeys, .mcp],
-      [.chats, .notifications, .usage, .memory],
+      [.chats, .prompts, .notifications, .usage, .memory],
       [.appearance, .privacy, .decisions, .voice],
       [.skills, .mcpServers, .connectors, .kanban],
       [.advanced, .about]
@@ -54,6 +55,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
     case .passkeys: NativeStrings.Passkeys.title
     case .mcp: NativeStrings.MCP.title
     case .chats: Strings.App.Settings.Categories.chats
+    case .prompts: NativeStrings.Prompts.title
     case .notifications: Strings.App.Settings.Categories.notifications
     case .usage: NativeStrings.Usage.title
     case .memory: Strings.App.Settings.Categories.memory
@@ -78,6 +80,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
     case .passkeys: NativeStrings.Passkeys.stateFooter
     case .mcp: NativeStrings.MCP.blurb
     case .chats: Strings.App.Settings.Categories.Blurb.chats
+    case .prompts: NativeStrings.Prompts.blurb
     case .notifications: Strings.App.Settings.Categories.Blurb.notifications
     case .usage: NativeStrings.Usage.blurb
     case .memory: Strings.App.Settings.Categories.Blurb.memory
@@ -102,6 +105,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
     case .passkeys: "person.badge.key"
     case .mcp: "puzzlepiece.extension"
     case .chats: "bubble.left.and.bubble.right"
+    case .prompts: "text.quote"
     case .notifications: "bell.badge"
     case .usage: "chart.bar.xaxis"
     case .memory: "book"
@@ -124,7 +128,7 @@ public enum SettingsCategory: String, CaseIterable, Hashable, Sendable, Identifi
  the `Settings` window with a sidebar on the Mac.
 
  Implemented: Account, Privacy (the app lock), Gateways, MCP, Chats (the defaults, the cache and the folders),
- Notifications, Usage, Decision log, Memory, Skills, MCP servers, Connectors, Boards, Appearance, Voice and About. Every category has its page.
+ Prompts, Notifications, Usage, Decision log, Memory, Skills, MCP servers, Connectors, Boards, Appearance, Voice and About. Every category has its page.
  */
 public struct SettingsView: View {
   private let onAddGateway: @MainActor () -> Void
@@ -279,6 +283,8 @@ struct SettingsPage: View {
         MCPSettingsEntry()
       case .chats:
         ChatListSettingsEntry()
+      case .prompts:
+        PromptsSettingsEntry()
       case .memory:
         MemorySettingsEntry()
       case .skills:

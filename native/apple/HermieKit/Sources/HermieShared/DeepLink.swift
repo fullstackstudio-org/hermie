@@ -5,9 +5,9 @@ import Foundation
 
  The grammar of `parseHermieLink` in `expo/hermie/src/platform/deep-link.ts`, kept exactly as
  narrow. A URL scheme is registered with the system, so any app and any web page can send one: this
- accepts `hermie://<kind>/<one segment>` and nothing else. Every link names something this app
- already made — a chat on the roster, a share or a Shortcut request this device wrote, a folder in
- the owner's list — and never carries an address, a token or content.
+ accepts `hermie://<kind>/<one segment>` and nothing else, plus the one addition below. Every link
+ names something this app already made — a chat on the roster, a share or a Shortcut request this
+ device wrote, a folder in the owner's list — and never carries a token or content.
 
  - `hermie://chat/<bot>?gateway=<key>`: the bot name is percent-decoded and refused unless it
    passes `Identifiers.isBotName` (non-empty, bounded, no slash, no control character), the same
@@ -24,6 +24,15 @@ import Foundation
    addition of the native apps, as `conversation` is.
  - `hermie://share/<id>`, `hermie://intent/<id>`, `hermie://folder/<id>`: the id is NOT decoded and
    must already be in its alphabet (`Identifiers`).
+ - `hermie://add-gateway?url=<address>&name=<name>&auth=<kind>`: the one link that carries an address,
+   the pairing offer a gateway's QR code holds (NX-14). It is an OFFER: nothing is added when it
+   arrives, the app shows what it names and asks. `url` is required, must read as an `http://` or
+   `https://` address with a host and no user name, password, query or fragment, and is at most
+   `maxAddressLength` characters; whether the scheme is acceptable for that host is the app's rule
+   (`GatewayPairingOffer`). `name` is cleaned (control characters and runs of space) and cut to
+   `maxNameLength`; `auth` is kept only when it is one of `authKinds`. Every other parameter is
+   dropped, so a link can carry no credential, token or header that survives parsing, and the link
+   this builds has none to carry.
  - `exp+hermie://` is accepted too, the scheme a development client registers.
  - A second path segment is refused for every kind; one trailing slash is tolerated.
  */
@@ -38,9 +47,21 @@ public enum DeepLink: Sendable, Hashable {
   case share(id: String)
   case intent(id: String)
   case folder(id: String)
+  /// A gateway to add, offered by its QR code. `name` and `auth` are `""` when the link named none
+  /// (or named something outside the rules above).
+  case addGateway(url: String, name: String, auth: String)
 
   public static let scheme = "hermie"
   public static let developmentScheme = "exp+hermie"
+
+  /// The kind the add-gateway link is under: `hermie://add-gateway?…`.
+  public static let addGatewayKind = "add-gateway"
+  /// The longest address and name an add-gateway link may carry.
+  public static let maxAddressLength = 2048
+  public static let maxNameLength = 64
+  /// The sign-in kinds an add-gateway link may name (`GatewayAuthKind`'s spellings). A hint for the
+  /// person to read; the gateway itself says how it signs in.
+  public static let authKinds: Set<String> = ["native_pkce", "session_token", "cookie"]
 
   /// Parse a link, or nil for anything that is not exactly one of its shapes.
   public init?(_ url: String?) {
@@ -84,7 +105,93 @@ public enum DeepLink: Sendable, Hashable {
       return Identifiers.isSafeIntentId(id) ? "\(Self.scheme)://intent/\(id)" : nil
     case let .folder(id):
       return Identifiers.isSafeFolderId(id) ? "\(Self.scheme)://folder/\(id)" : nil
+    case let .addGateway(url, name, auth):
+      guard let address = Self.acceptedAddress(url) else {
+        return nil
+      }
+
+      var link = "\(Self.scheme)://\(Self.addGatewayKind)?url=\(Self.queryEscaped(address))"
+      let cleaned = Self.cleanedName(name)
+
+      if !cleaned.isEmpty {
+        link += "&name=\(Self.queryEscaped(cleaned))"
+      }
+
+      if Self.authKinds.contains(auth) {
+        link += "&auth=\(auth)"
+      }
+
+      return link
     }
+  }
+
+  /// A query value with everything but the unreserved characters escaped, so no character of an
+  /// address or a name can be read as the link's own punctuation.
+  private static func queryEscaped(_ text: String) -> String {
+    let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+
+    return text.addingPercentEncoding(withAllowedCharacters: allowed) ?? ""
+  }
+
+  /// The address as the link may carry it, or nil: `http://` or `https://`, a host, no user name or
+  /// password, no query, no fragment, no white space or control character, and not too long.
+  public static func acceptedAddress(_ raw: String) -> String? {
+    let scalars = raw.unicodeScalars
+
+    guard !scalars.isEmpty, scalars.count <= maxAddressLength,
+      !scalars.contains(where: { $0.properties.generalCategory == .control || $0.properties.isWhitespace })
+    else {
+      return nil
+    }
+
+    let lowered = raw.lowercased()
+    let prefix: String
+
+    if lowered.hasPrefix("https://") {
+      prefix = "https://"
+    } else if lowered.hasPrefix("http://") {
+      prefix = "http://"
+    } else {
+      return nil
+    }
+
+    let rest = raw.dropFirst(prefix.count)
+
+    guard !rest.contains(where: { $0 == "?" || $0 == "#" || $0 == "\\" }) else {
+      return nil
+    }
+
+    let authority = rest.prefix { $0 != "/" }
+
+    guard !authority.isEmpty, !authority.contains("@"), authority.first != ":" else {
+      return nil
+    }
+
+    return raw
+  }
+
+  /// A name as it may be shown: control characters dropped, runs of white space made one space,
+  /// the ends trimmed, cut to `maxNameLength`.
+  public static func cleanedName(_ raw: String) -> String {
+    var cleaned = ""
+    var pendingSpace = false
+
+    for scalar in raw.unicodeScalars {
+      if scalar.properties.isWhitespace {
+        pendingSpace = !cleaned.isEmpty
+      } else if scalar.properties.generalCategory == .control || scalar.properties.generalCategory == .format {
+        continue
+      } else {
+        if pendingSpace {
+          cleaned.append(" ")
+          pendingSpace = false
+        }
+
+        cleaned.unicodeScalars.append(scalar)
+      }
+    }
+
+    return String(cleaned.prefix(maxNameLength))
   }
 
   public var url: URL? {
@@ -121,6 +228,13 @@ public enum DeepLink: Sendable, Hashable {
       rest = rest.dropFirst(plain.count)
     } else {
       return nil
+    }
+
+    // The one kind with no segment: its content is in the query.
+    let addGateway = addGatewayKind.unicodeScalars
+
+    if rest.starts(with: addGateway) {
+      return parseAddGateway(rest.dropFirst(addGateway.count))
     }
 
     guard let slash = rest.firstIndex(of: "/") else {
@@ -185,6 +299,42 @@ public enum DeepLink: Sendable, Hashable {
     default:
       return nil
     }
+  }
+
+  /// What follows `add-gateway`: `?query`, or `/?query`, then at most a fragment. Only `url`, `name`
+  /// and `auth` are read; everything else is dropped.
+  private static func parseAddGateway(_ tail: Substring.UnicodeScalarView) -> DeepLink? {
+    var rest = tail
+
+    if rest.first == "/" {
+      rest = rest.dropFirst()
+    }
+
+    guard rest.first == "?" else {
+      return nil
+    }
+
+    rest = rest.dropFirst()
+
+    let end = rest.firstIndex(of: "#") ?? rest.endIndex
+    let fragment = rest[end...]
+
+    guard !fragment.contains(where: { ["\n", "\r", "\u{2028}", "\u{2029}"].contains($0) }) else {
+      return nil
+    }
+
+    let query = String(rest[..<end])
+
+    guard let rawAddress = value("url", in: query)?.removingPercentEncoding,
+      let address = acceptedAddress(rawAddress)
+    else {
+      return nil
+    }
+
+    let name = value("name", in: query)?.removingPercentEncoding.map(cleanedName) ?? ""
+    let auth = value("auth", in: query)?.removingPercentEncoding.flatMap { authKinds.contains($0) ? $0 : nil } ?? ""
+
+    return .addGateway(url: address, name: name, auth: auth)
   }
 
   /// The `gateway` parameter, when it is a valid key. Every other parameter is ignored.

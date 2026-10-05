@@ -203,6 +203,9 @@ public struct SlashSuggestion: Sendable, Equatable, Identifiable {
     case skill
     /// A word for the argument (a model, a level, a subcommand), not a command.
     case argument
+    /// One of the person's reusable prompts (NX-13): taking it puts its text in the field, after the
+    /// form for its fields when it has any, and never runs a command.
+    case prompt
   }
 
   /// What is listed: `/model`, or `medium` for an argument.
@@ -214,11 +217,13 @@ public struct SlashSuggestion: Sendable, Equatable, Identifiable {
   public var kind: Kind
   /// The alias the reader typed when it is not the command's own name (`q` for `/queue`).
   public var alias: String?
-  /// What the field holds once this is taken.
+  /// What the field holds once this is taken (empty for a prompt, which is put in by `promptID`).
   public var insert: String
+  /// The prompt this line stands for, when it is one.
+  public var promptID: String?
 
-  /// Unique within one list: two lines never insert the same text.
-  public var id: String { insert }
+  /// Unique within one list: two lines never insert the same text, and a prompt has its own id.
+  public var id: String { promptID.map { "prompt:" + $0 } ?? insert }
 
   public init(
     label: String,
@@ -226,7 +231,8 @@ public struct SlashSuggestion: Sendable, Equatable, Identifiable {
     detail: String = "",
     kind: Kind = .command,
     alias: String? = nil,
-    insert: String
+    insert: String,
+    promptID: String? = nil
   ) {
     self.label = label
     self.hint = hint
@@ -234,6 +240,7 @@ public struct SlashSuggestion: Sendable, Equatable, Identifiable {
     self.kind = kind
     self.alias = alias
     self.insert = insert
+    self.promptID = promptID
   }
 }
 

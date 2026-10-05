@@ -88,10 +88,13 @@ extension ComposerModel {
     case .name(let query):
       setHint(nil)
 
+      // The person's own prompts follow the commands, as their own section.
+      let own = promptSuggestions(matching: query)
+
       if let catalog = commandCatalog {
-        show(catalog.suggestions(matching: query), loading: false, failure: nil)
+        show(catalog.suggestions(matching: query) + own, loading: false, failure: nil)
       } else {
-        show([], loading: true, failure: nil)
+        show(own, loading: own.isEmpty, failure: nil)
 
         // The list could not be read: the gateway's own completions are what there is.
         if catalogFailedInRun {
@@ -240,6 +243,12 @@ extension ComposerModel {
         return false
       }
 
+      // A prompt is not a line the field could already hold: Return takes it.
+      if suggestions[selectedSuggestion].kind == .prompt {
+        acceptSuggestion()
+        return true
+      }
+
       let chosen = suggestions[selectedSuggestion].insert.trimmingCharacters(in: .whitespacesAndNewlines)
 
       if chosen == draft.trimmingCharacters(in: .whitespacesAndNewlines) {
@@ -267,7 +276,13 @@ extension ComposerModel {
       return
     }
 
-    draft = suggestions[chosen].insert
+    let line = suggestions[chosen]
+
+    if let id = line.promptID {
+      usePrompt(id: id)
+    } else {
+      draft = line.insert
+    }
   }
 
   /// Close the list until the reader types again.

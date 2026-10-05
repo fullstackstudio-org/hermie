@@ -22,6 +22,9 @@ public enum UIMetaField {
   /// The person's own archive: bot names, sorted, no duplicates. Replaces the bot section's
   /// shared `archived` flag, which is only read once, to seed it.
   public static let archivedBots = "archivedBots"
+  /// The person's reusable prompts (`PromptLibrary`): an array, in their order. Native-only for now;
+  /// the web client carries it and reads nothing of it.
+  public static let prompts = "prompts"
   // App section: settings.
   public static let defaults = "defaults"
   public static let botNameOrder = "botNameOrder"

@@ -164,6 +164,13 @@ public final class ComposerModel {
       && (!suggestions.isEmpty || argumentHint != nil || suggestionsLoading || suggestionsFailure != nil)
   }
 
+  /// The person's reusable prompts (NX-13): what the prompt button lists and what `/` offers after the
+  /// commands. Nil for a composer with no session.
+  @ObservationIgnored public let prompts: PromptsModel?
+  /// A prompt with fields that was picked and waits for the person to fill them in: the chat screen
+  /// shows its form (`completePrompt`, `cancelPrompt`).
+  public internal(set) var promptToFill: Prompt?
+
   /// The gateway's command list for this chat, as last fetched (nil until the first slash).
   public var commands: SlashCatalog? { commandCatalog }
 
@@ -230,13 +237,15 @@ public final class ComposerModel {
     session: GatewaySession?,
     drafts: KeyValueStore?,
     debounce: Duration = ComposerModel.draftDebounce,
-    tray: AttachmentTray? = nil
+    tray: AttachmentTray? = nil,
+    prompts: PromptsModel? = nil
   ) {
     self.chat = chat
     self.gatewayID = gatewayID
     self.session = session
     self.drafts = drafts
     self.debounce = debounce
+    self.prompts = prompts ?? session?.prompts
     self.draft = ""
 
     if let tray {
@@ -294,7 +303,7 @@ public final class ComposerModel {
 
   /// Moves each time words are put back in the field from outside (`editAndResend`): the field takes focus,
   /// so the reader can change them and send.
-  public private(set) var focusRequests = 0
+  public internal(set) var focusRequests = 0
 
   /// Put the caret in the field, as words put back from outside do, without changing anything in it.
   /// The quick ask asks for it each time its window opens.
@@ -354,7 +363,7 @@ public final class ComposerModel {
   /// Messages parked behind the running turn, oldest first.
   public var queue: [QueuedMessage] { chat.queue }
 
-  private var trimmedDraft: String { draft.trimmingCharacters(in: .whitespacesAndNewlines) }
+  var trimmedDraft: String { draft.trimmingCharacters(in: .whitespacesAndNewlines) }
 
   // MARK: - The draft
 

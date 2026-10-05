@@ -1796,6 +1796,74 @@
 	<string>Optional. Ohne Namen heißt der Chat nach dem Zeitpunkt, an dem er begann.</string>
 	<key>native.ownChats.start</key>
 	<string>Chat starten</string>
+	<key>native.pairing.auth.cookie</key>
+	<string>Browser-Cookie</string>
+	<key>native.pairing.auth.nativePKCE</key>
+	<string>Single Sign-on</string>
+	<key>native.pairing.auth.sessionToken</key>
+	<string>Sitzungstoken</string>
+	<key>native.pairing.offer.add</key>
+	<string>Weiter</string>
+	<key>native.pairing.offer.address</key>
+	<string>Adresse</string>
+	<key>native.pairing.offer.have</key>
+	<string>Du hast dieses Gateway bereits.</string>
+	<key>native.pairing.offer.local</key>
+	<string>Einfaches http, nur erlaubt, weil das Gateway auf diesem Gerät oder in diesem Netzwerk liegt.</string>
+	<key>native.pairing.offer.name</key>
+	<string>Name</string>
+	<key>native.pairing.offer.note</key>
+	<string>Der Code enthält nur eine Adresse und einen Namen. Es wird nichts hinzugefügt, bevor du fortfährst, und danach meldest du dich selbst an.</string>
+	<key>native.pairing.offer.secure</key>
+	<string>Verschlüsselte Verbindung (https)</string>
+	<key>native.pairing.offer.signIn</key>
+	<string>Anmeldung</string>
+	<key>native.pairing.offer.title</key>
+	<string>Dieses Gateway hinzufügen?</string>
+	<key>native.pairing.offer.unverified</key>
+	<string>Der Name stammt aus dem Code und wird nicht geprüft. Fahre nur fort, wenn du weißt, woher der Code stammt.</string>
+	<key>native.pairing.problem.notAnAddress</key>
+	<string>Der Code enthält eine Adresse, die Hermie nicht verwenden kann.</string>
+	<key>native.pairing.problem.notAnOffer</key>
+	<string>Kein Hermie-Gateway-Code gefunden.</string>
+	<key>native.pairing.problem.notSecure</key>
+	<string>Der Code verweist auf %@ über einfaches http. Aus einem Code wird nur https akzeptiert, außer für ein Gateway auf diesem Gerät oder mit einem .local-Namen. Du kannst es weiterhin hinzufügen, indem du die Adresse eintippst.</string>
+	<key>native.pairing.scan</key>
+	<string>QR-Code scannen</string>
+	<key>native.pairing.scanFooter</key>
+	<string>Scanne den Code, den ein anderes Gerät unter Einstellungen, Gateways, Per QR teilen anzeigt, oder wähle ein Bild davon.</string>
+	<key>native.pairing.share.action</key>
+	<string>Per QR teilen</string>
+	<key>native.pairing.share.blurb</key>
+	<string>Der Code enthält die Adresse, den Namen und die Anmeldeart des Gateways. Er enthält kein Passwort, kein Token und keinen Header: Wer ihn scannt, meldet sich weiterhin mit dem eigenen Konto an.</string>
+	<key>native.pairing.share.failed</key>
+	<string>Der Code konnte nicht gezeichnet werden.</string>
+	<key>native.pairing.share.label</key>
+	<string>QR-Code für %@</string>
+	<key>native.pairing.share.unavailable</key>
+	<string>Dieses Gateway kann nicht als Code geteilt werden. %@</string>
+	<key>native.pairing.sheet.again</key>
+	<string>Erneut scannen</string>
+	<key>native.pairing.sheet.aim</key>
+	<string>Richte die Kamera auf den QR-Code.</string>
+	<key>native.pairing.sheet.camera</key>
+	<string>Kamera</string>
+	<key>native.pairing.sheet.chooseImage</key>
+	<string>Bild auswählen</string>
+	<key>native.pairing.sheet.denied</key>
+	<string>Hermie darf die Kamera nicht verwenden. Du kannst das in den Einstellungen erlauben oder stattdessen ein Bild des Codes auswählen.</string>
+	<key>native.pairing.sheet.found</key>
+	<string>Gateway-Code gefunden.</string>
+	<key>native.pairing.sheet.intro</key>
+	<string>Halte den QR-Code des Gateways vor die Kamera. Die Kamera schaltet sich erst ein, wenn du auf Scannen tippst.</string>
+	<key>native.pairing.sheet.noCamera</key>
+	<string>Hier konnte keine Kamera verwendet werden. Wähle stattdessen ein Bild des Codes aus.</string>
+	<key>native.pairing.sheet.restricted</key>
+	<string>Die Kamera ist auf diesem Gerät durch ein Profil oder eine Einschränkung ausgeschaltet. Wähle stattdessen ein Bild des Codes aus.</string>
+	<key>native.pairing.sheet.start</key>
+	<string>Scannen</string>
+	<key>native.pairing.sheet.title</key>
+	<string>Gateway scannen</string>
 	<key>native.passkeys.add.action</key>
 	<string>Mit Code hinzufügen</string>
 	<key>native.passkeys.add.field</key>
@@ -1978,6 +2046,68 @@
 	<string>Passkeys auf %@</string>
 	<key>native.passkeys.title</key>
 	<string>Passkeys</string>
+	<key>native.prompts.add</key>
+	<string>Prompt hinzufügen</string>
+	<key>native.prompts.alsoGlobal</key>
+	<string>Hier ebenfalls angeboten: %lld für jeden Bot.</string>
+	<key>native.prompts.blurb</key>
+	<string>Texte, die du immer wieder verwendest, mit Feldern zum Ausfüllen.</string>
+	<key>native.prompts.composer.button</key>
+	<string>Prompt einfügen</string>
+	<key>native.prompts.composer.empty</key>
+	<string>Du hast noch keine Prompts. Füge sie unter Einstellungen, Prompts oder in den Einstellungen eines Bots hinzu.</string>
+	<key>native.prompts.composer.hint</key>
+	<string>Es wird nichts gesendet: Der Text kommt in das Nachrichtenfeld.</string>
+	<key>native.prompts.composer.insertHint</key>
+	<string>Setzt den Prompt in das Nachrichtenfeld.</string>
+	<key>native.prompts.composer.section</key>
+	<string>Prompts</string>
+	<key>native.prompts.delete</key>
+	<string>Löschen</string>
+	<key>native.prompts.deleteConfirm</key>
+	<string>Diesen Prompt löschen?</string>
+	<key>native.prompts.edit</key>
+	<string>Prompt bearbeiten</string>
+	<key>native.prompts.fieldText</key>
+	<string>Prompt</string>
+	<key>native.prompts.fieldTitle</key>
+	<string>Titel</string>
+	<key>native.prompts.fields</key>
+	<string>Felder: %@</string>
+	<key>native.prompts.fill.insert</key>
+	<string>Einfügen</string>
+	<key>native.prompts.fill.preview</key>
+	<string>Vorschau</string>
+	<key>native.prompts.fill.title</key>
+	<string>Prompt ausfüllen</string>
+	<key>native.prompts.forBot</key>
+	<string>Für %@</string>
+	<key>native.prompts.global</key>
+	<string>Für jeden Bot</string>
+	<key>native.prompts.help</key>
+	<string>Setze {{Name}} dorthin, wo du jedes Mal etwas einträgst, zum Beispiel {{Thema}}. Derselbe Name zweimal ist ein Feld.</string>
+	<key>native.prompts.limit</key>
+	<string>Du hast die Grenze von %lld Prompts erreicht.</string>
+	<key>native.prompts.moveDown</key>
+	<string>Nach unten</string>
+	<key>native.prompts.moveUp</key>
+	<string>Nach oben</string>
+	<key>native.prompts.new</key>
+	<string>Neuer Prompt</string>
+	<key>native.prompts.none</key>
+	<string>Noch keine Prompts.</string>
+	<key>native.prompts.notReady</key>
+	<string>Prompts können hinzugefügt werden, sobald das Gateway verbunden ist.</string>
+	<key>native.prompts.perBot</key>
+	<string>Pro Bot</string>
+	<key>native.prompts.save</key>
+	<string>Sichern</string>
+	<key>native.prompts.syncNote</key>
+	<string>Prompts folgen dir auf deine anderen Geräte an diesem Gateway.</string>
+	<key>native.prompts.title</key>
+	<string>Prompts</string>
+	<key>native.prompts.titlePlaceholder</key>
+	<string>Kurzer Name</string>
 	<key>native.push.cannotDeliverPlugin</key>
 	<string>Dieses Gateway kann noch nicht an dieses Gerät zustellen: Das Hermie-Plugin ist zu alt. Aktualisiere das Plugin auf dem Gateway.</string>
 	<key>native.push.cannotDeliverRelay</key>

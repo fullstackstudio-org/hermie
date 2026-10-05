@@ -57,6 +57,11 @@ public struct OnboardingFlow: View {
     }
     .interactiveDismissDisabled()
     .task {
+      // A gateway the person already agreed to (a scanned code, a link): filled in once, and sign-in follows.
+      if let offer = context.pairing {
+        session.model.applyPairing(offer)
+      }
+
       // Before the first step shows: what iCloud Keychain holds that is not here (I11).
       launch.iCloudSync.lookInICloud()
       await session.model.opened()

@@ -22,13 +22,17 @@ public final class GatewayDirectory {
     /// `GatewayKey.of(address)`: what a `hermie://chat/…?gateway=` link names it by. May be `""`.
     public let key: String
     public let signedInUser: String?
+    /// How the gateway signs people in, in the registry's spelling (`native_pkce`, `session_token`,
+    /// `cookie`); nil when not known. What a QR code for the gateway names, as a hint.
+    public let authKind: String?
 
-    public init(id: String, name: String, address: String, key: String, signedInUser: String?) {
+    public init(id: String, name: String, address: String, key: String, signedInUser: String?, authKind: String? = nil) {
       self.id = id
       self.name = name
       self.address = address
       self.key = key
       self.signedInUser = signedInUser
+      self.authKind = authKind
     }
 
     /// The host (or the address, when it has none): what a gateway goes by until it is named.
@@ -53,7 +57,8 @@ public final class GatewayDirectory {
         name: record.label,
         address: record.address,
         key: GatewayKey.of(record.address),
-        signedInUser: record.signedInUser
+        signedInUser: record.signedInUser,
+        authKind: record.authKind.rawValue
       )
     }
   }

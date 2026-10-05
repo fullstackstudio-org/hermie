@@ -1,4 +1,5 @@
 import Foundation
+import HermieCore
 
 /// One canonical chat: a bot on a gateway. The value an extra chat window is opened for.
 public struct ChatRef: Codable, Hashable, Sendable {
@@ -121,6 +122,9 @@ public enum AppSheet: Hashable, Sendable, Identifiable {
   /// What each bot is doing now: idle, running or waiting, its sub-agents and the crons that run next
   /// (`AgentsSheet`).
   case agents
+  /// A gateway somebody offered (a scanned QR code, a `hermie://add-gateway` link): what it names,
+  /// and the person's yes or no, before anything is set up (`PairingConfirmSheet`).
+  case pairing(GatewayPairingOffer)
 
   public var id: Self { self }
 }
@@ -131,6 +135,9 @@ public enum RouterNotice: Hashable, Sendable {
   case gatewayNotConfigured
   /// A chat link arrived with no gateway configured at all.
   case noGatewayYet
+  /// An add-gateway link arrived that cannot be taken: not an address, or plain http to a host that is
+  /// not this machine. Nothing was opened.
+  case pairingRefused(GatewayPairingOffer.Problem)
 }
 
 /// Work a router transition asks its owner to carry out. The router itself touches no store.

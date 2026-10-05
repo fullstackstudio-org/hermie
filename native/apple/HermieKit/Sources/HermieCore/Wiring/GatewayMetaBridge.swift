@@ -19,7 +19,7 @@ import HermieStore
    before the session ends on a sign-out (`withdrawRow`), while the credentials still work.
 
  The chat list's archive, pins and mutes are read and written through this sync by the session's
- `ChatArrangementModel`, attached on `start()`. What the gateway's copy carries that this build does
+ `ChatArrangementModel`, and the person's reusable prompts by its `PromptsModel`, both attached on `start()`. What the gateway's copy carries that this build does
  not draw (another device's rows, the folders and order, the plugin advert) is carried as it came;
  nothing taken in from the gateway is ever treated as this person's own choice or row.
  */
@@ -88,6 +88,7 @@ public final class GatewayMetaBridge {
     }
 
     session.arrangement.attach(sync)
+    session.prompts.attach(sync)
     followSettings(session)
 
     session.onSessionsChanged = { [weak self] in
@@ -115,6 +116,7 @@ public final class GatewayMetaBridge {
     following = nil
     writer.stop()
     session?.arrangement.detach(sync)
+    session?.prompts.detach(sync)
 
     for task in settingsTasks {
       task.cancel()

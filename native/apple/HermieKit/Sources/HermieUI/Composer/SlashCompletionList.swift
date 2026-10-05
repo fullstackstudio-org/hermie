@@ -54,6 +54,18 @@ struct SlashCompletionList: View {
       ScrollView {
         VStack(alignment: .leading, spacing: 0) {
           ForEach(Array(model.suggestions.enumerated()), id: \.element.id) { index, item in
+            // The person's own prompts come after the commands, under a heading of their own.
+            if item.kind == .prompt, index == model.suggestions.firstIndex(where: { $0.kind == .prompt }) {
+              Text(NativeStrings.Prompts.Composer.section)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 14)
+                .padding(.top, index == 0 ? 4 : 8)
+                .padding(.bottom, 2)
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("composer.commands.promptsHeader")
+            }
+
             row(item, index: index)
           }
         }
@@ -122,7 +134,8 @@ struct SlashCompletionList: View {
     .padding(.horizontal, 4)
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(Self.spoken(item))
-    .accessibilityHint(NativeStrings.Composer.Commands.insertHint)
+    .accessibilityHint(
+      item.kind == .prompt ? NativeStrings.Prompts.Composer.insertHint : NativeStrings.Composer.Commands.insertHint)
     .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
     .accessibilityIdentifier("composer.command.\(index)")
   }

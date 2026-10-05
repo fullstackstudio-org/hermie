@@ -51,6 +51,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with its title, legend and unit, VoiceOver reading its numbers, and the data a tap away. A block that is
   not exactly the documented format, or too big, stays the code block it is, and so does it everywhere
   else.
+
+- **The native Apple apps pair a gateway by QR code.** Settings, Gateways, Share via QR shows a gateway as a
+  code, and Add gateway, Scan QR code reads one with the camera or from a picture, on the iPhone, the iPad and
+  the Mac: the address and name are filled in and setup goes straight to sign-in. The code holds the address,
+  the name and how the gateway signs in, never a password, a token or a header, and a link that arrives from
+  somewhere else (`hermie://add-gateway`) only shows what it names and asks. An address from a code must be
+  https, or http for this device or a `.local` name.
+- **The native Apple apps have reusable prompts.** Settings, Prompts and each bot's settings keep snippets with
+  `{{fields}}` to fill in; a button next to the message field and the list `/` opens offer them, ask for the
+  fields, and put the text in the field without sending it. They follow you to your other devices on the
+  gateway through the same synced settings as the chat list, which other builds carry and ignore.
+
 - **The native Apple apps search every conversation of every bot, on every gateway you are signed in
   to.** Search Everywhere (⇧⌘F, or the row under the chat list's search) lists each chat that holds the
   words, not only the best one per bot: the Bot Chat, its branches, earlier conversations and your own

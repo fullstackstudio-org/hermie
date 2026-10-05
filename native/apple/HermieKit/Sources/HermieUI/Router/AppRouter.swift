@@ -54,6 +54,9 @@ public final class AppRouter {
   public private(set) var composeRequest: ComposeRequest?
   /// The words the next search sheet starts with (the chat list's field, handed on).
   public var searchSeed = ""
+  /// The gateway the person agreed to add (`confirmPairing`): the setup that opens next fills it in and
+  /// goes straight to sign-in. Cleared when that setup ends.
+  public private(set) var pairingOffer: GatewayPairingOffer?
   private var lastFindID = 0
 
   /// Links waiting for the gateway list.
@@ -477,6 +480,17 @@ public final class AppRouter {
     case let .intent(id):
       pendingIntents.append(id)
       return []
+
+    case .addGateway:
+      // An offer, never an add: what it names is shown, and the person decides.
+      switch GatewayPairingOffer.offer(from: link) {
+      case .success(let offer):
+        presentPairing(offer)
+      case .failure(let problem):
+        notice = .pairingRefused(problem)
+      }
+
+      return []
     }
   }
 
@@ -548,6 +562,25 @@ public final class AppRouter {
     }
 
     return .chat(bot: chat.bot, gatewayKey: entry.key)
+  }
+
+  // MARK: Pairing
+
+  /// Show an offered gateway for the person to take or leave. A setup already in progress is not lost
+  /// by it: that flow lives outside its sheet (`SetupSessions`).
+  public func presentPairing(_ offer: GatewayPairingOffer) {
+    sheet = .pairing(offer)
+  }
+
+  /// The person took the offer: setup opens for a new gateway, fills it in and goes on to sign-in.
+  public func confirmPairing(_ offer: GatewayPairingOffer) {
+    pairingOffer = offer
+    sheet = .onboarding((gateways?.isEmpty ?? true) ? .firstGateway : .additionalGateway)
+  }
+
+  /// Setup ended: the offer it took is spent.
+  public func clearPairing() {
+    pairingOffer = nil
   }
 
   // MARK: Restoration

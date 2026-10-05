@@ -163,6 +163,10 @@ public final class OnboardingModel {
 
   public private(set) var probe: ProbeState = .idle
 
+  /// The offer this setup took (a QR code or a link), if any: its name is filled in and sign-in follows
+  /// the probe (`applyPairing`).
+  public private(set) var pairedOffer: GatewayPairingOffer?
+
   // MARK: Sign-in
 
   /// The provider picked from the list; nil picks the only one there is.
@@ -216,6 +220,8 @@ public final class OnboardingModel {
   @ObservationIgnored private var probeTicket = 0
   @ObservationIgnored private var signInTicket = 0
   @ObservationIgnored private var nextHeaderID = 0
+  /// A taken offer waits for the probe to find the gateway, then goes on to sign-in.
+  @ObservationIgnored private var advanceWhenFound = false
   /// Set once the flow ended: the fields are being wiped and must not start anything.
   @ObservationIgnored private var closed = false
 
@@ -401,6 +407,50 @@ public final class OnboardingModel {
     headers.removeAll { $0.id == id }
   }
 
+  /**
+   Take a gateway that was offered (a QR code, a link) as the address to set up, and go straight on
+   to sign-in once the probe has found it: the person already saw what it names and said yes.
+
+   The address goes in as typed text, so it is probed like any other, with nothing assumed about it;
+   a probe that fails leaves the person on the address step with the reason, and an address that needs
+   a confirmation (it cannot be plain http on a public host, but the same rules are kept) stops the
+   advance. Only a new gateway's setup takes an offer, and the same offer is taken once.
+   */
+  public func applyPairing(_ offer: GatewayPairingOffer) {
+    guard case .newGateway = mode, !closed, pairedOffer != offer else {
+      return
+    }
+
+    pairedOffer = offer
+    advanceWhenFound = true
+    name = offer.name
+
+    if address == offer.address {
+      // Nothing was edited, so no probe starts of its own: what is known already may be enough.
+      advanceIfFound()
+    } else {
+      address = offer.address
+    }
+  }
+
+  /// Sign-in follows the address when an offer was taken and the probe has found the gateway; the
+  /// wish is spent either way, so a later failure or edit never moves the person on by surprise.
+  private func advanceIfFound() {
+    guard advanceWhenFound else {
+      return
+    }
+
+    switch probe {
+    case .found:
+      advanceWhenFound = false
+      continueFromAddress()
+    case .failed:
+      advanceWhenFound = false
+    case .idle, .checking:
+      break
+    }
+  }
+
   /// Leave the address step.
   public func continueFromAddress() {
     guard canLeaveAddress else {
@@ -421,6 +471,12 @@ public final class OnboardingModel {
     }
 
     confirmedCleartextFor = nil
+
+    // Typing something else than the offered address takes the offer's hurry away.
+    if address != pairedOffer?.address {
+      advanceWhenFound = false
+    }
+
     scheduleProbe(debounce: true)
   }
 
@@ -496,6 +552,8 @@ public final class OnboardingModel {
     if baseURL != before {
       resetSignIn()
     }
+
+    advanceIfFound()
   }
 
   static func failure(_ error: any Error, raw: String, normalized: String) -> ProbeFailure {

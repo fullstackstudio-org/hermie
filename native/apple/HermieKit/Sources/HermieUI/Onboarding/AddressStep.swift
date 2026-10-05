@@ -14,11 +14,23 @@ struct AddressStep: View {
   var fromICloud: (([ICloudSyncModel.AddResult]) -> Void)?
 
   @FocusState private var addressFocused: Bool
+  /// The QR scanner's sheet.
+  @State private var scanning = false
 
   var body: some View {
     Form {
       if let fromICloud {
         ICloudSetupSection(use: fromICloud)
+      }
+
+      // A gateway somebody shows as a code: the address and name come from it, and sign-in follows.
+      Section {
+        Button(NativeStrings.Pairing.scan, systemImage: "qrcode.viewfinder") {
+          scanning = true
+        }
+        .accessibilityIdentifier("hermie.onboarding.scanQR")
+      } footer: {
+        SettingsNote(NativeStrings.Pairing.scanFooter)
       }
 
       Section {
@@ -78,6 +90,14 @@ struct AddressStep: View {
     .scrollDismissesKeyboard(.immediately)
     .navigationTitle(Strings.App.Onboarding.Address.title)
     .toolbar { StepToolbar(cancel: cancel) }
+    .sheet(isPresented: $scanning) {
+      ScanGatewaySheet(
+        use: { offer in
+          scanning = false
+          model.applyPairing(offer)
+        },
+        cancel: { scanning = false })
+    }
     #if os(macOS)
       // On the Mac the field is where typing goes; on a phone the keyboard waits for a tap.
       .onAppear { addressFocused = model.address.isEmpty }

@@ -1796,6 +1796,74 @@
 	<string>Optional. Without a name the chat is called after the time it was started.</string>
 	<key>native.ownChats.start</key>
 	<string>Start chat</string>
+	<key>native.pairing.auth.cookie</key>
+	<string>Browser cookie</string>
+	<key>native.pairing.auth.nativePKCE</key>
+	<string>Single sign-on</string>
+	<key>native.pairing.auth.sessionToken</key>
+	<string>Session token</string>
+	<key>native.pairing.offer.add</key>
+	<string>Continue</string>
+	<key>native.pairing.offer.address</key>
+	<string>Address</string>
+	<key>native.pairing.offer.have</key>
+	<string>You already have this gateway.</string>
+	<key>native.pairing.offer.local</key>
+	<string>Plain http, accepted only because the gateway is on this device or this network.</string>
+	<key>native.pairing.offer.name</key>
+	<string>Name</string>
+	<key>native.pairing.offer.note</key>
+	<string>The code holds only an address and a name. Nothing is added until you continue, and then you sign in yourself.</string>
+	<key>native.pairing.offer.secure</key>
+	<string>Encrypted connection (https)</string>
+	<key>native.pairing.offer.signIn</key>
+	<string>Sign-in</string>
+	<key>native.pairing.offer.title</key>
+	<string>Add this gateway?</string>
+	<key>native.pairing.offer.unverified</key>
+	<string>The name comes from the code and is not checked. Continue only if you know where the code came from.</string>
+	<key>native.pairing.problem.notAnAddress</key>
+	<string>The code holds an address Hermie cannot use.</string>
+	<key>native.pairing.problem.notAnOffer</key>
+	<string>No Hermie gateway code found.</string>
+	<key>native.pairing.problem.notSecure</key>
+	<string>The code points to %@ over plain http. Only https is accepted from a code, except for a gateway on this device or a .local name. You can still add it by typing its address.</string>
+	<key>native.pairing.scan</key>
+	<string>Scan QR code</string>
+	<key>native.pairing.scanFooter</key>
+	<string>Scan the code another device shows under Settings, Gateways, Share via QR, or choose a picture of it.</string>
+	<key>native.pairing.share.action</key>
+	<string>Share via QR</string>
+	<key>native.pairing.share.blurb</key>
+	<string>The code holds the address, the name and how the gateway signs in. It holds no password, token or header: whoever scans it still signs in with their own account.</string>
+	<key>native.pairing.share.failed</key>
+	<string>The code could not be drawn.</string>
+	<key>native.pairing.share.label</key>
+	<string>QR code for %@</string>
+	<key>native.pairing.share.unavailable</key>
+	<string>This gateway cannot be shared as a code. %@</string>
+	<key>native.pairing.sheet.again</key>
+	<string>Scan again</string>
+	<key>native.pairing.sheet.aim</key>
+	<string>Aim the camera at the QR code.</string>
+	<key>native.pairing.sheet.camera</key>
+	<string>Camera</string>
+	<key>native.pairing.sheet.chooseImage</key>
+	<string>Choose a picture</string>
+	<key>native.pairing.sheet.denied</key>
+	<string>Hermie cannot use the camera. You can allow it in Settings, or choose a picture of the code instead.</string>
+	<key>native.pairing.sheet.found</key>
+	<string>Gateway code found.</string>
+	<key>native.pairing.sheet.intro</key>
+	<string>Hold the gateway's QR code in front of the camera. The camera turns on when you press Scan.</string>
+	<key>native.pairing.sheet.noCamera</key>
+	<string>No camera could be used here. Choose a picture of the code instead.</string>
+	<key>native.pairing.sheet.restricted</key>
+	<string>The camera is turned off on this device by a profile or a restriction. Choose a picture of the code instead.</string>
+	<key>native.pairing.sheet.start</key>
+	<string>Scan</string>
+	<key>native.pairing.sheet.title</key>
+	<string>Scan a gateway</string>
 	<key>native.passkeys.add.action</key>
 	<string>Add with a code</string>
 	<key>native.passkeys.add.field</key>
@@ -1978,6 +2046,68 @@
 	<string>Passkeys on %@</string>
 	<key>native.passkeys.title</key>
 	<string>Passkeys</string>
+	<key>native.prompts.add</key>
+	<string>Add prompt</string>
+	<key>native.prompts.alsoGlobal</key>
+	<string>Also offered here: %lld for every bot.</string>
+	<key>native.prompts.blurb</key>
+	<string>Texts you use again and again, with fields to fill in.</string>
+	<key>native.prompts.composer.button</key>
+	<string>Insert a prompt</string>
+	<key>native.prompts.composer.empty</key>
+	<string>You have no prompts yet. Add some under Settings, Prompts, or in a bot's settings.</string>
+	<key>native.prompts.composer.hint</key>
+	<string>Nothing is sent: the text goes into the message field.</string>
+	<key>native.prompts.composer.insertHint</key>
+	<string>Puts the prompt in the message field.</string>
+	<key>native.prompts.composer.section</key>
+	<string>Prompts</string>
+	<key>native.prompts.delete</key>
+	<string>Delete</string>
+	<key>native.prompts.deleteConfirm</key>
+	<string>Delete this prompt?</string>
+	<key>native.prompts.edit</key>
+	<string>Edit prompt</string>
+	<key>native.prompts.fieldText</key>
+	<string>Prompt</string>
+	<key>native.prompts.fieldTitle</key>
+	<string>Title</string>
+	<key>native.prompts.fields</key>
+	<string>Fields: %@</string>
+	<key>native.prompts.fill.insert</key>
+	<string>Insert</string>
+	<key>native.prompts.fill.preview</key>
+	<string>Preview</string>
+	<key>native.prompts.fill.title</key>
+	<string>Fill in the prompt</string>
+	<key>native.prompts.forBot</key>
+	<string>For %@</string>
+	<key>native.prompts.global</key>
+	<string>For every bot</string>
+	<key>native.prompts.help</key>
+	<string>Put {{name}} where something is filled in each time, for example {{topic}}. The same name twice is one field.</string>
+	<key>native.prompts.limit</key>
+	<string>You have reached the limit of %lld prompts.</string>
+	<key>native.prompts.moveDown</key>
+	<string>Move down</string>
+	<key>native.prompts.moveUp</key>
+	<string>Move up</string>
+	<key>native.prompts.new</key>
+	<string>New prompt</string>
+	<key>native.prompts.none</key>
+	<string>No prompts yet.</string>
+	<key>native.prompts.notReady</key>
+	<string>Prompts can be added once the gateway has connected.</string>
+	<key>native.prompts.perBot</key>
+	<string>Per bot</string>
+	<key>native.prompts.save</key>
+	<string>Save</string>
+	<key>native.prompts.syncNote</key>
+	<string>Prompts follow you to your other devices on this gateway.</string>
+	<key>native.prompts.title</key>
+	<string>Prompts</string>
+	<key>native.prompts.titlePlaceholder</key>
+	<string>Short name</string>
 	<key>native.push.cannotDeliverPlugin</key>
 	<string>This gateway cannot deliver to this device yet: its Hermie plugin is too old. Update the plugin on the gateway.</string>
 	<key>native.push.cannotDeliverRelay</key>

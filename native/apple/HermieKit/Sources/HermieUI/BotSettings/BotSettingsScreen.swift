@@ -90,6 +90,7 @@ struct BotSettingsContent: View {
       BotUsageSection(chat: chat, session: session)
       BotVaultSection(chat: chat, session: session)
       BotDecisionLogSection(chat: chat, session: session)
+      BotPromptsSection(chat: chat, session: session)
       BotChatViewSection(chat: session.chat(chat.bot))
       BotVoiceSection(chat: chat, session: session)
       BotChatListSection(chat: chat, session: session, editable: metaEditable)

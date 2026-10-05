@@ -74,6 +74,8 @@ public final class GatewaySession {
   /// The chat list's archive, pins and mutes, read from and written through this session's ui_meta
   /// sync once `GatewayMetaBridge` attaches it.
   public let arrangement = ChatArrangementModel()
+  /// The person's reusable prompts (NX-13), read from and written through the same sync.
+  public let prompts = PromptsModel()
   /// The one-string prompts (`secret`, `sudo`, `vault.*`): a consumer of the
   /// server requests of its own, so a typed secret never reaches the store.
   @ObservationIgnored public let secureInput: SecureInputCenter

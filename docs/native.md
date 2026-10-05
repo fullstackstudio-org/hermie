@@ -2945,6 +2945,84 @@ what a bot's prompt can say about it.
   the decision, the words) and `HermieChartRenderingTests` (laid out in a narrow column at the largest text size, the
   most marks allowed, a valid and an invalid block through `MarkdownView`).
 
+## QR pairing
+
+**Settings, Gateways, Share via QR** (`ShareGatewayQRSheet`) shows a gateway as a QR code, and **Add gateway, Scan QR code**
+(`ScanGatewaySheet`, in the address step of setup) reads one, from the camera or from a picture (`HermieUI/Pairing`; the model
+and the rules in `HermieCore/Pairing`). It is how a colleague, or this person's other device, gets a gateway without typing its
+address.
+
+- **What a code holds.** One link, `hermie://add-gateway?url=<address>&name=<name>&auth=<kind>` (`DeepLink.addGateway`,
+  `GatewayPairingOffer`): the address, the name the person gave the gateway (none when it goes by its host) and how it signs in
+  (`native_pkce`, `session_token`, `cookie`). Nothing else: the type has no field for a password, a token, a header or the front
+  door's keys, so there is nothing to leave out by mistake, and the tests assert that the link's parameters are exactly those
+  three. Whoever scans it still signs in with their own account.
+- **A code is an offer, never an add.** `DeepLink` is the one parser: `url` must be an `http(s)` address with a host and no user
+  name, password, query, fragment or white space (at most 2048 characters); `name` is cleaned (control and format characters
+  such as a right-to-left override are dropped, white space is one space, 64 characters); `auth` is kept only when it is one of
+  the three; every other parameter is dropped, the first of a repeated one wins, and a malformed link is no link. The offer is
+  then shown (name, address, the sign-in hint, whether the connection is encrypted, and that the name is the code's word and
+  not checked) and taken only when the person presses Continue. A gateway the device already has cannot be added again.
+- **The address rule is stricter than the keyboard's.** Typed, an address may be plain http and is then described and, on a
+  public host, confirmed (ADR-0014). From a code only `https://` is accepted, or `http://` for a gateway on this machine
+  (`localhost`, `127.0.0.0/8`, `::1`) or a `.local` name, judged on the normal form of the address (`0x7f.1` is loopback, a
+  `.local` that is only a prefix of another name is not). Anything else is refused with the host named, not softened; the
+  gateway can still be added by typing it. The same rule applies when sharing: a gateway on plain http over a public
+  address says it cannot be shared as a code.
+- **After taking one** (`OnboardingModel.applyPairing`). The address and the name are filled into setup, the address is
+  probed like any typed one (a gateway that does not answer leaves the person on the address step with the reason), and
+  sign-in follows by itself once the probe has found it; typing another address takes the hurry away. No header, credential
+  or Access pair is set by an offer, and only a new gateway's setup takes one.
+- **From the system.** A `hermie://add-gateway` link opened from anywhere (Camera, a message, a web page) reaches
+  `AppRouter.handle`, which shows the same confirmation as a sheet (`AppSheet.pairing`) with Continue opening setup
+  (`confirmPairing`) and Cancel; a link whose address may not come from a link is refused in a notice. It works with no
+  gateway at all. Opened and scanned codes are the same thing: the camera's own QR reader opens the app on this link.
+- **Reading.** The camera scanner of the `device.scan` request is reused (`CodeScannerView`: VisionKit's
+  `DataScannerViewController` on iPhone and iPad, a capture session with Vision on the frames on the Mac), asked for QR
+  only; the camera turns on, and the system asks, only when Scan is pressed (`PairingScanModel`). A picture comes from the
+  photo picker (no photo-library permission) and is read with Vision's barcode request (`PairingQRCode.payloads`), on
+  the iPhone, the iPad and the Mac alike. A code that is not a Hermie code, or a picture with none, is refused in a
+  sentence and never opened.
+- **Drawing.** CoreImage's QR generator at error correction M, with the quiet zone, in whole pixels per module
+  (`PairingQRCode.image`); black on white whatever the appearance.
+- **Tests.** `DeepLinkAddGatewayTests`, `GatewayPairingOfferTests`, `PairingQRCodeTests` (draw, then read back with Vision, hostile
+  codes), `PairingScanModelTests`, `OnboardingPairingTests`, `PairingRoutingTests` and `PairingAndPromptsViewTests`.
+
+## Reusable prompts
+
+**Settings, Prompts** (`PromptsSettingsEntry`) and a **Prompts** row on each bot's settings page (`BotPromptsSection`, in the style of
+the Usage and capability rows) manage the person's reusable prompts; the composer has a button for them
+(`PromptPickerSheet`) and the list `/` opens offers them under the commands (`HermieCore/Prompts`,
+`ComposerModel+Prompts`).
+
+- **What a prompt is** (`Prompt`). A title and a text, for one bot or for every bot (global). The text may hold fill-in
+  fields, `{{name}}` (`PromptTemplate`): a name is one to forty letters, digits, spaces, `_`, `-` or `.`; the same name twice is one
+  field; `\{{` is the braces as text; anything else between braces is text; a value is put in as text and never read for
+  fields again. Using a prompt with fields opens a small form (`PromptFillSheet`) with one line per field and a preview;
+  Insert puts the filled text into the field.
+- **Using one never sends anything.** The text goes into the message field (an empty field takes it as it is, a field with words
+  gets it on a new line after them, the caret goes to the field) and the person sends it as anything else they typed. A
+  request that has the composer (`held`) refuses it, as it refuses typing. In the `/` list the slash line that found it is
+  cleared first, Return and Tab take a prompt line (also when the field already says its title), and a prompt line is never
+  run as a command. A bot sees its own prompts first, then the global ones; another bot's are not offered.
+- **Managing.** Add, edit, delete (a confirmation) and reorder: drag in edit mode on iPhone and iPad, and Move up and Move
+  down in each row's menu and as accessibility actions everywhere. The order is the order everywhere.
+- **Sync** (`PromptsModel`, `PromptLibrary`). The prompts are `prompts` in the person's own app section
+  (`hermie-app:<user>`), the same `ui_meta` as the chat list: an array in the person's order, one object per prompt,
+  `{ "id", "title", "text", "bot"? }`. Each edit is a choice (dated, debounced, sent), so it follows the person to their other
+  devices on that gateway, and the section's stored copy shows them with no gateway at all. It is additive: no `v` is bumped;
+  `prompts` is among the fields an arriving section that is silent about them leaves alone (`UIMetaDocuments.keptWhenAbsent`),
+  so an older build writing the section does not wipe them; deleting the last one writes an empty list, which is taken; an
+  entry that is not a prompt (a newer build's) is not offered but stays in its slot, every key of an entry beyond the four
+  is kept when it is edited, and moving a prompt only moves entries of its own scope. The web client carries the field as it
+  carries any unknown one and reads nothing of it. Limits keep the section small: 100 prompts, 60 characters of title, 4000 of
+  text.
+- **Per gateway.** The app section lives on each gateway, so a person with two gateways has two sets of prompts; Settings,
+  Prompts edits the live gateway's.
+- **Tests.** `PromptTemplateTests`, `PromptLibraryTests` (read, add, edit, delete, order, unknown entries and keys),
+  `PromptsModelTests` (through the sync, two devices, what another build wrote, older builds, offline copy),
+  `ComposerPromptsTests` (insertion, the `/` list, the keys) and `PairingAndPromptsViewTests`.
+
 ## Licences and the gateway's facts
 
 **Settings › About › Licences** (`LicencesPage`) lists what the Apple apps owe to others, each entry opening its licence

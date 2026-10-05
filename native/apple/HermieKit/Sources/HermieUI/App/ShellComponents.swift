@@ -6,6 +6,9 @@ public struct OnboardingContext {
   public let mode: OnboardingMode
   /// Close the flow. Pass the id of a gateway it added to select it; nil when it was abandoned.
   public let finish: @MainActor (_ addedGatewayId: String?) -> Void
+  /// A gateway the person agreed to add (a scanned QR code, a link): the flow fills it in and goes
+  /// straight to sign-in.
+  public var pairing: GatewayPairingOffer?
 }
 
 /// What the sign-in sheet is handed.

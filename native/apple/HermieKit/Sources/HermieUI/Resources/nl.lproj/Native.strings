@@ -1796,6 +1796,74 @@
 	<string>Optioneel. Zonder naam krijgt de chat de tijd waarop hij begon.</string>
 	<key>native.ownChats.start</key>
 	<string>Chat starten</string>
+	<key>native.pairing.auth.cookie</key>
+	<string>Browsercookie</string>
+	<key>native.pairing.auth.nativePKCE</key>
+	<string>Single sign-on</string>
+	<key>native.pairing.auth.sessionToken</key>
+	<string>Sessietoken</string>
+	<key>native.pairing.offer.add</key>
+	<string>Doorgaan</string>
+	<key>native.pairing.offer.address</key>
+	<string>Adres</string>
+	<key>native.pairing.offer.have</key>
+	<string>Je hebt deze gateway al.</string>
+	<key>native.pairing.offer.local</key>
+	<string>Gewone http, alleen toegestaan omdat de gateway op dit apparaat of dit netwerk staat.</string>
+	<key>native.pairing.offer.name</key>
+	<string>Naam</string>
+	<key>native.pairing.offer.note</key>
+	<string>De code bevat alleen een adres en een naam. Er wordt niets toegevoegd voordat je doorgaat, en daarna log je zelf in.</string>
+	<key>native.pairing.offer.secure</key>
+	<string>Versleutelde verbinding (https)</string>
+	<key>native.pairing.offer.signIn</key>
+	<string>Inloggen</string>
+	<key>native.pairing.offer.title</key>
+	<string>Deze gateway toevoegen?</string>
+	<key>native.pairing.offer.unverified</key>
+	<string>De naam komt uit de code en wordt niet gecontroleerd. Ga alleen door als je weet waar de code vandaan komt.</string>
+	<key>native.pairing.problem.notAnAddress</key>
+	<string>De code bevat een adres dat Hermie niet kan gebruiken.</string>
+	<key>native.pairing.problem.notAnOffer</key>
+	<string>Geen Hermie-gatewaycode gevonden.</string>
+	<key>native.pairing.problem.notSecure</key>
+	<string>De code verwijst naar %@ via gewone http. Uit een code wordt alleen https geaccepteerd, behalve voor een gateway op dit apparaat of met een .local-naam. Je kunt hem nog steeds toevoegen door het adres te typen.</string>
+	<key>native.pairing.scan</key>
+	<string>QR-code scannen</string>
+	<key>native.pairing.scanFooter</key>
+	<string>Scan de code die een ander apparaat toont onder Instellingen, Gateways, Delen via QR, of kies een afbeelding ervan.</string>
+	<key>native.pairing.share.action</key>
+	<string>Delen via QR</string>
+	<key>native.pairing.share.blurb</key>
+	<string>De code bevat het adres, de naam en hoe de gateway inlogt. Er zit geen wachtwoord, token of header in: wie hem scant, logt nog steeds in met een eigen account.</string>
+	<key>native.pairing.share.failed</key>
+	<string>De code kon niet worden getekend.</string>
+	<key>native.pairing.share.label</key>
+	<string>QR-code voor %@</string>
+	<key>native.pairing.share.unavailable</key>
+	<string>Deze gateway kan niet als code worden gedeeld. %@</string>
+	<key>native.pairing.sheet.again</key>
+	<string>Opnieuw scannen</string>
+	<key>native.pairing.sheet.aim</key>
+	<string>Richt de camera op de QR-code.</string>
+	<key>native.pairing.sheet.camera</key>
+	<string>Camera</string>
+	<key>native.pairing.sheet.chooseImage</key>
+	<string>Kies een afbeelding</string>
+	<key>native.pairing.sheet.denied</key>
+	<string>Hermie mag de camera niet gebruiken. Je kunt dat toestaan in Instellingen, of kies in plaats daarvan een afbeelding van de code.</string>
+	<key>native.pairing.sheet.found</key>
+	<string>Gatewaycode gevonden.</string>
+	<key>native.pairing.sheet.intro</key>
+	<string>Houd de QR-code van de gateway voor de camera. De camera gaat pas aan als je op Scan drukt.</string>
+	<key>native.pairing.sheet.noCamera</key>
+	<string>Hier kon geen camera worden gebruikt. Kies in plaats daarvan een afbeelding van de code.</string>
+	<key>native.pairing.sheet.restricted</key>
+	<string>De camera is op dit apparaat uitgezet door een profiel of een beperking. Kies in plaats daarvan een afbeelding van de code.</string>
+	<key>native.pairing.sheet.start</key>
+	<string>Scan</string>
+	<key>native.pairing.sheet.title</key>
+	<string>Gateway scannen</string>
 	<key>native.passkeys.add.action</key>
 	<string>Toevoegen met een code</string>
 	<key>native.passkeys.add.field</key>
@@ -1978,6 +2046,68 @@
 	<string>Passkeys op %@</string>
 	<key>native.passkeys.title</key>
 	<string>Passkeys</string>
+	<key>native.prompts.add</key>
+	<string>Prompt toevoegen</string>
+	<key>native.prompts.alsoGlobal</key>
+	<string>Ook hier beschikbaar: %lld voor elke bot.</string>
+	<key>native.prompts.blurb</key>
+	<string>Teksten die je steeds opnieuw gebruikt, met velden om in te vullen.</string>
+	<key>native.prompts.composer.button</key>
+	<string>Een prompt invoegen</string>
+	<key>native.prompts.composer.empty</key>
+	<string>Je hebt nog geen prompts. Voeg ze toe onder Instellingen, Prompts, of in de instellingen van een bot.</string>
+	<key>native.prompts.composer.hint</key>
+	<string>Er wordt niets verstuurd: de tekst komt in het berichtveld.</string>
+	<key>native.prompts.composer.insertHint</key>
+	<string>Zet de prompt in het berichtveld.</string>
+	<key>native.prompts.composer.section</key>
+	<string>Prompts</string>
+	<key>native.prompts.delete</key>
+	<string>Verwijder</string>
+	<key>native.prompts.deleteConfirm</key>
+	<string>Deze prompt verwijderen?</string>
+	<key>native.prompts.edit</key>
+	<string>Prompt bewerken</string>
+	<key>native.prompts.fieldText</key>
+	<string>Prompt</string>
+	<key>native.prompts.fieldTitle</key>
+	<string>Titel</string>
+	<key>native.prompts.fields</key>
+	<string>Velden: %@</string>
+	<key>native.prompts.fill.insert</key>
+	<string>Invoegen</string>
+	<key>native.prompts.fill.preview</key>
+	<string>Voorbeeld</string>
+	<key>native.prompts.fill.title</key>
+	<string>Vul de prompt in</string>
+	<key>native.prompts.forBot</key>
+	<string>Voor %@</string>
+	<key>native.prompts.global</key>
+	<string>Voor elke bot</string>
+	<key>native.prompts.help</key>
+	<string>Zet {{naam}} op de plek waar je telkens iets invult, bijvoorbeeld {{onderwerp}}. Dezelfde naam twee keer is één veld.</string>
+	<key>native.prompts.limit</key>
+	<string>Je hebt de grens van %lld prompts bereikt.</string>
+	<key>native.prompts.moveDown</key>
+	<string>Naar beneden</string>
+	<key>native.prompts.moveUp</key>
+	<string>Naar boven</string>
+	<key>native.prompts.new</key>
+	<string>Nieuwe prompt</string>
+	<key>native.prompts.none</key>
+	<string>Nog geen prompts.</string>
+	<key>native.prompts.notReady</key>
+	<string>Prompts kunnen worden toegevoegd zodra de gateway verbonden is.</string>
+	<key>native.prompts.perBot</key>
+	<string>Per bot</string>
+	<key>native.prompts.save</key>
+	<string>Bewaar</string>
+	<key>native.prompts.syncNote</key>
+	<string>Prompts volgen je naar je andere apparaten op deze gateway.</string>
+	<key>native.prompts.title</key>
+	<string>Prompts</string>
+	<key>native.prompts.titlePlaceholder</key>
+	<string>Korte naam</string>
 	<key>native.push.cannotDeliverPlugin</key>
 	<string>Deze gateway kan nog niet bij dit apparaat afleveren: de Hermie-plugin is te oud. Werk de plugin op de gateway bij.</string>
 	<key>native.push.cannotDeliverRelay</key>

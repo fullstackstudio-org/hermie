@@ -40,6 +40,9 @@ public struct ComposerView: View {
   @State private var showPhotos = false
   @State private var showFiles = false
   @State private var photoSelection: [PhotosPickerItem] = []
+  /// The prompt list, and the prompt chosen in it, acted on once the list has gone.
+  @State private var showPrompts = false
+  @State private var pickedPrompt: Prompt?
   #if os(iOS)
     @State private var showCamera = false
   #endif
@@ -81,6 +84,7 @@ public struct ComposerView: View {
       GlassEffectContainer(spacing: 8) {
         HStack(alignment: .bottom, spacing: 8) {
           attachButton
+          promptsButton
           field
           // Only where the device can dictate: a microphone that cannot work is not drawn.
           if let dictation = model.dictation, dictation.isAvailable {
@@ -101,6 +105,33 @@ public struct ComposerView: View {
       onPhotos: { items in AttachmentIntake.addPhotos(items, to: model.tray) },
       onFiles: { urls in AttachmentIntake.addFiles(urls, to: model.tray) }
     )
+    // The person's reusable prompts: the list the button opens, and the form for a prompt with fields
+    // (picked there or from the list `/` opens).
+    .sheet(
+      isPresented: $showPrompts,
+      onDismiss: {
+        if let prompt = pickedPrompt {
+          pickedPrompt = nil
+          model.use(prompt)
+        }
+      }
+    ) {
+      PromptPickerSheet(model: model) { pickedPrompt = $0 }
+    }
+    .sheet(
+      item: Binding(
+        get: { model.promptToFill },
+        set: { next in
+          if next == nil {
+            model.cancelPrompt()
+          }
+        })
+    ) { prompt in
+      PromptFillSheet(
+        prompt: prompt,
+        insert: { model.completePrompt(with: $0) },
+        cancel: { model.cancelPrompt() })
+    }
     #if os(iOS)
       // A sheet, not a full-screen cover: the chat stays standing under it, as under the photo
       // library and the file importer.
@@ -253,6 +284,23 @@ public struct ComposerView: View {
       .accessibilityLabel(NativeStrings.Composer.Attach.chooseFile)
       .accessibilityIdentifier("composer.attach")
     #endif
+  }
+
+  /// The prompt button: the person's reusable prompts for this chat. What it picks goes into the field;
+  /// nothing is sent.
+  private var promptsButton: some View {
+    Button {
+      showPrompts = true
+    } label: {
+      Image(systemName: "text.quote")
+        .font(.body.weight(.bold))
+        .frame(width: controlHeight, height: controlHeight)
+    }
+    .buttonStyle(AttachButtonStyle())
+    .help(NativeStrings.Prompts.Composer.button)
+    .accessibilityLabel(NativeStrings.Prompts.Composer.button)
+    .accessibilityHint(NativeStrings.Prompts.Composer.hint)
+    .accessibilityIdentifier("composer.prompts")
   }
 
   private var attachGlyph: some View {

@@ -18,6 +18,8 @@ struct GatewaysSettingsPage: View {
   @State private var removing: GatewayDirectory.Entry?
   @State private var signingIn: String?
   @State private var signingOut: GatewayDirectory.Entry?
+  /// The gateway whose pairing code is up.
+  @State private var sharing: GatewayDirectory.Entry?
   /// Why the last removal did not happen, until the alert is put away.
   @State private var removalFailure: String?
 
@@ -32,6 +34,9 @@ struct GatewaysSettingsPage: View {
       .modifier(RenameAlert(entry: $renaming, draftName: $draftName, save: rename))
       .sheet(item: signInSheet) { sheet in
         components.signIn(SignInContext(gatewayId: sheet.id, finish: { signingIn = nil }))
+      }
+      .sheet(item: $sharing) { entry in
+        ShareGatewayQRSheet(entry: entry)
       }
       .modifier(SignOutDialog(entry: $signingOut, signOut: signOut))
       .modifier(RemoveDialog(entry: $removing, model: launch.iCloudSync, remove: remove))
@@ -149,6 +154,12 @@ struct GatewaysSettingsPage: View {
       draftName = entry.displayLabel
       renaming = entry
     }
+
+    // The address, the name and how it signs in, as a code another device can scan: no credential.
+    Button(NativeStrings.Pairing.Share.action, systemImage: "qrcode") {
+      sharing = entry
+    }
+    .accessibilityIdentifier("hermie.settings.gateway.shareQR")
 
     switch accounts?.status(for: entry.id) {
     case .signedIn?:
