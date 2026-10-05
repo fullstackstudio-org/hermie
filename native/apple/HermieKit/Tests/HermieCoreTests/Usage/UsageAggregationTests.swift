@@ -63,13 +63,15 @@ func usageDay(
   }
 
   @Test func aRowOfTheGatewaysAnalyticsIsReadField_by_Field() throws {
-    let rows = DailyUsage.parse(
-      analytics: body([
-        row([
-          "day": "2026-10-05", "input_tokens": 1200, "output_tokens": 300, "cache_read_tokens": 4000,
-          "reasoning_tokens": 50, "estimated_cost": 0.42, "actual_cost": 0, "sessions": 3, "api_calls": 17
-        ])
-      ]))
+    var fields: JSONObject = ["day": "2026-10-05", "input_tokens": 1200, "output_tokens": 300]
+    fields["cache_read_tokens"] = 4000
+    fields["reasoning_tokens"] = 50
+    fields["estimated_cost"] = 0.42
+    fields["actual_cost"] = 0
+    fields["sessions"] = 3
+    fields["api_calls"] = 17
+
+    let rows = DailyUsage.parse(analytics: body([row(fields)]))
     let one = try #require(rows.first)
 
     #expect(rows.count == 1)
@@ -96,13 +98,14 @@ func usageDay(
 
   @Test func aSumThatIsNullNegativeOrNotANumberIsZero() throws {
     // `SUM()` over no rows is null; a provider can send anything.
-    let rows = DailyUsage.parse(
-      analytics: body([
-        row([
-          "day": "2026-10-04", "input_tokens": .null, "output_tokens": -5, "cache_read_tokens": "many",
-          "estimated_cost": .null, "actual_cost": -1, "sessions": 1.9, "api_calls": .null
-        ])
-      ]))
+    var fields: JSONObject = ["day": "2026-10-04", "input_tokens": .null, "output_tokens": -5]
+    fields["cache_read_tokens"] = "many"
+    fields["estimated_cost"] = .null
+    fields["actual_cost"] = -1
+    fields["sessions"] = 1.9
+    fields["api_calls"] = .null
+
+    let rows = DailyUsage.parse(analytics: body([row(fields)]))
     let one = try #require(rows.first)
 
     #expect(one.inputTokens == 0)
@@ -226,21 +229,26 @@ func usageDay(
 
 @Suite struct ProviderUsageParsingTests {
   @Test func theNousBalanceIsReadAsTheGatewayWordedIt() throws {
-    let bars = try #require(
-      NousUsageBars.parse(
-        .object([
-          "ok": true, "available": true, "status": "healthy", "plan_name": "Pro", "renews_display": "Oct 24, 2026",
-          "subscription_remaining_display": "$12.00", "topup_remaining_display": "$3.00",
-          "total_spendable_display": "$15.00", "has_topup": true,
-          "plan_bar": [
-            "kind": "plan", "remaining_display": "$12.00", "total_display": "$20.00", "spent_display": "$8.00",
-            "pct_used": 40, "fill_fraction": 0.6
-          ],
-          "topup_bar": [
-            "kind": "topup", "remaining_display": "$3.00", "total_display": "$3.00", "spent_display": "$0.00",
-            "pct_used": .null, "fill_fraction": 1
-          ]
-        ])))
+    // Built in pieces: one literal with every field of the answer is a type-checker problem on older toolchains.
+    var plan: JSONObject = ["kind": "plan", "remaining_display": "$12.00", "total_display": "$20.00"]
+    plan["spent_display"] = "$8.00"
+    plan["pct_used"] = 40
+    plan["fill_fraction"] = 0.6
+
+    var topup: JSONObject = ["kind": "topup", "remaining_display": "$3.00", "total_display": "$3.00"]
+    topup["spent_display"] = "$0.00"
+    topup["pct_used"] = .null
+    topup["fill_fraction"] = 1
+
+    var answer: JSONObject = ["ok": true, "available": true, "status": "healthy", "plan_name": "Pro"]
+    answer["renews_display"] = "Oct 24, 2026"
+    answer["subscription_remaining_display"] = "$12.00"
+    answer["topup_remaining_display"] = "$3.00"
+    answer["total_spendable_display"] = "$15.00"
+    answer["plan_bar"] = .object(plan)
+    answer["topup_bar"] = .object(topup)
+
+    let bars = try #require(NousUsageBars.parse(.object(answer)))
 
     #expect(bars.planName == "Pro")
     #expect(bars.renews == "Oct 24, 2026")
@@ -265,16 +273,18 @@ func usageDay(
   }
 
   @Test func aSessionsUsageCarriesTheAccountLinesTheGatewayRendered() throws {
-    let usage = try #require(
-      SessionUsage.parse(
-        .object([
-          "model": "claude-sonnet", "input": 1000, "output": 200, "calls": 4, "total": 1200,
-          "context_used": 50_000, "context_max": 200_000,
-          "account_lines": [
-            "📈 Account limits", "Provider: anthropic (Max)", "Current session: 82% remaining (18% used) • resets in 2h 10m"
-          ],
-          "credits_lines": ["Nous credits: $4.20"]
-        ])))
+    var answer: JSONObject = ["model": "claude-sonnet", "input": 1000, "output": 200, "calls": 4, "total": 1200]
+    answer["context_used"] = 50_000
+    answer["context_max"] = 200_000
+
+    let lines: [JSONValue] = [
+      "📈 Account limits", "Provider: anthropic (Max)", "Current session: 82% remaining (18% used) • resets in 2h 10m"
+    ]
+
+    answer["account_lines"] = .array(lines)
+    answer["credits_lines"] = .array(["Nous credits: $4.20"])
+
+    let usage = try #require(SessionUsage.parse(.object(answer)))
 
     #expect(usage.totalTokens == 1200)
     #expect(usage.calls == 4)

@@ -340,9 +340,11 @@ final class RecordingSpotlight: SpotlightSink, Sendable {
   @Test func aReadThatWasInFlightWhenTheGatewayWasPurgedWritesNothing() async {
     let (indexer, sink, _, _) = rig()
     let gate = SearchGate()
+    let listing = Mutex(false)
     let source = ChatSpotlightIndexer.Source(
       bots: [IndexedBot(name: "researcher", displayName: "Researcher")],
       conversations: { _ in
+        listing.withLock { $0 = true }
         try? await gate.wait()
         return [IndexedConversation(bot: "researcher", botName: "Researcher", session: "s1", title: "Taxes")]
       },
@@ -351,7 +353,7 @@ final class RecordingSpotlight: SpotlightSink, Sendable {
     let run = Task { await indexer.refresh(gatewayKey: gwKey, source: source, policy: .titlesAndText) }
 
     // The purge lands while the listing is out.
-    try? await Task.sleep(for: .milliseconds(50))
+    await waitUntil("the listing to go out") { listing.withLock { $0 } }
     indexer.purge(gatewayKey: gwKey)
     gate.open()
     await run.value

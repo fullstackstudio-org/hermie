@@ -222,6 +222,11 @@ public final class UsageAlertSettingsModel {
     chosenBeforeLoad = false
   }
 
+  /// Wait for what was chosen so far to be written (a test, or a screen that is about to go).
+  public func flush() async {
+    await writing?.value
+  }
+
   public func setEnabled(_ on: Bool) {
     update { $0.enabled = on }
   }

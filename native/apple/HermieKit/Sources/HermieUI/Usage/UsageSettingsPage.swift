@@ -141,8 +141,14 @@ struct UsageSettingsContent: View {
       day.outputTokens = entry.totals.outputTokens
       day.cacheReadTokens = entry.totals.cacheReadTokens
       day.reasoningTokens = entry.totals.reasoningTokens
-      // The cost is a sum of costs, each already the better of billed and estimated.
-      day.actualCost = entry.totals.cost
+      // The cost is a sum of costs, each already the better of billed and estimated; the day keeps saying
+      // whether any of it was a guess.
+      if entry.totals.estimated {
+        day.estimatedCost = entry.totals.cost
+      } else {
+        day.actualCost = entry.totals.cost
+      }
+
       day.sessions = entry.totals.sessions
       day.apiCalls = entry.totals.apiCalls
       return day

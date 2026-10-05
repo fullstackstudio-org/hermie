@@ -117,6 +117,11 @@ public final class UsageAlertMonitor {
 
   // MARK: What was told
 
+  /// Wait for what was told so far to be written (a test, or a screen that is about to go).
+  public func flush() async {
+    await writing?.value
+  }
+
   /// What this gateway was told today, for a screen that says so.
   public func told(gatewayID: String) -> UsageAlertState? {
     states[gatewayID]
@@ -167,7 +172,7 @@ public final class UsageAlertMonitor {
 @MainActor
 public final class UsageAlertDriver {
   /// What one gateway offers to look at.
-  public struct Source {
+  public struct Source: Sendable {
     public var gatewayID: String
     public var gatewayName: String
     /// The bots: profile name and the name the reader gave it.

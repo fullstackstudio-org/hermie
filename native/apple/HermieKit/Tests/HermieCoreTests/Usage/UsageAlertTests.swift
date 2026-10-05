@@ -121,8 +121,8 @@ private func totals(cost: Double = 0, tokens: Int = 0) -> UsageTotals {
     model.setEnabled(true)
     model.setDailyCost(7.5)
     model.setDailyTokens(250_000)
-    // The writes are in order, one after the other.
-    try await Task.sleep(for: .milliseconds(50))
+    // The writes are in order, one after the other; this waits for the last.
+    await model.flush()
 
     let reread = UsageAlertSettingsModel(keyValues: keyValues)
     await reread.hydrate()
@@ -252,7 +252,7 @@ private func totals(cost: Double = 0, tokens: Int = 0) -> UsageTotals {
     let first = Rig(limits: UsageAlertSettings(enabled: true, dailyCost: 5), keyValues: keyValues)
 
     await first.monitor.check(gatewayID: "g1", gatewayName: "Home", bots: bots)
-    try await Task.sleep(for: .milliseconds(50))
+    await first.monitor.flush()
 
     let second = Rig(limits: UsageAlertSettings(enabled: true, dailyCost: 5), keyValues: keyValues)
     await second.monitor.check(gatewayID: "g1", gatewayName: "Home", bots: bots)
