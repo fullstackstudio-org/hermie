@@ -322,7 +322,7 @@ public enum GatewayRegistryError: Error, Sendable, Equatable {
 
  Every change is a read-modify-write inside one transaction. Removing a gateway also purges what
  the device kept for it (ADR-0024), in the same transaction: every key-value key suffixed with
- `@<id>`, its entry in the shared chat arrangement, and its cached roster and transcripts. The
+ `@<id>`, its entry in the shared chat arrangement, its cached roster and transcripts, and its decision log. The
  credentials are in the keychain and are not this store's to remove; the caller removes those too.
  */
 public struct GatewayRegistryStore: Sendable {
@@ -425,5 +425,6 @@ public struct GatewayRegistryStore: Sendable {
 
     try database.execute("DELETE FROM bots WHERE ns = ?", [.text(id)])
     try database.execute("DELETE FROM transcripts WHERE ns = ?", [.text(id)])
+    try database.execute("DELETE FROM decisions WHERE ns = ?", [.text(id)])
   }
 }

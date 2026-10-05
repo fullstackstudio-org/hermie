@@ -5,7 +5,7 @@ import Testing
 
 @Suite("SQLite store")
 struct SQLiteStoreTests {
-  @Test("a fresh file is created at the latest version, in WAL mode, with the three tables")
+  @Test("a fresh file is created at the latest version, in WAL mode, with its tables")
   func freshFile() throws {
     let temporary = try TemporaryDirectory()
     defer { temporary.cleanUp() }
@@ -16,13 +16,13 @@ struct SQLiteStoreTests {
     #expect(report.versionBefore == 0)
     #expect(report.versionAfter == SQLiteSchema.latestVersion)
     #expect(report.corruption == nil)
-    #expect(try database.userVersion == 1)
+    #expect(try database.userVersion == SQLiteSchema.latestVersion)
     #expect(try database.query("PRAGMA journal_mode").first?.values.first?.text == "wal")
 
     let tables = try database.query("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
       .compactMap { $0["name"].text }
 
-    #expect(tables == ["bots", "kv", "transcripts"])
+    #expect(tables == ["bots", "decisions", "kv", "transcripts"])
     #expect(FileManager.default.fileExists(atPath: url.path))
   }
 
@@ -42,8 +42,8 @@ struct SQLiteStoreTests {
 
     let (database, report) = try SQLiteDatabase.open(.file(url))
 
-    #expect(report.versionBefore == 1)
-    #expect(report.versionAfter == 1)
+    #expect(report.versionBefore == SQLiteSchema.latestVersion)
+    #expect(report.versionAfter == SQLiteSchema.latestVersion)
     #expect(try database.kvValue(forKey: "hermie.test") == "1")
   }
 
@@ -61,12 +61,12 @@ struct SQLiteStoreTests {
     }
 
     let stub = SQLiteSchema.migrations + [
-      SQLiteMigration(version: 2, sql: "ALTER TABLE bots ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;")
+      SQLiteMigration(version: SQLiteSchema.latestVersion + 1, sql: "ALTER TABLE bots ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;")
     ]
     let (database, report) = try SQLiteDatabase.open(.file(url), migrations: stub)
 
-    #expect(report.versionBefore == 1)
-    #expect(report.versionAfter == 2)
+    #expect(report.versionBefore == SQLiteSchema.latestVersion)
+    #expect(report.versionAfter == SQLiteSchema.latestVersion + 1)
     #expect(try database.kvValue(forKey: "hermie.test") == "kept")
 
     let columns = try database.query("PRAGMA table_info(bots)").compactMap { $0["name"].text }
@@ -84,7 +84,7 @@ struct SQLiteStoreTests {
     _ = try SQLiteDatabase.open(.file(url))
 
     let broken = SQLiteSchema.migrations + [
-      SQLiteMigration(version: 2, sql: "CREATE TABLE extra (x INTEGER); THIS IS NOT SQL;")
+      SQLiteMigration(version: SQLiteSchema.latestVersion + 1, sql: "CREATE TABLE extra (x INTEGER); THIS IS NOT SQL;")
     ]
 
     #expect(throws: SQLiteError.self) {
@@ -93,7 +93,7 @@ struct SQLiteStoreTests {
 
     let (database, _) = try SQLiteDatabase.open(.file(url))
 
-    #expect(try database.userVersion == 1)
+    #expect(try database.userVersion == SQLiteSchema.latestVersion)
     #expect(try database.query("SELECT name FROM sqlite_master WHERE name = 'extra'").isEmpty)
   }
 
@@ -140,7 +140,7 @@ struct SQLiteStoreTests {
     #expect(isExcludedFromBackup(URL(fileURLWithPath: kept.path + "-wal")))
     #expect(!corruption.rescue.complete)
     #expect(corruption.rescue.keys.isEmpty)
-    #expect(report.versionAfter == 1)
+    #expect(report.versionAfter == SQLiteSchema.latestVersion)
     #expect(try database.kvKeys().isEmpty)
 
     try database.kvSet("works", forKey: "hermie.test")
@@ -387,6 +387,6 @@ struct SQLiteStoreTests {
     }
 
     #expect(try await store.read { try $0.kvKeys().count } == 50)
-    #expect(store.openReport.versionAfter == 1)
+    #expect(store.openReport.versionAfter == SQLiteSchema.latestVersion)
   }
 }

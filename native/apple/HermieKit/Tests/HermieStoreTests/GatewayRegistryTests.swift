@@ -168,4 +168,28 @@ struct GatewayRegistryTests {
     #expect(try await SQLiteChatCache(store: store, gatewayId: two).read(bot: "researcher") != nil)
     #expect(await configChanges.next() == .some(nil))
   }
+
+  @Test("removing a gateway takes its decision log with it, and no other gateway's")
+  func removalPurgesTheDecisionLog() async throws {
+    let store = try SQLiteStore(.inMemory)
+    let registry = GatewayRegistryStore(store: store)
+
+    _ = try await registry.add(record(one))
+    _ = try await registry.add(record(two))
+
+    try await store.write { database in
+      for (id, gateway) in [("a", one), ("b", two), ("c", one)] {
+        try database.execute(
+          "INSERT INTO decisions (id, ns, bot, at, json) VALUES (?, ?, ?, ?, ?)",
+          [.text(id), .text(gateway), .text("researcher"), .integer(1), .text("{}")]
+        )
+      }
+    }
+
+    _ = try await registry.remove(id: one)
+
+    let left = try await store.read { try $0.query("SELECT id FROM decisions ORDER BY id").compactMap { $0["id"].text } }
+
+    #expect(left == ["b"])
+  }
 }

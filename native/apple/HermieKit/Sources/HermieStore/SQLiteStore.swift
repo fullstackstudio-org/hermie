@@ -37,6 +37,23 @@ public enum SQLiteSchema {
           PRIMARY KEY (ns, bot)
         );
         """
+    ),
+    // The decision log (NX-18): what the person decided on a request, one row per decision, scoped to the
+    // gateway it came from by `ns`. The entry itself is JSON; `bot` and `at` (epoch milliseconds) are columns of
+    // their own so a bot's page and the age and count limits are one statement each. Not a cache: `checkCacheIntegrity` leaves it alone.
+    SQLiteMigration(
+      version: 2,
+      sql: """
+        CREATE TABLE decisions (
+          id TEXT PRIMARY KEY NOT NULL,
+          ns TEXT NOT NULL,
+          bot TEXT NOT NULL,
+          at INTEGER NOT NULL,
+          json TEXT NOT NULL
+        );
+        CREATE INDEX decisions_bot ON decisions (ns, bot);
+        CREATE INDEX decisions_at ON decisions (at);
+        """
     )
   ]
 
