@@ -2888,6 +2888,63 @@ the recorder and the model are in `HermieCore/DecisionLog`; the views in `Hermie
   real answering paths, no value in the log), `DecisionLogWiringTests` (the launch's log, sign-out and removal),
   `DecisionLogViewTests` (HermieUITests: the words in three languages, the category, the row's lines).
 
+## Agents overview
+
+One screen for **what each bot is doing now** (NX-9): idle, running, or waiting for the person, the tool a live turn
+is running, the sub-agents that run, and the crons that run next. It adds no wire method: every number comes from a
+call the app already makes (`AgentsModel`, `AgentsService`, `AgentsOverview` in `HermieCore/Agents`; `AgentsScreen` in
+`HermieUI/Agents`).
+
+- **Entry.** A toolbar item in the sidebar next to Needs You ("Agents", on the iPhone, the iPad and the Mac), and
+  Chat › Agents Overview (⌘⇧A, which none of ⌘⇧I, ⌘⇧., ⌘⇧F, ⌘⇧N and ⌃⌘A is). Both open `AppSheet.agents`. A tap on a
+  bot opens its chat and closes the sheet.
+- **Where each part comes from.** The state of a bot is one `session.active_list` (`BotRoster.activeSessions`, which
+  attributes each busy row to the bot whose session it is: `waiting` is a session parked on a question or an
+  approval, and the Needs You inbox's count for the bot also makes it waiting); the tool it runs is read from the chat
+  the app holds (the gateway does not expose the current tool, so a bot whose chat is not open shows the newest line
+  of its running session instead); the sub-agents are `delegation.status` per busy bot; the schedule is the cron list
+  of the Crons screen (`GET /api/cron/jobs?profile=all`), the next enabled run of each bot's own jobs and the eight
+  soonest overall. A session no bot owns (a cron's run, another client's) is counted under the bots.
+- **The gateway's list is the truth.** A chat that thinks its turn is busy while the list says otherwise has
+  finished. When `session.active_list` cannot be read, the overview does not say "idle" for everyone: it follows
+  the open chats alone and says so under the bots.
+- **Live.** A read every 5 seconds while the sheet is on top (`AgentsModel.liveInterval`), at once when the gateway
+  says its sessions changed (`session.sessionsChangedCount`) or the inbox moved, the cron list on `cron.changed`
+  (debounced, as the Crons screen does) and every 60 seconds besides. The gateway announces that a session starts
+  and ends, not what it is doing, so "now" is a gentle poll. Nothing is kept when the sheet goes.
+- **Fake gateway.** `session.active_list` now says `waiting` for a session parked on an open server request (an
+  approval, a clarify, a form), and lists such a session even when no turn runs in it (one staged through
+  `POST /__fake/request`); pinned by `active-list-waiting.test.ts`.
+- **Tests.** `AgentsOverviewTests` (the aggregation from the roster, the busy list, the chats, the sub-agents, the
+  crons and the inbox; the service over a scripted link with `session.active_list`, `delegation.status` and a cron
+  backend; the model's rounds, failures and broadcast), `AgentsViewTests` (the router's sheet, the lines under a bot,
+  layout at the largest text size, the words in three languages) and `AgentsIntegrationTests` against the fake
+  gateway (idle with the gateway's crons, running then idle, waiting on an approval, the sub-agents of a delegation,
+  a cron created on the gateway).
+
+## Charts in a reply
+
+A bot can answer with numbers as a chart: a fenced block in the language `hermie-chart` holding one JSON object
+(`{type: bar | line | pie, title?, unit?, x, series: [{name, values}]}`). [docs/charts.md](charts.md) is the format and
+what a bot's prompt can say about it.
+
+- **Validation is strict and bounded** (`HermieChart` in `HermieMarkdown`): at most 16 KiB (checked before parsing),
+  8 series, 100 points (a pie: one series, 24 slices), labels of at most 60 characters, numbers only (a string, a
+  boolean or `null` is a refusal), finite and no larger than 1e15, every series as long as `x`, no unknown key, no
+  duplicate name. A block that fails any of it is not repaired and not drawn: it stays the code block it is. That is
+  also what a half-streamed block looks like until it closes.
+- **The Markdown model is untouched.** The block is still `.code` with the language `hermie-chart`; the one decision
+  (`HermieChart.decide`: a chart, or the code block it came from) is made where the block is drawn, so the shared
+  corpus under `contract/` does not change and the web client, which does not know the block, shows it as code.
+- **Drawn with Swift Charts** (`HermieChartView`) inside the same frame as any listing: the label, Copy (the JSON) and
+  the eye that switches between the picture and its data. VoiceOver reads the kind, the title, the unit and each
+  series with its first twelve points. The owner's own bubble leaves it as typed (`markdownDrawsCharts`).
+- **Words.** The Markdown target owns no string catalog, so the labels travel through the environment
+  (`markdownChartLabels`); the app sets the localised ones (`native.chart.*`) on every place a bot's words are drawn.
+- **Tests.** `HermieChartTests` (valid, invalid, the caps at their edge, non-numeric, huge and deeply nested input,
+  the decision, the words) and `HermieChartRenderingTests` (laid out in a narrow column at the largest text size, the
+  most marks allowed, a valid and an invalid block through `MarkdownView`).
+
 ## Licences and the gateway's facts
 
 **Settings › About › Licences** (`LicencesPage`) lists what the Apple apps owe to others, each entry opening its licence

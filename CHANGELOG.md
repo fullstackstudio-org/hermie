@@ -40,6 +40,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The native Apple apps have an Agents overview.** One screen, from the sidebar's toolbar and the menu
+  bar (⌘⇧A), for what each bot is doing now: idle, running, or waiting for you (a question, an approval,
+  or anything in Needs You), the tool a turn it is running uses, the sub-agents running, and the crons that
+  run next with their next run time. It reads the gateway while it is open, every few seconds and at once
+  when the gateway says its sessions or crons changed, and a tap on a bot opens its chat. The fake gateway
+  says `waiting` in `session.active_list` for a session parked on an approval or a question.
+- **The native Apple apps draw a chart when a bot sends numbers.** A reply that holds a `hermie-chart`
+  block (a bar, line or pie chart as a small JSON object, documented in `docs/charts.md`) shows the chart,
+  with its title, legend and unit, VoiceOver reading its numbers, and the data a tap away. A block that is
+  not exactly the documented format, or too big, stays the code block it is, and so does it everywhere
+  else.
 - **The native Apple apps search every conversation of every bot, on every gateway you are signed in
   to.** Search Everywhere (⇧⌘F, or the row under the chat list's search) lists each chat that holds the
   words, not only the best one per bot: the Bot Chat, its branches, earlier conversations and your own
