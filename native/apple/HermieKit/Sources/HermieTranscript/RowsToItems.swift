@@ -646,6 +646,8 @@ private struct RowProjection {
     let text = scan.text
     // The files the bot shared with this reply (`contract/outbox/`), beside its text.
     let shared = OutboxAttachment.parseAll(row["attachments"])
+    // The pages it used (`contract/sources/`), on the row's `display_metadata`.
+    let sources = ReplySource.parseAll(fromMetadata: row["display_metadata"])
 
     if text.isEmpty && reasoning.isEmpty && scan.images.isEmpty && scan.references.isEmpty && shared.isEmpty {
       return
@@ -662,7 +664,8 @@ private struct RowProjection {
           status: .complete,
           inlineImages: scan.images.isEmpty ? nil : scan.images,
           attachments: scan.references.isEmpty ? nil : scan.references,
-          outbox: shared.isEmpty ? nil : shared
+          outbox: shared.isEmpty ? nil : shared,
+          sources: sources.isEmpty ? nil : sources
         )
       )
     )

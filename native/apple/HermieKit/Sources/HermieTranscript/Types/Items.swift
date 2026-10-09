@@ -284,6 +284,9 @@ public struct AssistantItem: TranscriptItemProtocol {
   /// The files the bot shared with this reply (`contract/outbox/`): validated by `OutboxAttachment.parseAll`,
   /// absent when it shared none. Fetched from each one's `url`, never named by a path.
   public var outbox: [OutboxAttachment]?
+  /// The pages this reply used (`contract/sources/`): validated by `ReplySource.parseAll`, absent when the
+  /// turn used no web tool. Shown beside the reply with their domain; nothing is loaded for them.
+  public var sources: [ReplySource]?
   public var extra: JSONObject
 
   public init(
@@ -301,6 +304,7 @@ public struct AssistantItem: TranscriptItemProtocol {
     inlineImages: [InlineImage]? = nil,
     attachments: [String]? = nil,
     outbox: [OutboxAttachment]? = nil,
+    sources: [ReplySource]? = nil,
     extra: JSONObject = [:]
   ) {
     self.base = base
@@ -308,6 +312,7 @@ public struct AssistantItem: TranscriptItemProtocol {
     self.inlineImages = inlineImages
     self.attachments = attachments
     self.outbox = outbox
+    self.sources = sources
     self.reasoning = reasoning
     self.reasoningVerbose = reasoningVerbose
     self.streaming = streaming
@@ -337,6 +342,7 @@ public struct AssistantItem: TranscriptItemProtocol {
     inlineImages = reader.optional("inlineImages")
     attachments = reader.optional("attachments")
     outbox = reader.optional("outbox")
+    sources = reader.optional("sources")
     extra = reader.residue
   }
 
@@ -355,6 +361,7 @@ public struct AssistantItem: TranscriptItemProtocol {
     writer.set("inlineImages", inlineImages)
     writer.set("attachments", attachments)
     writer.set("outbox", outbox)
+    writer.set("sources", sources)
     return writer.json
   }
 }

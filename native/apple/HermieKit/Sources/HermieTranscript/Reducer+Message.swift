@@ -182,6 +182,8 @@ extension TranscriptReducer {
     let finalText = JS.nonEmpty(str(payload["text"])) ?? str(payload["rendered"])
     // The files this reply shares (`contract/outbox/`): absent or empty when it named none.
     let shared = OutboxAttachment.parseAll(payload["attachments"])
+    // The pages it used (`contract/sources/`): absent when the turn used no web tool.
+    let sources = ReplySource.parseAll(payload["sources"])
     let wasInterrupted = next.turn.interrupted == true
     let rawStatus = str(payload["status"])
     let status: AssistantStatus =
@@ -242,6 +244,10 @@ extension TranscriptReducer {
           draft.outbox = shared
         }
 
+        if !sources.isEmpty {
+          draft.sources = sources
+        }
+
         if let failure {
           draft.error = failure
         }
@@ -280,6 +286,10 @@ extension TranscriptReducer {
 
           if !shared.isEmpty {
             draft.outbox = shared
+          }
+
+          if !sources.isEmpty {
+            draft.sources = sources
           }
 
           if let failure {
