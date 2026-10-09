@@ -43,7 +43,7 @@ final class ComposerUITests: XCTestCase {
     stop.tap()
 
     // Stopped: the button is Send again and the turn is over on the gateway.
-    XCTAssertTrue(app.buttons["composer.send"].waitForExistence(timeout: 15))
+    XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier IN {'composer.send', 'composer.dictate'}")).firstMatch.waitForExistence(timeout: 15))
     try waitForFake("the turn to stop") { state in
       (state["runningSessions"] as? [Any])?.isEmpty ?? false
     }
@@ -140,7 +140,7 @@ final class ComposerUITests: XCTestCase {
     app.typeKey(.delete, modifierFlags: [])
 
     field.typeKey(.escape, modifierFlags: [])
-    XCTAssertTrue(app.buttons["composer.send"].waitForExistence(timeout: 15), "Esc stopped the reply")
+    XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier IN {'composer.send', 'composer.dictate'}")).firstMatch.waitForExistence(timeout: 15), "Esc stopped the reply")
     try waitForFake("the turn to stop") { state in
       (state["runningSessions"] as? [Any])?.isEmpty ?? false
     }

@@ -382,6 +382,8 @@
 	<string>Skill</string>
 	<key>native.composer.failed</key>
 	<string>Die Nachricht wurde nicht gesendet: %@</string>
+	<key>native.composer.more</key>
+	<string>Mehr</string>
 	<key>native.composer.openElsewhere</key>
 	<string>Dieser Chat ist in einem anderen Hermes-Fenster oder Terminal geöffnet, deshalb wurde die Nachricht nicht gesendet. Nutze ihn dort oder beginne hier einen neuen Chat.</string>
 	<key>native.composer.openElsewhere.details</key>

@@ -382,6 +382,8 @@
 	<string>Skill</string>
 	<key>native.composer.failed</key>
 	<string>Het bericht is niet verstuurd: %@</string>
+	<key>native.composer.more</key>
+	<string>Meer</string>
 	<key>native.composer.openElsewhere</key>
 	<string>Deze chat is open in een ander Hermes-venster of een terminal, dus het bericht is niet verstuurd. Gebruik hem daar, of begin hier een nieuwe chat.</string>
 	<key>native.composer.openElsewhere.details</key>

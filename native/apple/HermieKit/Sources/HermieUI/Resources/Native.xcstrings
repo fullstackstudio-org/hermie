@@ -3571,6 +3571,30 @@
         }
       }
     },
+    "native.composer.more" : {
+      "comment" : "Accessibility label of the round plus button beside the message field: it opens the menu with attachments, prompts and dictation.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mehr"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meer"
+          }
+        }
+      }
+    },
     "native.composer.openElsewhere" : {
       "comment" : "Above the message field when the gateway refused a message because another Hermes window or terminal has this chat open. A button to start a new chat here follows it.",
       "extractionState" : "manual",

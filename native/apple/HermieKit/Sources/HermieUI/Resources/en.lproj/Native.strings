@@ -382,6 +382,8 @@
 	<string>Skill</string>
 	<key>native.composer.failed</key>
 	<string>The message did not go out: %@</string>
+	<key>native.composer.more</key>
+	<string>More</string>
 	<key>native.composer.openElsewhere</key>
 	<string>This chat is open in another Hermes window or terminal, so the message did not go out. Use it there, or start a new chat here.</string>
 	<key>native.composer.openElsewhere.details</key>
