@@ -162,6 +162,7 @@ function setUp(
     sessions?: readonly OpenSession[]
     watch?: (listener: () => void) => () => void
     requests?: RequestsAdvert
+    markup?: readonly string[]
     monotonic?: () => number
     selfEnrolment?: SelfEnrolmentSeam
   } = {}
@@ -198,6 +199,7 @@ function setUp(
     ...(options.sessions ? { openSessions: () => options.sessions as readonly OpenSession[] } : {}),
     ...(options.watch ? { watchSessions: options.watch } : {}),
     ...(options.requests ? { requests: options.requests } : {}),
+    ...(options.markup ? { markup: options.markup } : {}),
     ...(options.monotonic ? { monotonic: options.monotonic } : {}),
     ...(options.selfEnrolment ? { selfEnrolment: options.selfEnrolment } : {}),
     failWithData: (request, code, _message, data) => void failures.push({ id: request.id, code, data })
@@ -1957,5 +1959,162 @@ describe('adding a passkey by signing in again: coming back', () => {
     expect(isReauthFailure(new PasskeyActionError({ kind: 'transport', message: 'x' }))).toBe(false)
     expect(isReauthFailure(new Error('x'))).toBe(false)
     expect(isReauthFailure(new PasskeyActionError({ kind: 'self_enrol_expired' }))).toBe(true)
+  })
+})
+
+describe('advertising the blocks the page draws (markup)', () => {
+  const BLOCKS = ['alerts', 'cards', 'chart']
+
+  /** A gateway whose first result carries (or lacks) the `markup` key, with or without the passkey level on offer. */
+  function withMarkup(options: { key?: boolean; passkey?: boolean; refuse?: boolean } = {}) {
+    const page = setUp({
+      markup: BLOCKS,
+      sessions: [{ sessionId: 'sess-1', lastSeen: 0 }],
+      client: { status: vi.fn(async () => GATEWAY_STATUS()) }
+    })
+
+    page.answer.mockImplementation(async (method: string, params: unknown) => {
+      if (method === 'client.capabilities') {
+        const sent = params as { confirm?: string[]; markup?: string[] }
+
+        if (sent.confirm || sent.markup) {
+          if (options.refuse) {
+            throw new Error('Unknown parameter: markup (4000)')
+          }
+
+          return { confirm: sent.confirm ? ['passkey'] : [], ...(sent.markup ? { markup: sent.markup } : {}) }
+        }
+
+        return {
+          server_requests: ['approval', 'clarify', 'confirm'],
+          confirm: [],
+          ...(options.key === false ? {} : { markup: [] }),
+          ...(options.passkey === false
+            ? {}
+            : {
+                confirm_passkey: {
+                  v: 1,
+                  enabled: true,
+                  reason: '',
+                  gateway_id: GATEWAY_ID,
+                  rp: { native: [], web: ['gw.example.test'] }
+                }
+              })
+        }
+      }
+
+      if (method === 'session.events.since') {
+        return { open_requests: [] }
+      }
+
+      return { status: 'ok' }
+    })
+
+    return page
+  }
+
+  it('puts exactly the blocks it draws in the second call, beside the passkey level', async () => {
+    const page = withMarkup()
+
+    await page.model.advertise()
+
+    expect(callsTo(page, 'client.capabilities')).toEqual([
+      { server_requests: true },
+      {
+        server_requests: true,
+        confirm: ['passkey'],
+        confirm_passkey: { v: 1, kind: 'web', rp_id: 'gw.example.test' },
+        markup: BLOCKS
+      }
+    ])
+  })
+
+  it('sends the second call for the blocks alone when the passkey level is not on offer', async () => {
+    const page = withMarkup({ passkey: false })
+
+    await page.model.advertise()
+
+    expect(callsTo(page, 'client.capabilities')).toEqual([
+      { server_requests: true },
+      { server_requests: true, markup: BLOCKS }
+    ])
+  })
+
+  it('leaves the key out when the first result does not carry it: an older gateway refuses the call with 4000', async () => {
+    const withPasskey = withMarkup({ key: false })
+
+    await withPasskey.model.advertise()
+
+    expect(callsTo(withPasskey, 'client.capabilities')[1]).toEqual({
+      server_requests: true,
+      confirm: ['passkey'],
+      confirm_passkey: { v: 1, kind: 'web', rp_id: 'gw.example.test' }
+    })
+
+    const without = withMarkup({ key: false, passkey: false })
+
+    await without.model.advertise()
+
+    // Nothing to offer: one call, as before.
+    expect(callsTo(without, 'client.capabilities')).toEqual([{ server_requests: true }])
+  })
+
+  it('sends nothing when the page was given no blocks, however the gateway answers', async () => {
+    const page = setUp({ sessions: [{ sessionId: 'sess-1', lastSeen: 0 }] })
+
+    page.answer.mockImplementation(async () => ({ server_requests: [], confirm: [], markup: [] }))
+
+    await page.model.advertise()
+
+    expect(callsTo(page, 'client.capabilities')).toEqual([{ server_requests: true }])
+  })
+
+  it('sends the blocks on every call after the first of a socket: the gateway takes each call as a full replacement', async () => {
+    const page = withMarkup({ passkey: false })
+
+    await page.model.advertise()
+    // Same socket again (a re-advertisement): the gateway has shown it knows the key, so no call may go without it.
+    await page.model.advertise()
+
+    expect(callsTo(page, 'client.capabilities')).toEqual([
+      { server_requests: true },
+      { server_requests: true, markup: BLOCKS },
+      { server_requests: true, markup: BLOCKS },
+      { server_requests: true, markup: BLOCKS }
+    ])
+  })
+
+  it('goes without the blocks on the first call of a new socket, and sends them on the second', async () => {
+    const page = withMarkup({ passkey: false })
+
+    page.status('ready')
+    await flushPromises()
+    page.status('reconnecting')
+    page.status('ready')
+    await flushPromises()
+
+    expect(callsTo(page, 'client.capabilities')).toEqual([
+      { server_requests: true },
+      { server_requests: true, markup: BLOCKS },
+      // A new socket: the key is not known there yet, and a gateway older than the key would refuse the whole call.
+      { server_requests: true },
+      { server_requests: true, markup: BLOCKS }
+    ])
+  })
+
+  it('never carries the blocks in a first call to a gateway that did not show the key', async () => {
+    const page = withMarkup({ passkey: false, key: false })
+
+    await page.model.advertise()
+    await page.model.advertise()
+
+    expect(callsTo(page, 'client.capabilities')).toEqual([{ server_requests: true }, { server_requests: true }])
+  })
+
+  it('does not fail the advertising when the gateway refuses the second call', async () => {
+    const page = withMarkup({ passkey: false, refuse: true })
+
+    await expect(page.model.advertise()).resolves.toBeUndefined()
+    expect(page.store.getState().capability).toEqual({ verdict: { kind: 'not_offered' }, accepted: [] })
   })
 })

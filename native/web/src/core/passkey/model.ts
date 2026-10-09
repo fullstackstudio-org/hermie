@@ -45,7 +45,10 @@
  *    this client has no sheet for it. The second call also carries `requests`,
  *    the interactive methods the page can show (`RequestsAdvert`), when the first
  *    result lists any of them, with or without the passkey level: the second
- *    call replaces what the first said, so the two ride in one.
+ *    call replaces what the first said, so the two ride in one. The same call carries `markup`, the blocks this page
+ *    draws in a reply (`chart`, `cards`, `alerts`: `core/markup-capabilities.ts`), when the first result carries the
+ *    key `markup` (the gateway then tells a bot about exactly those blocks on a turn this page submits); with
+ *    neither the passkey level nor a method to offer it is still sent, for the blocks alone.
  *  - **Open requests again.** The gateway hides a gated request from a
  *    connection that has not advertised the level, and the replay of a resume
  *    runs before the second call, so once `passkey` is newly accepted on a socket
@@ -204,6 +207,12 @@ export interface PasskeyModelOptions {
    * call replaces what the connection said before, so the list rides in it, here, with the passkey level.
    */
   requests?: RequestsAdvert
+  /**
+   * The blocks the page draws in a reply (`core/markup-capabilities.ts`). The second `client.capabilities` call
+   * carries them as `markup`, and only when the first result carried the key (a gateway that knows the key lists
+   * `markup` in every result; an older one refuses the key with 4000 and the whole call). Absent or empty: none.
+   */
+  markup?: readonly string[]
   /** Unix seconds. */
   now?: () => number
   /**
@@ -314,6 +323,12 @@ export class PasskeyModel {
   private acceptedOnSocket = false
   /** The gateway took the passkey level on this socket: only then can a list of open requests name a confirmation. */
   private passkeyOnSocket = false
+  /**
+   * A result on this socket carried the key `markup`: the gateway knows it, so a later call on the same socket may
+   * carry the blocks too. The gateway takes every call as a full replacement, so a call without them clears them;
+   * the first call of a run is the only one that has to go without, and only on a socket that has not shown the key.
+   */
+  private markupKnownOnSocket = false
   /** How many sockets went away: an advert that started under an earlier count ran on a socket that is gone. */
   private socketsGone = 0
   /** The socket (its `socketsGone` count) whose advert the interactive model was last told about: once per socket. */
@@ -387,6 +402,7 @@ export class PasskeyModel {
           this.socketsGone += 1
           this.acceptedOnSocket = false
           this.passkeyOnSocket = false
+          this.markupKnownOnSocket = false
           this.sessionsRead.clear()
 
           return
@@ -444,10 +460,11 @@ export class PasskeyModel {
     let first: Record<string, unknown>
 
     try {
-      first = (await gateway.request('client.capabilities', { server_requests: true })) as unknown as Record<
-        string,
-        unknown
-      >
+      first = (await gateway.request('client.capabilities', {
+        server_requests: true,
+        // Once this socket has shown the gateway knows the key, a call without the blocks would clear them.
+        ...(this.markupKnownOnSocket && this.options.markup?.length ? { markup: [...this.options.markup] } : {})
+      })) as unknown as Record<string, unknown>
     } catch {
       if (generation === this.generation) {
         this.store.setState({ capability: { verdict: { kind: 'not_offered' }, accepted: [] } })
@@ -493,6 +510,12 @@ export class PasskeyModel {
       ? first.server_requests.filter((method): method is string => typeof method === 'string')
       : []
     const requests = this.options.requests?.methods(serverRequests) ?? []
+    // The Hermie blocks this page draws: offered only when the gateway's result carries the key.
+    const markup = 'markup' in first ? [...(this.options.markup ?? [])] : []
+
+    if ('markup' in first && socket === this.socketsGone) {
+      this.markupKnownOnSocket = true
+    }
     let accepted: string[] = []
     let requestsAccepted = false
     /** The second call failed: whether the gateway took the methods is not known. */
@@ -511,7 +534,7 @@ export class PasskeyModel {
         : []
     const v2 = fieldsKnown && versions.includes(2)
 
-    if (verdict.kind === 'advertised' || requests.length > 0) {
+    if (verdict.kind === 'advertised' || requests.length > 0 || markup.length > 0) {
       try {
         const second = (await gateway.request('client.capabilities', {
           server_requests: true,
@@ -522,7 +545,8 @@ export class PasskeyModel {
                 confirm_passkey: { v: v2 ? 2 : 1, kind: 'web', rp_id: webauthn.rpId }
               }
             : {}),
-          ...(requests.length > 0 ? { requests: [...requests] } : {})
+          ...(requests.length > 0 ? { requests: [...requests] } : {}),
+          ...(markup.length > 0 ? { markup } : {})
         } as { server_requests: boolean })) as unknown as Record<string, unknown>
 
         accepted = Array.isArray(second.confirm)

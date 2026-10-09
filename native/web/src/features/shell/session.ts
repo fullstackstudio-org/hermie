@@ -64,6 +64,7 @@ import type { ConnectChatsOptions, ChatRuntime, SessionSignal } from '../../core
 import { ownAuthorStore } from '../../core/chats/own-author'
 import { connectChats } from '../../core/chat-controller'
 import { connectGateway, type ConnectGatewayOptions, type GatewayClient } from '../../core/gateway-client'
+import { WEB_MARKUP } from '../../core/markup-capabilities'
 import { serialiseBaseUrl } from '../../core/passkey/challenge'
 import { createMcpClient } from '../../core/mcp/client'
 import { McpModel } from '../../core/mcp/model'
@@ -278,7 +279,9 @@ export function startSession(options: StartSessionOptions): Session {
       ),
     watchSessions: listener => chats.chats.subscribe(() => listener()),
     failWithData,
-    requests: interactiveAdvert(interactive, { enabled: ADVERTISE_INTERACTIVE_REQUESTS })
+    requests: interactiveAdvert(interactive, { enabled: ADVERTISE_INTERACTIVE_REQUESTS }),
+    // The blocks a reply may hold that this page draws; sent only to a gateway that knows the key.
+    markup: WEB_MARKUP
   })
 
   passkeys.start()
