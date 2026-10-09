@@ -93,6 +93,8 @@ struct HarnessOptions {
   var confirm: ConfirmCapabilitySource?
   /// The interactive methods this device can show (`requests` of the second call).
   var requests: [String]?
+  /// The Hermie blocks this app draws (`markup` of the second call).
+  var markup: [String]?
 }
 
 /// Build a harness, run `body`, and always stop the connection afterwards (the
@@ -115,6 +117,7 @@ func withHarness(
   connectionOptions.offlineGrace = options.offlineGrace
   connectionOptions.confirm = options.confirm
   connectionOptions.requests = options.requests
+  connectionOptions.markup = options.markup
 
   let connection = try GatewayConnection(
     baseURL: testBaseURL,

@@ -79,6 +79,10 @@ public actor GatewayConnection {
     /// `nil`, or an empty list: nothing is announced, and every interactive request is answered
     /// `-32601`, as before. A method the gateway did not accept is answered `-32601` too.
     public var requests: [String]?
+    /// The Hermie blocks this app draws (`MarkupAdvertisement.supported`), announced in the second
+    /// `client.capabilities` call as `markup` when the first result carries the key, and repeated in every
+    /// call after it (`MarkupCapabilities.swift`). `nil`, or an empty list: nothing is announced.
+    public var markup: [String]?
 
     public init() {}
   }
@@ -156,6 +160,9 @@ public actor GatewayConnection {
   /// answer), narrowed to what the gateway accepted once the answer came. Empty while nothing was
   /// advertised.
   var requestsAdvertised: Set<String> = []
+  /// The blocks the gateway accepted from the attached socket's `markup` (`[]` before it did, or when it
+  /// does not know the key): what the connection believes the gateway tells a model on this socket's turns.
+  var markupAccepted: [String] = []
   /// Per interactive method the attached socket had accepted: the serial of the first call made
   /// after the gateway's answer accepting it came in. A call with that serial or a later one reads
   /// a complete list of that method's open requests (`RPCReply.listedRequests`). Emptied with the

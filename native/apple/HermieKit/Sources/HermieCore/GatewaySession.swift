@@ -53,6 +53,10 @@ public final class GatewaySession {
     /// interactive request is answered `-32601`.
     public var requests: [String]? = InteractiveCapabilities.defaultMethods()
 
+    /// The Hermie blocks this app draws (`MarkupAdvertisement.supported`), announced in `client.capabilities`
+    /// so the gateway tells a model it may write them. `nil` or empty: none is announced.
+    public var markup: [String]? = MarkupAdvertisement.supported
+
     /// The one list both the connection announces and the center takes in.
     var resolvedRequests: [String] { requests ?? connection.requests ?? [] }
     /// Passkeys and the `confirm` level `passkey` (`PasskeyModel`). `nil`: the connection announces
@@ -206,6 +210,7 @@ public final class GatewaySession {
     var connectionOptions = options.connection
     connectionOptions.confirm = source ?? connectionOptions.confirm
     connectionOptions.requests = options.resolvedRequests
+    connectionOptions.markup = options.markup ?? connectionOptions.markup
     let link = try ConnectionLink(
       baseURL: record.address,
       extraHeaders: extraHeaders,

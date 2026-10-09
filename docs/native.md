@@ -3025,6 +3025,14 @@ none`, `cards`: 2 to 12 of `{icon?, title, subtitle?, tags?, highlight?, next?}`
   of what a tap opens or selects. `mailto` and `tel` carry none. The arrow is decoration: a paragraph that has one is
   given a VoiceOver label without it (`MarkdownInline.spokenText`), so the link's own words are what is read. Which
   schemes a tap may open is unchanged (`openableSchemes`).
+- **Telling the gateway.** The app announces `markup: ["chart", "cards", "alerts"]` in `client.capabilities`
+  (`MarkupAdvertisement.supported`; a name is added only once a view draws it), and the gateway then tells a model it
+  may write those blocks on the turns this connection submits, and on no others. Two rules from the gateway: the key
+  goes in the second call and only when the first result carries `markup` (an older gateway refuses an unknown key
+  with 4000 and the whole call), and every call replaces the advertisement, so a call without `markup` clears it. So
+  once the gateway has shown it knows the key, every call carries it again: the second call, and both calls of a
+  refresh (a setting or request type changed, a passkey enrolled). A new socket starts over: its opening call is bare
+  (there is nothing to clear yet) and its second call carries the list. `MarkupCapabilityTests` holds it.
 - **Words** travel through the environment like the chart's (`markdownCardsLabels`, `markdownAlertLabels`;
   `native.cards.*`, `native.alert.*`, `native.block.*`).
 

@@ -32,6 +32,7 @@ extension GatewayConnection {
     heartbeat.lastLivenessAt = clock.now
     // A new socket starts without an advertisement at the gateway.
     confirmAdvertised = nil
+    markupAccepted = []
     requestsAdvertised = []
     requestsListedSince = [:]
   }
@@ -219,7 +220,7 @@ extension GatewayConnection {
   /// between the two calls still finds this client. When the second call would
   /// advertise nothing, it withdraws them.
   func advertiseCapabilities() {
-    guard options.confirm != nil || options.requests?.isEmpty == false else {
+    guard announcesMore else {
       _ = try? channelCall(
         RPC.ClientCapabilities.name,
         params: ["server_requests": true],
@@ -242,14 +243,22 @@ extension GatewayConnection {
     spawn { await self.completeCapabilities(first, generation: generation, carried: carried != nil) }
   }
 
+  /// The Hermie blocks the gateway accepted from this socket (`MarkupAdvertisement`), for diagnostics: empty
+  /// before the second call is answered, and when the gateway does not know the key.
+  public var acceptedMarkup: [String] { markupAccepted }
+
+  /// Whether this connection announces anything beyond the single `{server_requests: true}` call: a `confirm`
+  /// source, interactive methods or Hermie blocks.
+  private var announcesMore: Bool {
+    options.confirm != nil || options.requests?.isEmpty == false || options.markup?.isEmpty == false
+  }
+
   /// Run the two-step announcement again on the live socket: what the app can do
   /// changed (a passkey was enrolled or removed). Nothing happens without a
   /// `confirm` source or `Options.requests`, or a ready socket; the next `gateway.ready`
   /// runs it anyway.
   public func refreshCapabilities() {
-    guard options.confirm != nil || options.requests?.isEmpty == false, attachedGeneration != nil,
-      currentPhase == .ready
-    else {
+    guard announcesMore, attachedGeneration != nil, currentPhase == .ready else {
       return
     }
 
@@ -268,11 +277,18 @@ extension GatewayConnection {
     let verdict = ConfirmAdvertisement.verdict(parsed?.confirmPasskey, policy: policy.passkey)
     var decided = parsed.flatMap { ConfirmAdvertisement.secondCall(after: $0, policy: policy) }
     let methods = parsed.map { RequestsAdvertisement.methods(after: $0, device: options.requests) } ?? []
+    let blocks = parsed.map { MarkupAdvertisement.names(after: $0, device: options.markup) } ?? []
 
     if !methods.isEmpty {
       var withRequests = decided ?? ClientCapabilitiesParams(serverRequests: true)
       withRequests.requests = methods
       decided = withRequests
+    }
+
+    if !blocks.isEmpty {
+      var withMarkup = decided ?? ClientCapabilitiesParams(serverRequests: true)
+      withMarkup.markup = blocks
+      decided = withMarkup
     }
 
     // The first call repeated levels or methods this client may no longer offer: without a second
@@ -302,6 +318,8 @@ extension GatewayConnection {
     let accepted = (answer?.confirm ?? []).filter { wanted.contains($0) }
     let wantedRequests = Set(params.requests ?? [])
     let acceptedRequests = (answer?.requests ?? []).filter { wantedRequests.contains($0) }
+    let wantedMarkup = Set(params.markup ?? [])
+    let acceptedMarkup = (answer?.markup ?? []).filter { wantedMarkup.contains($0) }
     // The gateway echoes `confirm_fields: true` once it took this connection's own, with a level.
     let fieldsAccepted = params.confirmFields == true && answer?.confirmFields == true && !accepted.isEmpty
     // Advertised but refused: the gateway did not take it after all.
@@ -320,9 +338,10 @@ extension GatewayConnection {
       (accepted.contains(.passkey) && confirmAdvertised?.confirm?.contains(.passkey) != true)
       || (!acceptedRequests.isEmpty && Set(confirmAdvertised?.requests ?? []) != Set(acceptedRequests))
     requestsAdvertised = Set(acceptedRequests)
+    markupAccepted = acceptedMarkup
     noteListed(acceptedRequests)
     confirmAdvertised = Self.advertisement(
-      params, accepted: accepted, requests: acceptedRequests, fields: fieldsAccepted)
+      params, accepted: accepted, requests: acceptedRequests, fields: fieldsAccepted, markup: acceptedMarkup)
     source?.record(report)
 
     if gained {
@@ -357,9 +376,10 @@ extension GatewayConnection {
     _ params: ClientCapabilitiesParams,
     accepted: [ConfirmLevel],
     requests: [String] = [],
-    fields: Bool = false
+    fields: Bool = false,
+    markup: [String] = []
   ) -> ClientCapabilitiesParams? {
-    guard !accepted.isEmpty || !requests.isEmpty else {
+    guard !accepted.isEmpty || !requests.isEmpty || !markup.isEmpty else {
       return nil
     }
 
@@ -375,6 +395,12 @@ extension GatewayConnection {
 
     if !requests.isEmpty {
       held.requests = requests
+    }
+
+    // The gateway takes each call as the whole advertisement: a call without `markup` clears it, so a refresh
+    // repeats what was accepted.
+    if !markup.isEmpty {
+      held.markup = markup
     }
 
     return held
