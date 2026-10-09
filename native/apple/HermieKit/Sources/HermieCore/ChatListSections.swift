@@ -76,16 +76,12 @@ public struct ChatListSections<Row> {
 
   /// Where one step up and one step down land for a chat, within its set; nil at the set's edge.
   public func steps(of name: String) -> (up: ChatListArrangement.Anchor?, down: ChatListArrangement.Anchor?) {
-    let group = moveGroup(of: name)
+    moves.steps(of: name)
+  }
 
-    guard let index = group.firstIndex(of: name) else {
-      return (nil, nil)
-    }
-
-    return (
-      index > 0 ? .before(group[index - 1]) : nil,
-      index + 1 < group.count ? .after(group[index + 1]) : nil
-    )
+  /// The steps every chat can take, as a value that compares equal while the move groups do.
+  public var moves: ChatListMoves {
+    ChatListMoves(moveGroups: moveGroups)
   }
 
   /**
@@ -127,6 +123,37 @@ public struct ChatListSections<Row> {
     }
 
     return .before(target)
+  }
+}
+
+/**
+ Where one step up and one step down land for each chat (Move Up and Move Down in the Chat menu):
+ the move groups of a `ChatListSections` and nothing else, so two lists that would step every chat
+ the same way compare equal. `none` is a list whose order cannot be written now (a search is
+ narrowing it): no chat can step.
+ */
+public struct ChatListMoves: Sendable, Equatable {
+  /// The sets of chats that can step past each other, each in the order drawn.
+  public let moveGroups: [[String]]
+
+  public init(moveGroups: [[String]]) {
+    self.moveGroups = moveGroups
+  }
+
+  /// No chat can step.
+  public static let none = ChatListMoves(moveGroups: [])
+
+  /// Where one step up and one step down land for a chat, within its set; nil at the set's edge,
+  /// and both nil for a chat in no set.
+  public func steps(of name: String) -> (up: ChatListArrangement.Anchor?, down: ChatListArrangement.Anchor?) {
+    guard let group = moveGroups.first(where: { $0.contains(name) }), let index = group.firstIndex(of: name) else {
+      return (nil, nil)
+    }
+
+    return (
+      index > 0 ? .before(group[index - 1]) : nil,
+      index + 1 < group.count ? .after(group[index + 1]) : nil
+    )
   }
 }
 

@@ -20,6 +20,8 @@ struct SessionChatList: View {
   @State private var naming: FolderNaming?
   /// What the bots' messages say about the words in the field, over this session's gateway.
   @State private var messages: MessageSearchModel
+  /// Names this list in the Chat menu's focused value (`ChatListFocus.owner`), across its bodies.
+  @State private var focusOwner = UUID()
   @Environment(AppRouter.self) private var router: AppRouter?
   @Environment(\.chatListHostsSectionPicker) private var hostsSectionPicker
   #if os(iOS)
@@ -302,13 +304,13 @@ struct SessionChatList: View {
   /// What the Chat menu's commands act on.
   private func focus(_ rows: ChatListRows, askNewFolder: (@MainActor (String) -> Void)?) -> ChatListFocus {
     let movable = !rows.searching && session.arrangement.canEdit
-    let sections = rows.sections
 
     return ChatListFocus(
+      owner: focusOwner,
       gatewayID: session.gatewayID,
       arrangement: session.arrangement,
       roster: roster,
-      steps: { movable ? sections.steps(of: $0) : (nil, nil) },
+      moves: movable ? rows.sections.moves : .none,
       askNewFolder: askNewFolder
     )
   }
