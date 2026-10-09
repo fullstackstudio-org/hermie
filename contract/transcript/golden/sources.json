@@ -664,6 +664,301 @@
         "args": [
           {
             "title": "Installing the gateway",
+            "url": "http://127.0.0.1/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": {
+          "title": "Installing the gateway",
+          "url": "http://127.0.0.1/",
+          "via": "read"
+        }
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://10.0.0.255:8080/x",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": {
+          "title": "Installing the gateway",
+          "url": "https://10.0.0.255:8080/x",
+          "via": "read"
+        }
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "http://0.0.0.0/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": {
+          "title": "Installing the gateway",
+          "url": "http://0.0.0.0/",
+          "via": "read"
+        }
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://1.2.3.4",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": {
+          "title": "Installing the gateway",
+          "url": "https://1.2.3.4",
+          "via": "read"
+        }
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "http://127.1/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "http://0x7f.1/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "http://0x7f.0.0.1/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "http://0x7f/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "http://2130706433/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "http://0177.0.0.1/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "http://127.000.0.1/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "http://256.0.0.1/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "http://1.2.3/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "http://1.2.3.4.5/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://a.123/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://123/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://example.0x1f/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://123.example/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": {
+          "title": "Installing the gateway",
+          "url": "https://123.example/",
+          "via": "read"
+        }
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://1password.com/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": {
+          "title": "Installing the gateway",
+          "url": "https://1password.com/",
+          "via": "read"
+        }
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://x0x7f.example/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": {
+          "title": "Installing the gateway",
+          "url": "https://x0x7f.example/",
+          "via": "read"
+        }
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > takes a host whose last label is a number only as a canonical dotted quad"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "http://[fe80::1%25en0]/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "http://[fe80::1%en0]/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "http://[2001:db8::1]:8080/x",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": {
+          "title": "Installing the gateway",
+          "url": "http://[2001:db8::1]:8080/x",
+          "via": "read"
+        }
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > refuses an IPv6 address with a zone"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
             "url": "https://example.org/a‮b",
             "via": "read"
           }

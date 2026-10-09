@@ -278,8 +278,8 @@
     },
     "parseSource": {
       "readsClock": false,
-      "recorded": 60,
-      "replayable": 59,
+      "recorded": 83,
+      "replayable": 82,
       "skipped": {
         "args: lone-surrogate": 1
       }

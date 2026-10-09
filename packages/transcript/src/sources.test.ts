@@ -75,6 +75,41 @@ describe('parseSource, by the contract’s examples', () => {
     expect(parseSource({ ...READ, url: 'https://example.org:/' })).toBeNull()
   })
 
+  it('takes a host whose last label is a number only as a canonical dotted quad', () => {
+    for (const good of ['http://127.0.0.1/', 'https://10.0.0.255:8080/x', 'http://0.0.0.0/', 'https://1.2.3.4']) {
+      expect(parseSource({ ...READ, url: good }), good).not.toBeNull()
+    }
+
+    for (const bad of [
+      'http://127.1/',
+      'http://0x7f.1/',
+      'http://0x7f.0.0.1/',
+      'http://0x7f/',
+      'http://2130706433/',
+      'http://0177.0.0.1/',
+      'http://127.000.0.1/',
+      'http://256.0.0.1/',
+      'http://1.2.3/',
+      'http://1.2.3.4.5/',
+      'https://a.123/',
+      'https://123/',
+      'https://example.0x1f/'
+    ]) {
+      expect(parseSource({ ...READ, url: bad }), bad).toBeNull()
+    }
+
+    // A name that only contains digits is still a name when its last label is not one.
+    expect(parseSource({ ...READ, url: 'https://123.example/' })).not.toBeNull()
+    expect(parseSource({ ...READ, url: 'https://1password.com/' })).not.toBeNull()
+    expect(parseSource({ ...READ, url: 'https://x0x7f.example/' })).not.toBeNull()
+  })
+
+  it('refuses an IPv6 address with a zone', () => {
+    expect(parseSource({ ...READ, url: 'http://[fe80::1%25en0]/' })).toBeNull()
+    expect(parseSource({ ...READ, url: 'http://[fe80::1%en0]/' })).toBeNull()
+    expect(parseSource({ ...READ, url: 'http://[2001:db8::1]:8080/x' })).not.toBeNull()
+  })
+
   it('refuses an address with an invisible or control character anywhere in it', () => {
     for (const bad of [
       '\u202e',

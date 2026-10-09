@@ -14,6 +14,9 @@
  *   is not), so an upper-case or Unicode host is not an entry. The reader takes the address as it comes and never
  *   normalises it: a view shows the host beside the title exactly as stored, and opens the address only on the
  *   person's own tap.
+ *   A host whose last label reads as a number is only taken as the canonical dotted-quad IPv4 address
+ *   (`127.1`, `0x7f.1`, `2130706433`, `0177.0.0.1`, `127.000.0.1` and `a.123` are not entries); a zoned IPv6 address
+ *   (`%`) is not one either.
  * - **`title`** is text, at most 160 characters, and may be empty. A title over the cap is not shortened: the entry
  *   is not one the gateway sends, so it goes.
  * - **The list** keeps at most 24 entries, the first of each `url`, in the order given. It is not sorted again (the
@@ -70,6 +73,28 @@ const portOutOfRange = (url: string): boolean => {
   return port !== undefined && Number(port) > 65_535
 }
 
+/** The host of an address that passed the pattern: a bracketed IPv6 address, or the labels before the port, path, query or fragment. */
+const HOST_RE = /^https?:\/\/(\[[^\]]*\]|[^:/?#]*)/u
+
+/** A host whose last label reads as a number to a URL parser: all digits, or `0x` and hex digits (`127.1`, `0x7f`, `2130706433`). */
+const NUMERIC_LAST_LABEL_RE = /(?:^|\.)(?:[0-9]+|0x[0-9a-f]*)$/u
+
+/** An IPv4 address in its canonical form: four decimal parts of 0 to 255 with no leading zero. */
+const DOTTED_QUAD_RE =
+  /^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$/u
+
+/**
+ * Whether the address names a host the gateway would not have stored: one whose last label looks like a number is
+ * only an address when it is the canonical dotted quad (so `127.1`, `0x7f.1`, `2130706433`, `0177.0.0.1`,
+ * `127.000.0.1` and `a.123` are refused: a URL parser reads them as another address than they say). A host in brackets
+ * is an IPv6 address, which the pattern holds to digits, colons and dots (no zone).
+ */
+const numericHostRefused = (url: string): boolean => {
+  const host = HOST_RE.exec(url)?.[1] ?? ''
+
+  return !host.startsWith('[') && NUMERIC_LAST_LABEL_RE.test(host) && !DOTTED_QUAD_RE.test(host)
+}
+
 const isObject = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 
@@ -92,6 +117,7 @@ export function parseSource(value: unknown): Source | null {
     FORMAT_RE.test(url) ||
     LONE_SURROGATE_RE.test(url) ||
     portOutOfRange(url) ||
+    numericHostRefused(url) ||
     typeof title !== 'string' ||
     lengthOf(title) > SOURCE_TITLE_MAX_CHARS ||
     (via !== 'read' && via !== 'found')
