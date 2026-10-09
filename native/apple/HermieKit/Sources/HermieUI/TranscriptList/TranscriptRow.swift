@@ -84,10 +84,10 @@ public struct TranscriptRow: Identifiable, Equatable, Sendable {
   /// A failed reply here offers Retry: only the newest turn's (no prompt follows it). Compared, so a
   /// prompt sent after it takes the button away.
   public var retryable = true
-  /// This is the chat's newest reply, with no turn of the reader's after it: the one reply whose action
-  /// row (Copy, Share, Retry) is always drawn at full strength; the others carry theirs quieter and
-  /// without Retry. Compared, so a prompt sent after it, or a newer reply, redraws this row.
-  public var latestReply = false
+  /// This row closes a bot turn: it is the last reply with words before the reader's next message (or
+  /// the end of the chat), and carries what the one action row under the turn acts on. Nil for every
+  /// other row. Compared, so a row is drawn again when its turn grows or a prompt follows it.
+  public var turnReply: TurnReply?
   let stamp: Stamp
 
   public init(
@@ -111,7 +111,7 @@ public struct TranscriptRow: Identifiable, Equatable, Sendable {
   public static func == (lhs: TranscriptRow, rhs: TranscriptRow) -> Bool {
     lhs.stamp == rhs.stamp && lhs.opensAuthorRun == rhs.opensAuthorRun && lhs.bubble == rhs.bubble
       && lhs.id == rhs.id && lhs.flash == rhs.flash && lhs.retryable == rhs.retryable
-      && lhs.latestReply == rhs.latestReply
+      && lhs.turnReply == rhs.turnReply
   }
 
   /// The transcript items this row draws, oldest first: one, or the members of a roll-up or a group.
@@ -141,6 +141,21 @@ public struct TranscriptRow: Identifiable, Equatable, Sendable {
   /// This is the typing row, not one of the transcript's own.
   public var isTypingIndicator: Bool {
     if case .typingIndicator = content { true } else { false }
+  }
+}
+
+/// What the action row under a bot turn acts on (`TranscriptRow.turnReply`): all of the turn's words,
+/// whether the turn is the chat's newest, and a stamp of what went into it.
+public struct TurnReply: Equatable, Sendable {
+  /// The words of every reply of the turn, in order, apart by a blank line: what Copy and Share hand on.
+  public var text: String
+  /// No message of the reader's follows this turn: its row is drawn at full strength, with Retry.
+  public var latest: Bool
+  /// The versions and lengths of the replies in it, which is what a row is compared on (not `text`).
+  var stamp: [Int]
+
+  public static func == (lhs: TurnReply, rhs: TurnReply) -> Bool {
+    lhs.latest == rhs.latest && lhs.stamp == rhs.stamp
   }
 }
 
@@ -301,7 +316,7 @@ public struct TranscriptRowBuilder: Sendable {
 
     Self.layOutBubbles(&rows, historyComplete: historyComplete)
     Self.markRetryable(&rows)
-    Self.markLatestReply(&rows)
+    Self.markTurnReplies(&rows)
     parsed = next
     return rows
   }
@@ -322,13 +337,26 @@ public struct TranscriptRowBuilder: Sendable {
     }
   }
 
-  /// The chat's newest reply with words is the `latestReply`, unless a turn of the reader's stands
-  /// after it (that turn is not answered yet, so the reply above it is history). Interim notes and
-  /// replies drawn as chips are no reply the reader can act on.
-  static func markLatestReply(_ rows: inout [TranscriptRow]) {
-    for index in rows.indices.reversed() {
+  /// Marks the row that closes each bot turn (`TurnReply`). A turn is the replies between two of the
+  /// reader's messages; its closing row is the last of them with words, and only that row has the
+  /// action row under it, which acts on the turn's words joined. Interim notes (the bot thinking out
+  /// loud between tool calls) and rows drawn as chips are no part of it. The turn the reader has not
+  /// followed with a message of their own is the `latest`.
+  static func markTurnReplies(_ rows: inout [TranscriptRow]) {
+    var turn: [(index: Int, reply: AssistantItem)] = []
+
+    func close(latest: Bool) {
+      guard let last = turn.last else { return }
+      let text = turn.map { $0.reply.text.trimmingCharacters(in: .whitespacesAndNewlines) }.joined(separator: "\n\n")
+      rows[last.index].turnReply = TurnReply(
+        text: text, latest: latest, stamp: turn.flatMap { [$0.reply.base.version, $0.reply.text.utf8.count] })
+      turn.removeAll()
+    }
+
+    for index in rows.indices {
       if rows[index].items.contains(where: { if case .user = $0.item { true } else { false } }) {
-        return
+        close(latest: false)
+        continue
       }
 
       guard case .item(let visible) = rows[index].content, case .assistant(let reply) = visible.item,
@@ -338,9 +366,10 @@ public struct TranscriptRowBuilder: Sendable {
         continue
       }
 
-      rows[index].latestReply = true
-      return
+      turn.append((index, reply))
     }
+
+    close(latest: true)
   }
 
   /// The id of the group a run of tool calls starting with `firstID` is: stable while the run

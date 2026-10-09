@@ -70,7 +70,7 @@ public struct TranscriptItemView: View, Equatable {
     case .item(let visible):
       ItemContentView(
         visible: visible, markdown: row.markdown, opensAuthorRun: row.opensAuthorRun, bubble: row.bubble,
-        retryable: row.retryable, latestReply: row.latestReply)
+        retryable: row.retryable, turnReply: row.turnReply)
     case .botDmRollup(let members):
       BotDmRollupView(id: row.id, members: members)
     case .toolGroup(let members):
@@ -89,8 +89,8 @@ struct ItemContentView: View {
   var bubble: BubbleLayout?
   /// A failed reply offers Retry (`TranscriptRow.retryable`).
   var retryable = true
-  /// The chat's newest reply: its action row at full strength (`TranscriptRow.latestReply`).
-  var latestReply = false
+  /// This row closes a bot turn, and what its action row acts on (`TranscriptRow.turnReply`).
+  var turnReply: TurnReply?
 
   var body: some View {
     let presentation = visible.presentation
@@ -101,7 +101,7 @@ struct ItemContentView: View {
     case .assistant(let item):
       AssistantItemView(
         item: item, presentation: presentation, markdown: markdown, bubble: bubble, retryable: retryable,
-        latestReply: latestReply)
+        turnReply: turnReply)
     case .tool(let item):
       ToolItemView(item: item, presentation: presentation)
     case .status(let item):

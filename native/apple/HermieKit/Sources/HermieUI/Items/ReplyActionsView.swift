@@ -2,44 +2,47 @@ import HermieCore
 import HermieTranscript
 import SwiftUI
 
-/// What the row of actions under a finished reply offers, decided from the reply alone and what the
-/// chat says about it, so a test holds the rules without a screen.
+/// What the row of actions under a bot turn offers, decided from the closing reply and what the chat
+/// says about it, so a test holds the rules without a screen.
 ///
-/// The row is ChatGPT's: Copy, Share and, on the newest reply, Retry, then a "…" menu with the rest
-/// (`MessageMenuItems`). It is drawn under a reply that is done and has words; never while the reply
-/// is still being written, never under an interim note (the bot's thinking out loud between tool
-/// calls), a chip or a failed reply (that one has its own card with its own Retry).
+/// The row is ChatGPT's: Copy, Share and, on the newest turn, Retry, then a "…" menu with the rest
+/// (`MessageMenuItems`). There is one per turn, under its last reply (`TranscriptRow.turnReply`), and
+/// it acts on all of the turn's words. It is drawn under a reply that is done and has words; never
+/// while the reply is still being written, and never under a failed reply (that one has its own card
+/// with its own Retry).
 struct ReplyActionsPlan: Equatable, Sendable {
-  /// How loud the row is: the newest reply's at full strength, older replies' quieter.
+  /// How loud the row is: the newest turn's at full strength, older turns' quieter.
   enum Emphasis: Equatable, Sendable {
     case latest, earlier
   }
 
   var emphasis: Emphasis
-  /// Retry is in the row: only on the newest reply, and only where the chat can ask for it again.
+  /// Retry is in the row: only on the newest turn, and only where the chat can ask for it again.
   var retry: Bool
 
-  /// The row under `item`, or nil where there is none.
+  /// The row under `item`, which closes `turn`, or nil where there is none.
   /// - Parameters:
-  ///   - latest: the row is the chat's newest reply (`TranscriptRow.latestReply`).
+  ///   - turn: what `TranscriptRow.turnReply` says; nil for a row that does not close a turn.
   ///   - canRegenerate: the chat's menu offers Regenerate on this reply now (the reader's own prompt
   ///     stands before it and none after, `MessageMenu`).
-  static func make(for item: AssistantItem, presentation: Presentation, latest: Bool, canRegenerate: Bool) -> Self? {
+  static func make(for item: AssistantItem, presentation: Presentation, turn: TurnReply?, canRegenerate: Bool) -> Self? {
+    guard let turn else { return nil }
     guard presentation == .full || presentation == .collapsed else { return nil }
     guard !item.streaming, !item.interim, item.error == nil else { return nil }
     guard item.text.contains(where: { !$0.isWhitespace }) else { return nil }
 
-    return ReplyActionsPlan(emphasis: latest ? .latest : .earlier, retry: latest && canRegenerate)
+    return ReplyActionsPlan(emphasis: turn.latest ? .latest : .earlier, retry: turn.latest && canRegenerate)
   }
 }
 
-/// The action row under a reply: icons only, in the secondary colour, each with its words for
-/// VoiceOver. Copy puts the reply's Markdown on the pasteboard, Share hands the same text to the
-/// system share sheet, Retry asks for the reply again, and "…" opens the message's menu.
+/// The action row under a bot turn: icons only, in the secondary colour, each with its words for
+/// VoiceOver. Copy puts the turn's Markdown on the pasteboard, Share hands the same text to the system
+/// share sheet, Retry asks for the reply again, and "…" opens the message's menu, which acts on the
+/// whole turn too.
 struct ReplyActionsView: View {
   let item: AssistantItem
   let presentation: Presentation
-  let latest: Bool
+  let turn: TurnReply
 
   @Environment(\.transcriptItemActions) private var actions
 
@@ -49,23 +52,34 @@ struct ReplyActionsView: View {
     let canRegenerate = actions.messageMenu(.assistant(item)).entry(.regenerate) != nil
 
     if let plan = ReplyActionsPlan.make(
-      for: item, presentation: presentation, latest: latest, canRegenerate: canRegenerate)
+      for: item, presentation: presentation, turn: turn, canRegenerate: canRegenerate)
     {
-      ReplyActionButtons(item: item, plan: plan)
+      ReplyActionButtons(item: item, turn: turn, plan: plan)
     }
   }
 }
 
 struct ReplyActionButtons: View {
   let item: AssistantItem
+  let turn: TurnReply
   let plan: ReplyActionsPlan
 
   @Environment(\.transcriptItemActions) private var actions
   @State private var copied = false
+  @ScaledMetric(relativeTo: .body) private var glyph: CGFloat = 18
+  @ScaledMetric(relativeTo: .body) private var target: CGFloat = 36
 
-  /// The words the buttons hand on: the reply's Markdown, as written.
+  /// The closing reply as if it held the whole turn's words: what Copy, Share and the menu act on. It
+  /// keeps the reply's id, so Retry, Branch and the rest still point at the reply the chat knows.
+  private var turnItem: TranscriptItem {
+    var whole = item
+    whole.text = turn.text
+    return .assistant(whole)
+  }
+
+  /// The words the buttons hand on: the turn's Markdown, as written.
   private var words: String {
-    MessageMenu.copyMarkdown(of: .assistant(item)) ?? MessageMenu.copyText(of: .assistant(item)) ?? item.text
+    MessageMenu.copyMarkdown(of: turnItem) ?? MessageMenu.copyText(of: turnItem) ?? turn.text
   }
 
   var body: some View {
@@ -101,7 +115,7 @@ struct ReplyActionButtons: View {
       }
 
       Menu {
-        MessageMenuItems(item: .assistant(item))
+        MessageMenuItems(item: turnItem)
       } label: {
         icon("ellipsis")
       }
@@ -112,26 +126,23 @@ struct ReplyActionButtons: View {
     .buttonStyle(.plain)
     .foregroundStyle(.secondary)
     // The first glyph stands under the first letter of the words, not a touch target's width in.
-    .padding(.leading, -Self.glyphInset)
+    .padding(.leading, -(target - glyph) / 2)
     .opacity(plan.emphasis == .latest ? 1 : Self.earlierOpacity)
     .sensoryFeedback(.success, trigger: copied) { _, now in now }
     .accessibilityElement(children: .contain)
     .accessibilityIdentifier("reply.actions")
   }
 
+  /// A light glyph of about 18 points in a 36 point touch target, ChatGPT's proportions.
   private func icon(_ name: String) -> some View {
     Image(systemName: name)
-      .font(.body)
-      .frame(width: Self.targetWidth, height: Self.targetHeight)
+      .font(.system(size: glyph, weight: .light))
+      .frame(width: target, height: target)
       .contentShape(.rect)
   }
 
-  /// The older replies' rows, quieter: still readable, no louder than the page.
+  /// The older turns' rows, quieter: still readable, no louder than the page.
   static let earlierOpacity = 0.5
-  static let targetWidth: CGFloat = 44
-  static let targetHeight: CGFloat = 40
-  /// Half of a touch target's width less half of the glyph's.
-  static let glyphInset: CGFloat = 12
 }
 
 extension NativeStrings {

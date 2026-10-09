@@ -20,8 +20,8 @@ struct AssistantItemView: View {
   var bubble: BubbleLayout?
   /// Retry is offered under a failure: only on the newest turn (`TranscriptRow.retryable`).
   var retryable = true
-  /// This is the chat's newest reply (`TranscriptRow.latestReply`): its action row at full strength.
-  var latestReply = false
+  /// This row closes a bot turn (`TranscriptRow.turnReply`): the action row goes under it, once per turn.
+  var turnReply: TurnReply?
 
   @Environment(\.transcriptItemActions) private var actions
   @Environment(\.transcriptExpansion) private var expansion
@@ -65,7 +65,9 @@ struct AssistantItemView: View {
       content
       // Outside the container that carries Copy: a custom action makes a line interactive, and
       // a one-line caption is far under the hit area the accessibility audit asks of one.
-      ReplyActionsView(item: item, presentation: presentation, latest: latestReply)
+      if let turnReply {
+        ReplyActionsView(item: item, presentation: presentation, turn: turnReply)
+      }
       if let meta = metaText {
         Text(meta)
           .font(.caption2)
