@@ -6,7 +6,7 @@ import Testing
 @Suite("Contract corpus")
 struct CorpusTests {
   /// Byte-identical copies of the fork's contracts, written by its own generator.
-  static let forkCopies = ["confirm-passkey/", "outbox/", "requests/"]
+  static let forkCopies = ["confirm-passkey/", "outbox/", "requests/", "sources/", "markup/"]
 
   // MARK: canonicalString() against the reference
 
@@ -19,8 +19,9 @@ struct CorpusTests {
   /// The reference's text orders index-like keys (`"12"`) first, the way a JavaScript object
   /// iterates, so that comparison uses `.ecmaScriptObject`; see `CanonicalKeyOrder`.
   ///
-  /// `push/contract.json` is hand-written, and `confirm-passkey/`, `outbox/` and `requests/` are byte-identical
-  /// copies of the fork's contracts, written by its own generator with their own checksums: none came
+  /// `push/contract.json` is hand-written, and `confirm-passkey/`, `outbox/`, `requests/` and `sources/` are
+  /// byte-identical copies of the fork's contracts (`markup/` is authored here, and the fork copies it), written
+  /// by their own generators with their own checksums: none came
   /// out of `prettyJson`, so they are held only to the fixed-point property below.
   @Test func canonicalTextEqualsTheReferenceForEveryGeneratedFile() throws {
     let files = try contractFiles()
