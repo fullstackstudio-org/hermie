@@ -1,9 +1,9 @@
 # Charts in a reply: the `hermie-chart` block
 
 A bot can answer with numbers as a chart. It writes a fenced code block whose language is `hermie-chart` and
-whose body is one JSON object. The native Apple apps draw it with Swift Charts, in the reply, under the words
-around it. Anywhere else (the Android app, the browser client, the terminal, a copy pasted into a note) the
-block is an ordinary code block holding JSON, which reads fine as it is. So a bot can always write one: the
+whose body is one JSON object. The native Apple apps draw it with Swift Charts and the browser client draws it
+as SVG, in the reply, under the words around it. Anywhere else (the Android app, the terminal, a copy pasted
+into a note) the block is an ordinary code block holding JSON, which reads fine as it is. So a bot can always write one: the
 worst case is that a reader sees the data instead of the picture.
 
 ````
@@ -61,7 +61,8 @@ parse. The reason is the same as for a Mermaid diagram that is not a flowchart o
 leaves out or bends what the author sent is worse than the data it was made from.
 
 This also covers a block that is still being written. While a reply streams, the fence is incomplete and the
-reader sees the JSON growing; when the block closes and validates, it becomes the chart.
+reader sees the JSON growing; when the block closes and validates, it becomes the chart. The browser client
+draws a chart only once its closing fence has arrived, so a fence that is never closed stays code.
 
 ## What the app does with it
 
@@ -92,4 +93,12 @@ Paste this into a bot's instructions to have it use the block:
 `HermieChart` (`native/apple/HermieKit/Sources/HermieMarkdown/HermieChart.swift`) is the validator and the one
 decision the renderer makes (`HermieChart.decide`: a chart, or the code block it came from). `HermieChartView`
 draws it. The block stays a `.code` block in the Markdown model, so the shared corpus under `contract/` is not
-affected. The web client is a later task; it shows the block as code.
+affected.
+
+The web client has the same validator in `native/web/src/markdown/markup/chart-spec.ts` (one test per
+refusal in `chart-spec.test.ts`), the layout in `chart-layout.ts` and the drawing in
+`native/web/src/markdown/Chart.tsx`, a lazy chunk: bars, lines and a ring in hand-written SVG, no charting
+library. The drawing is made in the width its box has, is one image named by the same spoken sentence as the
+native apps', takes its series colours from tokens that follow the light and dark scheme, and gives a line chart
+a different mark shape for each series. The Show source toggle and Copy work as above. What the owner typed is
+not drawn.

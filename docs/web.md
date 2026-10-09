@@ -264,6 +264,25 @@ was accepted.
 - The deadline is the request's own `expires_at`, on the page's clock. A request that arrives already past it is not
   shown, and none is answered after it.
 
+## Charts, cards and callouts in a reply
+
+A reply can carry three things besides Markdown, and the web client draws all of them (the native apps draw
+the same): a `hermie-chart` fence (`docs/charts.md`), a `hermie-cards` fence and an alert, a quote that begins
+`> [!NOTE]` (or `TIP`, `IMPORTANT`, `WARNING`, `CAUTION`). The format, its limits, the refusals and the icon
+vocabulary are in `contract/markup/`; `native/web/src/markdown/markup/` holds the validators, which are held to
+that directory's examples.
+
+- A block is drawn when its fence has closed and its body validates exactly; anything else (an unknown key, a card
+  too many, JSON that is cut off) stays the code block it was written as, never repaired and never a crash.
+- Nothing a block says reaches the network or the document as markup: no image, no link, no favicon. Titles and
+  labels are text, an icon is a name looked up in a closed table of path data, a colour is a class.
+- Charts and cards are two lazy chunks (`markdown/lazy.ts`), a few kilobytes each, and the callout is markup only.
+  What the owner typed is never drawn as one of them.
+- For a screen reader a chart is one image with the native apps' spoken sentence, and a stack of cards is a list
+  whose items are read as one sentence each ("Card 2 of 5, ..., then: ..."), in order, connectors included.
+- Links in a message have a dotted underline and, when they leave for the web, a small arrow that is CSS: it is not
+  in the link's text or name.
+
 ## Keyboard shortcuts
 
 The page has the keyboard shortcuts of the desktop apps, as far as a browser lets a page have them. The table is

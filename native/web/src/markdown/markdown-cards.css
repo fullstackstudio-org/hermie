@@ -1,0 +1,242 @@
+/*
+ * `hermie-cards` (`Cards.tsx`) and the alert callout (`Alert.tsx`). In the main stylesheet with `markdown.css`, not in
+ * the chunk: see `Markdown.tsx`.
+ *
+ * Nothing here has a colour of its own but the five callout kinds: ink, lines and the highlight come from the
+ * Markdown tokens (`--md-line`, `--md-muted`, `--md-link`) on the ground a bubble sets (`--md-ground`), so a card is
+ * right on any of them in both schemes. Sizes are in `em`, so the cards follow the reader's text size, and a grid
+ * falls to one column when the box is narrow. No inline style anywhere.
+ */
+
+/* Text for assistive technology only: out of the way, still in the tree. */
+.md .md-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Cards */
+
+.md .md-cards {
+  display: block;
+  width: 100%;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.md .md-cards-title {
+  margin-bottom: 0.55em;
+  font-size: 0.95em;
+  font-weight: 600;
+}
+
+.md .md-cards-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.md .md-cards[data-layout='grid'] .md-cards-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 12em), 1fr));
+  gap: 0.6em;
+}
+
+.md .md-cards-step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.md .md-card {
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  gap: 0.7em;
+  box-sizing: border-box;
+  padding: 0.65em 0.8em;
+  border: 1px solid var(--md-line);
+  border-radius: 12px;
+  background: color-mix(in srgb, currentColor 4%, var(--md-ground));
+}
+
+.md .md-card[data-highlight='true'] {
+  border-color: var(--md-link);
+  background: color-mix(in srgb, var(--md-link) 9%, var(--md-ground));
+  box-shadow: 0 0 0 1px var(--md-link);
+}
+
+.md .md-card-icon {
+  flex: none;
+  box-sizing: content-box;
+  width: 1.4em;
+  height: 1.4em;
+  padding: 0.4em;
+  border-radius: 10px;
+  background: color-mix(in srgb, currentColor 9%, transparent);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.md .md-card[data-highlight='true'] .md-card-icon {
+  background: color-mix(in srgb, var(--md-link) 16%, transparent);
+  color: var(--md-link);
+}
+
+.md .md-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.md .md-card-title {
+  font-weight: 600;
+}
+
+.md .md-card-subtitle {
+  margin-top: 0.1em;
+  color: var(--md-muted);
+  font-size: 0.9em;
+}
+
+.md .md-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3em;
+  margin: 0.45em 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.md .md-card-tag {
+  margin: 0;
+  padding: 0.08em 0.6em;
+  border: 1px solid var(--md-line);
+  border-radius: 999px;
+  color: var(--md-muted);
+  font-size: 0.78em;
+  line-height: 1.5;
+}
+
+/*
+ * What joins a card to the next one: a line or an arrow under the icon's centre, with the label beside it. The
+ * line sits where the icon does, so a stack reads as one column whatever the labels say.
+ */
+.md .md-card-link {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.55em;
+  min-height: 28px;
+  /* The card's padding and half an icon tile, less half the line's own width. */
+  padding-inline-start: calc(0.8em + 1.1em - 6px);
+  color: var(--md-muted);
+}
+
+.md .md-card-next {
+  font-size: 0.82em;
+}
+
+.md .md-card-link[data-connector='none'] {
+  min-height: 0.7em;
+}
+
+.md .md-card-link-line {
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Callouts */
+
+.md {
+  --md-alert-note: #0b57c4;
+  --md-alert-tip: #116329;
+  --md-alert-important: #6639ba;
+  --md-alert-warning: #7d4e00;
+  --md-alert-caution: #b3261e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-scheme]) .md {
+    --md-alert-note: #8ab4f8;
+    --md-alert-tip: #56d364;
+    --md-alert-important: #d2a8ff;
+    --md-alert-warning: #e3b341;
+    --md-alert-caution: #ff9d95;
+  }
+}
+
+:root[data-scheme='dark'] .md {
+  --md-alert-note: #8ab4f8;
+  --md-alert-tip: #56d364;
+  --md-alert-important: #d2a8ff;
+  --md-alert-warning: #e3b341;
+  --md-alert-caution: #ff9d95;
+}
+
+.md .md-alert[data-kind='note'] {
+  --md-alert: var(--md-alert-note);
+}
+
+.md .md-alert[data-kind='tip'] {
+  --md-alert: var(--md-alert-tip);
+}
+
+.md .md-alert[data-kind='important'] {
+  --md-alert: var(--md-alert-important);
+}
+
+.md .md-alert[data-kind='warning'] {
+  --md-alert: var(--md-alert-warning);
+}
+
+.md .md-alert[data-kind='caution'] {
+  --md-alert: var(--md-alert-caution);
+}
+
+.md .md-alert {
+  margin: 0.5em 0;
+  padding: 0.6em 0.85em;
+  border-inline-start: 4px solid var(--md-alert);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--md-alert) 10%, transparent);
+}
+
+.md .md-alert-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  color: var(--md-alert);
+  font-weight: 600;
+}
+
+.md .md-alert-icon {
+  flex: none;
+  width: 1.15em;
+  height: 1.15em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.md .md-alert-body > :first-child {
+  margin-top: 0.3em;
+}
+
+.md .md-alert-body > :last-child {
+  margin-bottom: 0;
+}

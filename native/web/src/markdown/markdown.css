@@ -114,8 +114,30 @@
 
 .md a {
   color: var(--md-link);
-  text-decoration: underline;
-  text-underline-offset: 0.15em;
+  /* A dotted underline: a link in prose is there to be seen, and not to shout. */
+  text-decoration: underline dotted;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.18em;
+}
+
+.md a:hover {
+  text-decoration-style: solid;
+}
+
+/*
+ * A link that leaves for the web carries a small arrow after it. It is CSS, not an element: it is not in the
+ * link's text, so it is not selected with it, not copied and (where the browser reads the empty alternative after
+ * the slash, the second declaration) not part of the link's name for a screen reader. A `mailto:` carries none.
+ */
+.md a[href^='http']::after {
+  content: '\2197';
+  content: '\2197' / '';
+  display: inline-block;
+  margin-inline-start: 0.15em;
+  font-size: 0.78em;
+  line-height: 1;
+  opacity: 0.75;
+  text-decoration: none;
 }
 
 .md a:focus-visible,

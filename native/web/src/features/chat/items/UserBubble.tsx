@@ -73,7 +73,7 @@ function UserBubbleView({ item, presentation }: RowViewProps<UserItem>) {
 
   const bubble = (
     <div className="hm-bubble" data-kind="user">
-      {item.text.trim() ? <MessageMarkdown text={item.text} /> : null}
+      {item.text.trim() ? <MessageMarkdown text={item.text} typed /> : null}
 
       {attachments.length > 0 ? <AttachmentGallery attachments={attachments} onAccent={!foreign} /> : null}
 

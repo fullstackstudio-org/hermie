@@ -83,6 +83,14 @@ const SAME_AS_ENGLISH: Readonly<Record<string, readonly Locale[]>> = {
   'sheets.botProfile.session': ['de'],
   // `Details: {details}` is the same word in Dutch and German.
   'sheets.composer.ownedElsewhere.details': ['nl', 'de'],
+  // "Tip" is the Dutch word too.
+  'sheets.markdown.alert.tip': ['nl'],
+  // A chart's spoken sentence is the same placeholders and punctuation in every language (the order is the
+  // language's own, and for these it is the same), and "In {unit}." is how all three say it.
+  'sheets.markdown.chart.titled': ['nl', 'de'],
+  'sheets.markdown.chart.unit': ['nl', 'de'],
+  'sheets.markdown.chart.point': ['nl', 'de'],
+  'sheets.markdown.chart.series': ['nl', 'de'],
   // "{count} tools" is Dutch too.
   'sheets.botProfile.toolCount': ['nl']
 }
@@ -198,7 +206,12 @@ const SAMPLE = {
   priority: MARKER,
   author: MARKER,
   // The New bot page: the handle that would work instead of the one that was typed.
-  suggestion: MARKER
+  suggestion: MARKER,
+  // A chart's spoken sentence and a card's: the unit, a point's label, a series' points, a card's place in its block.
+  unit: MARKER,
+  label: MARKER,
+  points: MARKER,
+  position: MARKER
 }
 
 describe('the web-only strings', () => {

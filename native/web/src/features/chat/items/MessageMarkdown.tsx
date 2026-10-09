@@ -12,10 +12,14 @@ import { memo } from 'react'
 import { Markdown } from '../../../markdown/Markdown'
 import { useItemContext } from './item-context'
 
-function MessageMarkdownView({ text }: { text: string }) {
+/**
+ * `typed`: the text is what a person typed (their own bubble), which stays as typed: a chart, cards or a callout is drawn
+ * only in what an agent wrote.
+ */
+function MessageMarkdownView({ text, typed = false }: { text: string; typed?: boolean }) {
   const { gatewayBaseUrl } = useItemContext()
 
-  return <Markdown gatewayBaseUrl={gatewayBaseUrl} headingMax={3} headingOffset={2} text={text} />
+  return <Markdown gatewayBaseUrl={gatewayBaseUrl} headingMax={3} headingOffset={2} richBlocks={!typed} text={text} />
 }
 
 export const MessageMarkdown = memo(MessageMarkdownView)

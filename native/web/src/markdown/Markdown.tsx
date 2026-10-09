@@ -14,12 +14,14 @@ import { splitBlocks } from '@hermie/markdown/blocks'
 import { preprocessMarkdown } from '@hermie/markdown/preprocess'
 import { memo, useMemo } from 'react'
 
-import { HeadingPlacementContext, MarkdownBlock } from './Block'
+import { HeadingPlacementContext, MarkdownBlock, RichBlocksContext } from './Block'
 import './markdown.css'
 // The styles of the lazy renderers (`lazy.ts`) are in the main stylesheet, not in their chunks: a
 // stylesheet that arrives late restyles the whole transcript at once, and WebKit then resizes rows
 // inside the list's resize callback ("ResizeObserver loop completed with undelivered notifications").
 // They are a few kilobytes of CSS, which is not first-screen JavaScript.
+import './markdown-cards.css'
+import './markdown-chart.css'
 import './markdown-highlight.css'
 import './markdown-math.css'
 import './markdown-mermaid.css'
@@ -41,6 +43,11 @@ export interface MarkdownProps {
   headingOffset?: number
   /** The deepest level a heading is drawn at, after the offset (default 6). A transcript sets 3. */
   headingMax?: number
+  /**
+   * Whether a chart, cards and a callout are drawn (default true). What the owner typed is not: it stays as typed, so
+   * their bubble sets this to false and the blocks are the code and the quote they were written as.
+   */
+  richBlocks?: boolean
   className?: string
 }
 
@@ -65,7 +72,14 @@ export function blockKey(index: number, raw: string): string {
   return `${index}:${contentHash(raw)}`
 }
 
-function MarkdownView({ text, gatewayBaseUrl, headingOffset = 0, headingMax = 6, className }: MarkdownProps) {
+function MarkdownView({
+  text,
+  gatewayBaseUrl,
+  headingOffset = 0,
+  headingMax = 6,
+  richBlocks = true,
+  className
+}: MarkdownProps) {
   // The same text gives the same array (a memo in `splitBlocks`), and a longer
   // text reuses the settled slices of the shorter one.
   const blocks = useMemo(() => splitBlocks(preprocessMarkdown(text)), [text])
@@ -73,12 +87,14 @@ function MarkdownView({ text, gatewayBaseUrl, headingOffset = 0, headingMax = 6,
 
   return (
     <HeadingPlacementContext.Provider value={placement}>
-      <div className={className ? `md ${className}` : 'md'}>
-        {blocks.map((raw, index) =>
-          // Whitespace-only slices render nothing, exactly as in the block model.
-          raw.trim() ? <MarkdownBlock baseUrl={gatewayBaseUrl} key={blockKey(index, raw)} raw={raw} /> : null
-        )}
-      </div>
+      <RichBlocksContext.Provider value={richBlocks}>
+        <div className={className ? `md ${className}` : 'md'}>
+          {blocks.map((raw, index) =>
+            // Whitespace-only slices render nothing, exactly as in the block model.
+            raw.trim() ? <MarkdownBlock baseUrl={gatewayBaseUrl} key={blockKey(index, raw)} raw={raw} /> : null
+          )}
+        </div>
+      </RichBlocksContext.Provider>
     </HeadingPlacementContext.Provider>
   )
 }
