@@ -5,14 +5,13 @@ import SwiftUI
   import UIKit
 #endif
 
-/// Dictation at the trailing end of the field, as Messages has it: a quiet waveform while the field
-/// is empty, the stop colour with a pulsing microphone while it listens. A tap starts dictation, and
-/// a tap again stops it; what was heard goes into the field as it is heard and is the reader's to
-/// read, change and send.
+/// Dictation beside the round button, as ChatGPT has it: a microphone in the capsule's trailing end,
+/// the stop colour with a pulsing microphone while it listens. A tap starts dictation, and a tap again
+/// stops it; what was heard goes into the field as it is heard and is the reader's to read, change and
+/// send.
 struct DictationButton: View {
   let dictation: DictationModel
-  let width: CGFloat
-  let height: CGFloat
+  let size: CGFloat
 
   var body: some View {
     let listening = dictation.isListening
@@ -21,10 +20,10 @@ struct DictationButton: View {
       let dictation = self.dictation
       Task { await dictation.toggle() }
     } label: {
-      Image(systemName: listening ? "mic.fill" : "waveform")
-        .font(.body.weight(listening ? .bold : .regular))
+      Image(systemName: listening ? "mic.fill" : "mic")
+        .font(.title3.weight(listening ? .semibold : .regular))
         .symbolEffect(.pulse, isActive: listening)
-        .frame(width: width, height: height)
+        .frame(width: size, height: size)
     }
     .buttonStyle(DictationButtonStyle(listening: listening))
     .help(listening ? Strings.Chat.Voice.dictateStop : Strings.Chat.Voice.dictate)
@@ -33,7 +32,7 @@ struct DictationButton: View {
   }
 }
 
-/// No disc while it waits (the waveform sits in the field), a stop-red capsule while the microphone
+/// No disc while it waits (the microphone sits in the capsule), a stop-red disc while the microphone
 /// is open.
 struct DictationButtonStyle: ButtonStyle {
   let listening: Bool
@@ -42,10 +41,13 @@ struct DictationButtonStyle: ButtonStyle {
 
   func makeBody(configuration: Configuration) -> some View {
     configuration.label
-      .foregroundStyle(listening ? AnyShapeStyle(Color.white) : AnyShapeStyle(.secondary))
-      .background(listening ? AnyShapeStyle(SendButtonStyle.stopRed) : AnyShapeStyle(Color.clear), in: .capsule)
+      .foregroundStyle(listening ? AnyShapeStyle(Color.white) : AnyShapeStyle(.primary))
+      .background(
+        listening ? AnyShapeStyle(SendButtonStyle.stopRed) : AnyShapeStyle(Color.clear),
+        in: .circle.inset(by: SendButtonStyle.discInset)
+      )
       .opacity(isEnabled ? (configuration.isPressed ? 0.6 : 1) : 0.4)
-      .contentShape(.capsule)
+      .contentShape(.circle)
   }
 }
 

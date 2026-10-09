@@ -423,7 +423,7 @@ final class ChatScreenUITests: XCTestCase {
     let stop = app.buttons["composer.stop"]
     XCTAssertTrue(stop.waitForExistence(timeout: 10), "Stop is offered while the bot replies")
     stop.tap()
-    XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier IN {'composer.send', 'composer.dictate'}")).firstMatch.waitForExistence(timeout: 15))
+    XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier IN {'composer.send', 'composer.dictate', 'composer.voice'}")).firstMatch.waitForExistence(timeout: 15))
     try waitForFake("the turn to stop") { state in (state["runningSessions"] as? [Any])?.isEmpty ?? false }
     waitFor("the chat to be idle") { probeState(app)["activity"] == "idle" }
     XCTAssertGreaterThan(Int(probeState(app)["rows"] ?? "") ?? 0, rowsBefore, "the partial reply stays")

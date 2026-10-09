@@ -1,16 +1,17 @@
 import SwiftUI
 
-/// "Jump to latest": shown while the reader is scrolled away from the bottom,
-/// with the number of new messages that arrived meanwhile.
+/// "Jump to latest": a small round glass button with a down arrow, centred above the composer while
+/// the reader is scrolled away from the bottom, as ChatGPT has it. A badge with the number of new
+/// messages that arrived meanwhile sits on it when there are any.
 ///
-/// Give it to `TranscriptList`'s overlay. The count is the screen's to keep
-/// (user and assistant rows that arrived while `isAtBottom` was false, reset on
-/// return), as in the Expo app.
+/// Give it to `TranscriptList`'s overlay. The count is the screen's to keep (user and assistant rows
+/// that arrived while `isAtBottom` was false, reset on return), as in the Expo app.
 public struct JumpToLatestPill: View {
   private let state: TranscriptListState
   private let newCount: Int
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @ScaledMetric(relativeTo: .body) private var diameter: CGFloat = 40
 
   public init(state: TranscriptListState, newCount: Int = 0) {
     self.state = state
@@ -23,33 +24,45 @@ public struct JumpToLatestPill: View {
         Button {
           state.scrollToBottom(animated: !reduceMotion)
         } label: {
-          Label {
-            if newCount > 0 {
-              Text("\(Strings.Chat.Transcript.newMessages(count: newCount)) · \(Strings.Chat.Transcript.jumpToLatest)")
-            } else {
-              Text(Strings.Chat.Transcript.jumpToLatest)
+          Image(systemName: "arrow.down")
+            .font(.body.weight(.semibold))
+            .foregroundStyle(.primary)
+            .frame(width: diameter, height: diameter)
+            // Glass tinted with the page, so the words behind it do not read through the arrow.
+            .glassEffect(.regular.tint(ComposerView.fieldTint).interactive(), in: .circle)
+            .overlay(alignment: .topTrailing) {
+              if newCount > 0 {
+                Text(verbatim: Self.badge(newCount))
+                  .font(.caption2.weight(.bold).monospacedDigit())
+                  .foregroundStyle(.white)
+                  .padding(.horizontal, 5)
+                  .frame(minWidth: 18, minHeight: 18)
+                  .background(BubblePalette.outgoing, in: .capsule)
+                  .offset(x: 6, y: -6)
+                  .accessibilityHidden(true)
+              }
             }
-          } icon: {
-            Image(systemName: "arrow.down")
-          }
-          .font(.callout.weight(.semibold))
-          .foregroundStyle(.primary)
-          .padding(.horizontal, 14)
-          .padding(.vertical, 8)
-          // A thick material, not clear glass: the text behind the pill must not read through
-          // its label.
-          .background(.thickMaterial, in: .capsule)
-          .overlay(Capsule().strokeBorder(.separator, lineWidth: 0.5))
-          .shadow(color: .black.opacity(0.18), radius: 8, y: 2)
-          .contentShape(.capsule)
+            .contentShape(.circle)
         }
         .buttonStyle(.plain)
         .keyboardShortcut(.downArrow, modifiers: [.command])
+        .accessibilityLabel(Self.label(newCount: newCount))
         .accessibilityIdentifier("transcript.jumpToLatest")
         .padding(.bottom, 12)
         .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
       }
     }
     .animation(reduceMotion ? nil : .snappy, value: state.isAtBottom)
+  }
+
+  /// The badge's number, capped so it stays a badge.
+  static func badge(_ count: Int) -> String {
+    count > 99 ? "99+" : String(count)
+  }
+
+  /// What VoiceOver says: the way down, with the number of new messages when there are some.
+  static func label(newCount: Int) -> String {
+    guard newCount > 0 else { return Strings.Chat.Transcript.jumpToLatest }
+    return "\(Strings.Chat.Transcript.newMessages(count: newCount)) · \(Strings.Chat.Transcript.jumpToLatest)"
   }
 }

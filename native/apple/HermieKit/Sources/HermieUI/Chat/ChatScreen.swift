@@ -16,6 +16,9 @@ public struct ChatComposerContext {
   public let secureInput: SecureInputModel
   /// The bot's display name, for "Message {bot}".
   public let botName: String
+  /// Starts a voice call with the bot, for the round button of an empty field; nil where the chat
+  /// offers none (the device cannot listen or speak, or a call is on already).
+  public var voiceMode: (@MainActor () -> Void)?
 }
 
 /**
@@ -99,7 +102,7 @@ public struct StandardComposer: View {
         .padding(.horizontal, ChatSpacing.edgeMargin)
       SecureInputNoticeView(model: context.secureInput)
         .padding(.horizontal, ChatSpacing.edgeMargin)
-      ComposerView(model: context.composer)
+      ComposerView(model: context.composer, voiceMode: context.voiceMode)
     }
   }
 }
@@ -203,18 +206,6 @@ struct ChatSessionView<Composer: View>: View {
           // A voice mode call, over the chat (its sheets come up over it), and the voice setup.
           .modifier(VoiceModeHost(feed: feed, botName: chat.bot))
           .toolbar {
-            // Voice mode: a call with the bot, where the device can listen and speak.
-            if feed.offersVoiceMode, feed.voiceMode == nil {
-              ToolbarItem(placement: .primaryAction) {
-                Button {
-                  feed.openVoiceMode()
-                } label: {
-                  Label(Strings.Chat.Voice.modeStart, systemImage: "waveform")
-                }
-                .accessibilityIdentifier("hermie.chat.voiceMode")
-              }
-            }
-
             // While YOLO mode is on, a capsule says so for as long as it is: the chat never asks.
             if feed.yolo {
               ToolbarItem(placement: .primaryAction) {
@@ -229,7 +220,9 @@ struct ChatSessionView<Composer: View>: View {
               }
             }
 
-            ToolbarItem(placement: .primaryAction) {
+            // One glass pill, as ChatGPT has it: a new chat with this bot, and the chat's options.
+            ToolbarItemGroup(placement: .primaryAction) {
+              NewChatButton(feed: feed)
               VerbosityMenu(feed: feed, chat: chat)
             }
           }
@@ -410,6 +403,9 @@ struct ChatTranscript: View {
       TranscriptItemView(row: row, gaps: .chat)
         .padding(.horizontal, Self.margin)
         .modifier(FoundRowMark(active: row.flash))
+        // A wide window keeps a reading column: the rows stop at it and stand in the middle.
+        .frame(maxWidth: ChatSpacing.readingColumn + Self.margin * 2)
+        .frame(maxWidth: .infinity)
     } overlay: { state in
       JumpToLatestPill(state: state, newCount: feed.newCount)
     }
@@ -528,6 +524,16 @@ struct ComposerSlot<Composer: View>: View {
   let feed: ChatFeed
   let composer: (ChatComposerContext) -> Composer
 
+  /// Voice mode: a call with the bot, where the device can listen and speak; the composer's round
+  /// button starts it while the field is empty.
+  private var voiceMode: (@MainActor () -> Void)? {
+    guard feed.offersVoiceMode, feed.voiceMode == nil else {
+      return nil
+    }
+
+    return { [feed] in feed.openVoiceMode() }
+  }
+
   var body: some View {
     let name = session.chatList.rows[chat.bot]?.bot.displayName ?? chat.bot
     VStack(spacing: 0) {
@@ -542,10 +548,14 @@ struct ComposerSlot<Composer: View>: View {
           composer: feed.composer,
           requests: feed.requests,
           secureInput: feed.secureInput,
-          botName: name
+          botName: name,
+          voiceMode: voiceMode
         )
       )
     }
+    // A wide window keeps a reading column: the composer stops at it and stands in the middle.
+    .frame(maxWidth: ChatSpacing.readingColumn + ChatSpacing.edgeMargin * 2)
+    .frame(maxWidth: .infinity)
     // On every platform: under a request's sheet (iPhone, iPad) or pane (Mac) the field is off and
     // gives up the keyboard, so nothing typed for the request lands in the draft or goes out.
     .disabled(feed.requestUp)
@@ -773,6 +783,34 @@ struct YoloBadge: View {
   }
 }
 
+/// The header's new chat button: starts another chat with this bot. Where the gateway has named the
+/// reader that is a chat of their own (the sheet asks for an optional name, `NewOwnChatSheet`); where
+/// it has not, the shared Bot Chat starts a new conversation, as `/new` does.
+struct NewChatButton: View {
+  let feed: ChatFeed
+
+  @Environment(AppRouter.self) private var router: AppRouter?
+
+  var body: some View {
+    Button {
+      start()
+    } label: {
+      Label(Strings.Chat.Conversations.newChat, systemImage: "square.and.pencil")
+    }
+    .accessibilityIdentifier("hermie.chat.newChat")
+  }
+
+  private func start() {
+    if feed.session.ownChatsAvailable, let router {
+      router.present(.newOwnChat(feed.chat))
+      return
+    }
+
+    let composer = feed.composer
+    Task { await composer.startNewConversation() }
+  }
+}
+
 /// The chat's options menu: the bot's conversations, and verbosity and the two switches per chat
 /// screen (`setVisibility`), and, while the chat is attached, YOLO mode, fast mode, reasoning effort,
 /// the model, the context meter and the export.
@@ -846,7 +884,7 @@ struct VerbosityMenu: View {
         ChatSessionOptionItems(feed: feed)
       }
     } label: {
-      Label(Strings.Chat.Options.title, systemImage: "slider.horizontal.3")
+      Label(Strings.Chat.Options.title, systemImage: "ellipsis")
     }
     .accessibilityIdentifier("hermie.chat.options")
   }

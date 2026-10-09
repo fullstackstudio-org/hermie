@@ -22,14 +22,16 @@ import SwiftUI
 /// the Mac the arrow keys move, Tab or Return take a line and Esc closes it, on iPhone and iPad a
 /// tap takes it.
 ///
-/// Laid out as Messages is: a round "+" at the leading edge and one capsule for the text, with the
-/// button that belongs to the field inside it at the trailing end (the waveform that dictates while
-/// the field is empty on iPhone and iPad, send when there is something to send, stop while the bot
-/// works). The "+" opens one menu: Photo Library, Camera where there is one and Files (on the Mac the
-/// file picker), the person's prompts, and dictation where the device can dictate. Files can also be
-/// dropped on the chat (`attachmentDropTarget`, set on the whole screen) and pictures or copied files
-/// pasted into the field. Each becomes a chip above the field (`AttachmentStrip`) that uploads at
-/// once; the send button waits until every chip is ready.
+/// Laid out as ChatGPT is: at rest one floating capsule with the plus, the field and, at its trailing
+/// end, the microphone and one round button; with the caret in the field (or words or files in it)
+/// a card, the field on top and the buttons in a row under it (`ComposerCardLayout`; on the Mac always
+/// the card). The round button is stop while the bot works and the field is empty, send when there is
+/// something to send, and in an empty field the voice call where the chat offers one. The plus opens
+/// one menu: Photo Library, Camera where there is one and Files (on the Mac the file picker), the
+/// person's prompts, and dictation where the device can dictate. Files can also be dropped on the chat
+/// (`attachmentDropTarget`, set on the whole screen) and pictures or copied files pasted into the
+/// field. Each becomes a chip above the field (`AttachmentStrip`) that uploads at once; the send button
+/// waits until every chip is ready.
 public struct ComposerView: View {
   @Bindable var model: ComposerModel
 
@@ -37,6 +39,7 @@ public struct ComposerView: View {
   @Environment(\.isEnabled) private var isEnabled
   /// Whether the caret is in the field (reported by the text view).
   @State private var focused = false
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   /// Moved to put the caret back in the field.
   @State private var focusRequest = 0
   /// What the plus menu opened.
@@ -50,8 +53,13 @@ public struct ComposerView: View {
     @State private var showCamera = false
   #endif
 
-  public init(model: ComposerModel) {
+  /// Starts a voice call with the bot, where the chat offers one (the round button of an empty field);
+  /// nil where it does not.
+  private let voiceMode: (@MainActor () -> Void)?
+
+  public init(model: ComposerModel, voiceMode: (@MainActor () -> Void)? = nil) {
     self.model = model
+    self.voiceMode = voiceMode
   }
 
   public var body: some View {
@@ -84,16 +92,11 @@ public struct ComposerView: View {
         SlashCompletionList(model: model, onAccept: { focusRequest += 1 })
       }
 
-      GlassEffectContainer(spacing: 8) {
-        HStack(alignment: .bottom, spacing: 8) {
-          moreMenu
-          inputCapsule
-        }
-      }
+      inputArea
     }
-    // Floating glass over the transcript, as Messages' field: no bar behind it. The transcript
-    // scrolls under it and stops above it (the slot is a safe-area inset of the list). As far in
-    // from the window's edges as the bubbles.
+    // Floating glass over the transcript: no bar behind it. The transcript scrolls under it and stops
+    // above it (the slot is a safe-area inset of the list). As far in from the window's edges as the
+    // replies.
     .padding(.horizontal, Self.edgeInset)
     .padding(.top, 6)
     .padding(.bottom, 8)
@@ -167,26 +170,61 @@ public struct ComposerView: View {
 
   // MARK: The field
 
-  /// The capsule as Messages draws it: the text, and at its trailing end the one button that
-  /// belongs to it (dictate while it is empty, send once there is something to send, stop while the
-  /// bot is at work). Bottom-aligned, so the button stays on the last line as the field grows.
-  private var inputCapsule: some View {
-    HStack(alignment: .bottom, spacing: 0) {
+  /// The pill or the card, as ChatGPT has it. At rest (the caret is not in the field and it holds
+  /// nothing) one floating capsule: the plus, the field and, at the trailing end, dictation and the
+  /// round button that belongs to the field. With the caret in it, or with words or files in it, the
+  /// same controls rearrange into a card: the field on top, growing, and a row under it with the plus
+  /// at the leading edge and the microphone and the round button at the trailing one. On the Mac it is
+  /// always the card.
+  ///
+  /// One layout (`ComposerCardLayout`) holds the same views in both, so the field is never rebuilt:
+  /// it keeps its caret and its keyboard as the shape changes under it.
+  private var inputArea: some View {
+    let shape = presentation
+
+    return ComposerCardLayout(
+      card: shape == .card, lineHeight: controlHeight, buttonSize: buttonSize, inset: Self.inset
+    ) {
       field
-      trailingControl
-        .padding(.trailing, Self.capsuleInset)
-        .padding(.bottom, Self.capsuleInset)
+        .composerSlot(.field)
+      moreMenu
+        .composerSlot(.leading)
+      if let dictation = availableDictation {
+        DictationButton(dictation: dictation, size: buttonSize)
+          .composerSlot(.trailing)
+      }
+      primaryButton
+        .composerSlot(.trailing)
+    }
+    // A tap anywhere on the capsule that is no button puts the caret in the field: at rest the field
+    // is only the middle of it.
+    .background {
+      Color.clear
+        .contentShape(.rect)
+        .onTapGesture { focusRequest += 1 }
     }
     // Tinted with the page's background, so the words in the field keep their contrast over a
-    // busy transcript as over an empty one. As round as the plus beside it on one line.
-    .glassEffect(.regular.tint(Self.fieldTint), in: .rect(cornerRadius: controlHeight / 2))
+    // busy transcript as over an empty one.
+    .glassEffect(.regular.tint(Self.fieldTint), in: .rect(cornerRadius: Self.cornerRadius))
+    .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: shape)
+  }
+
+  /// What shape the composer has now.
+  var presentation: ComposerPresentation {
+    ComposerPresentation.resolve(
+      focused: focused, hasContent: !model.draft.isEmpty || !model.tray.isEmpty,
+      listening: availableDictation?.isListening ?? false, alwaysCard: !Self.restsAsPill)
+  }
+
+  private var availableDictation: DictationModel? {
+    model.dictation.flatMap { $0.isAvailable ? $0 : nil }
   }
 
   private var field: some View {
     ComposerTextField(
       // Typing goes through the model, which refuses it while a request has the screen.
       text: Binding(get: { model.draft }, set: { model.type($0) }),
-      placeholder: Strings.Chat.Composer.placeholder,
+      placeholder: NativeStrings.Composer.askPlaceholder,
       accessibilityLabel: Strings.Chat.Composer.messageTo(bot: model.bot),
       accessibilityHint: Self.keyHint,
       maxLines: Self.maxLines,
@@ -231,10 +269,20 @@ public struct ComposerView: View {
   /// Six lines, then the field scrolls.
   static let maxLines = 6
 
-  /// The height of one line of the field, and the size of the round buttons beside it: they share
-  /// it, so the plus, the text and the send button sit on one centre line. Scales with Dynamic Type,
-  /// up to one and a half times: at the largest accessibility sizes three round buttons the size of
-  /// the text would leave the field no room for a word.
+  /// Whether the composer rests as a pill when nothing is in it (iPhone and iPad), or is the card
+  /// whatever the state (the Mac, where the pointer makes a click into a pill an extra step).
+  static var restsAsPill: Bool {
+    #if os(iOS)
+      true
+    #else
+      false
+    #endif
+  }
+
+  /// The height of one line of the field, and with it the size of the buttons beside it: they share
+  /// it, so the plus, the text and the round button sit on one centre line. Scales with Dynamic Type,
+  /// up to one and a half times: at the largest accessibility sizes three buttons the size of the
+  /// text would leave the field no room for a word.
   #if os(macOS)
     private static let baseControlHeight: CGFloat = 32
   #else
@@ -245,18 +293,19 @@ public struct ComposerView: View {
 
   private var controlHeight: CGFloat { min(scaledControlHeight, Self.baseControlHeight * 1.5) }
 
-  /// The room between the capsule's edge and the button inside it, on the right and below.
-  static let capsuleInset: CGFloat = 5
+  /// The buttons' size: a touch target a little under the line, so the capsule's own padding gives
+  /// the rest.
+  private var buttonSize: CGFloat { controlHeight - 4 }
 
-  /// The button in the capsule: as tall as the capsule less its inset on both sides, and wider than
-  /// tall, as Messages' own send button.
-  private var capsuleButtonHeight: CGFloat { controlHeight - Self.capsuleInset * 2 }
-  private var capsuleButtonWidth: CGFloat { (capsuleButtonHeight * Self.capsuleButtonAspect).rounded() }
-  static let capsuleButtonAspect: CGFloat = 1.4
+  /// The room between the capsule's edge and what is inside it.
+  static let inset: CGFloat = 6
+  /// The glass's corner radius, the same at rest and open: one line plus its padding is a pill, a
+  /// card of more is a rounded rectangle of the same curve.
+  static let cornerRadius: CGFloat = 26
 
   // MARK: Attachments
 
-  /// The plus, as Messages has it: one round button that opens one menu with everything that can be
+  /// The plus, as ChatGPT has it: a plain plus that opens one menu with everything that can be
   /// added to the message: a photo, the camera (where there is one), a file, a prompt from the
   /// person's own list, and dictation (where the device can dictate). On the Mac the file item is the
   /// file picker.
@@ -328,8 +377,8 @@ public struct ComposerView: View {
 
   private var attachGlyph: some View {
     Image(systemName: "plus")
-      .font(.body.weight(.bold))
-      .frame(width: controlHeight, height: controlHeight)
+      .font(.title3.weight(.regular))
+      .frame(width: buttonSize, height: buttonSize)
   }
 
   private static var keyHint: String {
@@ -358,64 +407,53 @@ public struct ComposerView: View {
     return model.turnActive && !stopping ? NativeStrings.Composer.queueHint : ""
   }
 
-  /// The button at the capsule's trailing end. Dictation that is listening keeps it (it is the way to
-  /// stop); then, in order: stop while the bot is at work and there is nothing to send, send when
-  /// there is something to send, the dictation glyph on iPhone and iPad when the device can dictate,
-  /// and a quiet send that cannot be pressed yet otherwise.
-  @ViewBuilder private var trailingControl: some View {
-    let dictation = model.dictation.flatMap { $0.isAvailable ? $0 : nil }
-
-    switch TrailingControl.resolve(
-      listening: dictation?.isListening ?? false, stopping: stopping, hasText: hasText,
-      glyphAvailable: dictation != nil && showsDictationGlyph)
-    {
-    case .dictation:
-      if let dictation {
-        DictationButton(dictation: dictation, width: capsuleButtonWidth, height: capsuleButtonHeight)
+  /// The round accent button at the trailing end: stop while the bot is at work and there is nothing
+  /// to send, send when there is something to send, and in an empty field the voice call where the
+  /// chat offers one (otherwise a send that cannot be pressed yet).
+  @ViewBuilder private var primaryButton: some View {
+    switch PrimaryControl.resolve(stopping: stopping, hasText: hasText, voiceAvailable: voiceMode != nil) {
+    case .voice:
+      Button {
+        voiceMode?()
+      } label: {
+        primaryGlyph("waveform")
       }
+      .buttonStyle(SendButtonStyle())
+      .accessibilityLabel(Strings.Chat.Voice.modeStart)
+      .accessibilityIdentifier("composer.voice")
     case .stop, .send:
-      actionButton
+      Button {
+        if stopping {
+          stop()
+        } else {
+          send()
+        }
+      } label: {
+        primaryGlyph(stopping ? "stop.fill" : "arrow.up")
+      }
+      .buttonStyle(SendButtonStyle())
+      .disabled(stopping ? model.isStopping : !model.canSubmit)
+      .accessibilityLabel(stopping ? Strings.Chat.Composer.stop : Strings.Chat.Composer.send)
+      .accessibilityHint(sendHint)
+      .accessibilityIdentifier(stopping ? "composer.stop" : "composer.send")
     }
   }
 
-  /// Which button sits at the capsule's trailing end.
-  enum TrailingControl: Equatable {
-    case dictation, stop, send
+  private func primaryGlyph(_ name: String) -> some View {
+    Image(systemName: name)
+      .font(.body.weight(.bold))
+      .frame(width: buttonSize, height: buttonSize)
+  }
 
-    static func resolve(listening: Bool, stopping: Bool, hasText: Bool, glyphAvailable: Bool) -> Self {
-      if listening { return .dictation }
+  /// Which button sits at the trailing end.
+  enum PrimaryControl: Equatable {
+    case stop, send, voice
+
+    static func resolve(stopping: Bool, hasText: Bool, voiceAvailable: Bool) -> Self {
       if stopping { return .stop }
       if hasText { return .send }
-      return glyphAvailable ? .dictation : .send
+      return voiceAvailable ? .voice : .send
     }
-  }
-
-  /// Messages' waveform in the empty field. Not on the Mac, where dictation is one item in the menu.
-  private var showsDictationGlyph: Bool {
-    #if os(iOS)
-      true
-    #else
-      false
-    #endif
-  }
-
-  private var actionButton: some View {
-    Button {
-      if stopping {
-        stop()
-      } else {
-        send()
-      }
-    } label: {
-      Image(systemName: stopping ? "stop.fill" : "arrow.up")
-        .font(.body.weight(.bold))
-        .frame(width: capsuleButtonWidth, height: capsuleButtonHeight)
-    }
-    .buttonStyle(SendButtonStyle(role: stopping ? .stop : .send))
-    .disabled(stopping ? model.isStopping : !model.canSubmit)
-    .accessibilityLabel(stopping ? Strings.Chat.Composer.stop : Strings.Chat.Composer.send)
-    .accessibilityHint(sendHint)
-    .accessibilityIdentifier(stopping ? "composer.stop" : "composer.send")
   }
 
   /// Esc stops the bot while focus is somewhere else on the screen (a card's
@@ -560,78 +598,6 @@ public struct ComposerView: View {
     case .commandRan: NativeStrings.Composer.commandRan
     }
   }
-}
-
-/// The composer's send button, a capsule inside the field: the accent blue with a white arrow when there
-/// is something to send, red to stop, and when there is nothing to send a
-/// quiet grey capsule whose arrow is still plainly there (a disabled prominent
-/// button drew dark on the dark bar and all but vanished).
-struct SendButtonStyle: ButtonStyle {
-  enum Role {
-    case send, stop
-  }
-
-  let role: Role
-
-  @Environment(\.isEnabled) private var isEnabled
-
-  func makeBody(configuration: Configuration) -> some View {
-    configuration.label
-      .foregroundStyle(isEnabled ? AnyShapeStyle(Color.white) : AnyShapeStyle(.secondary))
-      .background(fill, in: .capsule)
-      // Glass only on the grey capsule: glass over the solid blue or red lightened it under the
-      // white glyph until the accessibility audit failed its contrast (as Messages' own solid
-      // send button, the coloured button is plain).
-      .glassEffect(isEnabled ? .identity : .regular, in: .capsule)
-      .opacity(configuration.isPressed ? 0.75 : 1)
-      .contentShape(.capsule)
-  }
-
-  private var fill: AnyShapeStyle {
-    guard isEnabled else { return AnyShapeStyle(.fill.secondary) }
-    switch role {
-    case .send: return AnyShapeStyle(BubblePalette.outgoing)
-    case .stop: return AnyShapeStyle(Self.stopRed)
-    }
-  }
-
-  /// A deeper red than the system's: white on it is 5.4:1 (on the system red, 3.6:1).
-  static let stopRed = Color(red: 0xD7 / 255, green: 0x00 / 255, blue: 0x15 / 255)
-}
-
-/// The plus's colours, as Messages draws its own: a flat grey disc with a white plus, which
-/// stays visible on the black page where a dark glass disc vanished. The disc is a plain fill
-/// (no glass, no gradient), picked so the shape is at least 3:1 against the page it sits on
-/// (black in dark mode, white in light) and the white glyph is at least 3:1 against the disc.
-enum AttachPalette {
-  static let fillLight = (red: 0x70, green: 0x70, blue: 0x78)
-  static let fillDark = (red: 0x63, green: 0x63, blue: 0x66)
-
-  static let fill = Color.dynamic(
-    light: (fillLight.red, fillLight.green, fillLight.blue),
-    dark: (fillDark.red, fillDark.green, fillDark.blue))
-}
-
-/// The plus beside the field: a clearly visible filled grey circle with a bold white plus, round,
-/// the same height as one line of the field. Dimmed, not recoloured, when it is disabled.
-struct AttachButtonStyle: ButtonStyle {
-  @Environment(\.isEnabled) private var isEnabled
-
-  func makeBody(configuration: Configuration) -> some View {
-    configuration.label
-      .foregroundStyle(Color.white)
-      .background(AttachPalette.fill, in: .circle)
-      .opacity(isEnabled ? (configuration.isPressed ? 0.7 : 1) : 0.4)
-      // 44 pt to touch on iPhone and iPad while the disc stays the field's line height (40 pt):
-      // the shape reaches two points past the layout frame on every side.
-      .contentShape(.circle.inset(by: -Self.hitSlop))
-  }
-
-  #if os(iOS)
-    static let hitSlop: CGFloat = 2
-  #else
-    static let hitSlop: CGFloat = 0
-  #endif
 }
 
 extension View {
@@ -794,6 +760,10 @@ extension NativeStrings {
     /// Opening the chat…
     static var opening: String {
       String(localized: "native.composer.opening", table: "Native", bundle: .module)
+    }
+    /// Ask anything… (the placeholder of the empty message field)
+    static var askPlaceholder: String {
+      String(localized: "native.composer.askPlaceholder", table: "Native", bundle: .module)
     }
     /// More
     static var more: String {
