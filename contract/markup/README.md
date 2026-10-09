@@ -7,16 +7,19 @@ text it came from when it is not.
 Files:
 
 - `cards.schema.json`: JSON Schema (2020-12) of the body of a `hermie-cards` block.
+- `chart.schema.json`: JSON Schema (2020-12) of the body of a `hermie-chart` block, the format `docs/charts.md`
+  describes (that page keeps the rules a schema cannot say).
 - `icons.json`: the closed vocabulary of card icons: for each name, the SF Symbol the Apple apps draw and the
   outline the web draws (`svg`, one path's `d` attribute on a 24x24 grid, stroked with `currentColor`; it is
   path data, never markup). Plus the `generic` glyph an unknown name falls back to.
 - `examples.json`: valid and invalid `hermie-cards` blocks, each invalid one naming the rule it breaks, and
   alert quotes, each saying whether it is an alert.
-- `SHA256SUMS`: pins the four files above (`shasum -a 256 -c SHA256SUMS`).
+- `SHA256SUMS`: pins the five files above (`shasum -a 256 -c SHA256SUMS`).
 
 This directory is authored in this repository, because the validators live in the clients. The gateway's
-repository carries a byte-identical copy (its guide text states the caps read from `examples.json`, not
-retyped). The `hermie-chart` block is older and is defined by `docs/charts.md`.
+repository carries a byte-identical copy: its guide text, which tells a model the formats, states the caps of
+both schemas, and a test there reads the schemas and `examples.json` and checks every number. The
+`hermie-chart` block is older; `docs/charts.md` defines it and `chart.schema.json` restates it as a schema.
 
 Normative words: MUST, MUST NOT, SHOULD as in RFC 2119.
 
