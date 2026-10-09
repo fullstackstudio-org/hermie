@@ -17,10 +17,11 @@ const AUTHORITY_RE = /^https?:\/\/([^\s@/?#]+)/iu
 const NON_ASCII_RE = /[^\u0000-\u007f]/u
 
 /**
- * The host to show beside a source: the authority exactly as the gateway stored it (it stores ASCII, punycode for a
- * name that is not), port included, because a port is part of where a link goes. An authority that is not ASCII
- * (a gateway that did not convert it) is shown as the browser would send it, punycode, so a name that only looks like
- * another cannot pass for it. `''` for an address with no authority, which the reader of the list never lets through.
+ * The host to show beside a source: the authority exactly as the gateway stored it (lower-case ASCII, punycode for a
+ * name that is not ASCII, never decoded), port included, because a port is part of where a link goes. The reader of the
+ * list (`parseSources`) only lets such an address through, so this is the stored text. Should an address that is not
+ * ASCII get here anyway, it is shown as the browser would send it, punycode, and never as the name it imitates.
+ * `''` for an address with no authority, which the reader never lets through.
  */
 export function displayHost(url: string): string {
   const authority = AUTHORITY_RE.exec(url)?.[1]

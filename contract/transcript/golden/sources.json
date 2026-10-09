@@ -84,6 +84,26 @@
       {
         "args": [
           {
+            "title": "A host stored as punycode, the path as returned",
+            "url": "https://xn--bcher-kva.example/Küche?q=ü",
+            "via": "found"
+          }
+        ],
+        "op": "parseSource",
+        "result": {
+          "title": "A host stored as punycode, the path as returned",
+          "url": "https://xn--bcher-kva.example/Küche?q=ü",
+          "via": "found"
+        }
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > keeps https://xn--bcher-kva.example/Küche?q=ü"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
             "title": "x",
             "url": "ftp://example.org/file",
             "via": "read"
@@ -158,6 +178,86 @@
       }
     ],
     "test": "parseSource, by the contract’s examples > drops: whitespace in the URL"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "title": "x",
+            "url": "https://Example.org/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > drops: a host not stored as lower-case ASCII"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "title": "x",
+            "url": "https://bücher.example/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > drops: a non-ASCII host not stored as punycode"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "title": "x",
+            "url": "https://example.org/‮gnp.exe",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > drops: a bidi override in the URL"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "title": "x",
+            "url": "https://example.org/a​b",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > drops: a zero-width character in the URL"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "title": "x",
+            "url": "https://example.org/a",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > drops: a C1 control in the URL"
   },
   {
     "calls": [
@@ -369,14 +469,62 @@
         "args": [
           {
             "title": "Installing the gateway",
-            "url": "HTTPS://Example.org/Page",
+            "url": "https://example.org/Page?Q=1#Frag",
             "via": "read"
           }
         ],
         "op": "parseSource",
         "result": {
           "title": "Installing the gateway",
-          "url": "HTTPS://Example.org/Page",
+          "url": "https://example.org/Page?Q=1#Frag",
+          "via": "read"
+        }
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "HTTPS://example.org/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://Example.org/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://bücher.example/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://xn--bcher-kva.example/Küche",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": {
+          "title": "Installing the gateway",
+          "url": "https://xn--bcher-kva.example/Küche",
           "via": "read"
         }
       },
@@ -414,7 +562,220 @@
         "result": null
       }
     ],
-    "test": "parseSource, by the contract’s examples > takes the scheme in either case, as the schema’s pattern does, and nothing else"
+    "test": "parseSource, by the contract’s examples > takes only what the gateway stores: the scheme and the host in lower case, ASCII"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://example.org:65535/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": {
+          "title": "Installing the gateway",
+          "url": "https://example.org:65535/",
+          "via": "read"
+        }
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://example.org:0/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": {
+          "title": "Installing the gateway",
+          "url": "https://example.org:0/",
+          "via": "read"
+        }
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://[2001:db8::1]:8443/p",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": {
+          "title": "Installing the gateway",
+          "url": "https://[2001:db8::1]:8443/p",
+          "via": "read"
+        }
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://example.org:65536/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://example.org:70000/x",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://example.org:http/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://example.org:/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > takes a port only as a number from 0 to 65535"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://example.org/a‮b",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://example.org/a​b",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://example.org/ab",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://example.org/a­b",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://example.org/a⁦b",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://example.org/a﻿b",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://example.org/a󠁁b",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://example.org/a\u0000b",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://example.org/ab",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://example.org/a%E2%80%AEb",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": {
+          "title": "Installing the gateway",
+          "url": "https://example.org/a%E2%80%AEb",
+          "via": "read"
+        }
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > refuses an address with an invisible or control character anywhere in it"
   },
   {
     "calls": [

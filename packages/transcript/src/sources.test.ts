@@ -54,11 +54,44 @@ describe('parseSource, by the contract’s examples', () => {
     expect(parseSource({ ...READ, url: base + 'a'.repeat(2049 - base.length) })).toBeNull()
   })
 
-  it('takes the scheme in either case, as the schema’s pattern does, and nothing else', () => {
-    expect(parseSource({ ...READ, url: 'HTTPS://Example.org/Page' })).not.toBeNull()
+  it('takes only what the gateway stores: the scheme and the host in lower case, ASCII', () => {
+    expect(parseSource({ ...READ, url: 'https://example.org/Page?Q=1#Frag' })).not.toBeNull()
+    expect(parseSource({ ...READ, url: 'HTTPS://example.org/' })).toBeNull()
+    expect(parseSource({ ...READ, url: 'https://Example.org/' })).toBeNull()
+    expect(parseSource({ ...READ, url: 'https://b\u00fccher.example/' })).toBeNull()
+    expect(parseSource({ ...READ, url: 'https://xn--bcher-kva.example/K\u00fcche' })).not.toBeNull()
     expect(parseSource({ ...READ, url: 'data:text/html,<p>x</p>' })).toBeNull()
     expect(parseSource({ ...READ, url: '//example.org/' })).toBeNull()
     expect(parseSource({ ...READ, url: 'https://example.org/\n' })).toBeNull()
+  })
+
+  it('takes a port only as a number from 0 to 65535', () => {
+    expect(parseSource({ ...READ, url: 'https://example.org:65535/' })).not.toBeNull()
+    expect(parseSource({ ...READ, url: 'https://example.org:0/' })).not.toBeNull()
+    expect(parseSource({ ...READ, url: 'https://[2001:db8::1]:8443/p' })).not.toBeNull()
+    expect(parseSource({ ...READ, url: 'https://example.org:65536/' })).toBeNull()
+    expect(parseSource({ ...READ, url: 'https://example.org:70000/x' })).toBeNull()
+    expect(parseSource({ ...READ, url: 'https://example.org:http/' })).toBeNull()
+    expect(parseSource({ ...READ, url: 'https://example.org:/' })).toBeNull()
+  })
+
+  it('refuses an address with an invisible or control character anywhere in it', () => {
+    for (const bad of [
+      '\u202e',
+      '\u200b',
+      '\u0085',
+      '\u00ad',
+      '\u2066',
+      '\ufeff',
+      '\u{e0041}',
+      '\u0000',
+      '\u007f',
+      '\ud800'
+    ]) {
+      expect(parseSource({ ...READ, url: `https://example.org/a${bad}b` }), JSON.stringify(bad)).toBeNull()
+    }
+
+    expect(parseSource({ ...READ, url: 'https://example.org/a%E2%80%AEb' })).not.toBeNull()
   })
 
   it('does not coerce: a title that is not text is not an entry', () => {
