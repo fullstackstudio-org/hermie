@@ -3020,6 +3020,11 @@ none`, `cards`: 2 to 12 of `{icon?, title, subtitle?, tags?, highlight?, next?}`
   its own. `MarkdownAlert.read` decides (the parser still produces a quote, so `contract/markdown` does not move) and
   `MarkdownAlertView` draws an icon and the kind in its colour over a tinted card; VoiceOver says the kind first. A
   quote inside a callout is an ordinary quote; the owner's own bubble keeps the quote as typed.
+- **Links** read like a reading app's: a dotted underline in the tint, and after a link to a web page (`http`,
+  `https`) a small north-east arrow (`MarkdownInline.linkGlyph`) in a run of its own, once per link, so it is not part
+  of what a tap opens or selects. `mailto` and `tel` carry none. The arrow is decoration: a paragraph that has one is
+  given a VoiceOver label without it (`MarkdownInline.spokenText`), so the link's own words are what is read. Which
+  schemes a tap may open is unchanged (`openableSchemes`).
 - **Words** travel through the environment like the chart's (`markdownCardsLabels`, `markdownAlertLabels`;
   `native.cards.*`, `native.alert.*`, `native.block.*`).
 

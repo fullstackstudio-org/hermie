@@ -64,7 +64,7 @@ struct MarkdownTableView: View {
 
   private func cell(_ inline: MarkdownInline, row: Int, column: Int, maxTextWidth: CGFloat) -> some View {
     MarkdownTableCellText(maxWidth: maxTextWidth) {
-      Text(inline.attributedString(codeBackground: Color.secondary.opacity(0.14)))
+      MarkdownInlineText(inline: inline, codeBackground: Color.secondary.opacity(0.14))
         .multilineTextAlignment(textAlignment(column))
     }
     .padding(cellPadding)

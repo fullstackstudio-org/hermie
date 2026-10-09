@@ -129,9 +129,27 @@ struct MarkdownParagraphView: View {
   @ScaledMetric(relativeTo: .body) private var scriptOffset: CGFloat = 5
 
   var body: some View {
-    Text(inline.attributedString(codeBackground: Color.secondary.opacity(0.14), scriptOffset: scriptOffset))
+    MarkdownInlineText(inline: inline, codeBackground: Color.secondary.opacity(0.14), scriptOffset: scriptOffset)
       .markdownLine()
       .fixedSize(horizontal: false, vertical: true)
+  }
+}
+
+/// Inline content as `Text`. A paragraph with a link to a web page carries the link's arrow in its text; the
+/// arrow is decoration, so VoiceOver gets the words without it (`MarkdownInline.spokenText`).
+struct MarkdownInlineText: View {
+  let inline: MarkdownInline
+  var codeBackground: Color?
+  var scriptOffset: CGFloat = 5
+
+  var body: some View {
+    let text = inline.attributedString(codeBackground: codeBackground, scriptOffset: scriptOffset)
+
+    if let spoken = MarkdownInline.spokenText(of: text) {
+      Text(text).accessibilityLabel(spoken)
+    } else {
+      Text(text)
+    }
   }
 }
 
@@ -160,7 +178,7 @@ struct MarkdownHeadingView: View {
   }
 
   var body: some View {
-    Text(inline.attributedString())
+    MarkdownInlineText(inline: inline)
       .font(font)
       .markdownLine()
       .fixedSize(horizontal: false, vertical: true)
