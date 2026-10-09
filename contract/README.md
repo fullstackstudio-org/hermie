@@ -13,20 +13,21 @@ changes and the port does not follow.
 
 ## Layout
 
-| Path                                     | What                                                                                                     | Made by                                           |
-| ---------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| `transcript/golden/<suite>.json`         | every top-level call one transcript test file made into the engine, with its result                      | `packages/transcript/vitest.golden.config.ts`     |
-| `transcript/golden-summary.json`         | per operation: calls recorded, replayable, skipped (by reason), whether it read a clock                  | `scripts/golden/generate.ts`                      |
-| `transcript/fixtures/{events,rows}.json` | `packages/transcript/src/__fixtures__/{events,rows}.ts` as data                                          | `packages/transcript/golden/dump-fixtures.ts`     |
-| `transcript/streams/<scenario>.json`     | a fake-gateway conversation: the frames it sent, the engine steps, the resulting state                   | `packages/fake-gateway/scripts/dump-frames.ts`    |
-| `gateway/vectors/<module>.json`          | input/output vectors for the pure functions of `@hermie/gateway-client`                                  | `packages/gateway-client/scripts/dump-vectors.ts` |
-| `markdown/<group>.json`                  | the Expo app's Markdown block structure per input: blocks, preprocessing, inline, streaming prefixes     | `scripts/golden/dump-markdown.ts`                 |
-| `i18n/catalogue.json`                    | the Expo app's strings in en, nl and de, as text, lists or templates (`docs/i18n.md`)                    | `scripts/i18n/generate.ts`                        |
-| `push/contract.json`                     | the push contract (requests, clearing, data keys, types, channels, examples) — hand-written              | by hand                                           |
-| `gateway/mcp.md`                         | the gateway MCP page's REST shapes (`/api/auth/mcp`), `mcp.changed`, and the `author.via` marker on rows | by hand                                           |
-| `confirm-passkey/`                       | the passkey confirm contract: challenge construction, base-URL serialisation, CBOR subset, test vectors  | the fork (`contract/confirm-passkey/generate.py`) |
-| `requests/`                              | the interactive-requests contract: JSON Schema, examples and the rules for requests the gateway raises   | the fork (`contract/requests/`)                   |
-| `outbox/`                                | the shared-files contract: the attachment a reply carries, the route its bytes come from, ranges         | the fork (`contract/outbox/`)                     |
+| Path                                     | What                                                                                                      | Made by                                           |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `transcript/golden/<suite>.json`         | every top-level call one transcript test file made into the engine, with its result                       | `packages/transcript/vitest.golden.config.ts`     |
+| `transcript/golden-summary.json`         | per operation: calls recorded, replayable, skipped (by reason), whether it read a clock                   | `scripts/golden/generate.ts`                      |
+| `transcript/fixtures/{events,rows}.json` | `packages/transcript/src/__fixtures__/{events,rows}.ts` as data                                           | `packages/transcript/golden/dump-fixtures.ts`     |
+| `transcript/streams/<scenario>.json`     | a fake-gateway conversation: the frames it sent, the engine steps, the resulting state                    | `packages/fake-gateway/scripts/dump-frames.ts`    |
+| `gateway/vectors/<module>.json`          | input/output vectors for the pure functions of `@hermie/gateway-client`                                   | `packages/gateway-client/scripts/dump-vectors.ts` |
+| `markdown/<group>.json`                  | the Expo app's Markdown block structure per input: blocks, preprocessing, inline, streaming prefixes      | `scripts/golden/dump-markdown.ts`                 |
+| `i18n/catalogue.json`                    | the Expo app's strings in en, nl and de, as text, lists or templates (`docs/i18n.md`)                     | `scripts/i18n/generate.ts`                        |
+| `push/contract.json`                     | the push contract (requests, clearing, data keys, types, channels, examples) — hand-written               | by hand                                           |
+| `gateway/mcp.md`                         | the gateway MCP page's REST shapes (`/api/auth/mcp`), `mcp.changed`, and the `author.via` marker on rows  | by hand                                           |
+| `confirm-passkey/`                       | the passkey confirm contract: challenge construction, base-URL serialisation, CBOR subset, test vectors   | the fork (`contract/confirm-passkey/generate.py`) |
+| `requests/`                              | the interactive-requests contract: JSON Schema, examples and the rules for requests the gateway raises    | the fork (`contract/requests/`)                   |
+| `outbox/`                                | the shared-files contract: the attachment a reply carries, the route its bytes come from, ranges          | the fork (`contract/outbox/`)                     |
+| `sources/`                               | the sources contract: the pages a reply used, `message.complete.sources` and the row's `display_metadata` | the fork (`contract/sources/`)                    |
 
 `i18n/` has a pipeline of its own: `npm run i18n` writes it (with the Apple String
 Catalog made from it) and `npm run i18n:check` guards it; `golden` leaves it alone.

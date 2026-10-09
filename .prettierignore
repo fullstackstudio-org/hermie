@@ -40,3 +40,5 @@ contract/confirm-passkey/
 contract/requests/
 # Byte-identical copy of the fork's shared-files contract; its SHA256SUMS must keep passing.
 contract/outbox/
+# Byte-identical copy of the fork's sources contract; its SHA256SUMS must keep passing.
+contract/sources/
