@@ -264,8 +264,8 @@ for (const scheme of ['light', 'dark'] as const) {
         expect(await seriousViolations(page, `rich-${scheme}-${size.width}`)).toEqual([])
 
         await matchesPictures(diagnostics, browserName, [
-          [bubble.locator('.md-code[data-kind="cards"]').first(), `cards-${scheme}-${size.width}.png`],
-          [bubble.locator('.md-code[data-kind="chart"]').first(), `chart-${scheme}-${size.width}.png`],
+          [bubble.locator('.md-block[data-kind="cards"]').first(), `cards-${scheme}-${size.width}.png`],
+          [bubble.locator('.md-block[data-kind="chart"]').first(), `chart-${scheme}-${size.width}.png`],
           [warning, `alert-${scheme}-${size.width}.png`]
         ])
 
@@ -276,15 +276,45 @@ for (const scheme of ['light', 'dark'] as const) {
           await bubble.screenshot({ path: join(shots, `reply-${scheme}-${size.name}-${browserName}.png`) })
         }
 
-        // "Show source" puts the JSON where the chart was, and back.
-        const box = bubble.locator('.md-code[data-kind="chart"]').first()
-        const toggle = box.getByRole('button', { name: 'Show source' })
+        // No header bar over a drawn block: its options are one "..." button in the corner, quiet until the pointer is
+        // over the block or focus is in it.
+        const box = bubble.locator('.md-block[data-kind="chart"]').first()
+        const more = box.getByRole('button', { name: 'More options' })
+        const opacity = (): Promise<string> => more.evaluate(button => getComputedStyle(button).opacity)
 
-        await toggle.click()
-        await expect(toggle).toHaveAttribute('aria-pressed', 'true')
+        await expect(bubble.locator('.md-code-bar')).toHaveCount(0)
+        await expect(bubble.getByRole('button', { name: 'Copy code' })).toHaveCount(0)
+        await page.mouse.move(0, 0)
+        expect(await opacity()).toBe('0')
+        await box.hover()
+        expect(await opacity()).toBe('1')
+
+        const corner = await Promise.all([box.boundingBox(), more.boundingBox()])
+
+        expect((corner[1]?.x ?? 0) + (corner[1]?.width ?? 0)).toBeGreaterThan(
+          (corner[0]?.x ?? 0) + (corner[0]?.width ?? 0) - 12
+        )
+        expect(corner[1]?.y ?? 0).toBeLessThan((corner[0]?.y ?? 0) + 12)
+
+        // Keyboard: focus shows it, Enter opens the panel, Escape closes it and keeps focus on the button.
+        await page.mouse.move(0, 0)
+        await more.focus()
+        expect(await opacity()).toBe('1')
+        await page.keyboard.press('Enter')
+        await expect(more).toHaveAttribute('aria-expanded', 'true')
+        await expect(box.getByRole('button', { name: 'Copy source' })).toBeVisible()
+        await page.keyboard.press('Escape')
+        await expect(more).toHaveAttribute('aria-expanded', 'false')
+        await expect(more).toBeFocused()
+
+        // "Show source" puts the JSON where the chart was, and back.
+        await more.click()
+        await box.getByRole('button', { name: 'Show source' }).click()
         await expect(box.locator('pre')).toContainText('"type": "bar"')
         await expect(bar).toHaveCount(0)
-        await toggle.click()
+        await more.click()
+        await expect(box.getByRole('button', { name: 'Show source' })).toHaveAttribute('aria-pressed', 'true')
+        await box.getByRole('button', { name: 'Show source' }).click()
         await expect(bar).toBeVisible()
       })
     })

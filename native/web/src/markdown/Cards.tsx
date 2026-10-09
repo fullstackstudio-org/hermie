@@ -10,13 +10,14 @@
  * read as one sentence ("Card 2 of 5, Gateway per klant, k3s, highlighted, tags k3s, Postgres, then: deployt naar",
  * the same as the native apps') while the drawn card, which says the same in pieces, is hidden from the tree. The
  * connectors are part of the sentence (`then:`), so they are drawn and not read. A box that holds a drawing is
- * keyboard-focusable (it can scroll), and "Show source" puts the JSON in its place.
+ *  a "..." button in its corner (`DrawnBlock.tsx`) has Show source and Copy source.
  */
 import { memo, useMemo } from 'react'
 
 import { sheetStrings } from '../i18n/sheet-strings'
 import { useLocale } from '../i18n/use-locale'
 import { CodeBlock } from './CodeBlock'
+import { DrawnBlock } from './DrawnBlock'
 import { type CardsWords, cardSpeech, parseCards, type CardsSpec } from './markup/cards-spec'
 import { ICON_NAMES, ICON_VIEW_BOX, iconFor } from './markup/icons'
 
@@ -110,14 +111,7 @@ function CardsDiagramView({ source, language }: { source: string; language?: str
     return <CodeBlock code={source} {...(language ? { language } : {})} />
   }
 
-  return (
-    <CodeBlock
-      code={source}
-      drawing={<CardsFigure spec={result.spec} />}
-      kind="cards"
-      label={sheetStrings.markdown.cards.label}
-    />
-  )
+  return <DrawnBlock code={source} drawing={<CardsFigure spec={result.spec} />} kind="cards" />
 }
 
 /** Memoised on the source: a settled block of a streaming reply is not validated and drawn again. */
