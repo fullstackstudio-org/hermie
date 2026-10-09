@@ -83,8 +83,8 @@ describe('before the chunks arrive', () => {
 
     await loadChunks()
 
-    expect(container.querySelector('.md-code[data-kind="chart"] svg[role="img"]')).not.toBeNull()
-    expect(container.querySelector('.md-code[data-kind="cards"] [role="list"]')).not.toBeNull()
+    expect(container.querySelector('.md-block[data-kind="chart"] svg[role="img"]')).not.toBeNull()
+    expect(container.querySelector('.md-block[data-kind="cards"] [role="list"]')).not.toBeNull()
     expect(container.querySelector('pre')).toBeNull()
   })
 })
@@ -99,7 +99,8 @@ describe('a chart', () => {
     expect(image.getAttribute('aria-label')).toBe(
       'Bar chart, Sales per quarter. In EUR. 2026: Q1 12, Q2 15, Q3 9, Q4 20. 2027: Q1 14, Q2 18, Q3 11, Q4 24.'
     )
-    expect(container.querySelector('.md-code-lang')?.textContent).toBe('Bar chart')
+    // The picture is the block: no header bar, no language label, no listing buttons over it.
+    expect(container.querySelector('.md-code, .md-code-bar, .md-code-lang')).toBeNull()
     // One bar per value, in two series; the title and the legend are for the eye (the sentence says them).
     expect(container.querySelectorAll('rect.md-chart-bar')).toHaveLength(8)
     expect(container.querySelector('.md-chart-title')?.getAttribute('aria-hidden')).toBe('true')
@@ -126,23 +127,100 @@ describe('a chart', () => {
     expect(container.querySelectorAll('.md-chart-slice')).toHaveLength(2)
     expect(
       [...container.querySelectorAll('.md-chart-pie ~ .md-chart-legend li')].map(item => item.textContent)
-    ).toEqual(['Reading3 % (75%)', 'Writing1 % (25%)'])
+    ).toEqual(['Reading3 %', 'Writing1 %'])
   })
 
-  it('has a Show source toggle and a Copy that copies the JSON', async () => {
+  it('says what a slice is worth once: with the unit when there is one, with its share when there is not', () => {
+    const pie = (unit?: string): string =>
+      fence(
+        'hermie-chart',
+        JSON.stringify({
+          type: 'pie',
+          ...(unit ? { unit } : {}),
+          x: ['A', 'B'],
+          series: [{ name: 's', values: [3, 1] }]
+        })
+      )
+    const legend = (container: HTMLElement): string[] =>
+      [...container.querySelectorAll('.md-chart-legend li')].map(item => item.textContent ?? '')
+
+    expect(legend(render(<Markdown text={pie('%')} />).container)).toEqual(['A3 %', 'B1 %'])
+    cleanup()
+    expect(legend(render(<Markdown text={pie('EUR')} />).container)).toEqual(['A3 EUR', 'B1 EUR'])
+    cleanup()
+    expect(legend(render(<Markdown text={pie()} />).container)).toEqual(['A3 (75%)', 'B1 (25%)'])
+  })
+
+  it('has a "..." button in its corner with Show source and Copy source, closed until it is pressed', async () => {
     const { container } = render(<Markdown text={fence('hermie-chart', CHART)} />)
+    const more = screen.getByRole('button', { name: 'More options' })
+    const panel = container.querySelector('.md-block-panel') as HTMLElement
+
+    expect(more.getAttribute('aria-expanded')).toBe('false')
+    expect(more.getAttribute('aria-controls')).toBe(panel.id)
+    expect(panel.hidden).toBe(true)
+    // Nothing else is a button: the block has no header bar.
+    expect(container.querySelectorAll('.md-block-menu > button')).toHaveLength(1)
+
+    fireEvent.click(more)
+
+    expect(more.getAttribute('aria-expanded')).toBe('true')
+    expect(panel.hidden).toBe(false)
+
     const toggle = screen.getByRole('button', { name: 'Show source' })
 
     fireEvent.click(toggle)
 
-    expect(toggle.getAttribute('aria-pressed')).toBe('true')
+    expect(more.getAttribute('aria-expanded')).toBe('false')
+    expect(container.querySelector('.md-block')?.getAttribute('data-drawn')).toBe('false')
     expect(container.querySelector('pre')?.textContent).toBe(CHART)
-    expect(container.querySelector('svg')).toBeNull()
+    expect(container.querySelector('svg[role="img"]')).toBeNull()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Copy code' }))
+    // And back: the toggle is pressed while the source shows.
+    fireEvent.click(more)
+    expect(screen.getByRole('button', { name: 'Show source' }).getAttribute('aria-pressed')).toBe('true')
+    fireEvent.click(screen.getByRole('button', { name: 'Show source' }))
+    expect(container.querySelector('svg[role="img"]')).not.toBeNull()
+
+    fireEvent.click(more)
+    fireEvent.click(screen.getByRole('button', { name: 'Copy source' }))
     await act(async () => undefined)
 
     expect(clipboard.writeClipboard).toHaveBeenCalledWith(CHART)
+    expect(screen.getByRole('status').textContent).toBe('Copied')
+  })
+
+  it('closes its panel with Escape and puts focus back on the button, and when a press lands elsewhere', () => {
+    render(
+      <>
+        <button type="button">elsewhere</button>
+        <Markdown text={fence('hermie-chart', CHART)} />
+      </>
+    )
+
+    const more = screen.getByRole('button', { name: 'More options' })
+
+    fireEvent.click(more)
+    screen.getByRole('button', { name: 'Copy source' }).focus()
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Copy source' }), { key: 'Escape' })
+
+    expect(more.getAttribute('aria-expanded')).toBe('false')
+    expect(document.activeElement).toBe(more)
+
+    fireEvent.click(more)
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'elsewhere' }))
+
+    expect(more.getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it('says a copy the browser refuses', async () => {
+    clipboard.writeClipboard.mockResolvedValue(false)
+    render(<Markdown text={fence('hermie-chart', CHART)} />)
+    fireEvent.click(screen.getByRole('button', { name: 'More options' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Copy source' }))
+    await act(async () => undefined)
+
+    expect(screen.getByRole('status').textContent).toBe('Could not copy')
   })
 
   it('keeps a block that does not validate as the code it is, with its language', () => {
@@ -152,7 +230,7 @@ describe('a chart', () => {
     expect(container.querySelector('svg')).toBeNull()
     expect(container.querySelector('pre')?.textContent).toBe(invalid)
     expect(container.querySelector('.md-code-lang')?.textContent).toBe('hermie-chart')
-    expect(screen.queryByRole('button', { name: 'Show source' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'More options' })).toBeNull()
   })
 
   it('is drawn for a language written in capitals, and only for this language', () => {
@@ -170,7 +248,7 @@ describe('a chart', () => {
     expect(container.querySelector('svg[role="img"]')?.getAttribute('aria-label')).toMatch(
       /^Staafdiagram, Sales per quarter\./u
     )
-    expect(container.querySelector('.md-code-lang')?.textContent).toBe('Staafdiagram')
+    expect(screen.getByRole('button', { name: 'Meer opties' })).not.toBeNull()
   })
 
   it('puts nothing a reply wrote into an attribute but the name, and never makes an element a reply chose', () => {
@@ -211,7 +289,8 @@ describe('cards', () => {
     expect(container.querySelector('.md-card[data-highlight="true"] .md-card-title')?.textContent).toBe(
       'Gateway per klant'
     )
-    expect(container.querySelector('.md-code-lang')?.textContent).toBe('Cards')
+    expect(container.querySelector('.md-code, .md-code-bar, .md-code-lang')).toBeNull()
+    expect(screen.getByRole('button', { name: 'More options' })).not.toBeNull()
   })
 
   it('draws a connector with its label between cards, an arrow by default, and none after the last', () => {

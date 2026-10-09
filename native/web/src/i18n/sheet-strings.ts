@@ -57,6 +57,17 @@ export const SHEET_STRINGS_SOURCE = {
       nl: 'Bron tonen',
       de: 'Quelltext anzeigen'
     },
+    /** The button in the corner of a drawn chart or set of cards: its name, and what it offers besides Show source. */
+    moreOptions: {
+      en: 'More options',
+      nl: 'Meer opties',
+      de: 'Weitere Optionen'
+    },
+    copySource: {
+      en: 'Copy source',
+      nl: 'Bron kopiëren',
+      de: 'Quelltext kopieren'
+    },
     /** The name of a callout (a quote that begins `[!NOTE]` and its kin), read before its words and shown as its title. */
     alert: {
       note: { en: 'Note', nl: 'Opmerking', de: 'Hinweis' },

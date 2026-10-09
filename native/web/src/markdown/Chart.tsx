@@ -10,13 +10,14 @@
  * The drawing is in the width the box has (a `ResizeObserver` on it), so its labels are the page's own size and a
  * narrow bubble gets fewer labels, not smaller ones. It is one image to assistive technology, named by the same
  * sentence the native apps speak (`chartSummary`): the kind, the title, the unit and each series with its first
- * twelve points. The code block's box gives it the "Show source" toggle and a Copy button for the JSON.
+ * twelve points. A "..." button in its corner (`DrawnBlock.tsx`) gives it Show source and Copy source.
  */
 import { memo, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 
 import { sheetStrings } from '../i18n/sheet-strings'
 import { useLocale } from '../i18n/use-locale'
 import { CodeBlock } from './CodeBlock'
+import { DrawnBlock } from './DrawnBlock'
 import {
   CHAR_WIDTH,
   MARKER_SHAPES,
@@ -227,6 +228,20 @@ function Pie({ spec, size, summary }: { spec: ChartSpec; size: number; summary: 
   )
 }
 
+/**
+ * What a slice is worth, said once: with the unit the spec gave (`42 %`, `12 EUR`), which already says what the number
+ * is; without one, the number and its share of the whole.
+ */
+function pieValue(spec: ChartSpec, value: number, total: number): string {
+  if (spec.unit !== undefined) {
+    return `${formatNumber(value)} ${spec.unit}`
+  }
+
+  return total > 0
+    ? `${formatNumber(value)} (${formatNumber(Math.round((value / total) * 1000) / 10)}%)`
+    : formatNumber(value)
+}
+
 /** The key to the colours: the series of a bar or line chart (when there are several), the slices of a pie. */
 function Legend({ spec }: { spec: ChartSpec }) {
   if (spec.kind !== 'pie' && spec.series.length < 2) {
@@ -250,11 +265,7 @@ function Legend({ spec }: { spec: ChartSpec }) {
                   data-cycle={Math.floor(index / PALETTE_SIZE)}
                 />
                 <span className="md-chart-legend-label">{label}</span>
-                <span className="md-chart-legend-value">
-                  {formatNumber(value)}
-                  {spec.unit === undefined ? '' : ` ${spec.unit}`}
-                  {total > 0 ? ` (${formatNumber(Math.round((value / total) * 1000) / 10)}%)` : ''}
-                </span>
+                <span className="md-chart-legend-value">{pieValue(spec, value, total)}</span>
               </li>
             )
           })
@@ -303,11 +314,10 @@ function ChartDiagramView({ source, language }: { source: string; language?: str
   const { spec } = result
 
   return (
-    <CodeBlock
+    <DrawnBlock
       code={source}
       drawing={<ChartFigure spec={spec} summary={chartSummary(spec, words())} />}
       kind="chart"
-      label={kindName(spec.kind)}
     />
   )
 }

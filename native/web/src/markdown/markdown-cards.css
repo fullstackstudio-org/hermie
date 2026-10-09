@@ -21,6 +21,136 @@
   white-space: nowrap;
 }
 
+/*
+ * A drawn chart or set of cards (`DrawnBlock.tsx`): the picture alone, with a quiet "..." button in the top-right
+ * corner for Show source and Copy source. The button is invisible until the block is hovered or has focus, and is
+ * always faintly there where nothing can hover (a touch screen).
+ */
+.md .md-block {
+  position: relative;
+  /* More air than a paragraph: a picture next to a picture must not read as one. */
+  margin: 1em 0;
+}
+
+.md .md-block-menu {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  inset-inline-end: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.md .md-block-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 2em;
+  height: 2em;
+  padding: 0;
+  border: 1px solid var(--md-line);
+  border-radius: 999px;
+  background: var(--md-ground);
+  color: var(--md-muted);
+  cursor: pointer;
+  opacity: 0;
+}
+
+.md .md-block-more svg {
+  width: 1.3em;
+  height: 1.3em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+
+.md .md-block:hover .md-block-more,
+.md .md-block:focus-within .md-block-more,
+.md .md-block-more[aria-expanded='true'] {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .md .md-block-more {
+    opacity: 0.7;
+  }
+}
+
+.md .md-block-more:hover {
+  background: color-mix(in srgb, currentColor 10%, var(--md-ground));
+}
+
+.md .md-block-more:focus-visible,
+.md .md-block-action:focus-visible,
+.md .md-block-source:focus-visible {
+  outline: 2px solid var(--md-link);
+  outline-offset: 2px;
+}
+
+.md .md-block-status {
+  color: var(--md-muted);
+  font-size: 0.8em;
+}
+
+.md .md-block-panel {
+  position: absolute;
+  top: 2.4em;
+  inset-inline-end: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 10em;
+  padding: 0.25em;
+  border: 1px solid var(--md-line);
+  border-radius: 10px;
+  background: var(--md-ground);
+  box-shadow: 0 4px 16px color-mix(in srgb, currentColor 18%, transparent);
+  font-size: 0.9em;
+}
+
+.md .md-block-panel[hidden] {
+  display: none;
+}
+
+.md .md-block-action {
+  padding: 0.45em 0.7em;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.md .md-block-action:hover {
+  background: color-mix(in srgb, currentColor 9%, transparent);
+}
+
+.md .md-block-action[aria-pressed='true'] {
+  font-weight: 600;
+}
+
+.md .md-block-source {
+  margin: 0;
+  padding: 0.6em 0.75em;
+  overflow-x: auto;
+  border: 1px solid var(--md-line);
+  border-radius: 8px;
+  background: var(--md-code-surface);
+  font-family: var(--md-mono);
+  font-size: 0.875em;
+  line-height: 1.45;
+  white-space: pre;
+  overflow-wrap: normal;
+}
+
+.md .md-block-source code {
+  font: inherit;
+}
+
 /* Cards */
 
 .md .md-cards {
@@ -32,6 +162,7 @@
 
 .md .md-cards-title {
   margin-bottom: 0.55em;
+  padding-inline-end: 2.6em;
   font-size: 0.95em;
   font-weight: 600;
 }

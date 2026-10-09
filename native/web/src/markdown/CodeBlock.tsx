@@ -8,8 +8,8 @@
  * grammar knows, it is the plain source, which has the same characters and so
  * the same size. A listing far up a long history therefore stays one text node.
  *
- * The same box carries a drawing (`drawing`): typeset mathematics, Mermaid
- * diagrams, charts and cards are shown in it, with a "Show source" toggle that puts the source in
+ * The same box carries a drawing (`drawing`): typeset mathematics and Mermaid
+ * diagrams are shown in it, with a "Show source" toggle that puts the source in
  * their place. The drawing's own text alternative is the source too (the
  * renderer that makes it sets that); the toggle is for the eye and for copying a
  * part of it. The copy button always copies the source.
@@ -26,7 +26,7 @@ import { writeClipboard } from '../platform/clipboard'
 import { highlightRenderer, useLazyModule } from './lazy'
 import { useNearViewport } from './near-viewport'
 
-export type CodeBlockKind = 'code' | 'math' | 'mermaid' | 'chart' | 'cards'
+export type CodeBlockKind = 'code' | 'math' | 'mermaid'
 
 export interface CodeBlockProps {
   code: string
