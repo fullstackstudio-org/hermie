@@ -6,8 +6,8 @@ import Testing
 
 /// The pages a reply used (`contract/sources/`): the strict reader of one entry, the list, where it lands in
 /// the transcript, and what a view shows of one (the domain, the monogram). The entries below are the
-/// contract's own examples (`examples.json`, normative) written out here, so this suite does not depend on the
-/// copy of that directory being in the repository; `theContractsOwnExamples` reads the copy when it is.
+/// contract's own examples (`examples.json`, normative) written out; `theContractsOwnExamples` reads the file.
+/// The golden corpus (`contract/transcript/golden/sources.json`) holds the readers to the TypeScript one.
 @Suite struct SourcesTests {
   // MARK: The contract's examples, written out
 
@@ -15,7 +15,8 @@ import Testing
     ["url": "https://example.org/guide/install", "title": "Installing the gateway", "via": "read"],
     ["url": "https://docs.example.com/a?b=c#d", "title": "", "via": "found"],
     ["url": "http://example.net", "title": "Example Net", "via": "found"],
-    ["url": "https://[2001:db8::1]:8443/page", "title": "An address with a port", "via": "read"]
+    ["url": "https://[2001:db8::1]:8443/page", "title": "An address with a port", "via": "read"],
+    ["url": "https://xn--bcher-kva.example/K\u{FC}che?q=\u{FC}", "title": "A host stored as punycode, the path as returned", "via": "found"]
   ]
 
   static let invalid: [(why: String, value: JSONValue)] = [
@@ -84,13 +85,29 @@ import Testing
   }
 
   @Test(arguments: [
-    "https://example.org", "HTTP://EXAMPLE.ORG/Path", "https://example.org/a@b", "https://example.org?x=@",
-    "https://example.org#a@b", "https://xn--bcher-kva.example/", "https://[::1]/", "http://1.2.3.4:8080/x?y#z",
-    "https://example.org/path with-no-space-is-fine"
+    "https://example.org", "http://example.org/Path", "https://example.org/a@b", "https://example.org?x=@",
+    "https://example.org#a@b", "https://xn--bcher-kva.example/K\u{FC}che?q=\u{FC}", "https://[::1]/",
+    "http://1.2.3.4:8080/x?y#z", "https://example.org:65535/", "https://a-b.c-d.example/", "https://localhost"
   ]) func keepsAnAddressTheSchemaAllows(_ url: String) {
-    let kept = ReplySource.parse(["url": .string(url), "title": "x", "via": "found"]) != nil
-    // The last one has spaces and is the one refused; the rest are kept.
-    #expect(kept == !url.contains(" "), "\(url)")
+    #expect(ReplySource.parse(["url": .string(url), "title": "x", "via": "found"]) != nil, "\(url)")
+  }
+
+  @Test(arguments: [
+    // The gateway stores the scheme and the host in lower case ASCII.
+    "HTTP://example.org/", "Https://example.org/", "https://Example.org/", "https://EXAMPLE.ORG/Path",
+    "https://b\u{FC}cher.example/", "https://\u{FF45}xample.org/",
+    // A port is one to five digits and at most 65535.
+    "https://example.org:65536/", "https://example.org:999999/", "https://example.org:/", "https://example.org:80a/",
+    // A host is labels of letters, digits and hyphens between single dots.
+    "https://.example.org/", "https://example..org/", "https://example.org./", "https://exa_mple.org/",
+    "https://[]/", "https://[::g]/", "https://[::1/", "https://[::1]x/",
+    // Nothing invisible, nothing that ends the string with a line break.
+    "https://example.org/a\u{200B}b", "https://example.org/\u{00AD}", "https://example.org/a\u{2066}b",
+    "https://example.org/\n", "https://example.org\n", "https://example.org/a\u{85}b", "https://example.org/a\u{7F}",
+    "https://example.org/\u{E0001}"
+  ]) func dropsAnAddressTheSchemaRefuses(_ url: String) {
+    #expect(
+      ReplySource.parse(["url": .string(url), "title": "x", "via": "found"]) == nil, "\(url.debugDescription)")
   }
 
   @Test func countsTheLengthsInCharactersNotUnits() {
@@ -163,7 +180,7 @@ import Testing
     let base = ItemBase(id: "a:1", seq: 1, origin: .live, version: 0)
     let item = AssistantItem(base: base, text: "See.", streaming: false, interim: false, sources: sources)
 
-    #expect(item.jsonValue["sources"]?.arrayValue?.count == 4)
+    #expect(item.jsonValue["sources"]?.arrayValue?.count == 5)
     #expect(try AssistantItem(decoding: item.jsonValue) == item)
     #expect(AssistantItem(base: base, text: "x", streaming: false, interim: false).jsonValue["sources"] == nil)
   }
@@ -288,14 +305,13 @@ import Testing
 
   @Test(arguments: [
     ("https://example.org/guide", "example.org"),
-    ("https://www.Example.ORG/guide", "www.Example.ORG"),
+    ("https://www.example.org/guide", "www.example.org"),
     ("http://docs.example.com/a?b=c#d", "docs.example.com"),
     ("https://example.org:8443/x", "example.org"),
     ("https://[2001:db8::1]:8443/page", "[2001:db8::1]"),
     ("https://xn--bcher-kva.example:8443/", "xn--bcher-kva.example"),
     ("https://[::1]/", "[::1]"),
     ("http://example.net", "example.net"),
-    ("https://www.", "www."),
     ("https://xn--bcher-kva.example/", "xn--bcher-kva.example"),
     ("https://example.org?x=1", "example.org"),
     ("https://example.org#x", "example.org"),
@@ -330,7 +346,7 @@ import Testing
   @Test func theHueIsStableAndSpreadsDomains() {
     #expect(ReplySource.hue(of: "example.org") == ReplySource.hue(of: "example.org"))
     #expect(ReplySource.hue(of: "example.org") != ReplySource.hue(of: "example.net"))
-    #expect(ReplySource.hue(of: "www.Example.org") == ReplySource.hue(of: "example.org"), "one site, one colour")
+    #expect(ReplySource.hue(of: "www.example.org") == ReplySource.hue(of: "example.org"), "one site, one colour")
 
     let hues = (0..<200).map { ReplySource.hue(of: "site\($0).example") }
     #expect(hues.allSatisfy { $0 >= 0 && $0 < 1 })

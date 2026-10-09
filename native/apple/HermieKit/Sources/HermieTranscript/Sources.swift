@@ -9,10 +9,13 @@ import HermieProtocol
 // strictly as the schema says and shows the domain beside the title (`ReplySource.domain`). This is the
 // strict reader of one: what does not satisfy the schema is dropped, never repaired, and the rest is kept.
 //
-// - `url` is `http` or `https` with a host and no user info, at most 2048 characters and no white space, as
-//   the tool returned it. Anything else is not an entry (a `javascript:` or `file:` address, a login in the
-//   address, a host-less `https:///path`).
-// - `title` is at most 160 characters and may be empty. It is text, never markup.
+// - `url` is `http` or `https` with a host and no user info, at most 2048 characters, no white space and no
+//   control or format character. The gateway stores the scheme and the host in lower case ASCII (punycode for
+//   a name that is not), so an upper case or Unicode host is not an entry. The reader takes the address as it
+//   comes and never normalises it. Anything else is not an entry (a `javascript:` or `file:` address, a login
+//   in the address, a host-less `https:///path`, a port past 65535).
+// - `title` is at most 160 characters (code points, as the schema counts them) and may be empty. It is text,
+//   never markup.
 // - `via` is `read` or `found`. A value a newer gateway may add is not an entry: a source this client could
 //   not place in a section would be listed under the wrong heading.
 // - A key the schema does not have drops the entry (`additionalProperties: false`).
@@ -104,57 +107,106 @@ public struct ReplySource: TranscriptJSONCodable, Hashable, Sendable, Identifiab
     case .object(let object)?:
       return parseAll(object["sources"])
     case .string(let text)?:
-      guard let parsed = JS.parseJSON(text), case .object = parsed else { return [] }
+      guard let parsed = JS.parseJSON(text) else { return [] }
       return parseAll(fromMetadata: parsed)
     default:
       return []
     }
   }
 
-  /// The schema's `url`: `^[Hh][Tt][Tt][Pp][Ss]?://[^\s@/?#]+(?:[/?#][^\s]*)?$`, at most 2048 characters. Written
-  /// out by hand because the pattern is ECMAScript's, whose `\s` is not Foundation's.
+  /// The schema's `url` (`contract/sources/schema.json`), written out by hand because its pattern is ECMAScript's
+  /// (its `\s` is not Foundation's): the scheme and the host in lower case ASCII, an IPv6 address in brackets,
+  /// an optional port of one to five digits, then a path, query and fragment with no white space, no control
+  /// character and none of the invisible format characters the schema lists. On top of the pattern, the
+  /// contract's prose: no character of category `Cf` anywhere, and a port of at most 65535. (A lone surrogate
+  /// cannot be in a Swift string.) At most 2048 characters, counted as code points.
   static func isValidURL(_ url: String) -> Bool {
     let scalars = Array(url.unicodeScalars)
     guard !scalars.isEmpty, scalars.count <= maximumURLLength else { return false }
+    guard !scalars.contains(where: { $0.properties.generalCategory == .format }) else { return false }
 
-    let head = prefixLength(scalars)
-    guard head > 0 else { return false }
+    var index = 0
+    func take(_ text: String) -> Bool {
+      let wanted = Array(text.unicodeScalars)
+      guard scalars.count >= index + wanted.count, Array(scalars[index..<index + wanted.count]) == wanted else {
+        return false
+      }
+      index += wanted.count
+      return true
+    }
 
-    var index = head
-    // The authority: one or more characters that are not white space, `@`, `/`, `?` or `#`.
-    while index < scalars.count, !"/?#@".unicodeScalars.contains(scalars[index]), !isSpace(scalars[index]) {
+    guard take("http") else { return false }
+    _ = take("s")
+    guard take("://") else { return false }
+
+    // The host: dot separated labels of `[a-z0-9-]`, or an IPv6 address of `[0-9a-f:.]` in brackets.
+    if index < scalars.count, scalars[index] == "[" {
       index += 1
+      let start = index
+      while index < scalars.count, isIPv6Character(scalars[index]) { index += 1 }
+      guard index > start, index < scalars.count, scalars[index] == "]" else { return false }
+      index += 1
+    } else {
+      var labelLength = 0
+      while index < scalars.count {
+        let scalar = scalars[index]
+        if isHostCharacter(scalar) {
+          labelLength += 1
+        } else if scalar == ".", labelLength > 0 {
+          labelLength = 0
+        } else {
+          break
+        }
+        index += 1
+      }
+      // A label may not be empty: nothing at all, or a dot with nothing after it.
+      guard labelLength > 0 else { return false }
     }
-    guard index > head else { return false }
+
+    if index < scalars.count, scalars[index] == ":" {
+      index += 1
+      let start = index
+      var port = 0
+      while index < scalars.count, (0x30...0x39).contains(scalars[index].value) {
+        port = port * 10 + Int(scalars[index].value - 0x30)
+        index += 1
+        if index - start > 5 { return false }
+      }
+      guard index > start, port <= 65_535 else { return false }
+    }
+
     guard index < scalars.count else { return true }
-
-    // What follows starts at `/`, `?` or `#`, and holds no white space. A `@` here is part of a path.
-    guard "/?#".unicodeScalars.contains(scalars[index]) else { return false }
-    return scalars[index...].allSatisfy { !isSpace($0) }
+    guard scalars[index] == "/" || scalars[index] == "?" || scalars[index] == "#" else { return false }
+    return scalars[index...].allSatisfy { !isExcludedInTail($0) }
   }
 
-  /// The length of `http://` or `https://` (any case) at the start, or 0.
-  private static func prefixLength(_ scalars: [Unicode.Scalar]) -> Int {
-    for scheme in ["http://", "https://"] {
-      let wanted = Array(scheme.unicodeScalars)
-      guard scalars.count > wanted.count else { continue }
-      let matches = zip(scalars, wanted).allSatisfy { Self.lower($0) == $1 }
-      if matches { return wanted.count }
+  private static func isHostCharacter(_ scalar: Unicode.Scalar) -> Bool {
+    (0x61...0x7A).contains(scalar.value) || (0x30...0x39).contains(scalar.value) || scalar == "-"
+  }
+
+  private static func isIPv6Character(_ scalar: Unicode.Scalar) -> Bool {
+    (0x30...0x39).contains(scalar.value) || (0x61...0x66).contains(scalar.value) || scalar == ":" || scalar == "."
+  }
+
+  /// What the schema's pattern refuses after the host: `\s`, C0 and C1 controls, and the invisible characters it
+  /// lists.
+  private static func isExcludedInTail(_ scalar: Unicode.Scalar) -> Bool {
+    let value = scalar.value
+    if value <= 0x1F || (0x7F...0x9F).contains(value) { return true }
+    if value <= 0xFFFF, JS.isWhitespace(UInt16(value)) { return true }
+
+    switch value {
+    case 0x00AD, 0x0600...0x0605, 0x061C, 0x06DD, 0x070F, 0x0890, 0x0891, 0x08E2, 0x180E, 0x200B...0x200F,
+      0x202A...0x202E, 0x2060...0x2064, 0x2066...0x206F, 0xFEFF, 0xFFF9...0xFFFB:
+      return true
+    default:
+      return false
     }
-    return 0
-  }
-
-  private static func lower(_ scalar: Unicode.Scalar) -> Unicode.Scalar {
-    (0x41...0x5A).contains(scalar.value) ? Unicode.Scalar(scalar.value + 0x20)! : scalar
-  }
-
-  private static func isSpace(_ scalar: Unicode.Scalar) -> Bool {
-    scalar.value <= 0xFFFF && JS.isWhitespace(UInt16(scalar.value))
   }
 
   // MARK: Showing
 
-  /// The host of `url` exactly as the gateway sent it (it is ASCII, punycode for an international name), without
+  /// The host of `url` exactly as the gateway sent it (lower case ASCII, punycode for an international name), without
   /// the port: the part of a source that is always shown beside its title, so a title can never pass for the
   /// destination. Nothing is lowered, shortened or prettified. A bracketed IPv6 address keeps its brackets.
   /// Empty only for a value that is not an entry's address.

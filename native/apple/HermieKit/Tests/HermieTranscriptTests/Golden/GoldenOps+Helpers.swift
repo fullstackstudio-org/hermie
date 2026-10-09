@@ -66,6 +66,11 @@ extension GoldenOps {
       )
     },
 
+    // sources: `null` for an entry that is not one, as the TypeScript returns it.
+    "parseSource": { args in (args.raw(0).flatMap(ReplySource.parse))?.jsonValue ?? .null },
+    "parseSources": { args in .array(ReplySource.parseAll(args.raw(0)).map(\.jsonValue)) },
+    "sourcesOfMetadata": { args in .array(ReplySource.parseAll(fromMetadata: args.raw(0)).map(\.jsonValue)) },
+
     // turn-activity
     "turnActivity": { args in turnActivity(try args.decode(0, as: ChatState.self)).jsonValue }
   ]

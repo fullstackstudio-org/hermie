@@ -37,7 +37,7 @@ import Testing
   }
 
   @Test func theDomainIsShownAsTheGatewaySentItIncludingWwwAndPunycode() {
-    #expect(SourceRowText(source("https://www.Example.org/x", "T")).secondary == "www.Example.org")
+    #expect(SourceRowText(source("https://www.example.org/x", "T")).secondary == "www.example.org")
     #expect(SourceRowText(source("https://xn--bcher-kva.example/", "T")).secondary == "xn--bcher-kva.example")
     #expect(SourceRowText(source("https://[2001:db8::1]:8443/p", "T")).secondary == "[2001:db8::1]")
   }

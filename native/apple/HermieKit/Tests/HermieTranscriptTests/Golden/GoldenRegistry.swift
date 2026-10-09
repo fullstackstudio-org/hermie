@@ -36,7 +36,8 @@ enum GoldenRegistry {
         "parseProcessCompleteText", "isBotDmDeliveryCommand", "deliveryTargetFromCommand", "replyFromDeliveryOutput",
         "dispatchedTo", "isBotToBotItem", "parseCronDelivery", "isCronDelivery", "contextUsageOf",
         "contextUsageOfInfo", "chatContextUsage", "parseInjectedRow", "isInjectedRow", "stripSteerWrapper",
-        "unwrapSystemNote", "prettyModelName", "parseModelId", "turnActivity", "authorViaOf", "authorLabel"
+        "unwrapSystemNote", "prettyModelName", "parseModelId", "turnActivity", "authorViaOf", "authorLabel",
+        "parseSource", "parseSources", "sourcesOfMetadata"
       ]),
       ("task 11: reducer", [
         "applyEvent", "applyServerRequest", "answerRequest", "applyResumeSnapshot", "beginLocalTurn", "beginSteer",
