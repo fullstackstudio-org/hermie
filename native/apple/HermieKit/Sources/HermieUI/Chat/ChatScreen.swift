@@ -312,6 +312,9 @@ struct ChatSessionView<Composer: View>: View {
       ChatLifecycleLog.note("screen #\(owner.screen) appeared: \(chat.bot), feed f\(owner.feed?.tag ?? 0)")
       takeFind(router?.chatFind)
       takeCompose(router?.composeRequest)
+      #if DEBUG
+        runLaunchHooks()
+      #endif
     }
     .onDisappear {
       owner.disappeared()
@@ -364,6 +367,39 @@ struct ChatSessionView<Composer: View>: View {
     feed.composer.requestFocus()
     router?.settleCompose(request.id)
   }
+
+  #if DEBUG
+    /// The launch hooks a screenshot run uses: words in the composer, a prompt sent, the list scrolled to
+    /// its oldest row (`LaunchTestHooks`). Once, after the chat has had a moment to load.
+    private func runLaunchHooks() {
+      guard let hooks = launch?.environment.testHooks,
+        hooks.composerDraft != nil || hooks.sendPrompt != nil || hooks.scrollUp
+      else {
+        return
+      }
+
+      Task { @MainActor in
+        try? await Task.sleep(for: .seconds(3))
+
+        guard let feed = owner.feed else { return }
+
+        if let words = hooks.composerDraft {
+          feed.composer.type(words)
+          feed.composer.requestFocus()
+        }
+
+        if let words = hooks.sendPrompt {
+          feed.composer.type(words)
+          await feed.composer.submit()
+        }
+
+        if hooks.scrollUp, let first = feed.rows.first {
+          try? await Task.sleep(for: .seconds(1))
+          feed.listState.scroll(to: first.id, anchor: .top, animated: false)
+        }
+      }
+    }
+  #endif
 
   /// The text the title's long press copies.
   private func diagnostics() -> String {

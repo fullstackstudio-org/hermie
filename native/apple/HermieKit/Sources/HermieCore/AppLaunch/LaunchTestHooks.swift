@@ -37,6 +37,10 @@
    - `-HermieWindowSize 1600x900` the main window's content size in points (Mac), for screenshots
      of a wide or a narrow window without dragging its edge
    - `-HermieSidebar hidden` open the main window with its sidebar collapsed
+   - `-HermieComposerDraft 'text'` put that text in the composer of the chat `-HermieOpenChat` opens
+     (and the caret with it), as typing it would
+   - `-HermieSendPrompt 'text'` send that text in the chat `-HermieOpenChat` opens, as the send button would
+   - `-HermieScrollUp YES` scroll the chat `-HermieOpenChat` opens to its oldest row once it has loaded
    */
   public struct LaunchTestHooks: Sendable {
     public var dataDirectory: URL
@@ -56,6 +60,12 @@
     /// The main window's content size (`-HermieWindowSize WxH`), Mac only.
     public var windowSize: (width: Double, height: Double)?
     public var sidebarHidden: Bool
+    /// Words for the opened chat's composer (`-HermieComposerDraft`).
+    public var composerDraft: String?
+    /// Words the opened chat sends (`-HermieSendPrompt`).
+    public var sendPrompt: String?
+    /// The opened chat scrolls to its oldest row (`-HermieScrollUp`).
+    public var scrollUp: Bool
     /// The fake iCloud Keychain this launch syncs with; the app's replica is `"local"`.
     public let cloud = FakeCloud(delivery: .immediate)
 
@@ -134,6 +144,9 @@
         return parts.count == 2 && parts[0] > 0 && parts[1] > 0 ? (parts[0], parts[1]) : nil
       }
       sidebarHidden = values("-HermieSidebar").last == "hidden"
+      composerDraft = values("-HermieComposerDraft").last
+      sendPrompt = values("-HermieSendPrompt").last
+      scrollUp = isOn("-HermieScrollUp")
 
       // The replica exists before its availability is set (setting it on an unknown one does nothing).
       _ = cloud.replica("local")
