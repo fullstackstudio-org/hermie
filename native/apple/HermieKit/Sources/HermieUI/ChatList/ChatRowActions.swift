@@ -296,18 +296,40 @@ extension View {
   }
 }
 
-/// The chat list of the window in front, for the Chat menu's commands: which gateway it shows and
-/// the arrangement they change.
-struct ChatListFocus {
+/**
+ The chat list of the window in front, for the Chat menu's commands: which gateway it shows and
+ the arrangement they change.
+
+ Equatable, and equal for every body of one list that shows the same thing: the list publishes a
+ fresh one at each body (`focusedSceneValue`), and on iOS 26 a focused value that never compares
+ equal re-runs the commands, which re-runs the list's body, which publishes another, inside one
+ layout pass that never ends (the main thread spins and memory grows until the system kills the
+ app, at the first chat list a launch shows). So no closure takes part: the steps are a value, the
+ arrangement is compared by identity, and `askNewFolder` is left out of the comparison, being the
+ same action for every body of the list that `owner` names.
+ */
+struct ChatListFocus: Equatable {
+  /// The list that published it (one per list view, kept across its bodies).
+  let owner: UUID
   let gatewayID: String
   let arrangement: ChatArrangementModel
   /// Every bot the gateway has.
   var roster: [String] = []
-  /// Where one step up and one step down land for a chat; nothing while the order cannot be written
+  /// Where one step up and one step down land for a chat; `none` while the order cannot be written
   /// (a search is narrowing the list).
-  var steps: (String) -> (up: ChatListArrangement.Anchor?, down: ChatListArrangement.Anchor?) = { _ in (nil, nil) }
-  /// Ask for the name of a new folder, with this chat in it.
+  var moves: ChatListMoves = .none
+  /// Ask for the name of a new folder, with this chat in it. Not compared (see above).
   var askNewFolder: (@MainActor (String) -> Void)?
+
+  /// Where one step up and one step down land for a chat.
+  func steps(_ name: String) -> (up: ChatListArrangement.Anchor?, down: ChatListArrangement.Anchor?) {
+    moves.steps(of: name)
+  }
+
+  static func == (lhs: ChatListFocus, rhs: ChatListFocus) -> Bool {
+    lhs.owner == rhs.owner && lhs.gatewayID == rhs.gatewayID && lhs.arrangement === rhs.arrangement
+      && lhs.roster == rhs.roster && lhs.moves == rhs.moves && (lhs.askNewFolder == nil) == (rhs.askNewFolder == nil)
+  }
 }
 
 extension FocusedValues {
