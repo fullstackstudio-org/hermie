@@ -56,6 +56,15 @@ const ON_DEMAND = [
   'features/requests/interactive-frame.tsx',
   'features/requests/FormFields.tsx',
   'i18n/sheet-strings.ts',
+  // The chart and cards renderers of a reply (`markdown/lazy.ts`), with their validators, their layout and the icon
+  // vocabulary: a first screen draws neither, and the entry reads none of it. (The callout, `markdown/Alert.tsx`, is
+  // markup alone and stays where the Markdown is.)
+  'markdown/Chart.tsx',
+  'markdown/Cards.tsx',
+  'markdown/markup/chart-spec.ts',
+  'markdown/markup/chart-layout.ts',
+  'markdown/markup/cards-spec.ts',
+  'markdown/markup/icons.ts',
   // The chat screen and the settings pages are chunks of their own, the small pages one together.
   'features/chat/ChatScreen.tsx',
   'features/settings/SettingsHost.tsx',

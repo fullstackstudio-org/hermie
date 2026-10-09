@@ -1,5 +1,5 @@
 /**
- * The heavy renderers (highlighting, mathematics, Mermaid) are chunks of their
+ * The heavy renderers (highlighting, mathematics, Mermaid, charts, cards) are chunks of their
  * own, fetched the first time a message needs one.
  *
  * Not `React.lazy`: a lazy component suspends on every first render, even when
@@ -82,3 +82,9 @@ export const mathRenderer = lazyModule(() => import('./Math'))
 
 /** Mermaid: a flowchart, a sequence diagram or a pie, from the package's parsers and layouts. */
 export const mermaidRenderer = lazyModule(() => import('./mermaid/Mermaid'))
+
+/** `hermie-chart`: bar, line and pie from the block's JSON, in SVG. */
+export const chartRenderer = lazyModule(() => import('./Chart'))
+
+/** `hermie-cards`: a stack or a grid of cards. */
+export const cardsRenderer = lazyModule(() => import('./Cards'))

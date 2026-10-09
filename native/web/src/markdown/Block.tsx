@@ -14,13 +14,43 @@ import { createContext, memo, useContext, useMemo, type ReactNode } from 'react'
 
 import { useLocale } from '../i18n/use-locale'
 import { sheetStrings } from '../i18n/sheet-strings'
+import { Alert, readAlert, useInAlert } from './Alert'
 import { CodeBlock } from './CodeBlock'
 import { Inline } from './Inline'
-import { mathRenderer, mermaidRenderer, useLazyModule } from './lazy'
+import { cardsRenderer, chartRenderer, mathRenderer, mermaidRenderer, useLazyModule } from './lazy'
 import { Table } from './Table'
 
 /** A fence in this language is a diagram (case-insensitive). */
 export const MERMAID_LANGUAGE = 'mermaid'
+
+/** The structured blocks of a reply (`docs/charts.md`, `contract/markup`): case does not matter, models capitalise. */
+export const CHART_FENCE = 'hermie-chart'
+export const CARDS_FENCE = 'hermie-cards'
+
+/**
+ * Whether the blocks that are more than text (a chart, cards, a callout) are drawn. They are in a reply and not in what
+ * the owner typed: the owner's own bubble stays as typed, which is the native apps' rule too.
+ */
+export const RichBlocksContext = createContext(true)
+
+/**
+ * Whether a fenced code token ends in its closing fence. A fence that is still streaming (or never closed) is code:
+ * a structured block is drawn when it closes and validates, so a reader never sees a half-drawn picture.
+ */
+export function isClosedFence(raw: string): boolean {
+  const lines = raw.replace(/\s+$/u, '').split('\n')
+  const opening = /^ {0,3}(`{3,}|~{3,})/u.exec(lines[0] ?? '')
+
+  if (!opening || lines.length < 2) {
+    return false
+  }
+
+  const fence = opening[1] as string
+  // A backtick and a tilde mean themselves in a pattern: the closing line is the same character, at least as many.
+  const closing = new RegExp(`^ {0,3}${fence[0]}{${fence.length},}[ \\t]*$`, 'u')
+
+  return closing.test(lines[lines.length - 1] ?? '')
+}
 
 type Heading = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
 
@@ -74,6 +104,71 @@ function MermaidBlock({ source }: { source: string }) {
   ) : (
     <CodeBlock code={source} kind="mermaid" label={MERMAID_LANGUAGE} />
   )
+}
+
+/** The code block a structured fence is until its renderer has arrived, and whenever it is not drawn. */
+function PlainFence({ source, language }: { source: string; language: string | undefined }) {
+  return <CodeBlock code={source} {...(language ? { language } : {})} />
+}
+
+/** A ```hermie-chart fence: the chart once its chunk is there and the block validates, the code block until then. */
+function ChartFence({ source, language }: { source: string; language: string | undefined }) {
+  const chart = useLazyModule(chartRenderer)
+
+  return chart ? (
+    <chart.ChartDiagram language={language} source={source} />
+  ) : (
+    <PlainFence language={language} source={source} />
+  )
+}
+
+/** A ```hermie-cards fence: the cards once their chunk is there and the block validates, the code block until then. */
+function CardsFence({ source, language }: { source: string; language: string | undefined }) {
+  const cards = useLazyModule(cardsRenderer)
+
+  return cards ? (
+    <cards.CardsDiagram language={language} source={source} />
+  ) : (
+    <PlainFence language={language} source={source} />
+  )
+}
+
+/** A fence in a structured language: drawn where blocks are drawn and the fence is closed, code otherwise. */
+function StructuredFence({
+  fence,
+  source,
+  language,
+  closed
+}: {
+  fence: typeof CHART_FENCE | typeof CARDS_FENCE
+  source: string
+  language: string | undefined
+  closed: boolean
+}) {
+  const draws = useContext(RichBlocksContext)
+
+  if (!draws || !closed) {
+    return <PlainFence language={language} source={source} />
+  }
+
+  return fence === CHART_FENCE ? (
+    <ChartFence language={language} source={source} />
+  ) : (
+    <CardsFence language={language} source={source} />
+  )
+}
+
+/** A quote, or a callout when its first line is an alert marker (and it is not inside a callout already). */
+function Quote({ token, baseUrl }: { token: Tokens.Blockquote; baseUrl: string | undefined }) {
+  const draws = useContext(RichBlocksContext)
+  const inAlert = useInAlert()
+  const alert = useMemo(() => (draws && !inAlert ? readAlert(token) : undefined), [draws, inAlert, token])
+
+  if (alert) {
+    return <Alert kind={alert.kind}>{renderBlocks(alert.body, baseUrl, false)}</Alert>
+  }
+
+  return <blockquote>{renderBlocks(token.tokens, baseUrl, false)}</blockquote>
 }
 
 function ListItem({ item, baseUrl }: { item: Tokens.ListItem; baseUrl: string | undefined }) {
@@ -152,6 +247,20 @@ function renderBlock(token: Token, index: number, baseUrl: string | undefined, t
         return <MermaidBlock key={index} source={code.text} />
       }
 
+      const structured = language?.toLowerCase()
+
+      if (structured === CHART_FENCE || structured === CARDS_FENCE) {
+        return (
+          <StructuredFence
+            closed={isClosedFence(code.raw)}
+            fence={structured}
+            key={index}
+            language={language}
+            source={code.text}
+          />
+        )
+      }
+
       return <CodeBlock code={code.text} key={index} {...(language ? { language } : {})} />
     }
 
@@ -159,7 +268,7 @@ function renderBlock(token: Token, index: number, baseUrl: string | undefined, t
       return <MathBlock key={index} source={(token as unknown as MathToken).text} />
 
     case 'blockquote':
-      return <blockquote key={index}>{renderBlocks((token as Tokens.Blockquote).tokens, baseUrl, false)}</blockquote>
+      return <Quote baseUrl={baseUrl} key={index} token={token as Tokens.Blockquote} />
 
     case 'list':
       return <List baseUrl={baseUrl} key={index} token={token as Tokens.List} />

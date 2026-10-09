@@ -56,6 +56,74 @@ export const SHEET_STRINGS_SOURCE = {
       en: 'Show source',
       nl: 'Bron tonen',
       de: 'Quelltext anzeigen'
+    },
+    /** The name of a callout (a quote that begins `[!NOTE]` and its kin), read before its words and shown as its title. */
+    alert: {
+      note: { en: 'Note', nl: 'Opmerking', de: 'Hinweis' },
+      tip: { en: 'Tip', nl: 'Tip', de: 'Tipp' },
+      important: { en: 'Important', nl: 'Belangrijk', de: 'Wichtig' },
+      warning: { en: 'Warning', nl: 'Waarschuwing', de: 'Warnung' },
+      caution: { en: 'Caution', nl: 'Let op', de: 'Achtung' }
+    },
+    /**
+     * A `hermie-chart` block: what its box is called, and the sentence a screen reader gets for the whole chart
+     * (the kind, the title, the unit, each series with its first points), the same sentence as the native apps'.
+     */
+    chart: {
+      bar: { en: 'Bar chart', nl: 'Staafdiagram', de: 'Balkendiagramm' },
+      line: { en: 'Line chart', nl: 'Lijndiagram', de: 'Liniendiagramm' },
+      pie: { en: 'Pie chart', nl: 'Cirkeldiagram', de: 'Kreisdiagramm' },
+      titled: {
+        en: ({ kind, title }: { kind: string; title: string }) => `${kind}, ${title}.`,
+        nl: ({ kind, title }: { kind: string; title: string }) => `${kind}, ${title}.`,
+        de: ({ kind, title }: { kind: string; title: string }) => `${kind}, ${title}.`
+      },
+      unit: {
+        en: ({ unit }: { unit: string }) => `In ${unit}.`,
+        nl: ({ unit }: { unit: string }) => `In ${unit}.`,
+        de: ({ unit }: { unit: string }) => `In ${unit}.`
+      },
+      point: {
+        en: ({ label, value }: { label: string; value: string }) => `${label} ${value}`,
+        nl: ({ label, value }: { label: string; value: string }) => `${label} ${value}`,
+        de: ({ label, value }: { label: string; value: string }) => `${label} ${value}`
+      },
+      series: {
+        en: ({ name, points }: { name: string; points: string }) => `${name}: ${points}.`,
+        nl: ({ name, points }: { name: string; points: string }) => `${name}: ${points}.`,
+        de: ({ name, points }: { name: string; points: string }) => `${name}: ${points}.`
+      },
+      more: {
+        en: ({ count }: { count: number }) => `and ${count} more`,
+        nl: ({ count }: { count: number }) => `en nog ${count}`,
+        de: ({ count }: { count: number }) => `und ${count} weitere`
+      }
+    },
+    /**
+     * A `hermie-cards` block: its box's name and what a screen reader says for one card, in the order the native apps
+     * say it ("Card 2 of 5, Gateway, k3s, highlighted, tags a, b, then: deploys to").
+     */
+    cards: {
+      label: { en: 'Cards', nl: 'Kaarten', de: 'Karten' },
+      card: {
+        en: ({ position, total, title }: { position: number; total: number; title: string }) =>
+          `Card ${position} of ${total}, ${title}`,
+        nl: ({ position, total, title }: { position: number; total: number; title: string }) =>
+          `Kaart ${position} van ${total}, ${title}`,
+        de: ({ position, total, title }: { position: number; total: number; title: string }) =>
+          `Karte ${position} von ${total}, ${title}`
+      },
+      highlighted: { en: 'highlighted', nl: 'uitgelicht', de: 'hervorgehoben' },
+      tags: {
+        en: ({ tags }: { tags: string }) => `tags ${tags}`,
+        nl: ({ tags }: { tags: string }) => `labels ${tags}`,
+        de: ({ tags }: { tags: string }) => `Tags ${tags}`
+      },
+      then: {
+        en: ({ label }: { label: string }) => `then: ${label}`,
+        nl: ({ label }: { label: string }) => `daarna: ${label}`,
+        de: ({ label }: { label: string }) => `danach: ${label}`
+      }
     }
   },
   shared: {

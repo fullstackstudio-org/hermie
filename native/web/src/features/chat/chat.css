@@ -293,10 +293,6 @@
   --md-ground: var(--hm-surface);
 }
 
-.hm-bubble .md a {
-  text-decoration: underline;
-}
-
 .hm-bubble__meta {
   display: flex;
   justify-content: flex-end;
