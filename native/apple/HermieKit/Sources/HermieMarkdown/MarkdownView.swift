@@ -307,7 +307,7 @@ struct MarkdownCodeView: View {
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
-    .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 10))
+    .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     .accessibilityElement(children: .contain)
   }
 }

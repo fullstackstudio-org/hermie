@@ -132,10 +132,10 @@ private func status(_ id: String, presentation: Presentation = .full) -> Visible
     #expect(TranscriptItemView.gap(above: rows[1]) == 0)
     #expect(rows[0].bubble?.closesGroup == false, "a1 and a2 are one group across the hidden row")
     #expect(rows[2].bubble?.opensGroup == false)
-    #expect(TranscriptItemView.gap(above: rows[2]) == 0)
+    #expect(TranscriptItemView.gap(above: rows[2]) == TranscriptItemView.Gaps.lab.between, "the bot's replies are prose")
   }
 
-  @Test func theChatsGapsAreSmallInsideAGroupLargeBetweenGroupsAndNoneForARowThatDrawsNothing() {
+  @Test func theChatsGapsAreLargeForProseSmallBetweenTheReadersBubblesAndNoneForARowThatDrawsNothing() {
     var builder = TranscriptRowBuilder()
     let gaps = TranscriptItemView.Gaps.chat
     let rows = builder.rows(for: [
@@ -145,11 +145,18 @@ private func status(_ id: String, presentation: Presentation = .full) -> Visible
     #expect(rows.map(\.id) == ["a1", "a2", "tools:t1", "a3", "u1", "tools:t2"])
 
     #expect(TranscriptItemView.gap(above: rows[0], gaps: gaps) == ChatSpacing.betweenGroups, "a group opens")
-    #expect(TranscriptItemView.gap(above: rows[1], gaps: gaps) == ChatSpacing.withinGroup, "inside the group")
+    #expect(TranscriptItemView.gap(above: rows[1], gaps: gaps) == ChatSpacing.betweenGroups, "the bot's replies are prose, not bubbles to hug")
     #expect(TranscriptItemView.gap(above: rows[2], gaps: gaps) == 0, "draws nothing, takes nothing")
-    #expect(TranscriptItemView.gap(above: rows[3], gaps: gaps) == ChatSpacing.withinGroup, "the hidden row does not part the group")
+    #expect(TranscriptItemView.gap(above: rows[3], gaps: gaps) == ChatSpacing.betweenGroups, "prose again")
     #expect(TranscriptItemView.gap(above: rows[4], gaps: gaps) == ChatSpacing.betweenGroups, "the sender changes")
     #expect(TranscriptItemView.gap(above: rows[5], gaps: gaps) == ChatSpacing.betweenGroups, "a tool group stands apart")
+  }
+
+  @Test func theReadersOwnBubblesOfOneGroupStayCloseTogether() {
+    var builder = TranscriptRowBuilder()
+    let rows = builder.rows(for: [user("u1", ts: 1000), user("u2", ts: 1010)])
+    #expect(TranscriptItemView.gap(above: rows[0], gaps: .chat) == ChatSpacing.betweenGroups)
+    #expect(TranscriptItemView.gap(above: rows[1], gaps: .chat) == ChatSpacing.withinGroup)
   }
 
   @Test func aSilentToolThatWorkedDrawsNothingAndOneThatFailedDoes() {

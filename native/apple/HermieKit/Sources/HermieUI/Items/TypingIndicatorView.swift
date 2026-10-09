@@ -1,20 +1,16 @@
 import SwiftUI
 
-/// The bot is working and has nothing on screen yet: Messages' typing bubble, three dots in the
-/// bot's grey bubble, as the last row of the transcript, where the reply will appear.
+/// The bot is working and has nothing on screen yet: three dots on the page, at the leading edge of
+/// the reply's column, as the last row of the transcript, where the reply will appear.
 ///
-/// It is the assistant's own bubble (`MessageBubble`, `BubbleColumn`: the same fill, corner radius,
-/// tail and padding) with dots where the words would be, and the height of a one-line reply, so
-/// when the reply's first words replace it the list does not move. One accessibility element,
+/// The dots stand where the reply's first line will, and the row is the height of a one-line reply,
+/// so when the first words replace it the list does not move. One accessibility element,
 /// "Typing…", that never changes: the dots animate, VoiceOver is told nothing about it.
 struct TypingIndicatorRow: View {
   var body: some View {
-    BubbleColumn(side: .incoming, width: .text) {
-      MessageBubble(side: .incoming, tail: true, fill: BubblePalette.incoming) {
-        TypingDots()
-      }
-    }
-    .accessibilityElement(children: .ignore)
+    TypingDots()
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .accessibilityElement(children: .ignore)
     .accessibilityLabel(Strings.App.Chat.Subtitle.typing)
   }
 }
@@ -33,11 +29,12 @@ struct TypingDots: View {
   static let color = Color.dynamic(light: (0x8E, 0x8E, 0x93), dark: (0xA1, 0xA1, 0xA6))
 
   var body: some View {
-    ZStack {
-      // A line of the reply's text, invisible: the dots are as tall as one, so the bubble is as
+    ZStack(alignment: .leading) {
+      // A line of the reply's text, invisible: the dots are as tall as one, so the row is as
       // tall as a one-line reply.
       Text(verbatim: "\u{00A0}")
         .font(.body)
+        .lineSpacing(ChatSpacing.proseLineSpacing)
         .hidden()
       TimelineView(.animation(minimumInterval: reduceMotion ? 1.0 / 15 : 1.0 / 60)) { context in
         let elapsed = context.date.timeIntervalSince(start)

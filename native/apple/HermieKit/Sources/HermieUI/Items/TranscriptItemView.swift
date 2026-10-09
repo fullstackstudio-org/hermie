@@ -57,9 +57,11 @@ public struct TranscriptItemView: View, Equatable {
 
   /// The room above a row: none for a row that draws nothing (a hidden placeholder, quiet's
   /// stand-in for the running tool), the small gap inside a group of bubbles, the large one
-  /// otherwise.
+  /// otherwise. The bot's replies are no bubbles but prose, which wants the large gap whether or not
+  /// another reply of the bot's stands right above it.
   nonisolated static func gap(above row: TranscriptRow, gaps: Gaps = .lab) -> CGFloat {
     if TranscriptRowBuilder.drawsNothing(row) { return 0 }
+    if case .bot? = row.bubble?.sender { return gaps.between }
     return row.bubble.map { $0.opensGroup ? gaps.between : gaps.within } ?? gaps.between
   }
 
@@ -68,7 +70,7 @@ public struct TranscriptItemView: View, Equatable {
     case .item(let visible):
       ItemContentView(
         visible: visible, markdown: row.markdown, opensAuthorRun: row.opensAuthorRun, bubble: row.bubble,
-        retryable: row.retryable)
+        retryable: row.retryable, latestReply: row.latestReply)
     case .botDmRollup(let members):
       BotDmRollupView(id: row.id, members: members)
     case .toolGroup(let members):
@@ -87,6 +89,8 @@ struct ItemContentView: View {
   var bubble: BubbleLayout?
   /// A failed reply offers Retry (`TranscriptRow.retryable`).
   var retryable = true
+  /// The chat's newest reply: its action row at full strength (`TranscriptRow.latestReply`).
+  var latestReply = false
 
   var body: some View {
     let presentation = visible.presentation
@@ -95,7 +99,9 @@ struct ItemContentView: View {
       UserBubbleView(
         item: item, presentation: presentation, markdown: markdown, opensAuthorRun: opensAuthorRun, bubble: bubble)
     case .assistant(let item):
-      AssistantItemView(item: item, presentation: presentation, markdown: markdown, bubble: bubble, retryable: retryable)
+      AssistantItemView(
+        item: item, presentation: presentation, markdown: markdown, bubble: bubble, retryable: retryable,
+        latestReply: latestReply)
     case .tool(let item):
       ToolItemView(item: item, presentation: presentation)
     case .status(let item):

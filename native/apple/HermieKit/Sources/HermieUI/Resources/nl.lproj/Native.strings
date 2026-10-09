@@ -322,6 +322,8 @@
 	<string>Alle lopende antwoorden stoppen…</string>
 	<key>native.commands.switchGateway</key>
 	<string>Wissel van gateway…</string>
+	<key>native.composer.askPlaceholder</key>
+	<string>Vraag iets…</string>
 	<key>native.composer.attach.add</key>
 	<string>Bijlage toevoegen</string>
 	<key>native.composer.attach.camera</key>
@@ -2276,6 +2278,16 @@
 	<string>Snel vragen</string>
 	<key>native.quickAsk.waiting</key>
 	<string>Wachten op %@…</string>
+	<key>native.reply.copied</key>
+	<string>Gekopieerd</string>
+	<key>native.reply.copy</key>
+	<string>Kopieer</string>
+	<key>native.reply.more</key>
+	<string>Meer</string>
+	<key>native.reply.retry</key>
+	<string>Opnieuw proberen</string>
+	<key>native.reply.share</key>
+	<string>Deel</string>
 	<key>native.requestAlert.approval</key>
 	<string>Wacht op je goedkeuring</string>
 	<key>native.requestAlert.attention</key>

@@ -335,7 +335,7 @@ private func runningTool(_ id: String, presentation: Presentation = .hiddenPlace
 }
 
 #if os(macOS)
-  /// The typing bubble is the assistant's bubble: the same chrome, the height of a one-line reply.
+  /// The typing dots stand where a reply's first line will: the height of a one-line reply, on the page.
   @MainActor
   @Suite struct TypingIndicatorLayoutTests {
     private func size<Content: View>(_ view: Content, width: CGFloat = 390) -> CGSize {
@@ -343,31 +343,25 @@ private func runningTool(_ id: String, presentation: Presentation = .hiddenPlace
       return host.sizeThatFits(in: CGSize(width: width, height: .greatestFiniteMagnitude))
     }
 
-    /// A one-line reply's bubble, as `AssistantItemView` makes it.
+    /// A one-line reply's prose, as `AssistantItemView` sets it.
     private struct OneLineReply: View {
       var body: some View {
-        BubbleColumn(side: .incoming, width: .text) {
-          MessageBubble(side: .incoming, tail: true, fill: BubblePalette.incoming) {
-            MarkdownView(MarkdownDocument("Ok")).environment(\.markdownFillsWidth, false)
-          }
-        }
+        MarkdownView(MarkdownDocument("Ok")).lineSpacing(ChatSpacing.proseLineSpacing)
       }
     }
 
-    @Test func theBubbleIsAsTallAsAOneLineReply() {
+    @Test func theRowIsAsTallAsAOneLineReply() {
       let typing = size(TypingIndicatorRow())
       let words = size(OneLineReply())
       #expect(abs(typing.height - words.height) <= 1, "typing \(typing.height), a reply \(words.height)")
     }
 
-    @Test func theBubbleHugsItsThreeDotsWithTheAssistantsPadding() {
-      // The column gives its row the whole width; the bubble inside it is what hugs the dots.
-      let width = size(
-        MessageBubble(side: .incoming, tail: true, fill: BubblePalette.incoming) { TypingDots() }
-      ).width
+    @Test func theDotsStandAtTheLeadingEdgeOfTheColumnWithNoBubbleRoundThem() {
+      // The row takes the column's whole width; the dots are the width of three dots and sit at its start.
       let dots = CGFloat(TypingDotsMotion.dotCount) * TypingDots.diameter
         + CGFloat(TypingDotsMotion.dotCount - 1) * TypingDots.spacing
-      #expect(abs(width - (dots + 2 * ChatSpacing.bubbleInsetH)) <= 1, "\(width)")
+      #expect(abs(size(TypingDots()).width - dots) <= 1)
+      #expect(abs(size(TypingIndicatorRow()).width - 390) <= 1)
     }
 
     @Test func theLabelIsTheTypingWordTheHeaderUses() {

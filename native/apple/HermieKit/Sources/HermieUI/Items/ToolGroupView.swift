@@ -65,8 +65,9 @@ struct ToolGroupView: View {
         .padding(.bottom, 6)
       }
     }
-    .padding(.horizontal, 12)
-    .background(.fill.quaternary, in: .rect(cornerRadius: 14))
+    // The steps are a plain line in the reply's column; opened, a card round the list.
+    .padding(.horizontal, box.isExpanded ? 12 : 0)
+    .background(box.isExpanded ? AnyShapeStyle(.fill.quaternary) : AnyShapeStyle(.clear), in: .rect(cornerRadius: 14))
     .accessibilityElement(children: .contain)
     .accessibilityLabel(accessibilityLabel(tools.map(\.item)))
   }

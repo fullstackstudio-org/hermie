@@ -3,18 +3,16 @@ import HermieProtocol
 import HermieTranscript
 import SwiftUI
 
-/// The bot's reply, as Messages draws an incoming message: its words in the
-/// grey bubble on the leading side, Markdown rendered inside it, the tail and
-/// the time only on the last bubble of a group (`BubbleLayout`). Around the
-/// bubble, not in it: who it answers, its thought (closed until opened), an
-/// error card when it failed, and a footer with duration, tokens and model once
-/// it is done. While it is being written and has no words yet there is no bubble: the
-/// transcript's typing indicator (`TypingIndicatorRow`) stands in for it.
+/// The bot's reply, as ChatGPT sets it: no bubble, its words straight on the page in the full width
+/// of the chat's column, Markdown rendered as it comes. Around the words, not in them: who it
+/// answers, its thought (closed until opened), an error card when it failed, and under a finished
+/// reply the row of actions (`ReplyActionsView`: Copy, Share, Retry, "…") and a line with the time,
+/// duration, tokens and model. While it is being written and has no words yet there is nothing
+/// to draw: the transcript's typing indicator (`TypingIndicatorRow`) stands in for it.
 ///
-/// The bubble is no wider than three quarters of the column; a reply with a
-/// table or code in it gets nearly the whole column, so neither is squeezed.
-/// Tool calls, cron reports and the other routine rows keep their own cards
-/// and lines, so a bubble is only ever the bot's words.
+/// Tool calls, cron reports and the other routine rows keep their own lines and cards, so the prose
+/// column is only ever the bot's words. A long press (the Mac's right-click) on the words opens the
+/// message's menu.
 struct AssistantItemView: View {
   let item: AssistantItem
   let presentation: Presentation
@@ -22,9 +20,12 @@ struct AssistantItemView: View {
   var bubble: BubbleLayout?
   /// Retry is offered under a failure: only on the newest turn (`TranscriptRow.retryable`).
   var retryable = true
+  /// This is the chat's newest reply (`TranscriptRow.latestReply`): its action row at full strength.
+  var latestReply = false
 
   @Environment(\.transcriptItemActions) private var actions
   @Environment(\.transcriptExpansion) private var expansion
+  @ScaledMetric(relativeTo: .body) private var proseLineSpacing: CGFloat = ChatSpacing.proseLineSpacing
 
   private var hasBody: Bool {
     !item.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !(item.inlineImages ?? []).isEmpty
@@ -57,18 +58,18 @@ struct AssistantItemView: View {
   }
 
   private var reply: some View {
-    VStack(alignment: .leading, spacing: ChatSpacing.bubbleCaption) {
+    VStack(alignment: .leading, spacing: 0) {
       if let ts = bubble?.timeHeader {
         BubbleTimeHeader(ts: ts)
       }
       content
       // Outside the container that carries Copy: a custom action makes a line interactive, and
       // a one-line caption is far under the hit area the accessibility audit asks of one.
+      ReplyActionsView(item: item, presentation: presentation, latest: latestReply)
       if let meta = metaText {
         Text(meta)
           .font(.caption2)
           .foregroundStyle(.secondary)
-          .padding(.horizontal, ChatSpacing.captionInset)
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
@@ -81,7 +82,6 @@ struct AssistantItemView: View {
           .font(.caption.weight(.semibold))
           .foregroundStyle(.secondary)
           .textCase(.uppercase)
-          .padding(.leading, 6)
       }
       if let reasoning = item.reasoning, !reasoning.isEmpty {
         ReasoningDisclosure(
@@ -89,20 +89,16 @@ struct AssistantItemView: View {
           label: reasoningLabel,
           text: reasoning
         )
-        .padding(.leading, 6)
       }
       if hasBody {
-        BubbleColumn(side: .incoming, width: Self.width(for: markdown)) {
-          MessageBubble(side: .incoming, tail: closesGroup, fill: BubblePalette.incoming) {
-            words
-          }
+        words
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .contentShape(.rect)
           .messageMenu(for: .assistant(item))
-        }
       }
       if !shared.isEmpty {
-        BubbleColumn(side: .incoming, width: .text) {
-          SharedFilesView(attachments: shared, media: actions.outbox, images: actions.images)
-        }
+        SharedFilesView(attachments: shared, media: actions.outbox, images: actions.images)
+          .frame(maxWidth: .infinity, alignment: .leading)
       }
       if let error = item.error {
         AssistantErrorCard(error: error, retry: retryAction)
@@ -136,26 +132,13 @@ struct AssistantItemView: View {
         AttachmentSummary(references: pictures.chips, onOpen: actions.openAttachment)
       }
     }
-    .environment(\.markdownFillsWidth, false)
+    .lineSpacing(proseLineSpacing)
     .markdownChartWords()
     #if os(iOS)
       // A long press on the bubble is the message's menu, not the start of a selection.
       .environment(\.markdownSelectable, false)
     #endif
     .foregroundStyle(item.interim ? .secondary : .primary)
-  }
-
-  /// Words get a bubble three quarters wide; a table, a listing, a formula or a diagram gets nearly
-  /// the whole column.
-  static func width(for document: MarkdownDocument?) -> BubbleWidth {
-    guard let document else { return .text }
-    let wide = document.blocks.contains { block in
-      switch block.kind {
-      case .table, .code, .math, .mermaid: true
-      default: false
-      }
-    }
-    return wide ? .wide : .text
   }
 
   private var reasoningLabel: String {

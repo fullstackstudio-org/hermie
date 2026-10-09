@@ -52,9 +52,12 @@ struct ToolCard: View {
         ToolDetails(item: item, failed: failed, running: running)
       }
     }
-    .padding(.horizontal, nested ? 0 : 12)
+    // A step is a plain line in the reply's column; opened, it is a card round its details.
+    .padding(.horizontal, nested || !box.isExpanded ? 0 : 12)
     .padding(.vertical, nested ? 0 : 2)
-    .background(nested ? AnyShapeStyle(.clear) : AnyShapeStyle(.fill.quaternary), in: .rect(cornerRadius: 14))
+    .background(
+      nested || !box.isExpanded ? AnyShapeStyle(.clear) : AnyShapeStyle(.fill.quaternary),
+      in: .rect(cornerRadius: 14))
     .accessibilityElement(children: .contain)
     .accessibilityLabel(accessibilityLabel)
     .accessibilityActions {

@@ -84,6 +84,10 @@ public struct TranscriptRow: Identifiable, Equatable, Sendable {
   /// A failed reply here offers Retry: only the newest turn's (no prompt follows it). Compared, so a
   /// prompt sent after it takes the button away.
   public var retryable = true
+  /// This is the chat's newest reply, with no turn of the reader's after it: the one reply whose action
+  /// row (Copy, Share, Retry) is always drawn at full strength; the others carry theirs quieter and
+  /// without Retry. Compared, so a prompt sent after it, or a newer reply, redraws this row.
+  public var latestReply = false
   let stamp: Stamp
 
   public init(
@@ -107,6 +111,7 @@ public struct TranscriptRow: Identifiable, Equatable, Sendable {
   public static func == (lhs: TranscriptRow, rhs: TranscriptRow) -> Bool {
     lhs.stamp == rhs.stamp && lhs.opensAuthorRun == rhs.opensAuthorRun && lhs.bubble == rhs.bubble
       && lhs.id == rhs.id && lhs.flash == rhs.flash && lhs.retryable == rhs.retryable
+      && lhs.latestReply == rhs.latestReply
   }
 
   /// The transcript items this row draws, oldest first: one, or the members of a roll-up or a group.
@@ -296,6 +301,7 @@ public struct TranscriptRowBuilder: Sendable {
 
     Self.layOutBubbles(&rows, historyComplete: historyComplete)
     Self.markRetryable(&rows)
+    Self.markLatestReply(&rows)
     parsed = next
     return rows
   }
@@ -313,6 +319,27 @@ public struct TranscriptRowBuilder: Sendable {
       if rows[index].items.contains(where: { if case .user = $0.item { true } else { false } }) {
         promptAfter = true
       }
+    }
+  }
+
+  /// The chat's newest reply with words is the `latestReply`, unless a turn of the reader's stands
+  /// after it (that turn is not answered yet, so the reply above it is history). Interim notes and
+  /// replies drawn as chips are no reply the reader can act on.
+  static func markLatestReply(_ rows: inout [TranscriptRow]) {
+    for index in rows.indices.reversed() {
+      if rows[index].items.contains(where: { if case .user = $0.item { true } else { false } }) {
+        return
+      }
+
+      guard case .item(let visible) = rows[index].content, case .assistant(let reply) = visible.item,
+        !reply.interim, visible.presentation == .full || visible.presentation == .collapsed,
+        reply.text.contains(where: { !$0.isWhitespace })
+      else {
+        continue
+      }
+
+      rows[index].latestReply = true
+      return
     }
   }
 

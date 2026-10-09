@@ -2851,6 +2851,30 @@
         }
       }
     },
+    "native.composer.askPlaceholder" : {
+      "comment" : "Placeholder of the empty message field in the composer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frag etwas …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ask anything…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vraag iets…"
+          }
+        }
+      }
+    },
     "native.composer.attach.add" : {
       "comment" : "The accessibility label of the plus button in the composer that opens the attachment menu.",
       "extractionState" : "manual",
@@ -22137,6 +22161,126 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wacht op het pushadres van dit apparaat…"
+          }
+        }
+      }
+    },
+    "native.reply.copied" : {
+      "comment" : "Accessibility label of the Copy button under a reply for a moment after it was pressed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gekopieerd"
+          }
+        }
+      }
+    },
+    "native.reply.copy" : {
+      "comment" : "Accessibility label of the Copy button under a reply: copies the whole reply.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopieer"
+          }
+        }
+      }
+    },
+    "native.reply.more" : {
+      "comment" : "Accessibility label of the ellipsis button under a reply: opens the message's menu.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mehr"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meer"
+          }
+        }
+      }
+    },
+    "native.reply.retry" : {
+      "comment" : "Accessibility label of the button under the newest reply that asks for the reply again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut versuchen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opnieuw proberen"
+          }
+        }
+      }
+    },
+    "native.reply.share" : {
+      "comment" : "Accessibility label of the Share button under a reply: opens the system share sheet with the reply's text.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teilen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deel"
           }
         }
       }

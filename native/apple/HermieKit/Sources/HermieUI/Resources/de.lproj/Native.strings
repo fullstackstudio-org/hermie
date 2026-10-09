@@ -322,6 +322,8 @@
 	<string>Alle laufenden Antworten stoppen…</string>
 	<key>native.commands.switchGateway</key>
 	<string>Gateway wechseln…</string>
+	<key>native.composer.askPlaceholder</key>
+	<string>Frag etwas …</string>
 	<key>native.composer.attach.add</key>
 	<string>Anhang hinzufügen</string>
 	<key>native.composer.attach.camera</key>
@@ -2276,6 +2278,16 @@
 	<string>Schnellfrage</string>
 	<key>native.quickAsk.waiting</key>
 	<string>Warte auf %@ …</string>
+	<key>native.reply.copied</key>
+	<string>Kopiert</string>
+	<key>native.reply.copy</key>
+	<string>Kopieren</string>
+	<key>native.reply.more</key>
+	<string>Mehr</string>
+	<key>native.reply.retry</key>
+	<string>Erneut versuchen</string>
+	<key>native.reply.share</key>
+	<string>Teilen</string>
 	<key>native.requestAlert.approval</key>
 	<string>Braucht deine Freigabe</string>
 	<key>native.requestAlert.attention</key>

@@ -322,6 +322,8 @@
 	<string>Stop All Running Turns…</string>
 	<key>native.commands.switchGateway</key>
 	<string>Switch Gateway…</string>
+	<key>native.composer.askPlaceholder</key>
+	<string>Ask anything…</string>
 	<key>native.composer.attach.add</key>
 	<string>Add attachment</string>
 	<key>native.composer.attach.camera</key>
@@ -2276,6 +2278,16 @@
 	<string>Quick Ask</string>
 	<key>native.quickAsk.waiting</key>
 	<string>Waiting for %@…</string>
+	<key>native.reply.copied</key>
+	<string>Copied</string>
+	<key>native.reply.copy</key>
+	<string>Copy</string>
+	<key>native.reply.more</key>
+	<string>More</string>
+	<key>native.reply.retry</key>
+	<string>Try again</string>
+	<key>native.reply.share</key>
+	<string>Share</string>
 	<key>native.requestAlert.approval</key>
 	<string>Needs your approval</string>
 	<key>native.requestAlert.attention</key>

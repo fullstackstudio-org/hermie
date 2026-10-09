@@ -44,4 +44,16 @@ enum ChatSpacing {
   static let bubbleCaption: CGFloat = 4
   /// The caption's indent from the bubble's edge.
   static let captionInset: CGFloat = 6
+
+  /// The widest the chat reads: replies, bubbles and the composer stop growing here and are centred in
+  /// a wider window (an iPad, the Mac), as ChatGPT keeps its column. Over this a line of prose is
+  /// longer than the eye follows.
+  static let readingColumn: CGFloat = 760
+
+  /// Extra room between the lines of a reply's prose, on top of the font's own leading: a reply set
+  /// directly on the page (no bubble round it) wants air to read at length.
+  static let proseLineSpacing: CGFloat = 5
+
+  /// Above the action row under a reply, and between its buttons.
+  static let replyActionsGap: CGFloat = 6
 }
