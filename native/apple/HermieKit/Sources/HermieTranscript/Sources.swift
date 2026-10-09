@@ -148,6 +148,7 @@ public struct ReplySource: TranscriptJSONCodable, Hashable, Sendable, Identifiab
       index += 1
     } else {
       var labelLength = 0
+      let hostStart = index
       while index < scalars.count {
         let scalar = scalars[index]
         if isHostCharacter(scalar) {
@@ -161,6 +162,7 @@ public struct ReplySource: TranscriptJSONCodable, Hashable, Sendable, Identifiab
       }
       // A label may not be empty: nothing at all, or a dot with nothing after it.
       guard labelLength > 0 else { return false }
+      guard !isNonCanonicalNumericHost(Array(scalars[hostStart..<index])) else { return false }
     }
 
     if index < scalars.count, scalars[index] == ":" {
@@ -178,6 +180,24 @@ public struct ReplySource: TranscriptJSONCodable, Hashable, Sendable, Identifiab
     guard index < scalars.count else { return true }
     guard scalars[index] == "/" || scalars[index] == "?" || scalars[index] == "#" else { return false }
     return scalars[index...].allSatisfy { !isExcludedInTail($0) }
+  }
+
+  /// A host whose last label reads as a number to a URL parser (all digits, or `0x` and hex digits: `127.1`,
+  /// `0x7f`, `2130706433`) is only a host when it is the canonical dotted quad: four decimal parts of 0 to 255
+  /// with no leading zero. `127.1`, `0x7f.1`, `0177.0.0.1`, `127.000.0.1` and `a.123` are not entries.
+  private static func isNonCanonicalNumericHost(_ host: [Unicode.Scalar]) -> Bool {
+    let labels = host.split(separator: ".", omittingEmptySubsequences: false).map { String(String.UnicodeScalarView($0)) }
+    guard let last = labels.last else { return false }
+
+    let isDigits = !last.isEmpty && last.utf8.allSatisfy { (0x30...0x39).contains($0) }
+    let isHex = last.hasPrefix("0x") && last.dropFirst(2).utf8.allSatisfy { (0x30...0x39).contains($0) || (0x61...0x66).contains($0) }
+    guard isDigits || isHex else { return false }
+
+    guard labels.count == 4 else { return true }
+    return !labels.allSatisfy { label in
+      guard !label.isEmpty, label.utf8.allSatisfy({ (0x30...0x39).contains($0) }), label.count <= 3 else { return false }
+      return (label == "0" || !label.hasPrefix("0")) && Int(label)! <= 255
+    }
   }
 
   private static func isHostCharacter(_ scalar: Unicode.Scalar) -> Bool {

@@ -110,6 +110,22 @@ import Testing
       ReplySource.parse(["url": .string(url), "title": "x", "via": "found"]) == nil, "\(url.debugDescription)")
   }
 
+  @Test(arguments: [
+    "http://127.0.0.1/", "https://10.0.0.255:8080/x", "http://0.0.0.0/", "https://1.2.3.4", "https://123.example/",
+    "https://1password.com/", "https://x0x7f.example/", "http://[fe80::1]/", "http://[2001:db8::1]:8080/x"
+  ]) func keepsAHostThatIsNotAnotherAddressInDisguise(_ url: String) {
+    #expect(ReplySource.parse(["url": .string(url), "title": "x", "via": "found"]) != nil, "\(url)")
+  }
+
+  /// A host whose last label reads as a number is only the canonical dotted quad; a zoned IPv6 address is not one.
+  @Test(arguments: [
+    "http://127.1/", "http://0x7f.1/", "http://0x7f.0.0.1/", "http://0x7f/", "http://2130706433/",
+    "http://0177.0.0.1/", "http://127.000.0.1/", "http://256.0.0.1/", "http://1.2.3/", "http://1.2.3.4.5/",
+    "https://a.123/", "https://123/", "https://example.0x1f/", "http://[fe80::1%25en0]/", "http://[fe80::1%en0]/"
+  ]) func dropsAHostThatAUrlParserReadsAsAnotherAddress(_ url: String) {
+    #expect(ReplySource.parse(["url": .string(url), "title": "x", "via": "found"]) == nil, "\(url)")
+  }
+
   @Test func countsTheLengthsInCharactersNotUnits() {
     let atTheCap = "https://example.org/" + String(repeating: "a", count: ReplySource.maximumURLLength - 20)
     #expect(ReplySource.parse(["url": .string(atTheCap), "title": "x", "via": "read"]) != nil)
