@@ -3033,6 +3033,16 @@ none`, `cards`: 2 to 12 of `{icon?, title, subtitle?, tags?, highlight?, next?}`
   once the gateway has shown it knows the key, every call carries it again: the second call, and both calls of a
   refresh (a setting or request type changed, a passkey enrolled). A new socket starts over: its opening call is bare
   (there is nothing to clear yet) and its second call carries the list. `MarkupCapabilityTests` holds it.
+- **Sources.** A reply that used the web carries the pages it read and found (`contract/sources/`; `ReplySource` in
+  `HermieTranscript` reads them strictly from `message.complete.sources` and the history row's
+  `display_metadata.sources`, and drops what does not fit the schema). A "Sources" pill with up to three stacked
+  monograms ends the action row under the turn (`SourcesPill`) and opens a sheet (a popover on the Mac) with the pages
+  the assistant read and then the ones it only found. A monogram is the first letter of the domain on a colour that
+  belongs to it: nothing is fetched for a source, no favicon, no preview, so the list tells no site what is being read.
+  Each row shows the title (the domain when there is none) and always the domain exactly as the gateway sent it under
+  it, and VoiceOver reads both; a title is never the destination. A tap asks first, with the full domain as the
+  question, and only then opens the page: in a browser view inside the app on the phone, in the Mac's browser on the
+  Mac. Copy link is in the dialog and the row's context menu.
 - **Words** travel through the environment like the chart's (`markdownCardsLabels`, `markdownAlertLabels`;
   `native.cards.*`, `native.alert.*`, `native.block.*`).
 

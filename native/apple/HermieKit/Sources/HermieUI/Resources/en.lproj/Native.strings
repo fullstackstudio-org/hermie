@@ -2530,6 +2530,26 @@
 	<string>Tags</string>
 	<key>native.skills.trust</key>
 	<string>Trust</string>
+	<key>native.sources.copyLink</key>
+	<string>Copy link</string>
+	<key>native.sources.found</key>
+	<string>Found</string>
+	<key>native.sources.open</key>
+	<string>Open</string>
+	<key>native.sources.openMessage</key>
+	<string>The page opens in a browser view inside Hermie.</string>
+	<key>native.sources.openTitle</key>
+	<string>Open %@?</string>
+	<key>native.sources.pill</key>
+	<string>Sources</string>
+	<key>native.sources.pillAccessibility</key>
+	<string>Sources, %lld</string>
+	<key>native.sources.read</key>
+	<string>Read</string>
+	<key>native.sources.row</key>
+	<string>%1$@, %2$@</string>
+	<key>native.sources.title</key>
+	<string>Sources</string>
 	<key>native.subagents.barHint</key>
 	<string>Opens the list of agents, where each can be steered or stopped.</string>
 	<key>native.subagents.failed</key>

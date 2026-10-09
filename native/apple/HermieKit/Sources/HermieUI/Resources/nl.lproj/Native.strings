@@ -2530,6 +2530,26 @@
 	<string>Labels</string>
 	<key>native.skills.trust</key>
 	<string>Vertrouwen</string>
+	<key>native.sources.copyLink</key>
+	<string>Link kopiëren</string>
+	<key>native.sources.found</key>
+	<string>Gevonden</string>
+	<key>native.sources.open</key>
+	<string>Openen</string>
+	<key>native.sources.openMessage</key>
+	<string>De pagina opent in een browserweergave in Hermie.</string>
+	<key>native.sources.openTitle</key>
+	<string>%@ openen?</string>
+	<key>native.sources.pill</key>
+	<string>Bronnen</string>
+	<key>native.sources.pillAccessibility</key>
+	<string>Bronnen, %lld</string>
+	<key>native.sources.read</key>
+	<string>Gelezen</string>
+	<key>native.sources.row</key>
+	<string>%1$@, %2$@</string>
+	<key>native.sources.title</key>
+	<string>Bronnen</string>
 	<key>native.subagents.barHint</key>
 	<string>Opent de lijst met agents, waar je ze kunt bijsturen of stoppen.</string>
 	<key>native.subagents.failed</key>

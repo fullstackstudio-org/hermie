@@ -122,6 +122,12 @@ struct ReplyActionButtons: View {
       .menuIndicator(.hidden)
       .accessibilityLabel(NativeStrings.ReplyActions.more)
       .accessibilityIdentifier("reply.more")
+
+      // The pages the reply used, at the end of the row like ChatGPT's "Sources" (`contract/sources/`).
+      if let sources = item.sources, !sources.isEmpty {
+        SourcesPill(sources: sources)
+          .padding(.leading, 8 + (target - glyph) / 2)
+      }
     }
     .buttonStyle(.plain)
     .foregroundStyle(.secondary)

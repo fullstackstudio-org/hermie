@@ -182,7 +182,7 @@ public struct ReplySource: TranscriptJSONCodable, Hashable, Sendable, Identifiab
 
   /// The domain as it is compared and coloured: lower case, without a leading `www.`, so `www.example.org`
   /// and `example.org` are one site. Never shown.
-  static func siteKey(of domain: String) -> String {
+  public static func siteKey(of domain: String) -> String {
     let lowered = domain.lowercased()
     return lowered.hasPrefix("www.") && lowered.count > 4 ? String(lowered.dropFirst(4)) : lowered
   }
