@@ -229,4 +229,62 @@ struct PushPreferencesRowTests {
     await phone.sync.flush()
     #expect(PushRowWriterTests.row(gateway, "i-phone")?["urgentBreakthrough"] == true)
   }
+
+  @Test("a build without the Time Sensitive entitlement never asks for it, whatever the reader chose")
+  func urgentBreakthroughNeedsTheEntitlement() async throws {
+    let gateway = HoldingGateway()
+    let phone = PushRowWriterTests.device(gateway, installation: "i-phone", entitled: false)
+    await phone.sync.reconcile()
+    phone.address.state = PushRowWriterTests.address()
+
+    // The reader's switch is on (the default), but the build is not entitled: no key.
+    #expect(phone.writer.urgentBreakthrough)
+    await phone.writer.refresh()
+    await phone.sync.flush()
+
+    let row = try #require(PushRowWriterTests.row(gateway, "i-phone"))
+    #expect(row["urgentBreakthrough"] == nil)
+    #expect(row["clears"] == true)
+    #expect(PushRows.addressOf(.object(row)) != nil)
+
+    // Switching it on again changes nothing either.
+    phone.writer.urgentBreakthrough = true
+    await phone.writer.refresh()
+    await phone.sync.flush()
+    #expect(PushRowWriterTests.row(gateway, "i-phone")?["urgentBreakthrough"] == nil)
+  }
+
+  @Test("an older row's urgent key is dropped by a build that is not entitled")
+  func urgentKeyDroppedWithoutTheEntitlement() async throws {
+    let gateway = HoldingGateway()
+    let entitled = PushRowWriterTests.device(gateway, installation: "i-phone", entitled: true)
+    await entitled.sync.reconcile()
+    entitled.address.state = PushRowWriterTests.address()
+    await entitled.writer.refresh()
+    await entitled.sync.flush()
+    #expect(PushRowWriterTests.row(gateway, "i-phone")?["urgentBreakthrough"] == true)
+
+    // The same installation, now from a build without the entitlement: it rewrites the row without it.
+    let shipped = PushRowWriterTests.device(gateway, installation: "i-phone", entitled: false)
+    await shipped.sync.reconcile()
+    shipped.address.state = PushRowWriterTests.address()
+    await shipped.writer.refresh()
+    await shipped.sync.flush()
+    #expect(PushRowWriterTests.row(gateway, "i-phone")?["urgentBreakthrough"] == nil)
+  }
+
+  @Test("the shipped writer follows RequestAlerts.timeSensitiveEntitled")
+  func shippedWriterFollowsTheEntitlementFlag() async throws {
+    let gateway = HoldingGateway()
+    let sync = UIMetaSync.device(gateway.gateway, clock: TestWallClock(noon))
+    let writer = PushRowWriter(
+      sync: sync,
+      gatewayId: "g1",
+      gatewayKey: PushRowWriterTests.gatewayKey,
+      installation: "i-phone",
+      addressState: { _ in PushRowWriterTests.address() }
+    )
+
+    #expect(writer.entitled == RequestAlerts.timeSensitiveEntitled)
+  }
 }

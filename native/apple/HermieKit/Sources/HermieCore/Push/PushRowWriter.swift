@@ -11,9 +11,11 @@ import HermieProtocol
    origin, the handle, the send secret (`secret`), the platform, the types, `preview`, the gateway
    key and `updatedAt` — plus `clears: true` (this build handles clearing pushes, so a sender may
    send it one), `requestMethods: true` (it never shows Allow or Deny for a request that is not an
-   approval, so a sender may post those), `urgentBreakthrough: true` while the reader's "Urgent
-   requests break through Focus" is on (a sender may then post an approval, a question or a
-   confirmation as time-sensitive; the key is absent while it is off) and every key of this installation's existing row that this
+   approval, so a sender may post those), `urgentBreakthrough: true` only while this build is
+   entitled to time-sensitive notifications (`RequestAlerts.timeSensitiveEntitled`) and the reader's
+   "Urgent requests break through Focus" is on (a sender may then post an approval, a question or a
+   confirmation as time-sensitive; the key is absent otherwise, so a build without the entitlement
+   never asks for a level it cannot have) and every key of this installation's existing row that this
    build does not write (`enc` from a newer build, say), carried as it came. No row when no type is wanted, which is
    how every reader treats one.
  - **none**: the row is removed, and stays removed: the sync remembers it, so a gateway copy that
@@ -58,6 +60,11 @@ public final class PushRowWriter: UIMetaContributor {
   /// is off, so a sender posts an urgent request to this device as time-sensitive only when the reader
   /// wants that. On until the reader switches it off, like the switch itself.
   public var urgentBreakthrough = true
+  /// Whether this build holds the Time Sensitive Notifications entitlement
+  /// (`RequestAlerts.timeSensitiveEntitled`). Without it the row never carries `urgentBreakthrough`,
+  /// whatever the reader chose: a sender would otherwise mark pushes time-sensitive for a build the
+  /// system does not allow that level.
+  public let entitled: Bool
 
   /// The plugin reads `{bot, at}` in `seen`. Meaningful once `capabilitiesKnown`.
   public private(set) var perChat = false
@@ -80,6 +87,7 @@ public final class PushRowWriter: UIMetaContributor {
   ///   - addressState: `PushController.addressState(for:)`, or a stand-in in a test.
   ///   - relayOrigin: the relay this build registers with, checked against the plugin's list.
   ///   - onDelivery: told every time the delivery verdict changes (the controller, for Settings).
+  ///   - entitled: whether the build may receive time-sensitive pushes; the shipped value, or a test's.
   ///   - now: Unix seconds, for `seen`.
   public init(
     sync: UIMetaSync,
@@ -90,8 +98,10 @@ public final class PushRowWriter: UIMetaContributor {
     addressState: @escaping @MainActor (String) async -> PushAddressState,
     onDelivery: (@MainActor (PushDelivery) -> Void)? = nil,
     heartbeat: Duration = .seconds(60),
+    entitled: Bool = RequestAlerts.timeSensitiveEntitled,
     now: @escaping @Sendable () -> Double = { Date().timeIntervalSince1970 }
   ) {
+    self.entitled = entitled
     self.sync = sync
     self.gatewayId = gatewayId
     self.gatewayKey = gatewayKey
@@ -204,8 +214,9 @@ public final class PushRowWriter: UIMetaContributor {
     built[PushRows.requestMethodsKey] = .bool(true)
 
     // Whether an urgent request may arrive time-sensitive is this device's choice, and the sender
-    // reads it from here: the key is there while the reader wants it and gone otherwise.
-    if urgentBreakthrough {
+    // reads it from here: the key is there while the build is entitled and the reader wants it, and
+    // gone otherwise.
+    if entitled && urgentBreakthrough {
       built[PushRows.urgentBreakthroughKey] = .bool(true)
     }
 

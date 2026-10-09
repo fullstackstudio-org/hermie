@@ -38,9 +38,11 @@ struct PushRowWriterTests {
     let address: Address
   }
 
-  static func device(_ gateway: HoldingGateway, installation: String, clock: TestWallClock = TestWallClock(noon))
-    -> Device
-  {
+  /// `entitled` defaults to true here so the rows below can show the urgent key; the shipped value
+  /// is `RequestAlerts.timeSensitiveEntitled`, which `PushPreferencesTests` holds the writer to.
+  static func device(
+    _ gateway: HoldingGateway, installation: String, clock: TestWallClock = TestWallClock(noon), entitled: Bool = true
+  ) -> Device {
     let sync = UIMetaSync.device(gateway.gateway, clock: clock)
     let address = Address()
     let writer = PushRowWriter(
@@ -49,6 +51,7 @@ struct PushRowWriterTests {
       gatewayKey: gatewayKey,
       installation: installation,
       addressState: { _ in address.state },
+      entitled: entitled,
       now: clock.now
     )
 

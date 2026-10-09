@@ -66,7 +66,12 @@ struct NotificationsSettingsPage: View {
       if push.enabled {
         typesSection(push)
         previewSection(push)
-        urgentSection(push)
+
+        // Not offered while the build lacks the Time Sensitive entitlement: the switch would promise
+        // a Focus breakthrough that the system does not grant, and the row does not ask for it.
+        if RequestAlerts.timeSensitiveEntitled {
+          urgentSection(push)
+        }
       }
 
       if push.enabled, !launch.gateways.entries.isEmpty {
