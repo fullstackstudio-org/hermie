@@ -69,8 +69,8 @@ draws a chart only once its closing fence has arrived, so a fence that is never 
 - The chart is under the reply's words, as wide as the reply, with the title above it, a legend when there is
   more than one series (or for a pie), and the unit on the value axis. Colours are the system's and follow the
   light and dark appearance.
-- The block has the buttons of any listing: **Copy** copies the JSON, and the eye switches between the picture
-  and the data it was drawn from.
+- The picture has no header bar. A quiet "..." button in its corner opens **Show source** (switches between the
+  picture and the data it was drawn from) and **Copy source** (copies the JSON).
 - VoiceOver reads the chart as a sentence: its kind, its title, the unit, and each series with its first twelve
   points (and "and N more").
 - Read aloud (voice mode) treats it as a code block, which is summarised and not spoken digit by digit.

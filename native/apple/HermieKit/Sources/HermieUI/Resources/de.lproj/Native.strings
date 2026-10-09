@@ -70,6 +70,16 @@
 	<string>Was jeder Bot gerade tut.</string>
 	<key>native.agents.title</key>
 	<string>Agenten</string>
+	<key>native.alert.caution</key>
+	<string>Achtung</string>
+	<key>native.alert.important</key>
+	<string>Wichtig</string>
+	<key>native.alert.note</key>
+	<string>Hinweis</string>
+	<key>native.alert.tip</key>
+	<string>Tipp</string>
+	<key>native.alert.warning</key>
+	<string>Warnung</string>
 	<key>native.appearance.languageChange</key>
 	<string>In den Einstellungen ändern</string>
 	<key>native.appearance.languageChangeMac</key>
@@ -80,6 +90,8 @@
 	<string>Färbt Schaltflächen, Links und Auswahlen. Es folgt dir auf deine anderen Geräte, auf denen du angemeldet bist.</string>
 	<key>native.appearance.tintHeader</key>
 	<string>Akzentfarbe</string>
+	<key>native.block.moreOptions</key>
+	<string>Weitere Optionen</string>
 	<key>native.botSettings.about</key>
 	<string>Über diesen Bot</string>
 	<key>native.botSettings.capabilities</key>
@@ -172,6 +184,24 @@
 	<string>Verbinde dich mit einem Gateway, um das zu nutzen.</string>
 	<key>native.capability.save</key>
 	<string>Sichern</string>
+	<key>native.cards.card</key>
+	<string>Karte %1$lld von %2$lld, %3$@</string>
+	<key>native.cards.copied</key>
+	<string>Kopiert</string>
+	<key>native.cards.copySource</key>
+	<string>Quelltext kopieren</string>
+	<key>native.cards.highlighted</key>
+	<string>hervorgehoben</string>
+	<key>native.cards.label</key>
+	<string>Karten</string>
+	<key>native.cards.showCards</key>
+	<string>Karten zeigen</string>
+	<key>native.cards.showSource</key>
+	<string>Quelltext anzeigen</string>
+	<key>native.cards.tags</key>
+	<string>Tags %@</string>
+	<key>native.cards.then</key>
+	<string>danach: %@</string>
 	<key>native.chart.category</key>
 	<string>Kategorie</string>
 	<key>native.chart.copied</key>

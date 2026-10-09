@@ -10,6 +10,7 @@ enum MarkdownStrings {
   static let diagram = "Diagram"
   static let mermaidSource = "Mermaid source"
   static let mermaidDiagram = "Mermaid diagram"
+  static let moreOptions = "More options"
   static let showSource = "Show source"
   static let showRendered = "Show rendered"
   static let taskDone = "Done"

@@ -2989,14 +2989,39 @@ what a bot's prompt can say about it.
 - **The Markdown model is untouched.** The block is still `.code` with the language `hermie-chart`; the one decision
   (`HermieChart.decide`: a chart, or the code block it came from) is made where the block is drawn, so the shared
   corpus under `contract/` does not change and the web client, which does not know the block, shows it as code.
-- **Drawn with Swift Charts** (`HermieChartView`) inside the same frame as any listing: the label, Copy (the JSON) and
-  the eye that switches between the picture and its data. VoiceOver reads the kind, the title, the unit and each
-  series with its first twelve points. The owner's own bubble leaves it as typed (`markdownDrawsCharts`).
+- **Drawn with Swift Charts** (`HermieChartView`) with no header bar over it: the picture is the block, and a quiet
+  "..." button in its top-trailing corner (`MarkdownDrawnBlock`, the twin of the web's `DrawnBlock`) opens Show
+  source (a toggle between the picture and its JSON) and Copy source. VoiceOver reads the kind, the title, the unit and
+  each series with its first twelve points. The owner's own bubble leaves it as typed (`markdownDrawsBlocks`).
 - **Words.** The Markdown target owns no string catalog, so the labels travel through the environment
   (`markdownChartLabels`); the app sets the localised ones (`native.chart.*`) on every place a bot's words are drawn.
 - **Tests.** `HermieChartTests` (valid, invalid, the caps at their edge, non-numeric, huge and deeply nested input,
   the decision, the words) and `HermieChartRenderingTests` (laid out in a narrow column at the largest text size, the
   most marks allowed, a valid and an invalid block through `MarkdownView`).
+
+## Cards and callouts in a reply
+
+Two more things a reply can be drawn as, both defined by [contract/markup](../contract/markup/README.md) and drawn
+the same way on the web (`native/web/src/markdown`).
+
+- **`hermie-cards`**: a fenced block with one JSON object (`title?`, `layout: stack | grid`, `connector: arrow | line |
+none`, `cards`: 2 to 12 of `{icon?, title, subtitle?, tags?, highlight?, next?}`). `HermieCards` validates it rule
+  for rule as `cards-spec.ts` does, held to `contract/markup/examples.json` by `HermieCardsTests`, which loads every
+  valid and invalid example. It reads the block with `StrictJSON`, not `JSONSerialization`: Foundation takes a trailing
+  comma and a byte order mark and keeps the first of a repeated key, where `JSON.parse` refuses the first two and keeps
+  the last, and the two clients must make one decision on one text. Lengths are grapheme clusters, white space is
+  ECMAScript's, `null` is absent, a number is never a string. An unknown icon name draws the generic glyph
+  (`HermieCardIcons`, the SF Symbol column of `icons.json`, held to it by a test); every other deviation leaves the
+  code block. A stack draws a connector (arrow, line, none, with the label beside it) under each icon's centre; a grid
+  is `CardsGridLayout`, equal columns that wrap, rows as tall as their tallest card, one column at accessibility sizes.
+  VoiceOver reads one element per card ("Card 2 of 5, Gateway, k3s, highlighted, tags a, b, then: deploys to"), the
+  connectors are decoration. Like the chart it is drawn without a header bar, with the corner "..." menu.
+- **Callouts**: a quote that begins `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` or `[!CAUTION]` on a line of
+  its own. `MarkdownAlert.read` decides (the parser still produces a quote, so `contract/markdown` does not move) and
+  `MarkdownAlertView` draws an icon and the kind in its colour over a tinted card; VoiceOver says the kind first. A
+  quote inside a callout is an ordinary quote; the owner's own bubble keeps the quote as typed.
+- **Words** travel through the environment like the chart's (`markdownCardsLabels`, `markdownAlertLabels`;
+  `native.cards.*`, `native.alert.*`, `native.block.*`).
 
 ## QR pairing
 

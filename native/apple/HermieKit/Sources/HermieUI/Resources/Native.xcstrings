@@ -36102,6 +36102,366 @@
           }
         }
       }
+    },
+    "native.block.moreOptions" : {
+      "comment" : "The name of the \"...\" button in the corner of a drawn chart or set of cards, which opens Show source and Copy source.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More options"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meer opties"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weitere Optionen"
+          }
+        }
+      }
+    },
+    "native.cards.label" : {
+      "comment" : "What a screen reader calls a set of cards (a hermie-cards block) that has no title of its own.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cards"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kaarten"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Karten"
+          }
+        }
+      }
+    },
+    "native.cards.showSource" : {
+      "comment" : "The menu item that shows the JSON a set of cards was drawn from, in place of the cards.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show source"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bron tonen"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quelltext anzeigen"
+          }
+        }
+      }
+    },
+    "native.cards.showCards" : {
+      "comment" : "The menu item that goes back from the JSON of a set of cards to the cards.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show cards"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toon kaarten"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Karten zeigen"
+          }
+        }
+      }
+    },
+    "native.cards.copySource" : {
+      "comment" : "The menu item that copies the JSON a set of cards was drawn from.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy source"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bron kopiëren"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quelltext kopieren"
+          }
+        }
+      }
+    },
+    "native.cards.copied" : {
+      "comment" : "The name of the \"...\" button for a moment after the source was copied.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gekopieerd"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiert"
+          }
+        }
+      }
+    },
+    "native.cards.card" : {
+      "comment" : "What a screen reader says first for one card: {position} of {total}, {title}.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Card %1$lld of %2$lld, %3$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kaart %1$lld van %2$lld, %3$@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Karte %1$lld von %2$lld, %3$@"
+          }
+        }
+      }
+    },
+    "native.cards.highlighted" : {
+      "comment" : "Said for the one card of a set that is drawn highlighted.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "highlighted"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "uitgelicht"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hervorgehoben"
+          }
+        }
+      }
+    },
+    "native.cards.tags" : {
+      "comment" : "Said for a card's tags: the tags, comma separated.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "tags %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "labels %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tags %@"
+          }
+        }
+      }
+    },
+    "native.cards.then" : {
+      "comment" : "Said for the label on the connector that leaves a card: what happens next.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "then: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "daarna: %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "danach: %@"
+          }
+        }
+      }
+    },
+    "native.alert.note" : {
+      "comment" : "The title of a callout that begins [!NOTE].",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opmerking"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hinweis"
+          }
+        }
+      }
+    },
+    "native.alert.tip" : {
+      "comment" : "The title of a callout that begins [!TIP].",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tip"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tip"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tipp"
+          }
+        }
+      }
+    },
+    "native.alert.important" : {
+      "comment" : "The title of a callout that begins [!IMPORTANT].",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Important"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Belangrijk"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wichtig"
+          }
+        }
+      }
+    },
+    "native.alert.warning" : {
+      "comment" : "The title of a callout that begins [!WARNING].",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warning"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waarschuwing"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warnung"
+          }
+        }
+      }
+    },
+    "native.alert.caution" : {
+      "comment" : "The title of a callout that begins [!CAUTION].",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caution"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Let op"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Achtung"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

@@ -70,6 +70,16 @@
 	<string>What each bot is doing right now.</string>
 	<key>native.agents.title</key>
 	<string>Agents</string>
+	<key>native.alert.caution</key>
+	<string>Caution</string>
+	<key>native.alert.important</key>
+	<string>Important</string>
+	<key>native.alert.note</key>
+	<string>Note</string>
+	<key>native.alert.tip</key>
+	<string>Tip</string>
+	<key>native.alert.warning</key>
+	<string>Warning</string>
 	<key>native.appearance.languageChange</key>
 	<string>Change in Settings</string>
 	<key>native.appearance.languageChangeMac</key>
@@ -80,6 +90,8 @@
 	<string>Colours buttons, links and selections. It follows you to your other devices signed in as you.</string>
 	<key>native.appearance.tintHeader</key>
 	<string>Accent colour</string>
+	<key>native.block.moreOptions</key>
+	<string>More options</string>
 	<key>native.botSettings.about</key>
 	<string>About this bot</string>
 	<key>native.botSettings.capabilities</key>
@@ -172,6 +184,24 @@
 	<string>Connect to a gateway to use this.</string>
 	<key>native.capability.save</key>
 	<string>Save</string>
+	<key>native.cards.card</key>
+	<string>Card %1$lld of %2$lld, %3$@</string>
+	<key>native.cards.copied</key>
+	<string>Copied</string>
+	<key>native.cards.copySource</key>
+	<string>Copy source</string>
+	<key>native.cards.highlighted</key>
+	<string>highlighted</string>
+	<key>native.cards.label</key>
+	<string>Cards</string>
+	<key>native.cards.showCards</key>
+	<string>Show cards</string>
+	<key>native.cards.showSource</key>
+	<string>Show source</string>
+	<key>native.cards.tags</key>
+	<string>tags %@</string>
+	<key>native.cards.then</key>
+	<string>then: %@</string>
 	<key>native.chart.category</key>
 	<string>Category</string>
 	<key>native.chart.copied</key>

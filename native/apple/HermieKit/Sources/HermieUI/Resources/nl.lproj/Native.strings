@@ -70,6 +70,16 @@
 	<string>Wat elke bot nu aan het doen is.</string>
 	<key>native.agents.title</key>
 	<string>Agents</string>
+	<key>native.alert.caution</key>
+	<string>Let op</string>
+	<key>native.alert.important</key>
+	<string>Belangrijk</string>
+	<key>native.alert.note</key>
+	<string>Opmerking</string>
+	<key>native.alert.tip</key>
+	<string>Tip</string>
+	<key>native.alert.warning</key>
+	<string>Waarschuwing</string>
 	<key>native.appearance.languageChange</key>
 	<string>Wijzig in Instellingen</string>
 	<key>native.appearance.languageChangeMac</key>
@@ -80,6 +90,8 @@
 	<string>Kleurt knoppen, links en selecties. Het volgt je naar je andere apparaten waarop je bent ingelogd.</string>
 	<key>native.appearance.tintHeader</key>
 	<string>Accentkleur</string>
+	<key>native.block.moreOptions</key>
+	<string>Meer opties</string>
 	<key>native.botSettings.about</key>
 	<string>Over deze bot</string>
 	<key>native.botSettings.capabilities</key>
@@ -172,6 +184,24 @@
 	<string>Maak verbinding met een gateway om dit te gebruiken.</string>
 	<key>native.capability.save</key>
 	<string>Bewaar</string>
+	<key>native.cards.card</key>
+	<string>Kaart %1$lld van %2$lld, %3$@</string>
+	<key>native.cards.copied</key>
+	<string>Gekopieerd</string>
+	<key>native.cards.copySource</key>
+	<string>Bron kopiëren</string>
+	<key>native.cards.highlighted</key>
+	<string>uitgelicht</string>
+	<key>native.cards.label</key>
+	<string>Kaarten</string>
+	<key>native.cards.showCards</key>
+	<string>Toon kaarten</string>
+	<key>native.cards.showSource</key>
+	<string>Bron tonen</string>
+	<key>native.cards.tags</key>
+	<string>labels %@</string>
+	<key>native.cards.then</key>
+	<string>daarna: %@</string>
 	<key>native.chart.category</key>
 	<string>Categorie</string>
 	<key>native.chart.copied</key>

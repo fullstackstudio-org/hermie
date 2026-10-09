@@ -52,7 +52,8 @@ private struct MarkdownSelection: ViewModifier {
 /// One block, of any kind.
 public struct MarkdownBlockView: View, Equatable {
   public let block: MarkdownBlock
-  @Environment(\.markdownDrawsCharts) private var draws
+  @Environment(\.markdownDrawsBlocks) private var draws
+  @Environment(\.markdownInAlert) private var inAlert
 
   public init(block: MarkdownBlock) {
     self.block = block
@@ -71,14 +72,21 @@ public struct MarkdownBlockView: View, Equatable {
     case .list(let list):
       MarkdownListView(list: list)
     case .quote(let blocks):
-      MarkdownQuoteView(blocks: blocks)
+      // A quote that begins `[!NOTE]` (or TIP, IMPORTANT, WARNING, CAUTION) is drawn as a callout.
+      if draws, !inAlert, let alert = MarkdownAlert.read(blocks) {
+        MarkdownAlertView(alert: alert)
+      } else {
+        MarkdownQuoteView(blocks: blocks)
+      }
     case .table(let table):
       MarkdownTableView(table: table)
     case .code(let code):
-      // A `hermie-chart` fence that is exactly what the format says is drawn; any other fence, and a
-      // chart fence that is not valid (or not finished streaming), stays the listing it is.
+      // A `hermie-chart` or `hermie-cards` fence that is exactly what its format says is drawn; any other
+      // fence, and one of these that is not valid (or not finished streaming), stays the listing it is.
       if draws, case .chart(let spec) = HermieChart.decide(language: code.language, source: code.text) {
         MarkdownChartBlock(spec: spec, source: code.text)
+      } else if draws, case .cards(let spec) = HermieCards.decide(language: code.language, source: code.text) {
+        MarkdownCardsBlock(spec: spec, source: code.text)
       } else {
         MarkdownCodeView(
           label: code.language ?? "", accessibilityLabel: MarkdownStrings.code(language: code.language),
@@ -240,9 +248,6 @@ struct MarkdownCodeView: View {
   var rendered: AnyView?
   /// What VoiceOver reads for the rendered content, in place of the source.
   var spoken: String?
-  /// The rendered content takes the width it is offered (a chart), instead of its own and a sideways
-  /// scroll. The listing still scrolls.
-  var fillsRendered = false
   /// The words of the buttons.
   var strings = MarkdownCodeStrings.english
 
@@ -290,20 +295,12 @@ struct MarkdownCodeView: View {
       .padding(.horizontal, padding)
       .padding(.top, padding * 0.6)
 
-      if fillsRendered, let rendered, !showsSource {
-        rendered
+      ScrollView(.horizontal) {
+        content
+          .fixedSize(horizontal: true, vertical: false)
           .padding(padding)
-          .accessibilityElement(children: .ignore)
           .accessibilityLabel(accessibilityLabel)
           .accessibilityValue(spoken ?? source)
-      } else {
-        ScrollView(.horizontal) {
-          content
-            .fixedSize(horizontal: true, vertical: false)
-            .padding(padding)
-            .accessibilityLabel(accessibilityLabel)
-            .accessibilityValue(spoken ?? source)
-        }
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
@@ -337,9 +334,10 @@ extension EnvironmentValues {
   /// or in an incoming bubble; a bubble with a fill of its own (the owner's blue) turns it off.
   @Entry public var markdownCodeHighlighting = true
 
-  /// Whether a valid `hermie-chart` block is drawn as a chart (the default) or stays a listing. The owner's
-  /// own bubble turns it off: a chart's colours are the system's, not the blue's.
-  @Entry public var markdownDrawsCharts = true
+  /// Whether a valid `hermie-chart` or `hermie-cards` block is drawn (the default) or stays a listing, and a
+  /// `[!NOTE]` quote is a callout or a quote. The owner's own bubble turns it off: what the owner types stays
+  /// as typed, and the colours of a picture are the system's, not the blue's.
+  @Entry public var markdownDrawsBlocks = true
 
   /// Whether a reply's lines take the whole width they are offered (a page, the default) or only
   /// what their words need (a message bubble that should be no wider than its text).

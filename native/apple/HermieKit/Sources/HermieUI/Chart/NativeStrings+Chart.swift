@@ -88,14 +88,17 @@ extension MarkdownChartLabels {
       copySource: NativeStrings.Chart.copySource,
       code: MarkdownCodeStrings(
         copy: NativeStrings.Chart.copy, copied: NativeStrings.Chart.copied,
-        showSource: NativeStrings.Chart.showSource, showRendered: NativeStrings.Chart.showChart)
+        showSource: NativeStrings.Chart.showSource, showRendered: NativeStrings.Chart.showChart),
+      moreOptions: NativeStrings.Cards.moreOptions
     )
   }
 }
 
 extension View {
-  /// A reply drawn with the words of a chart block in the reader's language.
+  /// A reply drawn with the words of its drawn blocks (charts, cards, callouts) in the reader's language.
   @MainActor func markdownChartWords() -> some View {
     environment(\.markdownChartLabels, .localized)
+      .environment(\.markdownCardsLabels, .localized)
+      .environment(\.markdownAlertLabels, .localized)
   }
 }

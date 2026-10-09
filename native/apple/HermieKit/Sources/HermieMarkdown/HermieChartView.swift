@@ -37,6 +37,8 @@ public struct MarkdownChartLabels: Sendable {
   /// Copy the block's JSON.
   public var copySource: String
   public var code: MarkdownCodeStrings
+  /// The name of the "..." button in the corner of the drawn chart.
+  public var moreOptions: String
 
   public init(
     category: String,
@@ -45,7 +47,8 @@ public struct MarkdownChartLabels: Sendable {
     kindName: @escaping @Sendable (HermieChartKind) -> String,
     summary: @escaping @Sendable (HermieChartSpec) -> String,
     copySource: String,
-    code: MarkdownCodeStrings
+    code: MarkdownCodeStrings,
+    moreOptions: String = "More options"
   ) {
     self.category = category
     self.value = value
@@ -54,6 +57,7 @@ public struct MarkdownChartLabels: Sendable {
     self.summary = summary
     self.copySource = copySource
     self.code = code
+    self.moreOptions = moreOptions
   }
 
   public static let english = MarkdownChartLabels(
@@ -74,7 +78,8 @@ public struct MarkdownChartLabels: Sendable {
         ))
     },
     copySource: MarkdownStrings.copySource,
-    code: .english
+    code: .english,
+    moreOptions: MarkdownStrings.moreOptions
   )
 }
 
@@ -153,8 +158,8 @@ public enum HermieChartSpeech {
   }
 }
 
-/// A chart block: the picture with its title, under the label and buttons of a listing, so Copy copies
-/// the JSON and the eye toggles to it.
+/// A chart block: the picture with its title and, in its corner, the "..." button with Show source and Copy
+/// source (`MarkdownDrawnBlock`), so Copy copies the JSON and the first item toggles to it.
 struct MarkdownChartBlock: View {
   let spec: HermieChartSpec
   let source: String
@@ -162,10 +167,14 @@ struct MarkdownChartBlock: View {
   @Environment(\.markdownChartLabels) private var labels
 
   var body: some View {
-    MarkdownCodeView(
-      label: labels.kindName(spec.kind), accessibilityLabel: labels.kindName(spec.kind),
-      copyLabel: labels.copySource, source: source, rendered: AnyView(HermieChartView(spec: spec)),
-      spoken: labels.summary(spec), fillsRendered: true, strings: labels.code)
+    MarkdownDrawnBlock(
+      source: source, name: labels.kindName(spec.kind), spoken: labels.summary(spec),
+      strings: MarkdownDrawnStrings(
+        moreOptions: labels.moreOptions, showSource: labels.code.showSource, showRendered: labels.code.showRendered,
+        copySource: labels.copySource, copied: labels.code.copied)
+    ) {
+      HermieChartView(spec: spec)
+    }
   }
 }
 
@@ -198,6 +207,7 @@ struct HermieChartView: View {
       if let title = spec.title {
         Text(title)
           .font(.subheadline.weight(.semibold))
+          .padding(.trailing, 36)
           .accessibilityAddTraits(.isHeader)
       }
 
