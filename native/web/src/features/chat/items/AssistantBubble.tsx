@@ -15,6 +15,8 @@
  * reply is worth keeping, so the words stay; "the gateway still holds the turn"
  * says so instead of offering a retry that would run it twice.
  *
+ * A reply that used pages carries a "Sources" pill under its words (`Sources.tsx`), which opens the list.
+ *
  * The footer says how long it took, what it cost and on what, only when the
  * gateway reported usage: a duration alone is a number with nothing to attach it
  * to. The reply is one the transcript's shared menu reaches (copy, regenerate:
@@ -36,6 +38,7 @@ import { MessageMarkdown } from './MessageMarkdown'
 import { ReasoningDisclosure } from './ReasoningDisclosure'
 import { type RowViewProps, sameRowView } from './row-view'
 import { SharedFiles } from './SharedFiles'
+import { Sources } from './Sources'
 import { attachmentName } from './UserBubble'
 
 /** Three dots. Decoration with a name: the reader of the page is told a reply is coming. */
@@ -140,6 +143,9 @@ function AssistantBubbleView({ item, presentation }: RowViewProps<AssistantItem>
           ) : null}
         </div>
       ) : null}
+
+      {/* The pages the reply used (`contract/sources/`); not on a note the bot wrote on the way to its answer. */}
+      {item.sources?.length && !item.interim ? <Sources sources={item.sources} /> : null}
 
       {item.error ? <ErrorCard error={item.error} /> : null}
 

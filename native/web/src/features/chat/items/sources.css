@@ -1,0 +1,270 @@
+/*
+ * The pages a reply used (`Sources.tsx`, `SourcesDialog.tsx`): the pill under the reply, the monogram that stands in for
+ * an icon, and the dialog. Colours are the theme's (`ui/theme.css`) except the monograms', which are twelve fixed
+ * colours with white letters on them (`sources.test.ts` measures every one: 4.5:1 at least). The policy forbids inline
+ * styles, so the colour of a monogram is a bucket in `data-hue`.
+ */
+
+/* ── the monogram ────────────────────────────────────────────────────────── */
+
+.hm-mono {
+  --hm-mono-hue: 0;
+
+  box-sizing: border-box;
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: hsl(var(--hm-mono-hue) 48% 29%);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  user-select: none;
+}
+
+.hm-mono[data-hue='0'] {
+  --hm-mono-hue: 0;
+}
+
+.hm-mono[data-hue='1'] {
+  --hm-mono-hue: 30;
+}
+
+.hm-mono[data-hue='2'] {
+  --hm-mono-hue: 60;
+}
+
+.hm-mono[data-hue='3'] {
+  --hm-mono-hue: 90;
+}
+
+.hm-mono[data-hue='4'] {
+  --hm-mono-hue: 120;
+}
+
+.hm-mono[data-hue='5'] {
+  --hm-mono-hue: 150;
+}
+
+.hm-mono[data-hue='6'] {
+  --hm-mono-hue: 180;
+}
+
+.hm-mono[data-hue='7'] {
+  --hm-mono-hue: 210;
+}
+
+.hm-mono[data-hue='8'] {
+  --hm-mono-hue: 240;
+}
+
+.hm-mono[data-hue='9'] {
+  --hm-mono-hue: 270;
+}
+
+.hm-mono[data-hue='10'] {
+  --hm-mono-hue: 300;
+}
+
+.hm-mono[data-hue='11'] {
+  --hm-mono-hue: 330;
+}
+
+/* ── the pill ────────────────────────────────────────────────────────────── */
+
+.hm-msg__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 0 4px;
+  min-width: 0;
+}
+
+.hm-sources-pill {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 14px 0 8px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius-pill);
+  background: var(--hm-surface);
+  color: var(--hm-text);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hm-sources-pill:hover {
+  background: var(--hm-surface-hover);
+}
+
+@media (pointer: coarse) {
+  .hm-sources-pill {
+    min-height: 44px;
+  }
+}
+
+.hm-sources-pill__stack {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* The monograms overlap, each ringed in the pill's own surface so the edge between two stays visible. */
+.hm-sources-pill__stack .hm-mono {
+  width: 20px;
+  height: 20px;
+  box-shadow: 0 0 0 2px var(--hm-surface);
+}
+
+.hm-sources-pill:hover .hm-sources-pill__stack .hm-mono {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--hm-text) 6%, var(--hm-surface));
+}
+
+.hm-sources-pill__stack .hm-mono + .hm-mono {
+  margin-inline-start: -5px;
+}
+
+.hm-sources-pill__count {
+  color: var(--hm-text-muted);
+  font-weight: 500;
+}
+
+/* ── the dialog ──────────────────────────────────────────────────────────── */
+
+.hm-sources-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: var(--hm-gutter);
+  background: color-mix(in srgb, #000000 55%, transparent);
+}
+
+.hm-sources-dialog {
+  box-sizing: border-box;
+  width: min(34rem, 100%);
+  max-height: 100%;
+  padding: 16px 20px 20px;
+  overflow: auto;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: var(--hm-bg);
+  color: var(--hm-text);
+  box-shadow: 0 16px 48px color-mix(in srgb, #000000 35%, transparent);
+}
+
+.hm-sources-dialog__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hm-sources-dialog__title {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.hm-sources-dialog__close {
+  appearance: none;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--hm-line);
+  border-radius: var(--hm-radius);
+  background: transparent;
+  color: var(--hm-tint-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hm-sources-dialog__close:hover {
+  background: var(--hm-surface-hover);
+}
+
+.hm-sources-dialog__lead {
+  margin: 8px 0 0;
+  color: var(--hm-text-muted);
+  font-size: 0.875rem;
+}
+
+.hm-sources-dialog__section {
+  margin-top: 16px;
+}
+
+.hm-sources-dialog__heading {
+  margin: 0 0 4px;
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.hm-sources-dialog__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-source {
+  border-top: 1px solid var(--hm-line);
+}
+
+.hm-source:first-child {
+  border-top: 0;
+}
+
+.hm-source__link,
+.hm-source--text {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 4px;
+  box-sizing: border-box;
+}
+
+.hm-source__link {
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--hm-radius);
+}
+
+.hm-source__link:hover {
+  background: var(--hm-surface-hover);
+}
+
+.hm-source__text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.hm-source__title {
+  font-weight: 600;
+  /* A title may be long; the host below it never is cut (it wraps instead). */
+  overflow-wrap: anywhere;
+}
+
+.hm-source__host {
+  color: var(--hm-text-muted);
+  font-size: 0.8125rem;
+  /* The whole host, always: no ellipsis, so a long name cannot hide how it ends. */
+  overflow-wrap: anywhere;
+}
+
+.hm-source__arrow {
+  flex: none;
+  color: var(--hm-text-faint);
+}

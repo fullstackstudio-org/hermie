@@ -164,6 +164,21 @@ export const GALLERY_SECTIONS: readonly GallerySection[] = [
         }
       },
       {
+        name: 'a reply that used pages: the Sources pill',
+        item: {
+          ...base('assistant', 'sources'),
+          kind: 'assistant',
+          text: 'The gateway is installed with one command; see the guide.',
+          streaming: false,
+          interim: false,
+          sources: [
+            { url: 'https://example.org/guide/install', title: 'Installing the gateway', via: 'read' },
+            { url: 'https://phish.example.net/login', title: 'Your bank - secure sign in', via: 'found' },
+            { url: 'https://docs.example.com/a?b=c#d', title: '', via: 'found' }
+          ]
+        }
+      },
+      {
         name: 'a reply with usage',
         item: {
           ...base('assistant', 'reply'),

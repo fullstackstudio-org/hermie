@@ -283,6 +283,36 @@ that directory's examples.
 - Links in a message have a dotted underline and, when they leave for the web, a small arrow that is CSS: it is not
   in the link's text or name.
 
+### Which blocks the page tells the gateway about
+
+The page lists `alerts`, `cards` and `chart` under `markup` in `client.capabilities`
+(`core/markup-capabilities.ts`; `core/passkey/model.ts` makes the calls), and the gateway then tells a bot about
+exactly those blocks on a turn this page submits and on no other. A name is on the list only while the page draws
+it. Because the gateway takes every call as a full replacement, a call without the list clears it: the first call
+of a socket has to go without (a gateway older than the key refuses the whole call with 4000, and only a result
+that carries the key `markup` shows it knows it), and every call after that on the same socket, and the second call
+of every run, carries it.
+
+## The pages a reply used
+
+When a turn searched the web or read pages, the gateway sends the list with the reply (`contract/sources/`:
+`message.complete.sources`, and `display_metadata.sources` on the reply's row, so a reload shows it too). The
+transcript engine reads it strictly (`packages/transcript/src/sources.ts`: an entry that does not fit the schema is
+dropped, never repaired; at most 24; each address once) and a reply that used pages gets a "Sources" pill under its
+words (`features/chat/items/Sources.tsx`).
+
+- The pill is a button with up to three monograms, the first letter of a host on one of twelve fixed colours: no
+  favicon, no preview, no request of any kind, because an icon fetched for a page nobody opened would tell that site
+  what is being read. The monograms are decoration; the button is named by its word and its count.
+- It opens a modal dialog (`SourcesDialog.tsx`: focus on Done, Tab kept inside, the page behind it `inert`, Escape or
+  a press on the backdrop closes it and the focus goes back to the pill). It has a section "Read" (pages the bot
+  fetched) and one "Found" (search results it may not have opened).
+- A row is the title and the host, written out whole, with its port: a title is whatever the page called itself,
+  and the host is what says where the link goes. The host is shown as the gateway stored it (punycode for a name that
+  is not ASCII). A row without a title shows the host as its title.
+- A link opens in a new tab with `rel="noopener noreferrer"`, only when the person presses it, and only for an
+  address the link policy (`markdown/links.ts`) allows; anything else is shown as text.
+
 ## Keyboard shortcuts
 
 The page has the keyboard shortcuts of the desktop apps, as far as a browser lets a page have them. The table is

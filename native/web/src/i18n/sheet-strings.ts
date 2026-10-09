@@ -199,6 +199,45 @@ export const SHEET_STRINGS_SOURCE = {
       de: 'Diese Datei ist zu groß, um sie hier zu speichern.'
     }
   },
+  /** The pages a reply used (`contract/sources/`): the pill under the reply and the dialog it opens. */
+  sources: {
+    /** The pill under a reply that used pages, and the dialog's heading: the word, then the count beside it. */
+    title: {
+      en: 'Sources',
+      nl: 'Bronnen',
+      de: 'Quellen'
+    },
+    /** The dialog's one sentence of explanation: what the list is, and that nothing was loaded for it. */
+    lead: {
+      en: 'The pages this reply used. Nothing was loaded for this list; a page is requested only when you open its link.',
+      nl: 'De pagina’s die dit antwoord gebruikte. Voor deze lijst is niets geladen; een pagina wordt pas opgevraagd als je de link opent.',
+      de: 'Die Seiten, die diese Antwort genutzt hat. Für diese Liste wurde nichts geladen; eine Seite wird erst angefragt, wenn du ihren Link öffnest.'
+    },
+    /** The heading of the pages the bot fetched and read (`via: read`). */
+    read: {
+      en: 'Read',
+      nl: 'Gelezen',
+      de: 'Gelesen'
+    },
+    /** The heading of the search results the bot may not have opened (`via: found`). */
+    found: {
+      en: 'Found',
+      nl: 'Gevonden',
+      de: 'Gefunden'
+    },
+    /** After a link's text, read by a screen reader: the link opens in another tab. */
+    newTab: {
+      en: 'opens in a new tab',
+      nl: 'opent in een nieuw tabblad',
+      de: 'öffnet in einem neuen Tab'
+    },
+    /** On an entry whose address the page will not turn into a link (it is shown as text and not followed). */
+    notLinked: {
+      en: 'Not opened from here',
+      nl: 'Niet hier te openen',
+      de: 'Von hier nicht zu öffnen'
+    }
+  },
   search: {
     /** Announced when a chat opened from a search hit has scrolled to the row with the words in it. */
     found: {
