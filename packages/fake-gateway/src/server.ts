@@ -58,6 +58,7 @@ import {
   wireOf
 } from './outbox'
 import { DiffError, headOldPath, headPath, parseDiff } from './diff-hunks'
+import { RICH_REPLY_DELTAS } from './rich-reply'
 import { acceptedMarkup, type ScenarioSources, sourcesOf, type WireSource } from './sources'
 import {
   anthropicAccountLines,
@@ -2043,6 +2044,13 @@ const TURN_STREAM_EVENTS: ReadonlySet<string> = new Set([
 
 const DEFAULT_SCENARIO: Scenario = {
   replies: [
+    {
+      // Everything a client draws in an answer (`rich-reply.ts`): links, callouts, cards, a chart, and the pages used.
+      match: 'rich answer',
+      deltas: RICH_REPLY_DELTAS,
+      text: RICH_REPLY_DELTAS.join(''),
+      sources: 'guide'
+    },
     {
       // The pages a reply used (`contract/sources/`): the contract's own example, a title that names another place than
       // its address, and a turn that read two pages and found six more.
