@@ -148,6 +148,12 @@ extension AttachmentIntake {
 
     let types = identifiers.compactMap { UTType($0) }
 
+    // A file of its own format first: a PDF, an archive, a document. The picture a sender adds next
+    // to it (a preview of the first page, its icon) is a rendering of the file, not the file.
+    if let content = types.first(where: { isFileContent($0) && !$0.conforms(to: .image) && !DroppedFileType.isCatchAll($0) }) {
+      return .representation(content)
+    }
+
     if let image = types.first(where: { $0.conforms(to: .image) }) {
       return .representation(image)
     }
@@ -290,6 +296,10 @@ extension AttachmentIntake {
   }
 
   /// The provider's own copy of its item, which is only there inside the callback: copied in it.
+  ///
+  /// What the item is comes from the file (`DroppedFileType`), not from the type it was asked for:
+  /// a sender that answers with a catch-all type and no name still gives its PDF a name and a
+  /// type that say PDF.
   private static func file(of provider: NSItemProvider, as type: UTType) async -> Staged {
     let suggested = provider.suggestedName
 
@@ -301,13 +311,18 @@ extension AttachmentIntake {
           return
         }
 
-        // Asked for as any item the type says nothing about the name: the copy's own is the best there is.
-        let name = type == .item ? url.lastPathComponent : named(suggested, as: type)
+        let head = (try? FileHandle(forReadingFrom: url)).flatMap { handle -> Data? in
+          defer { try? handle.close() }
+          return try? handle.read(upToCount: DroppedFileType.headLength)
+        }
+        let copyName = url.lastPathComponent
+        let resolved = DroppedFileType.resolve(declared: type, names: [suggested, copyName], head: head ?? Data())
+        let name = DroppedFileType.name(suggested: suggested, fileName: copyName, resolved: resolved)
 
         continuation.resume(
           returning: staged { () throws(StagingFailure) in
             try AttachmentStaging.stage(
-              copying: url, name: name, mimeType: type.preferredMIMEType ?? mimeType(forFileNamed: name))
+              copying: url, name: name, mimeType: resolved?.preferredMIMEType ?? mimeType(forFileNamed: name))
           })
       }
     }
