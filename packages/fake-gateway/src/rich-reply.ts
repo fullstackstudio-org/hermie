@@ -56,17 +56,33 @@ const CHART = JSON.stringify(
   2
 )
 
-export const RICH_REPLY_DELTAS: string[] = [
+/** The opening of the reply: links, a callout and the stack of cards. Reached alone with `rich cards`. */
+export const RICH_CARDS_DELTAS: string[] = [
   'Hier is het plan, met de [handleiding](https://example.org/guide/install) erbij. ',
   'Vragen? Mail naar [ons](mailto:hallo@example.org).\n\n',
   '> [!TIP]\n> Begin met de gateway; de rest volgt vanzelf.\n\n',
   '```hermie-cards\n',
   CARDS_STACK,
-  '\n```\n\n',
+  '\n```\n\n'
+]
+
+/** The grid of cards, and a listing 200 columns wide (a code block scrolls sideways). Reached with `rich grid`. */
+export const RICH_GRID_DELTAS: string[] = [
   'Als overzicht van de onderdelen:\n\n',
   '```hermie-cards\n',
   CARDS_GRID,
   '\n```\n\n',
+  'En een lange regel code:\n\n',
+  '```text\n',
+  `${'0123456789'.repeat(20)}\n`,
+  '```\n\n',
+  'Een lijst die lang genoeg is om te scrollen:\n\n',
+  '1. een\n2. twee\n3. drie\n4. vier\n5. vijf\n6. zes\n\n'
+]
+
+export const RICH_REPLY_DELTAS: string[] = [
+  ...RICH_CARDS_DELTAS,
+  ...RICH_GRID_DELTAS,
   '```hermie-chart\n',
   CHART,
   '\n```\n\n',

@@ -120,20 +120,28 @@ struct HermieCardsView: View {
   }
 }
 
+enum CardsMetrics {
+  /// The widest an icon tile gets, whatever the text size.
+  static let maxTile: CGFloat = 56
+}
+
 /// One card: an icon tile, the title, the subtitle and the tags.
 struct CardView: View {
   let card: HermieCard
   /// In a grid the card takes the height of its row, so the cards of a row are one height.
   var fillsRow = false
 
-  @ScaledMetric(relativeTo: .body) private var tile: CGFloat = 36
+  @ScaledMetric(relativeTo: .body) private var scaledTile: CGFloat = 36
   @ScaledMetric(relativeTo: .body) private var padding: CGFloat = 12
+
+  /// The icon tile follows the text size up to a point: at the largest sizes it would take half the card's width.
+  private var tile: CGFloat { min(scaledTile, CardsMetrics.maxTile) }
 
   var body: some View {
     HStack(alignment: .top, spacing: 12) {
       if let icon = card.icon {
         Image(systemName: HermieCardIcons.symbol(for: icon))
-          .font(.body.weight(.medium))
+          .font(.system(size: tile * 0.45, weight: .medium))
           .foregroundStyle(card.highlight ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
           .frame(width: tile, height: tile)
           .background(
@@ -189,9 +197,11 @@ struct CardsConnector: View {
   let kind: HermieCardsConnector
   let label: String?
 
-  @ScaledMetric(relativeTo: .body) private var tile: CGFloat = 36
+  @ScaledMetric(relativeTo: .body) private var scaledTile: CGFloat = 36
   @ScaledMetric(relativeTo: .body) private var padding: CGFloat = 12
   @ScaledMetric(relativeTo: .body) private var height: CGFloat = 28
+
+  private var tile: CGFloat { min(scaledTile, CardsMetrics.maxTile) }
 
   var body: some View {
     HStack(spacing: 8) {

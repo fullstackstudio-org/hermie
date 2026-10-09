@@ -1,3 +1,4 @@
+import HermieCore
 import HermieTranscript
 import SwiftUI
 
@@ -12,6 +13,9 @@ struct SourcesPill: View {
 
   @State private var isPresented = false
   @ScaledMetric(relativeTo: .subheadline) private var height: CGFloat = 32
+  #if DEBUG
+    @Environment(AppLaunch.self) private var launch: AppLaunch?
+  #endif
 
   var body: some View {
     Button {
@@ -32,6 +36,15 @@ struct SourcesPill: View {
     .accessibilityLabel(NativeStrings.Sources.pillAccessibility(sources.count))
     .accessibilityIdentifier("reply.sources")
     .sourcesPresentation(isPresented: $isPresented, sources: sources)
+    #if DEBUG
+      // `-HermieOpenSources YES`: a screenshot run opens the list without a finger.
+      .task {
+        if launch?.environment.testHooks?.openSources == true {
+          try? await Task.sleep(for: .seconds(1))
+          isPresented = true
+        }
+      }
+    #endif
   }
 }
 

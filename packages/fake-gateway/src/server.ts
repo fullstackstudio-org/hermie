@@ -58,7 +58,7 @@ import {
   wireOf
 } from './outbox'
 import { DiffError, headOldPath, headPath, parseDiff } from './diff-hunks'
-import { RICH_REPLY_DELTAS } from './rich-reply'
+import { RICH_CARDS_DELTAS, RICH_GRID_DELTAS, RICH_REPLY_DELTAS } from './rich-reply'
 import { acceptedMarkup, type ScenarioSources, sourcesOf, type WireSource } from './sources'
 import {
   anthropicAccountLines,
@@ -2044,6 +2044,16 @@ const TURN_STREAM_EVENTS: ReadonlySet<string> = new Set([
 
 const DEFAULT_SCENARIO: Scenario = {
   replies: [
+    {
+      match: 'rich cards',
+      deltas: RICH_CARDS_DELTAS,
+      text: RICH_CARDS_DELTAS.join('')
+    },
+    {
+      match: 'rich grid',
+      deltas: RICH_GRID_DELTAS,
+      text: RICH_GRID_DELTAS.join('')
+    },
     {
       // Everything a client draws in an answer (`rich-reply.ts`): links, callouts, cards, a chart, and the pages used.
       match: 'rich answer',

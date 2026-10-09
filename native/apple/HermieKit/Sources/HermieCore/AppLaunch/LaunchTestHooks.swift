@@ -41,6 +41,7 @@
      (and the caret with it), as typing it would
    - `-HermieSendPrompt 'text'` send that text in the chat `-HermieOpenChat` opens, as the send button would
    - `-HermieScrollUp YES` scroll the chat `-HermieOpenChat` opens to its oldest row once it has loaded
+   - `-HermieOpenSources YES` open the sources list under a reply that has sources, as a tap on its pill does
    */
   public struct LaunchTestHooks: Sendable {
     public var dataDirectory: URL
@@ -66,6 +67,8 @@
     public var sendPrompt: String?
     /// The opened chat scrolls to its oldest row (`-HermieScrollUp`).
     public var scrollUp: Bool
+    /// The sources list of a reply that has sources opens by itself (`-HermieOpenSources`).
+    public var openSources: Bool
     /// The fake iCloud Keychain this launch syncs with; the app's replica is `"local"`.
     public let cloud = FakeCloud(delivery: .immediate)
 
@@ -147,6 +150,7 @@
       composerDraft = values("-HermieComposerDraft").last
       sendPrompt = values("-HermieSendPrompt").last
       scrollUp = isOn("-HermieScrollUp")
+      openSources = isOn("-HermieOpenSources")
 
       // The replica exists before its availability is set (setting it on an unknown one does nothing).
       _ = cloud.replica("local")
