@@ -1,0 +1,2507 @@
+[
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://example.org/guide/install",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": {
+          "title": "Installing the gateway",
+          "url": "https://example.org/guide/install",
+          "via": "read"
+        }
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > keeps https://example.org/guide/install"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "title": "",
+            "url": "https://docs.example.com/a?b=c#d",
+            "via": "found"
+          }
+        ],
+        "op": "parseSource",
+        "result": {
+          "title": "",
+          "url": "https://docs.example.com/a?b=c#d",
+          "via": "found"
+        }
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > keeps https://docs.example.com/a?b=c#d"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "title": "Example Net",
+            "url": "http://example.net",
+            "via": "found"
+          }
+        ],
+        "op": "parseSource",
+        "result": {
+          "title": "Example Net",
+          "url": "http://example.net",
+          "via": "found"
+        }
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > keeps http://example.net"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "title": "An address with a port",
+            "url": "https://[2001:db8::1]:8443/page",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": {
+          "title": "An address with a port",
+          "url": "https://[2001:db8::1]:8443/page",
+          "via": "read"
+        }
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > keeps https://[2001:db8::1]:8443/page"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "title": "x",
+            "url": "ftp://example.org/file",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > drops: scheme is not http or https"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "title": "x",
+            "url": "javascript:alert(1)",
+            "via": "found"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > drops: javascript URL"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "title": "x",
+            "url": "https://user:secret@example.org/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > drops: user info in the URL"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "title": "x",
+            "url": "https:///path",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > drops: no host"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "title": "x",
+            "url": "https://example.org/a b",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > drops: whitespace in the URL"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "title": "x",
+            "url": "https://example.org/",
+            "via": "cited"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > drops: unknown via"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "url": "https://example.org/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > drops: title over 160 characters"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "url": "https://example.org/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > drops: missing title"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "favicon": "https://example.org/favicon.ico",
+            "title": "x",
+            "url": "https://example.org/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > drops: unknown key"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          null
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          "https://example.org/"
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          7
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          [
+            "https://example.org/"
+          ]
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          true
+        ],
+        "op": "parseSource",
+        "result": null
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > drops what is not an object at all"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "url": "https://example.org/guide/install",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": {
+          "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "url": "https://example.org/guide/install",
+          "via": "read"
+        }
+      },
+      {
+        "args": [
+          {
+            "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "url": "https://example.org/guide/install",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > reads a title at the cap and drops one a character over"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "title": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+            "url": "https://example.org/guide/install",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": {
+          "title": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+          "url": "https://example.org/guide/install",
+          "via": "read"
+        }
+      },
+      {
+        "args": [
+          {
+            "title": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+            "url": "https://example.org/guide/install",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > counts characters the way the schema does, not UTF-16 units"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://example.org/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": {
+          "title": "Installing the gateway",
+          "url": "https://example.org/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "via": "read"
+        }
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://example.org/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > reads an address at the cap and drops one over it"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "HTTPS://Example.org/Page",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": {
+          "title": "Installing the gateway",
+          "url": "HTTPS://Example.org/Page",
+          "via": "read"
+        }
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "data:text/html,<p>x</p>",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "//example.org/",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://example.org/\n",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > takes the scheme in either case, as the schema’s pattern does, and nothing else"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "title": 7,
+            "url": "https://example.org/guide/install",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": null,
+            "url": "https://example.org/guide/install",
+            "via": "read"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      },
+      {
+        "args": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://example.org/guide/install",
+            "via": "READ"
+          }
+        ],
+        "op": "parseSource",
+        "result": null
+      }
+    ],
+    "test": "parseSource, by the contract’s examples > does not coerce: a title that is not text is not an entry"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "title": "",
+              "url": "https://docs.example.com/a?b=c#d",
+              "via": "found"
+            },
+            {
+              "title": "Installing the gateway",
+              "url": "ftp://example.org/x",
+              "via": "read"
+            },
+            {
+              "title": "Installing the gateway",
+              "url": "https://example.org/guide/install",
+              "via": "read"
+            },
+            "nope",
+            null
+          ]
+        ],
+        "op": "parseSources",
+        "result": [
+          {
+            "title": "",
+            "url": "https://docs.example.com/a?b=c#d",
+            "via": "found"
+          },
+          {
+            "title": "Installing the gateway",
+            "url": "https://example.org/guide/install",
+            "via": "read"
+          }
+        ]
+      }
+    ],
+    "test": "parseSources > keeps the valid entries in order and drops the rest, without repairing them"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "title": "",
+              "url": "https://docs.example.com/a?b=c#d",
+              "via": "found"
+            },
+            {
+              "title": "Again",
+              "url": "https://docs.example.com/a?b=c#d",
+              "via": "read"
+            }
+          ]
+        ],
+        "op": "parseSources",
+        "result": [
+          {
+            "title": "",
+            "url": "https://docs.example.com/a?b=c#d",
+            "via": "found"
+          }
+        ]
+      }
+    ],
+    "test": "parseSources > keeps the first of an address that comes twice"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "title": "Page 0",
+              "url": "https://example.org/0",
+              "via": "found"
+            },
+            {
+              "title": "Page 1",
+              "url": "https://example.org/1",
+              "via": "found"
+            },
+            {
+              "title": "Page 2",
+              "url": "https://example.org/2",
+              "via": "found"
+            },
+            {
+              "title": "Page 3",
+              "url": "https://example.org/3",
+              "via": "found"
+            },
+            {
+              "title": "Page 4",
+              "url": "https://example.org/4",
+              "via": "found"
+            },
+            {
+              "title": "Page 5",
+              "url": "https://example.org/5",
+              "via": "found"
+            },
+            {
+              "title": "Page 6",
+              "url": "https://example.org/6",
+              "via": "found"
+            },
+            {
+              "title": "Page 7",
+              "url": "https://example.org/7",
+              "via": "found"
+            },
+            {
+              "title": "Page 8",
+              "url": "https://example.org/8",
+              "via": "found"
+            },
+            {
+              "title": "Page 9",
+              "url": "https://example.org/9",
+              "via": "found"
+            },
+            {
+              "title": "Page 10",
+              "url": "https://example.org/10",
+              "via": "found"
+            },
+            {
+              "title": "Page 11",
+              "url": "https://example.org/11",
+              "via": "found"
+            },
+            {
+              "title": "Page 12",
+              "url": "https://example.org/12",
+              "via": "found"
+            },
+            {
+              "title": "Page 13",
+              "url": "https://example.org/13",
+              "via": "found"
+            },
+            {
+              "title": "Page 14",
+              "url": "https://example.org/14",
+              "via": "found"
+            },
+            {
+              "title": "Page 15",
+              "url": "https://example.org/15",
+              "via": "found"
+            },
+            {
+              "title": "Page 16",
+              "url": "https://example.org/16",
+              "via": "found"
+            },
+            {
+              "title": "Page 17",
+              "url": "https://example.org/17",
+              "via": "found"
+            },
+            {
+              "title": "Page 18",
+              "url": "https://example.org/18",
+              "via": "found"
+            },
+            {
+              "title": "Page 19",
+              "url": "https://example.org/19",
+              "via": "found"
+            },
+            {
+              "title": "Page 20",
+              "url": "https://example.org/20",
+              "via": "found"
+            },
+            {
+              "title": "Page 21",
+              "url": "https://example.org/21",
+              "via": "found"
+            },
+            {
+              "title": "Page 22",
+              "url": "https://example.org/22",
+              "via": "found"
+            },
+            {
+              "title": "Page 23",
+              "url": "https://example.org/23",
+              "via": "found"
+            },
+            {
+              "title": "Page 24",
+              "url": "https://example.org/24",
+              "via": "found"
+            },
+            {
+              "title": "Page 25",
+              "url": "https://example.org/25",
+              "via": "found"
+            },
+            {
+              "title": "Page 26",
+              "url": "https://example.org/26",
+              "via": "found"
+            },
+            {
+              "title": "Page 27",
+              "url": "https://example.org/27",
+              "via": "found"
+            },
+            {
+              "title": "Page 28",
+              "url": "https://example.org/28",
+              "via": "found"
+            },
+            {
+              "title": "Page 29",
+              "url": "https://example.org/29",
+              "via": "found"
+            }
+          ]
+        ],
+        "op": "parseSources",
+        "result": [
+          {
+            "title": "Page 0",
+            "url": "https://example.org/0",
+            "via": "found"
+          },
+          {
+            "title": "Page 1",
+            "url": "https://example.org/1",
+            "via": "found"
+          },
+          {
+            "title": "Page 2",
+            "url": "https://example.org/2",
+            "via": "found"
+          },
+          {
+            "title": "Page 3",
+            "url": "https://example.org/3",
+            "via": "found"
+          },
+          {
+            "title": "Page 4",
+            "url": "https://example.org/4",
+            "via": "found"
+          },
+          {
+            "title": "Page 5",
+            "url": "https://example.org/5",
+            "via": "found"
+          },
+          {
+            "title": "Page 6",
+            "url": "https://example.org/6",
+            "via": "found"
+          },
+          {
+            "title": "Page 7",
+            "url": "https://example.org/7",
+            "via": "found"
+          },
+          {
+            "title": "Page 8",
+            "url": "https://example.org/8",
+            "via": "found"
+          },
+          {
+            "title": "Page 9",
+            "url": "https://example.org/9",
+            "via": "found"
+          },
+          {
+            "title": "Page 10",
+            "url": "https://example.org/10",
+            "via": "found"
+          },
+          {
+            "title": "Page 11",
+            "url": "https://example.org/11",
+            "via": "found"
+          },
+          {
+            "title": "Page 12",
+            "url": "https://example.org/12",
+            "via": "found"
+          },
+          {
+            "title": "Page 13",
+            "url": "https://example.org/13",
+            "via": "found"
+          },
+          {
+            "title": "Page 14",
+            "url": "https://example.org/14",
+            "via": "found"
+          },
+          {
+            "title": "Page 15",
+            "url": "https://example.org/15",
+            "via": "found"
+          },
+          {
+            "title": "Page 16",
+            "url": "https://example.org/16",
+            "via": "found"
+          },
+          {
+            "title": "Page 17",
+            "url": "https://example.org/17",
+            "via": "found"
+          },
+          {
+            "title": "Page 18",
+            "url": "https://example.org/18",
+            "via": "found"
+          },
+          {
+            "title": "Page 19",
+            "url": "https://example.org/19",
+            "via": "found"
+          },
+          {
+            "title": "Page 20",
+            "url": "https://example.org/20",
+            "via": "found"
+          },
+          {
+            "title": "Page 21",
+            "url": "https://example.org/21",
+            "via": "found"
+          },
+          {
+            "title": "Page 22",
+            "url": "https://example.org/22",
+            "via": "found"
+          },
+          {
+            "title": "Page 23",
+            "url": "https://example.org/23",
+            "via": "found"
+          }
+        ]
+      }
+    ],
+    "test": "parseSources > keeps at most 24, even when the gateway sent more"
+  },
+  {
+    "calls": [
+      {
+        "args": [],
+        "op": "parseSources",
+        "result": []
+      },
+      {
+        "args": [
+          null
+        ],
+        "op": "parseSources",
+        "result": []
+      },
+      {
+        "args": [
+          {}
+        ],
+        "op": "parseSources",
+        "result": []
+      },
+      {
+        "args": [
+          "a"
+        ],
+        "op": "parseSources",
+        "result": []
+      },
+      {
+        "args": [
+          3
+        ],
+        "op": "parseSources",
+        "result": []
+      },
+      {
+        "args": [
+          []
+        ],
+        "op": "parseSources",
+        "result": []
+      },
+      {
+        "args": [
+          {
+            "0": {
+              "title": "Installing the gateway",
+              "url": "https://example.org/guide/install",
+              "via": "read"
+            }
+          }
+        ],
+        "op": "parseSources",
+        "result": []
+      }
+    ],
+    "test": "parseSources > reads anything that is not a list as no sources"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          {
+            "sources": [
+              {
+                "title": "Installing the gateway",
+                "url": "https://example.org/guide/install",
+                "via": "read"
+              },
+              {
+                "title": "",
+                "url": "https://docs.example.com/a?b=c#d",
+                "via": "found"
+              }
+            ]
+          }
+        ],
+        "op": "sourcesOfMetadata",
+        "result": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://example.org/guide/install",
+            "via": "read"
+          },
+          {
+            "title": "",
+            "url": "https://docs.example.com/a?b=c#d",
+            "via": "found"
+          }
+        ]
+      },
+      {
+        "args": [
+          "{\"sources\":[{\"url\":\"https://example.org/guide/install\",\"title\":\"Installing the gateway\",\"via\":\"read\"},{\"url\":\"https://docs.example.com/a?b=c#d\",\"title\":\"\",\"via\":\"found\"}]}"
+        ],
+        "op": "sourcesOfMetadata",
+        "result": [
+          {
+            "title": "Installing the gateway",
+            "url": "https://example.org/guide/install",
+            "via": "read"
+          },
+          {
+            "title": "",
+            "url": "https://docs.example.com/a?b=c#d",
+            "via": "found"
+          }
+        ]
+      }
+    ],
+    "test": "sourcesOfMetadata > reads the list off an object or off the JSON text of one"
+  },
+  {
+    "calls": [
+      {
+        "args": [],
+        "op": "sourcesOfMetadata",
+        "result": []
+      },
+      {
+        "args": [
+          null
+        ],
+        "op": "sourcesOfMetadata",
+        "result": []
+      },
+      {
+        "args": [
+          "not json"
+        ],
+        "op": "sourcesOfMetadata",
+        "result": []
+      },
+      {
+        "args": [
+          "[]"
+        ],
+        "op": "sourcesOfMetadata",
+        "result": []
+      },
+      {
+        "args": [
+          [
+            {
+              "title": "Installing the gateway",
+              "url": "https://example.org/guide/install",
+              "via": "read"
+            }
+          ]
+        ],
+        "op": "sourcesOfMetadata",
+        "result": []
+      },
+      {
+        "args": [
+          {
+            "sources": "x"
+          }
+        ],
+        "op": "sourcesOfMetadata",
+        "result": []
+      },
+      {
+        "args": [
+          {
+            "other": [
+              {
+                "title": "Installing the gateway",
+                "url": "https://example.org/guide/install",
+                "via": "read"
+              }
+            ]
+          }
+        ],
+        "op": "sourcesOfMetadata",
+        "result": []
+      }
+    ],
+    "test": "sourcesOfMetadata > reads anything else as none"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "seq": 1,
+            "type": "message.start"
+          },
+          1700000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "f:1000": {
+              "id": "f:1000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 1000,
+              "text": "",
+              "ts": 1700000000,
+              "unknownAuthor": true,
+              "version": 0
+            }
+          },
+          "lastSeq": 1,
+          "order": [
+            "f:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "foreignReconcilePending": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 2000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "compacting": false,
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "f:1000": {
+                "id": "f:1000",
+                "kind": "user",
+                "origin": "foreign",
+                "seq": 1000,
+                "text": "",
+                "ts": 1700000000,
+                "unknownAuthor": true,
+                "version": 0
+              }
+            },
+            "lastSeq": 1,
+            "order": [
+              "f:1000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "foreignReconcilePending": true,
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 2000,
+              "startedAt": 1700000000000
+            },
+            "unreadCount": 0
+          },
+          {
+            "payload": {
+              "row_id": 812,
+              "sources": [
+                {
+                  "title": "Installing the gateway",
+                  "url": "https://example.org/guide/install",
+                  "via": "read"
+                },
+                {
+                  "title": "",
+                  "url": "https://docs.example.com/a?b=c#d",
+                  "via": "found"
+                }
+              ],
+              "status": "complete",
+              "text": "The gateway is installed with one command; see the guide."
+            },
+            "seq": 2,
+            "type": "message.complete"
+          },
+          1700000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "812": "a:2000"
+          },
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "a:2000": {
+              "durationS": 0,
+              "id": "a:2000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "live",
+              "rowId": 812,
+              "seq": 2000,
+              "sources": [
+                {
+                  "title": "Installing the gateway",
+                  "url": "https://example.org/guide/install",
+                  "via": "read"
+                },
+                {
+                  "title": "",
+                  "url": "https://docs.example.com/a?b=c#d",
+                  "via": "found"
+                }
+              ],
+              "status": "complete",
+              "streaming": false,
+              "text": "The gateway is installed with one command; see the guide.",
+              "ts": 1700000000,
+              "version": 1
+            },
+            "f:1000": {
+              "id": "f:1000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 1000,
+              "text": "",
+              "ts": 1700000000,
+              "unknownAuthor": true,
+              "version": 0
+            }
+          },
+          "lastSeq": 2,
+          "order": [
+            "f:1000",
+            "a:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "foreignReconcilePending": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 3000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a reply’s sources, live > puts the contract’s message.complete example on the reply"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "seq": 1,
+            "type": "message.start"
+          },
+          1700000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "f:1000": {
+              "id": "f:1000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 1000,
+              "text": "",
+              "ts": 1700000000,
+              "unknownAuthor": true,
+              "version": 0
+            }
+          },
+          "lastSeq": 1,
+          "order": [
+            "f:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "foreignReconcilePending": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 2000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "compacting": false,
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "f:1000": {
+                "id": "f:1000",
+                "kind": "user",
+                "origin": "foreign",
+                "seq": 1000,
+                "text": "",
+                "ts": 1700000000,
+                "unknownAuthor": true,
+                "version": 0
+              }
+            },
+            "lastSeq": 1,
+            "order": [
+              "f:1000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "foreignReconcilePending": true,
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 2000,
+              "startedAt": 1700000000000
+            },
+            "unreadCount": 0
+          },
+          {
+            "payload": {
+              "text": "plain"
+            },
+            "seq": 2,
+            "type": "message.complete"
+          },
+          1700000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "a:2000": {
+              "durationS": 0,
+              "id": "a:2000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "live",
+              "seq": 2000,
+              "status": "complete",
+              "streaming": false,
+              "text": "plain",
+              "ts": 1700000000,
+              "version": 1
+            },
+            "f:1000": {
+              "id": "f:1000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 1000,
+              "text": "",
+              "ts": 1700000000,
+              "unknownAuthor": true,
+              "version": 0
+            }
+          },
+          "lastSeq": 2,
+          "order": [
+            "f:1000",
+            "a:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "foreignReconcilePending": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 3000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "seq": 1,
+            "type": "message.start"
+          },
+          1700000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "f:1000": {
+              "id": "f:1000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 1000,
+              "text": "",
+              "ts": 1700000000,
+              "unknownAuthor": true,
+              "version": 0
+            }
+          },
+          "lastSeq": 1,
+          "order": [
+            "f:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "foreignReconcilePending": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 2000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "compacting": false,
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "f:1000": {
+                "id": "f:1000",
+                "kind": "user",
+                "origin": "foreign",
+                "seq": 1000,
+                "text": "",
+                "ts": 1700000000,
+                "unknownAuthor": true,
+                "version": 0
+              }
+            },
+            "lastSeq": 1,
+            "order": [
+              "f:1000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "foreignReconcilePending": true,
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 2000,
+              "startedAt": 1700000000000
+            },
+            "unreadCount": 0
+          },
+          {
+            "payload": {
+              "sources": [
+                {
+                  "title": "x",
+                  "url": "javascript:alert(1)",
+                  "via": "read"
+                }
+              ],
+              "text": "plain"
+            },
+            "seq": 2,
+            "type": "message.complete"
+          },
+          1700000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "a:2000": {
+              "durationS": 0,
+              "id": "a:2000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "live",
+              "seq": 2000,
+              "status": "complete",
+              "streaming": false,
+              "text": "plain",
+              "ts": 1700000000,
+              "version": 1
+            },
+            "f:1000": {
+              "id": "f:1000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 1000,
+              "text": "",
+              "ts": 1700000000,
+              "unknownAuthor": true,
+              "version": 0
+            }
+          },
+          "lastSeq": 2,
+          "order": [
+            "f:1000",
+            "a:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "foreignReconcilePending": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 3000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a reply’s sources, live > leaves the key off a reply with none, and off one whose list held nothing valid"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "seq": 1,
+            "type": "message.start"
+          },
+          1700000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "f:1000": {
+              "id": "f:1000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 1000,
+              "text": "",
+              "ts": 1700000000,
+              "unknownAuthor": true,
+              "version": 0
+            }
+          },
+          "lastSeq": 1,
+          "order": [
+            "f:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "foreignReconcilePending": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 2000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "compacting": false,
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "f:1000": {
+                "id": "f:1000",
+                "kind": "user",
+                "origin": "foreign",
+                "seq": 1000,
+                "text": "",
+                "ts": 1700000000,
+                "unknownAuthor": true,
+                "version": 0
+              }
+            },
+            "lastSeq": 1,
+            "order": [
+              "f:1000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "foreignReconcilePending": true,
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 2000,
+              "startedAt": 1700000000000
+            },
+            "unreadCount": 0
+          },
+          {
+            "payload": {
+              "future_key": {
+                "a": 1
+              },
+              "other": [
+                1,
+                2
+              ],
+              "sources": [
+                {
+                  "title": "Installing the gateway",
+                  "url": "https://example.org/guide/install",
+                  "via": "read"
+                }
+              ],
+              "text": "plain"
+            },
+            "seq": 2,
+            "type": "message.complete"
+          },
+          1700000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "a:2000": {
+              "durationS": 0,
+              "id": "a:2000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "live",
+              "seq": 2000,
+              "sources": [
+                {
+                  "title": "Installing the gateway",
+                  "url": "https://example.org/guide/install",
+                  "via": "read"
+                }
+              ],
+              "status": "complete",
+              "streaming": false,
+              "text": "plain",
+              "ts": 1700000000,
+              "version": 1
+            },
+            "f:1000": {
+              "id": "f:1000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 1000,
+              "text": "",
+              "ts": 1700000000,
+              "unknownAuthor": true,
+              "version": 0
+            }
+          },
+          "lastSeq": 2,
+          "order": [
+            "f:1000",
+            "a:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "foreignReconcilePending": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 3000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a reply’s sources, live > still reads a frame with keys it does not know"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "sources": [
+                  {
+                    "title": "Installing the gateway",
+                    "url": "https://example.org/guide/install",
+                    "via": "read"
+                  },
+                  {
+                    "title": "",
+                    "url": "https://docs.example.com/a?b=c#d",
+                    "via": "found"
+                  }
+                ]
+              },
+              "role": "assistant",
+              "row_id": 812,
+              "text": "The gateway is installed with one command; see the guide."
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:812",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 812,
+            "seq": 0,
+            "sources": [
+              {
+                "title": "Installing the gateway",
+                "url": "https://example.org/guide/install",
+                "via": "read"
+              },
+              {
+                "title": "",
+                "url": "https://docs.example.com/a?b=c#d",
+                "via": "found"
+              }
+            ],
+            "status": "complete",
+            "streaming": false,
+            "text": "The gateway is installed with one command; see the guide.",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          [
+            {
+              "display_metadata": "{\"sources\":[{\"url\":\"https://example.org/guide/install\",\"title\":\"Installing the gateway\",\"via\":\"read\"},{\"url\":\"https://docs.example.com/a?b=c#d\",\"title\":\"\",\"via\":\"found\"}]}",
+              "role": "assistant",
+              "row_id": 812,
+              "text": "The gateway is installed with one command; see the guide."
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:812",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 812,
+            "seq": 0,
+            "sources": [
+              {
+                "title": "Installing the gateway",
+                "url": "https://example.org/guide/install",
+                "via": "read"
+              },
+              {
+                "title": "",
+                "url": "https://docs.example.com/a?b=c#d",
+                "via": "found"
+              }
+            ],
+            "status": "complete",
+            "streaming": false,
+            "text": "The gateway is installed with one command; see the guide.",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "a reply’s sources, after a reload > reads them off the row’s display_metadata, as an object or as JSON text"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "content": "The gateway is installed with one command; see the guide.",
+              "display_metadata": {
+                "sources": [
+                  {
+                    "title": "Installing the gateway",
+                    "url": "https://example.org/guide/install",
+                    "via": "read"
+                  },
+                  {
+                    "title": "",
+                    "url": "https://docs.example.com/a?b=c#d",
+                    "via": "found"
+                  }
+                ]
+              },
+              "id": 812,
+              "role": "assistant"
+            }
+          ],
+          "rest"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:812",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 812,
+            "seq": 0,
+            "sources": [
+              {
+                "title": "Installing the gateway",
+                "url": "https://example.org/guide/install",
+                "via": "read"
+              },
+              {
+                "title": "",
+                "url": "https://docs.example.com/a?b=c#d",
+                "via": "found"
+              }
+            ],
+            "status": "complete",
+            "streaming": false,
+            "text": "The gateway is installed with one command; see the guide.",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "a reply’s sources, after a reload > reads them off a row of the other transport too"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          [
+            {
+              "display_metadata": {
+                "turn_id": "t-1"
+              },
+              "role": "assistant",
+              "row_id": 812,
+              "text": "The gateway is installed with one command; see the guide."
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:812",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 812,
+            "seq": 0,
+            "status": "complete",
+            "streaming": false,
+            "text": "The gateway is installed with one command; see the guide.",
+            "version": 0
+          }
+        ]
+      }
+    ],
+    "test": "a reply’s sources, after a reload > leaves the key off a row with none"
+  },
+  {
+    "calls": [
+      {
+        "args": [
+          "researcher",
+          "stored-1",
+          "resolved-1"
+        ],
+        "op": "createChatState",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "draft": "",
+          "hydration": "cold",
+          "items": {},
+          "lastSeq": 0,
+          "order": [],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "local": false,
+            "nextSeq": 1000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "draft": "",
+            "hydration": "cold",
+            "items": {},
+            "lastSeq": 0,
+            "order": [],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "local": false,
+              "nextSeq": 1000
+            },
+            "unreadCount": 0
+          },
+          {
+            "seq": 1,
+            "type": "message.start"
+          },
+          1700000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "f:1000": {
+              "id": "f:1000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 1000,
+              "text": "",
+              "ts": 1700000000,
+              "unknownAuthor": true,
+              "version": 0
+            }
+          },
+          "lastSeq": 1,
+          "order": [
+            "f:1000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": true,
+            "foreignReconcilePending": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 2000,
+            "startedAt": 1700000000000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "compacting": false,
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "f:1000": {
+                "id": "f:1000",
+                "kind": "user",
+                "origin": "foreign",
+                "seq": 1000,
+                "text": "",
+                "ts": 1700000000,
+                "unknownAuthor": true,
+                "version": 0
+              }
+            },
+            "lastSeq": 1,
+            "order": [
+              "f:1000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": true,
+              "foreignReconcilePending": true,
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 2000,
+              "startedAt": 1700000000000
+            },
+            "unreadCount": 0
+          },
+          {
+            "payload": {
+              "sources": [
+                {
+                  "title": "Installing the gateway",
+                  "url": "https://example.org/guide/install",
+                  "via": "read"
+                }
+              ],
+              "text": "plain"
+            },
+            "seq": 2,
+            "type": "message.complete"
+          },
+          1700000000000
+        ],
+        "op": "applyEvent",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {},
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "cold",
+          "items": {
+            "a:2000": {
+              "durationS": 0,
+              "id": "a:2000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "live",
+              "seq": 2000,
+              "sources": [
+                {
+                  "title": "Installing the gateway",
+                  "url": "https://example.org/guide/install",
+                  "via": "read"
+                }
+              ],
+              "status": "complete",
+              "streaming": false,
+              "text": "plain",
+              "ts": 1700000000,
+              "version": 1
+            },
+            "f:1000": {
+              "id": "f:1000",
+              "kind": "user",
+              "origin": "foreign",
+              "seq": 1000,
+              "text": "",
+              "ts": 1700000000,
+              "unknownAuthor": true,
+              "version": 0
+            }
+          },
+          "lastSeq": 2,
+          "order": [
+            "f:1000",
+            "a:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "foreignReconcilePending": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 3000
+          },
+          "unreadCount": 0
+        }
+      },
+      {
+        "args": [
+          [
+            {
+              "role": "assistant",
+              "row_id": 5,
+              "text": "plain"
+            }
+          ],
+          "rpc"
+        ],
+        "op": "rowsToItems",
+        "result": [
+          {
+            "id": "r:5",
+            "interim": false,
+            "kind": "assistant",
+            "origin": "history",
+            "rowId": 5,
+            "seq": 0,
+            "status": "complete",
+            "streaming": false,
+            "text": "plain",
+            "version": 0
+          }
+        ]
+      },
+      {
+        "args": [
+          {
+            "botName": "researcher",
+            "byApprovalId": {},
+            "byCallKey": {},
+            "byDelegationId": {},
+            "byProcessId": {},
+            "byRequestId": {},
+            "byRowId": {},
+            "byToolId": {},
+            "compacting": false,
+            "draft": "",
+            "hydration": "cold",
+            "items": {
+              "a:2000": {
+                "durationS": 0,
+                "id": "a:2000",
+                "interim": false,
+                "kind": "assistant",
+                "origin": "live",
+                "seq": 2000,
+                "sources": [
+                  {
+                    "title": "Installing the gateway",
+                    "url": "https://example.org/guide/install",
+                    "via": "read"
+                  }
+                ],
+                "status": "complete",
+                "streaming": false,
+                "text": "plain",
+                "ts": 1700000000,
+                "version": 1
+              },
+              "f:1000": {
+                "id": "f:1000",
+                "kind": "user",
+                "origin": "foreign",
+                "seq": 1000,
+                "text": "",
+                "ts": 1700000000,
+                "unknownAuthor": true,
+                "version": 0
+              }
+            },
+            "lastSeq": 2,
+            "order": [
+              "f:1000",
+              "a:2000"
+            ],
+            "resolvedSessionId": "resolved-1",
+            "storedSessionId": "stored-1",
+            "subagents": {},
+            "turn": {
+              "active": false,
+              "foreignReconcilePending": true,
+              "interrupted": false,
+              "local": false,
+              "nextSeq": 3000
+            },
+            "unreadCount": 0
+          },
+          [
+            {
+              "id": "r:5",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 5,
+              "seq": 0,
+              "status": "complete",
+              "streaming": false,
+              "text": "plain",
+              "version": 0
+            }
+          ]
+        ],
+        "op": "reconcile",
+        "result": {
+          "botName": "researcher",
+          "byApprovalId": {},
+          "byCallKey": {},
+          "byDelegationId": {},
+          "byProcessId": {},
+          "byRequestId": {},
+          "byRowId": {
+            "5": "a:2000"
+          },
+          "byToolId": {},
+          "compacting": false,
+          "draft": "",
+          "hydration": "live",
+          "items": {
+            "a:2000": {
+              "durationS": 0,
+              "id": "a:2000",
+              "interim": false,
+              "kind": "assistant",
+              "origin": "history",
+              "rowId": 5,
+              "seq": 0,
+              "sources": [
+                {
+                  "title": "Installing the gateway",
+                  "url": "https://example.org/guide/install",
+                  "via": "read"
+                }
+              ],
+              "status": "complete",
+              "streaming": false,
+              "text": "plain",
+              "version": 2
+            }
+          },
+          "lastSeq": 2,
+          "order": [
+            "a:2000"
+          ],
+          "resolvedSessionId": "resolved-1",
+          "storedSessionId": "stored-1",
+          "subagents": {},
+          "turn": {
+            "active": false,
+            "foreignReconcilePending": true,
+            "interrupted": false,
+            "local": false,
+            "nextSeq": 3000
+          },
+          "unreadCount": 0
+        }
+      }
+    ],
+    "test": "a reply’s sources, after a reload > keeps the live reply’s sources when the history that arrives has none"
+  }
+]

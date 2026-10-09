@@ -16,6 +16,7 @@ import { callKeyOf, promptRowsOf, rowIdOf, turnIdOfMetadata } from './identity'
 import { type InjectedRow, isInjectedNotice } from './injected'
 import type { InlineImage } from './inline-images'
 import { parseOutboxAttachments } from './outbox'
+import { parseSources } from './sources'
 import {
   attachmentsMatchKey,
   classifyUserRow,
@@ -1443,6 +1444,8 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
       const finalText = str(payload.text) || str(payload.rendered)
       // The files this reply shares (`contract/outbox/`): absent or empty when it named none.
       const shared = parseOutboxAttachments(payload.attachments)
+      // The pages this reply used (`contract/sources/`): absent when the turn used no web tool.
+      const sources = parseSources(payload.sources)
       const wasInterrupted = next.turn.interrupted === true
       const rawStatus = str(payload.status)
       const status: AssistantItem['status'] =
@@ -1501,6 +1504,10 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
             draft.outbox = shared
           }
 
+          if (sources.length) {
+            draft.sources = sources
+          }
+
           if (failure) {
             draft.error = failure
           }
@@ -1537,6 +1544,10 @@ export function applyEvent(state: ChatState, event: TranscriptEvent, now: number
 
             if (shared.length) {
               draft.outbox = shared
+            }
+
+            if (sources.length) {
+              draft.sources = sources
             }
 
             if (failure) {

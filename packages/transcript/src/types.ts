@@ -12,6 +12,7 @@
 import type { CronDeliveryShape } from './cron-delivery'
 import type { InlineImage } from './inline-images'
 import type { OutboxAttachment } from './outbox'
+import type { Source } from './sources'
 import type { ErrorSurface, SessionLiveInfo, Usage } from '@hermes/shared/gateway-events'
 
 /** Client-side verbosity filter. Purely a read-time concern. */
@@ -173,6 +174,11 @@ export interface AssistantItem extends ItemBase {
    * absent when it shared none. Fetched from each one's `url`, never named by a path.
    */
   outbox?: OutboxAttachment[]
+  /**
+   * The pages this reply used (`contract/sources/`): validated by `parseSources`, absent when the turn used no web
+   * tool. Shown as a list the person opens; nothing is ever fetched for an entry.
+   */
+  sources?: Source[]
 }
 
 export type ToolStatus = 'generating' | 'running' | 'complete' | 'error' | 'unknown'

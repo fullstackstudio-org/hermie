@@ -58,6 +58,7 @@ import {
   wireOf
 } from './outbox'
 import { DiffError, headOldPath, headPath, parseDiff } from './diff-hunks'
+import { acceptedMarkup, type ScenarioSources, sourcesOf, type WireSource } from './sources'
 import {
   anthropicAccountLines,
   daysRefusal,
@@ -261,6 +262,12 @@ export interface ScenarioReply {
    * and the REST transcript show them there) and served by `GET /api/files/outbox/{id}/{name}`.
    */
   attachments?: ScenarioAttachment[]
+  /**
+   * The pages this reply used (`contract/sources/`): a sample (`'guide'`, see `sources.ts`) or the entries. They are
+   * sent as `sources` on `message.complete` and written on the reply's row as `display_metadata.sources`, so a reload
+   * (`session.history`, `session.resume`, the REST transcript) shows the same list. Absent: no key, never `[]`.
+   */
+  sources?: ScenarioSources
 }
 
 export interface Scenario {
@@ -272,6 +279,15 @@ export interface FakeGatewayOptions {
   host?: string
   auth?: FakeAuthMode
   token?: string
+  /**
+   * Whether this gateway knows the `markup` key of `client.capabilities` (`tui_gateway/client_markup.py`).
+   *
+   * Default true: every result carries `markup` (the names accepted from this connection, sorted, `[]` when none),
+   * the way the real gateway answers once it knows the key. `false` stages a gateway older than the key: no result
+   * carries it, and a call that sends it is refused with 4000 and the whole call (`confirm` levels included),
+   * which is why a client sends the key only after a result that carried it.
+   */
+  markup?: boolean
   /** Close code used when a WebSocket upgrade fails auth (default 4401). */
   closeCode?: number
   /**
@@ -1129,6 +1145,8 @@ export interface FakeGatewayState {
     confirm_passkey?: unknown
     /** The interactive methods (`input.form`, ...) the gateway accepted; present only when the call carried `requests`. */
     requests?: string[]
+    /** The Hermie blocks the gateway accepted from this call's `markup`; present only when the call carried the key. */
+    markup?: string[]
   }[]
   /** Every JSON-RPC method the server handled, in order. */
   methodLog: string[]
@@ -2025,6 +2043,26 @@ const TURN_STREAM_EVENTS: ReadonlySet<string> = new Set([
 
 const DEFAULT_SCENARIO: Scenario = {
   replies: [
+    {
+      // The pages a reply used (`contract/sources/`): the contract's own example, a title that names another place than
+      // its address, and a turn that read two pages and found six more.
+      match: 'show sources',
+      deltas: ['The gateway is installed with one command; ', 'see the guide.'],
+      text: 'The gateway is installed with one command; see the guide.',
+      sources: 'guide'
+    },
+    {
+      match: 'show misleading sources',
+      deltas: ['I checked your bank, ', 'and the news.'],
+      text: 'I checked your bank, and the news.',
+      sources: 'misleading'
+    },
+    {
+      match: 'show many sources',
+      deltas: ['I read two pages ', 'and found six more.'],
+      text: 'I read two pages and found six more.',
+      sources: 'search'
+    },
     {
       // Files a bot shares with its reply (`contract/outbox/`): two pictures, a clip, a sound, a PDF and two files
       // that are only ever downloaded. The note is what the gateway adds when a file could not be shared.
@@ -3570,6 +3608,8 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
    * does not count). The gated path keeps its own record (`ConfirmGate.showsFields`); this is the permissive one.
    */
   const confirmFields = new Set<WebSocket>()
+  /** The Hermie blocks (`markup`) each live socket's last `client.capabilities` call listed and this gateway accepted. */
+  const markupBySocket = new Map<WebSocket, string[]>()
   const pendingServerRequests = new Map<string, { resolve: (value: unknown) => void; reject: (error: Error) => void }>()
   const timers = new Set<ReturnType<typeof setTimeout>>()
   let serverRequestSequence = 0
@@ -7849,6 +7889,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       sockets.delete(socket)
       confirmLevels.delete(socket)
       confirmFields.delete(socket)
+      markupBySocket.delete(socket)
       socketIdentities.delete(socket)
       confirmGate?.forgetPeer(socket)
     })
@@ -8259,6 +8300,13 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
           with an RP it accepts), and `confirm_passkey` says how the level looks
           from here. Nothing else changes.
         */
+        // A gateway older than the `markup` key refuses it, and the whole call with it.
+        if (options.markup === false && 'markup' in params) {
+          throw new RpcFault(4000, 'Unknown parameter: markup', { reason: 'INVALID_PARAMS' })
+        }
+
+        // `markup` echoes the blocks accepted from this connection, `[]` when none, in every result once the key is known.
+        const markupEcho = options.markup === false ? {} : { markup: caller ? (markupBySocket.get(caller) ?? []) : [] }
         // `requests` echoes what the gateway accepted, `[]` when none, and only when the call carried the key.
         const requestsEcho = Array.isArray(params.requests)
           ? { requests: caller ? interactive.advertise(caller, params) : [] }
@@ -8289,7 +8337,8 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
             confirm_passkey: passkey.capability(socketIdentities.has(caller)),
             // Always present once the gateway knows structured fields: true only once it accepted this connection's.
             confirm_fields: confirmGate.showsFields(caller),
-            ...requestsEcho
+            ...requestsEcho,
+            ...markupEcho
           }
         }
 
@@ -8316,7 +8365,8 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
           ],
           ...(offered ? { confirm: levels } : {}),
           confirm_fields: caller ? confirmFields.has(caller) : false,
-          ...requestsEcho
+          ...requestsEcho,
+          ...markupEcho
         }
       }
 
@@ -11060,6 +11110,8 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       const shared: WireAttachment[] = (reply.attachments ?? []).map(entry =>
         wireOf(storeFile(state.outboxFiles, session.profile, sampleOf(entry), nowSeconds()))
       )
+      // The pages the reply used (`contract/sources/`): on the frame and, as `display_metadata.sources`, on the row.
+      const used: WireSource[] = reply.sources ? sourcesOf(reply.sources) : []
 
       if (finalRowId !== undefined) {
         session.messages.push({
@@ -11067,7 +11119,8 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
           text,
           row_id: finalRowId,
           timestamp: nowSeconds(),
-          ...(reply.attachments ? { attachments: shared } : {})
+          ...(reply.attachments ? { attachments: shared } : {}),
+          ...(used.length ? { display_metadata: { sources: used } } : {})
         })
       }
 
@@ -11084,6 +11137,7 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
         text,
         status: 'ok',
         ...(reply.attachments ? { attachments: shared } : {}),
+        ...(used.length ? { sources: used } : {}),
         // The context fields too, as `_get_usage` writes them: a client that takes the finished turn's usage as the
         // session's reading would otherwise lose the window it was showing, and show a stale one until it asked again.
         usage: { input: 12, output: 34, total: 46, ...contextFieldsOf(sessionUsage(session)) },
@@ -11630,8 +11684,18 @@ export async function startFakeGateway(options: FakeGatewayOptions = {}): Promis
       confirm: levels,
       ...(params.confirm_passkey === undefined ? {} : { confirm_passkey: params.confirm_passkey }),
       ...(params.confirm_fields === undefined ? {} : { confirm_fields: params.confirm_fields }),
-      ...(Array.isArray(params.requests) ? { requests } : {})
+      ...(Array.isArray(params.requests) ? { requests } : {}),
+      ...(options.markup !== false && 'markup' in params ? { markup: acceptedMarkup(params.markup) } : {})
     })
+
+    // Each call replaces what the connection said before; a call without the key clears it.
+    const markup = options.markup === false ? [] : acceptedMarkup(params.markup)
+
+    if (markup.length) {
+      markupBySocket.set(socket, markup)
+    } else {
+      markupBySocket.delete(socket)
+    }
 
     if (levels.length) {
       confirmLevels.set(socket, levels)

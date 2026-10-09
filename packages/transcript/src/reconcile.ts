@@ -295,6 +295,7 @@ function mergeWithLive(fresh: TranscriptItem, current: TranscriptItem): Transcri
     carried.durationS = carried.durationS ?? current.durationS
     carried.usage = carried.usage ?? current.usage
     carried.outbox = carried.outbox ?? current.outbox
+    carried.sources = carried.sources ?? current.sources
     // A failed turn is not persisted as a failure; keep the local verdict.
     carried.error = carried.error ?? current.error
     carried.status = current.error ? (current.status ?? carried.status) : carried.status

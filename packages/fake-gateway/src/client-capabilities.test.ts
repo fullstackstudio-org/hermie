@@ -93,7 +93,8 @@ describe('client.capabilities', () => {
 
     expect(await call('client.capabilities', { server_requests: true })).toEqual({
       server_requests: KINDS,
-      confirm_fields: false
+      confirm_fields: false,
+      markup: []
     })
   })
 
@@ -103,7 +104,8 @@ describe('client.capabilities', () => {
     expect(await call('client.capabilities', { server_requests: true, confirm: ['plain'] })).toEqual({
       server_requests: [...KINDS, 'confirm'],
       confirm: ['plain'],
-      confirm_fields: false
+      confirm_fields: false,
+      markup: []
     })
   })
 
@@ -113,7 +115,8 @@ describe('client.capabilities', () => {
     expect(await call('client.capabilities', { server_requests: true, confirm: [] })).toEqual({
       server_requests: KINDS,
       confirm: [],
-      confirm_fields: false
+      confirm_fields: false,
+      markup: []
     })
   })
 
@@ -157,7 +160,12 @@ describe('client.capabilities', () => {
     expect(await call('client.capabilities', { server_requests: true })).not.toHaveProperty('requests')
     expect(
       await call('client.capabilities', { server_requests: true, requests: ['review.draft', 'input.form', 'nope', 7] })
-    ).toEqual({ server_requests: KINDS, confirm_fields: false, requests: ['input.form', 'review.draft'] })
+    ).toEqual({
+      server_requests: KINDS,
+      confirm_fields: false,
+      requests: ['input.form', 'review.draft'],
+      markup: []
+    })
     expect(gateway.state.clientCapabilities).toEqual([
       { server_requests: true, confirm: [] },
       { server_requests: true, confirm: [], requests: ['input.form', 'review.draft'] }
@@ -170,12 +178,14 @@ describe('client.capabilities', () => {
     expect(await call('client.capabilities', { requests: INTERACTIVE })).toEqual({
       server_requests: KINDS,
       confirm_fields: false,
-      requests: []
+      requests: [],
+      markup: []
     })
     expect(await call('client.capabilities', { server_requests: true, requests: [] })).toEqual({
       server_requests: KINDS,
       confirm_fields: false,
-      requests: []
+      requests: [],
+      markup: []
     })
     expect(gateway.state.clientCapabilities.map(entry => entry.requests)).toEqual([[], []])
   })
@@ -199,5 +209,78 @@ describe('client.capabilities', () => {
     await call('client.capabilities', { server_requests: true })
 
     expect(gateway.state.methodLog).toContain('client.capabilities')
+  })
+})
+
+describe('client.capabilities, markup', () => {
+  const ALL = ['alerts', 'cards', 'chart']
+
+  it('echoes `[]` in every result once the gateway knows the key, so a client may send it in a second call', async () => {
+    const { call } = await connect()
+
+    expect(await call('client.capabilities', { server_requests: true })).toHaveProperty('markup', [])
+  })
+
+  it('echoes the block names it accepted, sorted, and records them as the client sent them', async () => {
+    const { gateway, call } = await connect()
+
+    expect(
+      await call('client.capabilities', { server_requests: true, markup: ['chart', 'cards', 'alerts'] })
+    ).toMatchObject({
+      markup: ALL
+    })
+    expect(gateway.state.clientCapabilities).toEqual([{ server_requests: true, confirm: [], markup: ALL }])
+  })
+
+  it('drops a well-formed name it has no guide for, silently', async () => {
+    const { call } = await connect()
+
+    expect(await call('client.capabilities', { server_requests: true, markup: ['chart', 'timeline'] })).toMatchObject({
+      markup: ['chart']
+    })
+  })
+
+  it('counts a malformed list as none and never fails the call', async () => {
+    const { call } = await connect()
+    const tooMany = Array.from({ length: 17 }, () => 'chart')
+
+    for (const markup of ['chart', { chart: true }, ['Chart'], ['chart', 7], [`${'a'.repeat(33)}`], tooMany, null]) {
+      expect(await call('client.capabilities', { server_requests: true, markup })).toMatchObject({ markup: [] })
+    }
+  })
+
+  it('does not need `server_requests`: the key is independent of it', async () => {
+    const { call } = await connect()
+
+    expect(await call('client.capabilities', { markup: ['cards'] })).toMatchObject({ markup: ['cards'] })
+  })
+
+  it('replaces what the connection said before, and a call without the key clears it', async () => {
+    const { call } = await connect()
+
+    await call('client.capabilities', { server_requests: true, markup: ALL })
+
+    expect(await call('client.capabilities', { server_requests: true, markup: ['alerts'] })).toMatchObject({
+      markup: ['alerts']
+    })
+    expect(await call('client.capabilities', { server_requests: true })).toMatchObject({ markup: [] })
+  })
+
+  it('keeps each connection’s own list', async () => {
+    const first = await connect()
+    const second = await connect()
+
+    await first.call('client.capabilities', { server_requests: true, markup: ALL })
+
+    expect(await second.call('client.capabilities', { server_requests: true })).toMatchObject({ markup: [] })
+  })
+
+  it('stages a gateway older than the key: no `markup` in any result, and 4000 for a call that sends it', async () => {
+    const { gateway, call } = await connect({ markup: false })
+
+    expect(await call('client.capabilities', { server_requests: true })).not.toHaveProperty('markup')
+    expect(await call('client.capabilities', { server_requests: true, markup: ALL })).toEqual({})
+    // The refused call changed nothing: it is recorded as the client sent it, without an echo.
+    expect(gateway.state.clientCapabilities.at(-1)).not.toHaveProperty('markup')
   })
 })

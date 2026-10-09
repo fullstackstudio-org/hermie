@@ -1610,6 +1610,7 @@
         "jsonrpc": "2.0",
         "result": {
           "confirm_fields": false,
+          "markup": [],
           "server_requests": [
             "approval",
             "clarify",
@@ -1641,6 +1642,7 @@
             "plain"
           ],
           "confirm_fields": false,
+          "markup": [],
           "requests": [
             "input.form",
             "input.file",

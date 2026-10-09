@@ -24,6 +24,7 @@ import { authorViaOf } from './author'
 import { callKeyOf, turnIdOfMetadata } from './identity'
 import { type InlineImage, scanInlineImages } from './inline-images'
 import { parseOutboxAttachments } from './outbox'
+import { sourcesOfMetadata } from './sources'
 import { type InjectedRow, parseInjectedRow, stripSteerWrapper, unwrapSystemNote } from './injected'
 import {
   type AssistantItem,
@@ -531,6 +532,8 @@ export function rowsToItems(rows: readonly TranscriptRow[], shape: RowShape, opt
       const text = scan.text
       // The files the bot shared with this reply (`contract/outbox/`), beside its text.
       const shared = parseOutboxAttachments(row.attachments)
+      // The pages it used (`contract/sources/`), on the row's `display_metadata`.
+      const sources = sourcesOfMetadata(row.display_metadata)
 
       if (!text && !reasoning && !scan.images.length && !scan.references.length && !shared.length) {
         return
@@ -543,6 +546,7 @@ export function rowsToItems(rows: readonly TranscriptRow[], shape: RowShape, opt
         ...(scan.images.length ? { inlineImages: scan.images } : {}),
         ...(scan.references.length ? { attachments: scan.references } : {}),
         ...(shared.length ? { outbox: shared } : {}),
+        ...(sources.length ? { sources } : {}),
         ...(reasoning ? { reasoning } : {}),
         streaming: false,
         interim: false,
