@@ -16,12 +16,12 @@ jobs:
     name: Static checks and tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # check-commit-messages needs the branch history, not just the tip.
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -93,9 +93,9 @@ jobs:
     name: Web client (build, bundle gate, reproducibility)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -152,7 +152,7 @@ jobs:
       - name: Transcript list performance (Chromium)
         run: npm run e2e:perf:chromium --workspace @hermie/web-client
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: hermie-web-client-perf-results
@@ -167,13 +167,13 @@ jobs:
 
       # What would be imported into the plugin, and the source maps that must
       # not go with it.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: hermie-web-client-dist
           path: native/web/dist
           if-no-files-found: error
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: hermie-web-client-maps
           path: native/web/dist-maps
@@ -207,9 +207,9 @@ jobs:
       matrix:
         browser: [chromium, webkit, firefox]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -224,7 +224,7 @@ jobs:
         run: npm run e2e --workspace @hermie/web-client -- --project=${{ matrix.browser }}
 
       # A trace of every failed test: `npx playwright show-trace <file>`.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: hermie-web-client-e2e-traces-${{ matrix.browser }}
@@ -244,7 +244,7 @@ jobs:
     name: Desktop bridge (cargo test)
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -265,20 +265,20 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 17
           cache: gradle
 
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
 
       - name: Install
         run: npm ci
@@ -296,7 +296,7 @@ jobs:
         run: ./gradlew assembleDebug assembleRelease --no-daemon
         working-directory: expo/hermie/android
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: hermie-android-apks
           path: |
@@ -309,9 +309,9 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm

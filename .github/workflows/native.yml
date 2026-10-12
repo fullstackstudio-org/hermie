@@ -44,7 +44,7 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # The build number is the commit count (generate.sh), and a shallow
           # clone counts one commit.
@@ -79,7 +79,7 @@ jobs:
       # gateway (packages/fake-gateway) through its CLI, so they need Node and
       # the workspace installed. test.sh runs them by default in CI and fails
       # if either is missing. The guard keeps both steps tied to the target.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         if: hashFiles('native/apple/HermieKit/Tests/HermieIntegrationTests/**') != ''
         with:
           node-version-file: .nvmrc
