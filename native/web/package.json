@@ -26,9 +26,9 @@
     "@hermie/gateway-client": "*",
     "@hermie/markdown": "*",
     "@hermie/transcript": "*",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "zustand": "5.0.15"
+    "react": "19.1.10",
+    "react-dom": "19.1.10",
+    "zustand": "5.0.16"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
